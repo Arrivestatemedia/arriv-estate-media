@@ -220,7 +220,11 @@ Deno.serve(async (req) => {
             // If this is a Gather result that wasn't "1" (pressed 2 or timed out),
             // fall through to the support / sales-rep routing below.
             if (menu === '1') {
-              console.log('Media partner menu → routing to support (digit:', digits, ')');
+              console.log('Media partner menu → redirecting to Studio flow (digit:', digits, ')');
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+</Response>`);
             } else {
               // First contact — present the IVR menu
               console.log('Media partner inbound → presenting IVR menu for job', job.id);
@@ -285,7 +289,11 @@ Deno.serve(async (req) => {
             const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=1` : '';
 
             if (menu === '1') {
-              console.log('Client menu → routing to support (digit:', digits, ')');
+              console.log('Client menu → redirecting to Studio flow (digit:', digits, ')');
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+</Response>`);
             } else {
               console.log('Client inbound → presenting IVR menu for job', clientJob.id);
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
@@ -302,55 +310,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      let activeMembers = [];
-      try {
-        activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
-        console.log('Active members found:', activeMembers.length);
-      } catch (e) {
-        console.error('Failed to fetch members:', e.message);
-      }
-
-      if (activeMembers.length === 0) {
-        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      // No active job for this caller → redirect to Studio flow
+      console.log('No job match for caller → redirecting to Studio flow');
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>No sales representatives are available. Please try again later.</Say>
+  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
 </Response>`);
-      }
-
-      const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
-      const missedCallbackUrl = appDomain ? `${appDomain}/functions/handleMissedCall` : '';
-
-      // Ring all browser dialers simultaneously first (20s timeout)
-      // If nobody answers, fall back to all cell phones
-      let clientTags = '';
-      let cellTags = '';
-      for (const member of activeMembers) {
-        const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-        console.log('Adding client:', identity, 'cell fallback:', member.phone_number);
-        clientTags += `<Client>${identity}</Client>`;
-        if (member.phone_number) {
-          const cellNumber = member.phone_number.startsWith('+') ? member.phone_number : '+1' + member.phone_number.replace(/\D/g, '');
-          cellTags += `<Number>${cellNumber}</Number>`;
-        }
-      }
-
-      // Try browser dialers first, then cell phones as fallback
-      let twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${defaultCallerId}" timeout="20" action="${missedCallbackUrl}" method="POST">
-    ${clientTags}
-  </Dial>`;
-
-      if (cellTags) {
-        twiml += `
-  <Dial callerId="${defaultCallerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
-    ${cellTags}
-  </Dial>`;
-      }
-
-      twiml += `\n</Response>`;
-
-      return xmlResponse(twiml);
     }
 
   } catch (error) {
