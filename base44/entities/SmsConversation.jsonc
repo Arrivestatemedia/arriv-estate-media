@@ -46,6 +46,16 @@
       "default": "unset",
       "description": "Client's chosen destination for their outbound texts (media partner or support)"
     },
+    "media_partner_routing_preference": {
+      "type": "string",
+      "enum": [
+        "unset",
+        "client",
+        "support"
+      ],
+      "default": "unset",
+      "description": "Media specialist's chosen destination for their outbound texts (client or support)"
+    },
     "record_version": {
       "type": "integer",
       "default": 1,

@@ -204,23 +204,82 @@ Deno.serve(async (req) => {
               }
             }
           } else {
+            // ── Media-specialist routing preference ──
+            // Mirrors the client side: the specialist can choose to text their
+            // client or support (admin). First text prompts them to pick;
+            // they can switch anytime by texting "Client" or "Support".
             const specialistFirst = ((relayJob.booked_by_name || '').trim().split(/\s+/)[0]) || '';
-            const forwardedBody = specialistFirst
-              ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
-              : messageBody;
-            try {
-              const sent = await sendTwilioSms(counterpartE164, forwardedBody);
-              await recordOutbound(counterpartE164, forwardedBody, sent?.sid);
-            } catch (e) {
-              console.error('Relay SMS send failed:', e.message);
-            }
-            if (adminPhone) {
+            const senderE164 = e164(from);
+            let partnerPref = conversation.media_partner_routing_preference || 'unset';
+
+            const lower = (messageBody || '').toLowerCase().trim();
+            const isSupportKeyword = lower === 'support';
+            const isClientKeyword = lower === 'client';
+
+            if (isSupportKeyword) partnerPref = 'support';
+            else if (isClientKeyword) partnerPref = 'client';
+
+            if (isSupportKeyword || isClientKeyword) {
+              await base44.asServiceRole.entities.SmsConversation.update(conversation.id, {
+                media_partner_routing_preference: partnerPref,
+              });
+              const confirm = partnerPref === 'support'
+                ? "Got it — you're now texting support. Text 'Client' anytime to switch back to your client."
+                : "Got it — you're now texting your client. Text 'Support' anytime to switch.";
               try {
-                const copy = `[Copy to client] ${forwardedBody}`;
-                const sentCopy = await sendTwilioSms(adminPhone, copy);
-                await recordOutbound(adminPhone, copy, sentCopy?.sid);
+                const sent = await sendTwilioSms(senderE164, confirm);
+                await recordOutbound(senderE164, confirm, sent?.sid);
               } catch (e) {
-                console.error('Admin copy SMS send failed:', e.message);
+                console.error('Confirm SMS send failed:', e.message);
+              }
+              return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                headers: { 'Content-Type': 'text/xml' },
+              });
+            }
+
+            if (partnerPref === 'unset') {
+              const prompt = "Are you trying to contact your client or support? Reply 'Client' or 'Support'. You can change your choice anytime.";
+              try {
+                const sent = await sendTwilioSms(senderE164, prompt);
+                await recordOutbound(senderE164, prompt, sent?.sid);
+              } catch (e) {
+                console.error('Prompt SMS send failed:', e.message);
+              }
+              return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                headers: { 'Content-Type': 'text/xml' },
+              });
+            }
+
+            if (partnerPref === 'support') {
+              const toSupport = specialistFirst
+                ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
+                : messageBody;
+              if (adminPhone) {
+                try {
+                  const sent = await sendTwilioSms(adminPhone, toSupport);
+                  await recordOutbound(adminPhone, toSupport, sent?.sid);
+                } catch (e) {
+                  console.error('Support SMS send failed:', e.message);
+                }
+              }
+            } else {
+              const forwardedBody = specialistFirst
+                ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
+                : messageBody;
+              try {
+                const sent = await sendTwilioSms(counterpartE164, forwardedBody);
+                await recordOutbound(counterpartE164, forwardedBody, sent?.sid);
+              } catch (e) {
+                console.error('Relay SMS send failed:', e.message);
+              }
+              if (adminPhone) {
+                try {
+                  const copy = `[Copy to client] ${forwardedBody}`;
+                  const sentCopy = await sendTwilioSms(adminPhone, copy);
+                  await recordOutbound(adminPhone, copy, sentCopy?.sid);
+                } catch (e) {
+                  console.error('Admin copy SMS send failed:', e.message);
+                }
               }
             }
           }
