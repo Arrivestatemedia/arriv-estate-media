@@ -24,7 +24,6 @@ export const EMAIL_CATALOG = [
   // Booking
   { key: "sendBookingNotifications", name: "Booking Notifications", category: "Booking", description: "Booking confirmation and status notifications", variables: ["clientName", "jobDetails", "scheduledDate"], defaultSubject: "Your Booking Confirmation – Arriv Estate Media" },
   { key: "sendBookingStatusEmail", name: "Booking Status Update", category: "Booking", description: "Booking status change notification to client", variables: ["clientName", "status", "jobDetails"], defaultSubject: "Booking Status Update – Arriv Estate Media" },
-  { key: "sendReceiptToClient", name: "Receipt to Client", category: "Booking", description: "Payment receipt sent to client", variables: ["clientName", "amount", "invoiceUrl"], defaultSubject: "Payment Receipt – Arriv Estate Media" },
   { key: "sendClosingInvoiceEmail", name: "Closing Invoice", category: "Booking", description: "Closing invoice email with invoice attached", variables: ["clientName", "invoiceUrl", "amount"], defaultSubject: "Your Closing Invoice from Arriv Estate Media" },
   { key: "sendRefundReceipt", name: "Refund Receipt", category: "Booking", description: "Refund receipt email to client", variables: ["clientName", "amount", "refundDate"], defaultSubject: "Refund Confirmation – Arriv Estate Media" },
 

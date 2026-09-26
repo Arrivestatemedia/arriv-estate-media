@@ -395,17 +395,6 @@ export const EMAIL_DEFAULTS = {
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">{{jobDetails}}</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">If you have any questions, simply reply to this email.</p>`),
   },
-  sendReceiptToClient: {
-    subject: "Payment Receipt – Arriv Estate Media",
-    htmlBody: SHELL(`<h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{clientName}},</h1>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Thank you for your payment. Your receipt is below.</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#F7F1E8;border-radius:8px;">
-            <tr><td style="padding:16px 20px;font-size:16px;line-height:1.7;color:#1A1A1A;">
-              <p style="margin:0 0 6px;"><strong>Amount:</strong> {{amount}}</p>
-              <p style="margin:0;"><a href="{{invoiceUrl}}" style="color:#B8956A;">View Invoice</a></p>
-            </td></tr>
-          </table>`),
-  },
   sendClosingInvoiceEmail: {
     subject: "Your Closing Invoice from Arriv Estate Media",
     htmlBody: SHELL(`<h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{clientName}},</h1>
