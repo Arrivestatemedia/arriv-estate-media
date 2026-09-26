@@ -86,7 +86,7 @@ export function getAccessGuideUrl(provider: string): string {
     );
   }
   if (provider === PROVIDER_SUPRA) {
-    return Deno.env.get('SUPRA_ACCESS_GUIDE_URL') || 'https://bit.ly/3OdUc80';
+    return Deno.env.get('SUPRA_ACCESS_GUIDE_URL') || 'https://app.arrivestatemedia.com/r/pa7k';
   }
   // PROVIDER_UNKNOWN — no provider-specific guide
   return '';

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const specialistName = nameParts.length >= 2
       ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
       : rawSpecialistName;
-    const smsMessage = `Hi ${clientFirstName}!\n\nYour Media Specialist ${specialistName} is on the way to your ${job.location} listing.\n\nThey should arrive shortly. Filming should take 2 hours and we'll be in contact immediately after the shoot.\n\nIf you do not plan on being on site please make sure that you grant Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://bit.ly/3OdUc80`;
+    const smsMessage = `Hi ${clientFirstName}!\n\nYour Media Specialist ${specialistName} is on the way to your ${job.location} listing.\n\nThey should arrive shortly. Filming should take 2 hours and we'll be in contact immediately after the shoot.\n\nIf you do not plan on being on site please make sure that you grant Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://app.arrivestatemedia.com/r/pa7k`;
 
     // Send SMS via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
 
       // Create multipart email
        const boundary = '----=_Part_0_' + Date.now();
-        const emailBody = `Hi ${clientFirstName}!\n\nYour Media Specialist ${specialistName} is on the way to your ${job.location} listing.\n\nThey should arrive shortly. Filming should take 2 hours and we'll be in contact immediately after the shoot.\n\nIf you do not plan on being on site please make sure that you grant Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://bit.ly/3OdUc80`;
+        const emailBody = `Hi ${clientFirstName}!\n\nYour Media Specialist ${specialistName} is on the way to your ${job.location} listing.\n\nThey should arrive shortly. Filming should take 2 hours and we'll be in contact immediately after the shoot.\n\nIf you do not plan on being on site please make sure that you grant Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://app.arrivestatemedia.com/r/pa7k`;
 
        const email = [
         `To: ${job.client_email}`,
