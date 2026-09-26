@@ -57,10 +57,15 @@ Deno.serve(async (req) => {
       console.log('Gmail not available');
     }
 
-    // Prepare messages
-    const smsMessage = `Your media specialist ${job.booked_by_name} has arrived on site and is starting your ${(job.duration_hours || 2)}-hour shoot. We'll contact you once it's complete.`;
-    
-    const emailBody = `Hello ${job.client_name},\n\nYour media specialist ${job.booked_by_name} has arrived on site and is starting your shoot. The estimated duration is ${(job.duration_hours || 2)} hours.\n\nWe'll contact you as soon as the shoot is complete.\n\nBest regards,\nArriv`;
+    // Prepare messages — reduce specialist's last name to an initial for privacy
+    const rawSpecialistName = (job.booked_by_name || '').trim();
+    const nameParts = rawSpecialistName.split(/\s+/);
+    const specialistName = nameParts.length >= 2
+      ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
+      : rawSpecialistName;
+    const smsMessage = `Your media specialist ${specialistName} has arrived on site and is starting your ${(job.duration_hours || 2)}-hour shoot. We'll contact you once it's complete.`;
+
+    const emailBody = `Hello ${job.client_name},\n\nYour media specialist ${specialistName} has arrived on site and is starting your shoot. The estimated duration is ${(job.duration_hours || 2)} hours.\n\nWe'll contact you as soon as the shoot is complete.\n\nBest regards,\nArriv`;
 
     // Send SMS via Twilio
     const formattedPhone = job.client_phone.startsWith('+') ? job.client_phone : `+1${job.client_phone}`;

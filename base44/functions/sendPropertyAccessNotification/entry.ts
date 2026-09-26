@@ -92,7 +92,12 @@ Deno.serve(async (req) => {
     const formattedDate = format(jobDate, 'MMMM d, yyyy');
     const formattedTime = job.start_time || '9:00 AM';
     const clientFirstName = (job.client_name || '').split(' ')[0] || 'there';
-    const specialistName = job.booked_by_name;
+    // Reduce specialist's last name to an initial for privacy in client-facing messages
+    const rawSpecialistName = (job.booked_by_name || '').trim();
+    const nameParts = rawSpecialistName.split(/\s+/);
+    const specialistName = nameParts.length >= 2
+      ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
+      : rawSpecialistName;
     const specialistEmail = job.booked_by; // canonical verified account email
     const specialistPhone = job.booked_by_phone;
     const propertyAddress = job.location;
