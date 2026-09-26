@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -139,19 +140,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Email via Gmail
+      // Email via Brevo (from info@arrivestatemedia.com)
       if (updatedJob.client_email) {
         try {
-          const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-          const message = `To: ${updatedJob.client_email}\r\nSubject: ${emailSubject}\r\n\r\n${emailBody}`;
-          const encodedMessage = btoa(message);
-          const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${gmailAccessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ raw: encodedMessage }),
+          await sendBrevoEmail({
+            to: updatedJob.client_email,
+            subject: emailSubject,
+            textContent: emailBody,
+            senderEmail: 'info@arrivestatemedia.com',
+            senderName: 'Arriv Estate Media',
           });
           await base44.asServiceRole.entities.MessageLog.create({
             message_type: 'email',
@@ -160,10 +157,20 @@ Deno.serve(async (req) => {
             message_content: emailBody,
             subject: emailSubject,
             job_id: jobId,
-            status: emailResponse.ok ? 'success' : 'failed',
+            status: 'success',
           });
         } catch (emailErr) {
           console.error('Client booking email failed:', emailErr.message);
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email',
+            recipient_type: 'client',
+            recipient_email: updatedJob.client_email,
+            message_content: emailBody,
+            subject: emailSubject,
+            job_id: jobId,
+            status: 'failed',
+            error_message: emailErr.message,
+          });
         }
       }
     } catch (notifyErr) {
