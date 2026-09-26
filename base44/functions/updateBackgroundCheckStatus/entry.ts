@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { processBackgroundCheckFailure } from '../../shared/backgroundCheck.ts';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -42,10 +43,89 @@ Deno.serve(async (req) => {
     if (status === 'failed') {
       outcome = await processBackgroundCheckFailure(base44, partner);
     } else {
+      // Capture the job they booked while pending (before clearing) so we can mention it
+      const pendingJobId = partner.id
+        ? (await base44.asServiceRole.entities.User.get(partner.id))?.background_check_pending_job_id
+        : pendingSignup?.background_check_pending_job_id;
+      const hasFirstJob = !!pendingJobId;
+
       if (partner.id) {
         await base44.asServiceRole.entities.User.update(partner.id, { background_check_pending_job_id: null });
       } else if (pendingSignup) {
         await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, { background_check_pending_job_id: null });
+      }
+
+      // Notify the media specialist they're cleared and their first job is officially booked
+      const firstName = (partner.full_name || '').split(' ')[0] || 'there';
+      const smsMessage = hasFirstJob
+        ? `Hi ${firstName}! Great news — your background check with Arriv has cleared. You're now cleared to book and accept gigs, and your first job is officially booked! Head to your dashboard for the details. Welcome to the team!`
+        : `Hi ${firstName}! Great news — your background check with Arriv has cleared. You're now cleared to book and accept gigs on the Arriv job board. Head to your dashboard to start claiming jobs. Welcome to the team!`;
+      const emailSubject = 'Your Arriv Background Check Cleared!';
+      const emailBody = hasFirstJob
+        ? `Hi ${firstName},\n\nGreat news — your background check with Arriv has cleared. You're now fully cleared to book and accept gigs, and your first job is officially booked!\n\nHead to your dashboard for the job details. If you have any questions, feel free to reach out.\n\nWelcome to the team!\n\nArriv Estate Media Team`
+        : `Hi ${firstName},\n\nGreat news — your background check with Arriv has cleared. You're now fully cleared to book and accept gigs on the Arriv job board.\n\nHead to your dashboard to start claiming jobs. If you have any questions, feel free to reach out.\n\nWelcome to the team!\n\nArriv Estate Media Team`;
+
+      // SMS via Twilio
+      if (partner.phone_number) {
+        const formattedPhone = partner.phone_number.startsWith('+') ? partner.phone_number : `+1${partner.phone_number}`;
+        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+        const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+        try {
+          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: fromPhone,
+              To: formattedPhone,
+              Body: smsMessage,
+            }).toString(),
+          });
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'sms',
+            recipient_type: 'media_partner',
+            recipient_phone: partner.phone_number,
+            message_content: smsMessage,
+            status: smsResponse.ok ? 'success' : 'failed',
+          });
+        } catch (smsErr) {
+          console.error('Background check clear SMS failed:', smsErr.message);
+        }
+      }
+
+      // Email via Brevo (from careers@arrivestatemedia.com)
+      if (partner.email) {
+        try {
+          await sendBrevoEmail({
+            to: partner.email,
+            subject: emailSubject,
+            textContent: emailBody,
+            senderEmail: 'careers@arrivestatemedia.com',
+            senderName: 'Arriv Estate Media',
+          });
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email',
+            recipient_type: 'media_partner',
+            recipient_email: partner.email,
+            message_content: emailBody,
+            subject: emailSubject,
+            status: 'success',
+          });
+        } catch (emailErr) {
+          console.error('Background check clear email failed:', emailErr.message);
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email',
+            recipient_type: 'media_partner',
+            recipient_email: partner.email,
+            message_content: emailBody,
+            subject: emailSubject,
+            status: 'failed',
+            error_message: emailErr.message,
+          });
+        }
       }
     }
 
