@@ -58,6 +58,7 @@ import TrainingSimulation from './pages/TrainingSimulation';
 import StudioWorkspace from './pages/StudioWorkspace';
 import PropertyAccess from './pages/PropertyAccess';
 import ShortRedirect from './pages/ShortRedirect';
+import AdminPhoneNumbers from './pages/AdminPhoneNumbers';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -487,6 +488,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="PropertyAccess">
             <PropertyAccess />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPhoneNumbers"
+        element={
+          <LayoutWrapper currentPageName="AdminPhoneNumbers">
+            <AdminPhoneNumbers />
           </LayoutWrapper>
         }
       />
