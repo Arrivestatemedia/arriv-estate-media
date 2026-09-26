@@ -308,6 +308,13 @@ export default function KhethaIQ() {
         setJobOpenings(prev => [newOpening, ...prev]);
         setEditingPreviewUrl(legacyUrl || `/careers/${newOpening.public_slug || newOpening.job_id}`);
         setEditingJobOpening(newOpening);
+        // The public page is now live — promote the HireJob from draft to open
+        // so the admin card status matches the live page.
+        try {
+          const updated = await base44.entities.HireJob.update(hireJob.id, { status: "open" });
+          const updatedJob = updated?.data ?? updated;
+          setJobs(prev => prev.map(j => j.id === hireJob.id ? { ...j, ...updatedJob } : j));
+        } catch (_) {}
       } else {
         alert(data?.error || "Failed to create job page");
       }
