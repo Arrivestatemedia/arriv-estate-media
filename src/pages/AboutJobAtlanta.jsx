@@ -146,7 +146,7 @@ export default function AboutJobAtlanta() {
     ? job.preferred_qualifications
     : (job?.skills?.length ? job.skills : MEDIA_JOB_ATLANTA_DEFAULTS.preferred_qualifications);
   const benefits = job?.benefits?.length ? job.benefits : MEDIA_JOB_ATLANTA_DEFAULTS.benefits;
-  const faqs = job?.faqs || [];
+  const faqs = (job?.faqs || []).map(f => ({ q: f.question || f.q, a: f.answer || f.a }));
   const locationLabel = job?.location || "Metro Atlanta";
 
   if (loading) {

@@ -146,7 +146,7 @@ export default function AboutJob() {
     ? job.preferred_qualifications
     : (job?.skills?.length ? job.skills : MEDIA_JOB_DEFAULTS.preferred_qualifications);
   const benefits = job?.benefits?.length ? job.benefits : MEDIA_JOB_DEFAULTS.benefits;
-  const faqs = job?.faqs || [];
+  const faqs = (job?.faqs || []).map(f => ({ q: f.question || f.q, a: f.answer || f.a }));
 
   if (loading) {
     return (

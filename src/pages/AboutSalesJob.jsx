@@ -165,7 +165,7 @@ export default function AboutSalesJob() {
   const preferred = job?.preferred_qualifications || [];
   const skills = job?.skills || [];
   const benefits = job?.benefits || [];
-  const faqs = job?.faqs || [];
+  const faqs = (job?.faqs || []).map(f => ({ q: f.question || f.q, a: f.answer || f.a }));
   const whyJoin = benefits.length ? benefits : null; // when admin sets benefits, they replace WHY_JOIN
 
   const heroBadges = [];
