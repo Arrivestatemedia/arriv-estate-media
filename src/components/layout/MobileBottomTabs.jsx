@@ -63,7 +63,7 @@ export default function MobileBottomTabs({ user }) {
         { label: "Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
         { label: "Dashboard", page: "MediaPartnerDashboard", icon: LayoutDashboard },
         { label: "Payouts", page: "PayoutRecords", icon: Wallet },
-        { label: "Supra", page: "SupraAccess", icon: Key },
+        { label: "Access", page: "PropertyAccess", icon: Key },
         { label: "Settings", page: "PublicAccountSettings", icon: Settings },
       ]
     : [];

@@ -111,11 +111,22 @@ Media Partners are the photographers/videographers who shoot real estate propert
 - **Tax documents** — 1099 tax forms (for contractors)
 - **Payout history tab** — full transaction history
 
-### 3d. Supra Access
-**Location:** `src/pages/SupraAccess.jsx`
+### 3d. Property Access (Provider-Aware: SentriLock/SentriConnect + Supra)
+**Location:** `src/pages/PropertyAccess.jsx`, `src/lib/propertyAccessProvider.js`, `base44/shared/propertyAccessProvider.ts`, `base44/functions/sendPropertyAccessNotification/entry.ts`
 
-- **Supra keybox access** — manages Supra lockbox access credentials for media partners who need to access locked properties via Supra iBox/ActiveKEY
-- Shows access code / instructions
+- **Territory-aware provider routing** — property-access provider is determined by the JOB'S PROPERTY LOCATION, not the media specialist's home address
+- **DMV (DC, Maryland, Virginia)** → **SentriLock** / **SentriConnect** — the listing agent grants temporary SentriConnect access to the assigned media specialist's Arriv account email via their SentriKey Real Estate app
+- **Existing Supra markets** (all other states) → **Supra** / **eKEY** — the existing Supra temporary-access workflow is preserved unchanged
+- **Canonical provider resolver** — `getPropertyAccessProvider(jobOrProperty)` in `base44/shared/propertyAccessProvider.ts` (backend) and `src/lib/propertyAccessProvider.js` (frontend) — normalizes state values (DC, D.C., District of Columbia, Washington DC, MD, Maryland, VA, Virginia) and returns `SENTRILOCK` or `SUPRA`
+- **Provider-aware notification** — `sendPropertyAccessNotification` backend function replaces `sendSupraAccessNotification` as the single canonical "I'm On My Way" property-access notification; resolves provider from job state, constructs provider-specific SMS + email, sends via Twilio + Gmail, logs to MessageLog with `provider` and `access_method` metadata
+- **SentriLock guide URL** — `SENTRILOCK_ACCESS_GUIDE_URL` secret configured at `https://drive.google.com/file/d/1Ap8EWP_Su2Wxl15Hn0URV_aJaq99OopT/view?usp=drive_link`
+- **Supra guide URL** — `SUPRA_ACCESS_GUIDE_URL` secret preserves the existing Supra guide
+- **SentriConnect app** — official iOS (`id1211378236`) and Android (`com.sentriconnect.sentriconnect`) app store links
+- **PropertyAccess page** — unified page showing both SentriConnect (DMV) and Supra (existing markets) sections with download links, step-by-step instructions, and the Arriv SentriLock General Access Guide
+- **Navigation** — media partner nav shows "Property Access" (desktop) / "Access" (mobile bottom tab) pointing to `/PropertyAccess`
+- **MessageLog metadata** — property-access notifications now log `provider` (SENTRILOCK/SUPRA) and `access_method` (SENTRICONNECT/SUPRA_EKEY) for audit
+- **No SentriLock API integration** — Arriv coordinates the workflow (job, specialist, email, instructions, notification, guide) but does NOT create the external SentriLock authorization; the listing agent creates it via SentriKey Real Estate; Arriv does not request or store SentriKey/SentriConnect passwords or PINs
+- **Legacy SupraAccess page** — `src/pages/SupraAccess.jsx` remains accessible at `/SupraAccess` for backward compatibility; navigation now points to `/PropertyAccess`
 
 ### 3e. Background Check
 **Location:** `src/pages/BackgroundCheck.jsx`, `src/components/backgroundcheck/BackgroundCheckAuthorizationModal.jsx`, `base44/functions/initiateBackgroundCheck/entry.ts`, `base44/functions/handleCheckrWebhook/entry.ts`

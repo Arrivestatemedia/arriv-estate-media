@@ -56,6 +56,7 @@ import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
 import TrainingSimulation from './pages/TrainingSimulation';
 import StudioWorkspace from './pages/StudioWorkspace';
+import PropertyAccess from './pages/PropertyAccess';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -477,6 +478,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="StudioWorkspace">
             <StudioWorkspace />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PropertyAccess"
+        element={
+          <LayoutWrapper currentPageName="PropertyAccess">
+            <PropertyAccess />
           </LayoutWrapper>
         }
       />

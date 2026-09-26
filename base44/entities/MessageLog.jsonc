@@ -71,6 +71,22 @@
       "default": "system",
       "description": "Origin of the message. 'email_hub' = manually sent from the Email Hub by a sales rep. 'system' = automated/system-generated (reminders, invoices, notifications, etc.)."
     },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "SENTRILOCK",
+        "SUPRA"
+      ],
+      "description": "Property access provider for property-access notifications (SENTRILOCK for DMV/DC/MD/VA, SUPRA for existing markets). Null for non-property-access messages."
+    },
+    "access_method": {
+      "type": "string",
+      "enum": [
+        "SENTRICONNECT",
+        "SUPRA_EKEY"
+      ],
+      "description": "Access method used for property-access notifications (SENTRICONNECT for SentriLock, SUPRA_EKEY for Supra). Null for non-property-access messages."
+    },
     "sales_member_email": {
       "type": "string",
       "description": "Email address of the sales rep who sent this message (set for email_hub messages). Used to filter the Outbox per rep."

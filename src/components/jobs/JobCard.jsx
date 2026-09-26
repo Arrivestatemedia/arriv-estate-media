@@ -99,7 +99,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         media_partner_status: 'on_the_way',
         on_the_way_at: new Date().toISOString()
       });
-      await base44.functions.invoke('sendSupraAccessNotification', { jobId: job.id });
+      await base44.functions.invoke('sendPropertyAccessNotification', { jobId: job.id });
       await base44.functions.invoke('notifyMediaPartnerAttireVerified', { jobId: job.id });
       setShowAttireDialog(false);
       if (onJobUpdate) onJobUpdate();

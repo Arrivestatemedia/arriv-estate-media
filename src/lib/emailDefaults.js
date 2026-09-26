@@ -528,6 +528,19 @@ export const EMAIL_DEFAULTS = {
     htmlBody: SHELL(`<h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{firstName}},</h1>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">{{accessDetails}}</p>`),
   },
+  sendPropertyAccessNotification: {
+    subject: "Your Media Specialist is on the way – Arriv Estate Media",
+    htmlBody: SHELL(`<h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{firstName}},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your Arriv Estate Media Media Specialist, <strong>{{specialistName}}</strong>, is on the way to your listing at <strong>{{propertyAddress}}</strong>.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">If you will not be on site, please grant temporary access through your lockbox provider app using the specialist's email address below.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#F7F1E8;border-radius:8px;">
+            <tr><td style="padding:16px 20px;font-size:16px;line-height:1.7;color:#1A1A1A;">
+              <p style="margin:0 0 6px;"><strong>Media Specialist:</strong> {{specialistName}}</p>
+              <p style="margin:0 0 6px;"><strong>Access Email:</strong> {{specialistEmail}}</p>
+              <p style="margin:0;"><a href="{{guideUrl}}" style="color:#B8956A;">View the Access Guide</a></p>
+            </td></tr>
+          </table>`),
+  },
   sendVideoCallInvite: {
     subject: "Video Call Invitation – Arriv Estate Media",
     htmlBody: SHELL(`<h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{firstName}},</h1>
