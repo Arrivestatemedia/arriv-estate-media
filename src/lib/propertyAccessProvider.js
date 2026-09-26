@@ -2,7 +2,13 @@
  * Frontend Property Access Provider Resolver
  *
  * Mirrors base44/shared/propertyAccessProvider.ts for use in React components.
- * Determines SentriLock (DMV) vs Supra (existing markets) from a job/property state.
+ *
+ * DMV (DC, Maryland, Virginia)          → SENTRILOCK / SentriConnect
+ * Explicitly configured Supra markets    → SUPRA / eKEY
+ * Any other unconfigured state/market    → UNKNOWN (provider-neutral message)
+ *
+ * ── Markets currently configured for SUPRA ──
+ *   Georgia (GA)
  *
  * For an individual JOB, provider is ALWAYS determined by PROPERTY LOCATION.
  * A Media Specialist's home address never overrides a job's property state.
@@ -10,6 +16,7 @@
 
 export const PROVIDER_SENTRILOCK = 'SENTRILOCK';
 export const PROVIDER_SUPRA = 'SUPRA';
+export const PROVIDER_UNKNOWN = 'UNKNOWN';
 
 const DMV_STATES = new Set([
   'dc',
@@ -23,6 +30,14 @@ const DMV_STATES = new Set([
   'virginia',
 ]);
 
+// ── Explicitly configured Supra markets ──
+// Only states confirmed by Arriv to use Supra should appear here.
+// Currently configured: Georgia (GA).
+const SUPRA_STATES = new Set([
+  'ga',
+  'georgia',
+]);
+
 export function normalizeState(state) {
   if (!state) return '';
   return String(state).trim().toLowerCase();
@@ -32,10 +47,16 @@ export function isDmvState(state) {
   return DMV_STATES.has(normalizeState(state));
 }
 
+export function isSupraState(state) {
+  return SUPRA_STATES.has(normalizeState(state));
+}
+
 export function getPropertyAccessProvider(jobOrProperty) {
-  if (!jobOrProperty) return PROVIDER_SUPRA;
+  if (!jobOrProperty) return PROVIDER_UNKNOWN;
   const state = jobOrProperty?.state || '';
-  return isDmvState(state) ? PROVIDER_SENTRILOCK : PROVIDER_SUPRA;
+  if (isDmvState(state)) return PROVIDER_SENTRILOCK;
+  if (isSupraState(state)) return PROVIDER_SUPRA;
+  return PROVIDER_UNKNOWN;
 }
 
 // Public configuration — these are public guide URLs, not secrets.

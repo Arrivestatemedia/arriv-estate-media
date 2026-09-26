@@ -75,17 +75,22 @@
       "type": "string",
       "enum": [
         "SENTRILOCK",
-        "SUPRA"
+        "SUPRA",
+        "UNKNOWN"
       ],
-      "description": "Property access provider for property-access notifications (SENTRILOCK for DMV/DC/MD/VA, SUPRA for existing markets). Null for non-property-access messages."
+      "description": "Property access provider for property-access notifications. SENTRILOCK for DMV (DC/MD/VA), SUPRA for explicitly configured Supra markets (currently Georgia), UNKNOWN for unconfigured markets (provider-neutral message). Null for non-property-access messages."
     },
     "access_method": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "enum": [
         "SENTRICONNECT",
-        "SUPRA_EKEY"
+        "SUPRA_EKEY",
+        null
       ],
-      "description": "Access method used for property-access notifications (SENTRICONNECT for SentriLock, SUPRA_EKEY for Supra). Null for non-property-access messages."
+      "description": "Access method used for property-access notifications (SENTRICONNECT for SentriLock, SUPRA_EKEY for Supra). Null for UNKNOWN provider (no access method) and for non-property-access messages."
     },
     "sales_member_email": {
       "type": "string",

@@ -3,6 +3,7 @@ import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
 import {
   PROVIDER_SENTRILOCK,
   PROVIDER_SUPRA,
+  PROVIDER_UNKNOWN,
   getPropertyAccessProvider,
   getAccessGuideUrl,
 } from '../../shared/propertyAccessProvider.ts';
@@ -99,7 +100,10 @@ Deno.serve(async (req) => {
       ? job.client_phone
       : `+1${job.client_phone}`;
 
-    const accessMethod = provider === PROVIDER_SENTRILOCK ? 'SENTRICONNECT' : 'SUPRA_EKEY';
+    const accessMethod: string | null =
+      provider === PROVIDER_SENTRILOCK ? 'SENTRICONNECT' :
+      provider === PROVIDER_SUPRA ? 'SUPRA_EKEY' :
+      null;
 
     let smsMessage: string;
     let emailSubject: string;
@@ -126,10 +130,8 @@ Deno.serve(async (req) => {
         `APPOINTMENT\n${formattedDate}\n${formattedTime}\n\n` +
         `For step-by-step instructions, view the Arriv Estate Media SentriLock General Access Guide:\n${guideUrl}\n\n` +
         `Thank you,\n\nArriv Estate Media`;
-    } else {
+    } else if (provider === PROVIDER_SUPRA) {
       // ── Supra notification (existing markets) ──
-      // Fixed: removed "Please see attached document" (no attachment is sent),
-      // replaced with "view the guide below". Uses SUPRA_ACCESS_GUIDE_URL from env.
       smsMessage =
         `Hi ${clientFirstName}!\n\n` +
         `Your Media Specialist ${specialistName} is on the way to your ${propertyAddress} listing.\n\n` +
@@ -147,6 +149,24 @@ Deno.serve(async (req) => {
         `If you do not plan on being on site please make sure that you grant Supra access to the number below:\n\n` +
         `${specialistPhone}\n\n` +
         `For instructions on how to add temporary access in Supra, view the guide below:\n${guideUrl}`;
+    } else {
+      // ── UNKNOWN: provider-neutral notification ──
+      // No SentriLock instructions, no Supra instructions, no provider guide URL.
+      // The client is asked to ensure access without naming a specific lockbox provider.
+      smsMessage =
+        `Hi ${clientFirstName}! Your Arriv Estate Media Media Specialist, ${specialistName}, is on the way to your listing at ${propertyAddress}.\n\n` +
+        `Please ensure the Arriv Estate Media Media Specialist has authorized property access for the scheduled appointment.\n\n` +
+        `Arriv Estate Media`;
+
+      emailSubject = 'Your Media Specialist is on the way - Arriv Estate Media';
+
+      emailBody =
+        `Hi ${clientFirstName},\n\n` +
+        `Your Arriv Estate Media Media Specialist, ${specialistName}, is on the way to your listing at:\n\n` +
+        `${propertyAddress}\n\n` +
+        `APPOINTMENT\n${formattedDate}\n${formattedTime}\n\n` +
+        `Please ensure the Arriv Estate Media Media Specialist has authorized property access for the scheduled appointment.\n\n` +
+        `Thank you,\n\nArriv Estate Media`;
     }
 
     // ── Send SMS via Twilio ──
