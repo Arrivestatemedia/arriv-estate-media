@@ -111,13 +111,13 @@ export default function JobApplication() {
       }
 
       for (const file of videoFiles) {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file });
-        videoUrls.push(uploadRes.file_url);
+        const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
+        videoUrls.push(uploadRes?.file_url || uploadRes?.data?.file_url);
       }
 
       for (const file of pictureFiles) {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file });
-        pictureUrls.push(uploadRes.file_url);
+        const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
+        pictureUrls.push(uploadRes?.file_url || uploadRes?.data?.file_url);
       }
 
       const payload = {

@@ -43,8 +43,8 @@ export default function SalesJobApplication() {
     setResumeFile(file);
     setExtracting(true);
     try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
-      const url = uploadRes.file_url;
+      const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
+      const url = uploadRes?.file_url || uploadRes?.data?.file_url;
       setResumeUrl(url);
 
       const extractRes = await base44.integrations.Core.ExtractDataFromUploadedFile({

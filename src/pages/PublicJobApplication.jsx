@@ -94,7 +94,7 @@ export default function PublicJobApplication() {
   const handleResumeUpload = async (file) => {
     setUploading(true);
     try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
       const url = uploadRes?.file_url || uploadRes?.data?.file_url;
       setResumeUrl(url);
       setResumeName(file.name);
