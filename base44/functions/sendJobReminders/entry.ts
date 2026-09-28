@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
           }
 
           for (const job of jobs) {
+           try {
             if (!job.date || !job.booked_by) continue;
 
             // Parse job date and time
@@ -418,8 +419,11 @@ Deno.serve(async (req) => {
           reminder_type: reminder.type,
           sent_at: new Date().toISOString()
         });
-      }
-    }
+        }
+        } catch (e) {
+        console.error('Job reminder processing error for job', job?.id, e.message);
+        }
+        }
 
     return Response.json({ 
       success: true, 
