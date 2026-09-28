@@ -2,6 +2,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, zonedTimeToUtc, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
 import { parse as parseDate, format } from 'npm:date-fns@3.6.0';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import {
+  PROVIDER_SENTRILOCK,
+  PROVIDER_SUPRA,
+  getPropertyAccessProvider,
+  getAccessGuideUrl,
+} from '../../shared/propertyAccessProvider.ts';
 
 function convertTo12HourFormat(time24) {
   const [hour, minute] = time24.split(':').map(Number);
@@ -217,7 +223,7 @@ Deno.serve(async (req) => {
             });
           }
         } else if (reminder.type === '24_hours_before') {
-           // Send to media partner only
+           // Send to media partner
            const message = `Reminder: Your shoot is in 24 hours at ${jobTime}. Address: ${job.location}`;
            if (job.booked_by_phone) {
              await base44.asServiceRole.functions.invoke('sendReminderSMS', {
@@ -234,6 +240,130 @@ Deno.serve(async (req) => {
                job_id: job.id,
                reminder_type: reminder.type,
                status: 'success'
+             });
+           }
+
+           // ── 24-hour lockbox access reminder to client ──
+           // Territory-aware: SentriLock (DMV), Supra (GA), or neutral.
+           const provider = getPropertyAccessProvider(job);
+           const guideUrl = getAccessGuideUrl(provider);
+           const jobDateObj = parseDate(job.date, 'yyyy-MM-dd', new Date());
+           const formattedDate = format(jobDateObj, 'MMMM d, yyyy');
+           const formattedTime12 = convertTo12HourFormat(jobTime);
+           const clientFirstName = (job.client_name || '').split(' ')[0] || 'there';
+           const rawSpecialistName = (job.booked_by_name || '').trim();
+           const nameParts = rawSpecialistName.split(/\s+/);
+           const specialistName = nameParts.length >= 2
+             ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
+             : rawSpecialistName;
+           const specialistEmail = job.booked_by;
+           const specialistPhone = job.booked_by_phone;
+           const propertyAddress = job.location;
+           const accessMethod = provider === PROVIDER_SENTRILOCK ? 'SENTRICONNECT' :
+             provider === PROVIDER_SUPRA ? 'SUPRA_EKEY' : null;
+
+           let clientSms;
+           let clientEmailSubject;
+           let clientEmailBody;
+
+           if (provider === PROVIDER_SENTRILOCK) {
+             clientSms =
+               `Hi ${clientFirstName}! This is a reminder that your Arriv Estate Media shoot is tomorrow, ${formattedDate}, at ${formattedTime12} at your listing at ${propertyAddress}.\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving for the appointment. If you will not be on site, please grant them temporary SentriConnect access through your SentriKey Real Estate app.\n\n` +
+               `SentriConnect email: ${specialistEmail}\n\n` +
+               `For step-by-step instructions, view the Arriv Estate Media SentriLock Access Guide:\n${guideUrl}\n\n` +
+               `Arriv Estate Media`;
+             clientEmailSubject = 'Reminder: Your Arriv Estate Media shoot is tomorrow - SentriLock Access';
+             clientEmailBody =
+               `Hi ${clientFirstName},\n\n` +
+               `This is a reminder that your Arriv Estate Media shoot is tomorrow:\n\n` +
+               `${propertyAddress}\n${formattedDate} at ${formattedTime12}\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving for the appointment. If you will not be on site, please grant temporary SentriConnect access through your SentriKey Real Estate app.\n\n` +
+               `MEDIA SPECIALIST\n${specialistName}\n\n` +
+               `SENTRICONNECT EMAIL\n${specialistEmail}\n\n` +
+               `For step-by-step instructions, view the Arriv Estate Media SentriLock General Access Guide:\n${guideUrl}\n\n` +
+               `Thank you,\n\nArriv Estate Media`;
+           } else if (provider === PROVIDER_SUPRA) {
+             clientSms =
+               `Hi ${clientFirstName}!\n\n` +
+               `This is a reminder that your Arriv Estate Media shoot is tomorrow, ${formattedDate}, at ${formattedTime12} at your ${propertyAddress} listing.\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving shortly. Filming should take about 2 hours.\n\n` +
+               `If you do not plan on being on site, please make sure you grant Supra access to the number below:\n\n` +
+               `${specialistPhone}\n\n` +
+               `For instructions on how to add temporary access in Supra, view the guide below:\n${guideUrl}`;
+             clientEmailSubject = 'Reminder: Your Arriv Estate Media shoot is tomorrow!';
+             clientEmailBody =
+               `Hi ${clientFirstName}!\n\n` +
+               `This is a reminder that your Arriv Estate Media shoot is tomorrow, ${formattedDate}, at ${formattedTime12} at your ${propertyAddress} listing.\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving shortly. Filming should take about 2 hours.\n\n` +
+               `If you do not plan on being on site, please make sure you grant Supra access to the number below:\n\n` +
+               `${specialistPhone}\n\n` +
+               `For instructions on how to add temporary access in Supra, view the guide below:\n${guideUrl}`;
+           } else {
+             clientSms =
+               `Hi ${clientFirstName}! This is a reminder that your Arriv Estate Media shoot is tomorrow, ${formattedDate}, at ${formattedTime12} at your listing at ${propertyAddress}.\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving for the appointment. Please ensure the Media Specialist has authorized property access for the scheduled appointment.\n\n` +
+               `Arriv Estate Media`;
+             clientEmailSubject = 'Reminder: Your Arriv Estate Media shoot is tomorrow';
+             clientEmailBody =
+               `Hi ${clientFirstName},\n\n` +
+               `This is a reminder that your Arriv Estate Media shoot is tomorrow:\n\n` +
+               `${propertyAddress}\n${formattedDate} at ${formattedTime12}\n\n` +
+               `Your Media Specialist, ${specialistName}, will be arriving for the appointment. Please ensure the Media Specialist has authorized property access for the scheduled appointment.\n\n` +
+               `Thank you,\n\nArriv Estate Media`;
+           }
+
+           // Send SMS to client
+           if (job.client_phone) {
+             try {
+               await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+                 phone: job.client_phone,
+                 message: clientSms,
+                 recipientType: 'client',
+                 jobId: job.id
+               });
+               await base44.asServiceRole.entities.MessageLog.create({
+                 message_type: 'sms',
+                 recipient_type: 'client',
+                 recipient_phone: job.client_phone,
+                 message_content: clientSms,
+                 job_id: job.id,
+                 reminder_type: reminder.type,
+                 status: 'success',
+                 provider,
+                 access_method: accessMethod
+               });
+             } catch (e) {
+               console.log('Client 24h SMS send skipped:', e.message);
+             }
+           }
+
+           // Send email to client
+           if (job.client_email) {
+             try {
+               if (gmailAccessToken) {
+                 await sendEmailViaGmail(gmailAccessToken, job.client_email, clientEmailSubject, clientEmailBody);
+               } else {
+                 await sendBrevoEmail({
+                   to: job.client_email,
+                   subject: clientEmailSubject,
+                   textContent: clientEmailBody
+                 });
+               }
+             } catch (e) {
+               console.log('Client 24h email send skipped:', e.message);
+             }
+             await base44.asServiceRole.entities.MessageLog.create({
+               message_type: 'email',
+               recipient_type: 'client',
+               recipient_email: job.client_email,
+               message_content: clientEmailBody,
+               subject: clientEmailSubject,
+               job_id: job.id,
+               reminder_type: reminder.type,
+               status: 'success',
+               provider,
+               access_method: accessMethod
              });
            }
         } else if (reminder.type === '90_minutes_before') {
