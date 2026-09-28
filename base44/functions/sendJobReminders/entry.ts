@@ -99,8 +99,12 @@ Deno.serve(async (req) => {
                 }
               },
               {
+                // Catch-up safe: fires once we're at/past 24h before the shoot,
+                // as long as we're still >100min out. JobReminder dedup prevents
+                // re-sends, so a missed narrow window or a late booking still
+                // gets the reminder on the next workflow run (every 5 min).
                 type: '24_hours_before',
-                shouldSend: () => timeDiffMinutes > 1350 && timeDiffMinutes <= 1450 // 22.5-24.2 hours window
+                shouldSend: () => timeDiffMinutes <= 1440 && timeDiffMinutes > 100
               },
               {
                 type: '90_minutes_before',
