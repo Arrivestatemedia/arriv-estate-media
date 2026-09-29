@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 6 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "b2b_billing_sync",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sync_billing": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncB2BBilling"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sync B2B billing with payroll",
+            "description": "Enroll new contracts, check payment status, apply/release holds"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Daily sync of B2B contract billing with Arriv Payroll \u2014 enrolls new monthly contracts, checks payment status, and applies/releases account holds",
+  "name": "B2B Billing Sync"
+}

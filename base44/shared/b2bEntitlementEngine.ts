@@ -498,10 +498,16 @@ export async function reserveB2BMediaCredits(client: any, params: {
   let overageRecord: any = null;
   if (creditShortfall > 0) {
     const lockedSnapshots = params.locked_snapshots || await getLockedConfigSnapshots(client, params.contract_version_id);
-    const plan = lockedSnapshots.plan.snapshot.plans.find((p: any) => p.plan_id === lockedSnapshots.plan.snapshot.config_version);
-    // Calculate per-credit dollar value from plan
-    const planDef = lockedSnapshots.plan.snapshot.plans.find((p: any) => p.monthly_media_credits > 0);
-    const perCreditValue = planDef ? planDef.monthly_price / planDef.monthly_media_credits : 0;
+    // §XXIII: Use explicit shortfall rate if configured, otherwise derive from plan
+    const creditConfig = lockedSnapshots.media_credit?.snapshot || {};
+    const explicitRate = creditConfig.credit_shortfall_rate_per_credit;
+    let perCreditValue: number;
+    if (typeof explicitRate === 'number' && explicitRate > 0) {
+      perCreditValue = explicitRate;
+    } else {
+      const planDef = lockedSnapshots.plan.snapshot.plans.find((p: any) => p.monthly_media_credits > 0);
+      perCreditValue = planDef ? planDef.monthly_price / planDef.monthly_media_credits : 0;
+    }
     const cashRemainder = unitsToCredits(creditShortfall) * perCreditValue;
 
     overageRecord = await client.entities.B2BContractOverage.create({
@@ -1335,11 +1341,18 @@ export async function resolveB2BBookingEntitlementRequirement(client: any, param
     const projectedRemaining = availableUnits - requiredUnits;
     const creditShortfall = Math.max(0, requiredUnits - availableUnits);
 
-    // Cash obligation for shortfall
+    // Cash obligation for shortfall — §XXIII: use explicit rate if configured
     let cashObligation = 0;
     if (creditShortfall > 0) {
-      const planDef = lockedSnapshots.plan.snapshot.plans.find((p: any) => p.monthly_media_credits > 0);
-      const perCreditValue = planDef ? planDef.monthly_price / planDef.monthly_media_credits : 0;
+      const creditConfig = lockedSnapshots.media_credit?.snapshot || {};
+      const explicitRate = creditConfig.credit_shortfall_rate_per_credit;
+      let perCreditValue: number;
+      if (typeof explicitRate === 'number' && explicitRate > 0) {
+        perCreditValue = explicitRate;
+      } else {
+        const planDef = lockedSnapshots.plan.snapshot.plans.find((p: any) => p.monthly_media_credits > 0);
+        perCreditValue = planDef ? planDef.monthly_price / planDef.monthly_media_credits : 0;
+      }
       cashObligation = unitsToCredits(creditShortfall) * perCreditValue;
     }
 

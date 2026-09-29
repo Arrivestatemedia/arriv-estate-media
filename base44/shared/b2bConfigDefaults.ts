@@ -153,6 +153,10 @@ export const DEFAULT_B2B_CREDIT_CONFIG = {
   credit_matrix: B2B_CREDIT_MATRIX,
   addon_default_divisor: 275, // eligible add-on retail price / $275 = Media Credits
   addon_overrides: {} as Record<string, number>, // add-on ID → explicit credit value (overrides default)
+  // §XXIII: Explicit per-credit dollar rate for credit shortfall cash obligations.
+  // When set, used directly instead of deriving from plan (monthly_price / monthly_media_credits).
+  // null = derive from plan (legacy behavior).
+  credit_shortfall_rate_per_credit: null as number | null,
   non_credit_charges: [
     "taxes",
     "travel",

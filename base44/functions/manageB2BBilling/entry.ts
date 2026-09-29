@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { buildBillingEnrollmentPayload, mapPayrollPaymentStatus, shouldApplyHold, shouldReleaseHold, BILLING_STATUS, HOLD_EVENTS } from '../../shared/b2bBillingEngine.ts';
-import { buildLockedConfigSnapshots, getLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.ts';
+import { buildBillingEnrollmentPayload, mapPayrollPaymentStatus, shouldApplyHold, shouldReleaseHold } from '../../shared/b2bBillingEngine.ts';
+import { buildLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.ts';
+import { applyHold, releaseHold, sendToPayroll, hmacSign } from '../../shared/b2bBillingHelpers.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -41,12 +42,12 @@ Deno.serve(async (req) => {
 
       const holdCheck = shouldApplyHold(mappedStatus, contract.status, 7, days_past_due || 0);
       if (holdCheck.apply_hold) {
-        await applyHold(base44, organization_id, contract_id, holdCheck.reason, idempotency_key);
+        await applyHold(base44.asServiceRole, organization_id, contract_id, holdCheck.reason, idempotency_key);
       }
 
       const releaseCheck = shouldReleaseHold(mappedStatus, contract.status);
       if (releaseCheck.release) {
-        await releaseHold(base44, organization_id, contract_id, releaseCheck.reason, idempotency_key);
+        await releaseHold(base44.asServiceRole, organization_id, contract_id, releaseCheck.reason, idempotency_key);
       }
 
       await base44.asServiceRole.entities.B2BAuditLog.create({
@@ -65,13 +66,13 @@ Deno.serve(async (req) => {
 
     if (action === 'apply_hold') {
       const { organization_id, contract_id, reason, actor } = body;
-      await applyHold(base44, organization_id, contract_id, reason || 'MANUAL_HOLD', `manual_${Date.now()}`);
+      await applyHold(base44.asServiceRole, organization_id, contract_id, reason || 'MANUAL_HOLD', `manual_${Date.now()}`);
       return Response.json({ status: 'OK' });
     }
 
     if (action === 'release_hold') {
       const { organization_id, contract_id, actor } = body;
-      await releaseHold(base44, organization_id, contract_id, 'MANUAL_RELEASE', `manual_release_${Date.now()}`);
+      await releaseHold(base44.asServiceRole, organization_id, contract_id, 'MANUAL_RELEASE', `manual_release_${Date.now()}`);
       return Response.json({ status: 'OK' });
     }
 
@@ -80,86 +81,3 @@ Deno.serve(async (req) => {
     return Response.json({ status: 'ERROR', error: e.message }, { status: 500 });
   }
 });
-
-async function applyHold(base44: any, organizationId: string, contractId: string, reason: string, idempotencyKey: string) {
-  const org = await base44.asServiceRole.entities.B2BOrganization.get(organizationId);
-  const contract = await base44.asServiceRole.entities.B2BContract.get(contractId);
-
-  const beforeSnapshot = JSON.stringify({ org_status: org?.contract_status, contract_status: contract?.status });
-
-  if (org) {
-    await base44.asServiceRole.entities.B2BOrganization.update(organizationId, { contract_status: 'suspended' });
-  }
-  if (contract) {
-    await base44.asServiceRole.entities.B2BContract.update(contractId, { status: 'suspended' });
-  }
-
-  await base44.asServiceRole.entities.B2BAuditLog.create({
-    actor: 'arriv_payroll',
-    actor_type: 'system',
-    action: 'HOLD_APPLIED',
-    reason,
-    entity_type: 'B2BOrganization',
-    entity_id: organizationId,
-    before_snapshot: beforeSnapshot,
-    after_snapshot: JSON.stringify({ org_status: 'suspended', contract_status: 'suspended' }),
-    timestamp: new Date().toISOString(),
-  });
-}
-
-async function releaseHold(base44: any, organizationId: string, contractId: string, reason: string, idempotencyKey: string) {
-  const org = await base44.asServiceRole.entities.B2BOrganization.get(organizationId);
-  const contract = await base44.asServiceRole.entities.B2BContract.get(contractId);
-
-  const beforeSnapshot = JSON.stringify({ org_status: org?.contract_status, contract_status: contract?.status });
-
-  if (org) {
-    await base44.asServiceRole.entities.B2BOrganization.update(organizationId, { contract_status: 'active' });
-  }
-  if (contract) {
-    await base44.asServiceRole.entities.B2BContract.update(contractId, { status: 'active' });
-  }
-
-  await base44.asServiceRole.entities.B2BAuditLog.create({
-    actor: 'arriv_payroll',
-    actor_type: 'system',
-    action: 'HOLD_RELEASED',
-    reason,
-    entity_type: 'B2BOrganization',
-    entity_id: organizationId,
-    before_snapshot: beforeSnapshot,
-    after_snapshot: JSON.stringify({ org_status: 'active', contract_status: 'active' }),
-    timestamp: new Date().toISOString(),
-  });
-}
-
-async function sendToPayroll(base44: any, eventType: string, payload: any) {
-  const payrollEndpoint = Deno.env.get('ARRIV_PAYROLL_ENDPOINT');
-  const payrollSecret = Deno.env.get('ARRIV_PAYROLL_API_SECRET');
-
-  if (!payrollEndpoint || !payrollSecret) {
-    throw new Error('Payroll endpoint not configured');
-  }
-
-  const response = await fetch(`${payrollEndpoint}/b2b/${eventType}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Arriv-Signature': await hmacSign(payrollSecret, JSON.stringify(payload)),
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Payroll API error: ${response.status}`);
-  }
-
-  return await response.json();
-}
-
-async function hmacSign(secret: string, data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
-  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
