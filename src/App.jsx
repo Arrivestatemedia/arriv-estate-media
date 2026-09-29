@@ -63,6 +63,7 @@ import B2BCommercialCenter from './pages/B2BCommercialCenter';
 import B2BOrganization360 from './pages/B2BOrganization360';
 import ArrivAgreementsCenter from './pages/ArrivAgreementsCenter';
 import AgreementSigning from './pages/AgreementSigning';
+import FinancialOverview from './pages/FinancialOverview';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -528,6 +529,14 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/AgreementSigning" element={<AgreementSigning />} />
+      <Route
+        path="/FinancialOverview"
+        element={
+          <LayoutWrapper currentPageName="FinancialOverview">
+            <FinancialOverview />
+          </LayoutWrapper>
+        }
+      />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
