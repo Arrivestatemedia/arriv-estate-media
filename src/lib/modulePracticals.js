@@ -208,6 +208,78 @@ export const MODULE_PRACTICALS = {
     onboarding_practical: { description: "Complete onboarding for Jordan Smith Realty.", scenario_id: "e16_jordan_onboarding" },
     teach_back: { scenario_id: "e17_jordan_customer_training", label: "Teach-Back: Train Jordan", description: "Train Jordan to book, find deliverables, understand billing, and know where to get help." },
   },
+  // === E20: Compensation, Performance & Arriv Payroll ===
+  E20: {
+    module_id: "E20",
+    title: "Compensation, Performance & Arriv Payroll",
+    chapter: "Compensation structure, performance benchmarks, payroll integration",
+    core_flow: "Understand rep compensation, performance benchmarks, and payroll integration. B2B commission: 60% implementation, 15% month-1, 8% thereafter.",
+    follow_me: { scenario_id: "b2b_compensation", label: "Follow Me: B2B Compensation Structure", description: "Observe how B2B rep compensation works: 60% implementation, 15% month-1, 8% thereafter, stops on departure." },
+    do_it_yourself: { scenario_id: "b2b_compensation", label: "Do It Yourself: Calculate B2B Commission", description: "Calculate B2B commission for a Portfolio deal: $2,500 implementation, $5,000/month subscription." },
+    customer_scenario: { scenario_id: "b2b_balanced_week", label: "Customer Scenario: Balanced Performance Week", description: "Plan a balanced sales week maintaining individual prospecting while developing B2B." },
+    onboarding_practical: { description: "Understand payroll integration and how commissions flow from deals to payroll." },
+    teach_back: { scenario_id: "b2b_balanced_week", label: "Teach-Back: Sales Motion Mix", description: "Teach the four sales motions and how to maintain balance across individual, B2B, pipeline, and onboarding." },
+  },
+  // === E21: B2B Foundations / Recognition ===
+  E21: {
+    module_id: "E21",
+    title: "B2B Foundations / Recognition",
+    chapter: "B2B signal recognition, qualification criteria, individual lead preservation",
+    core_flow: "Recognize B2B signals while prospecting. A company name alone does NOT create a B2B opportunity. Preserve the individual lead.",
+    follow_me: { scenario_id: "b2b_recognize_signal", label: "Follow Me: Recognize B2B Signal", description: "Observe how to recognize a B2B signal while prospecting an individual agent." },
+    do_it_yourself: { scenario_id: "b2b_recognize_signal", label: "Do It Yourself: Spot & Qualify B2B Signal", description: "Practice recognizing B2B signals while preserving the individual lead." },
+    customer_scenario: { scenario_id: "b2b_brokerage_discovery", label: "Customer Scenario: Brokerage Discovery", description: "Conduct B2B discovery with a brokerage and create a decision map." },
+    onboarding_practical: { description: "Document B2B qualification criteria for a synthetic brokerage." },
+    teach_back: { scenario_id: "b2b_recognize_signal", label: "Teach-Back: B2B Signal Recognition", description: "Teach how to recognize B2B signals without abandoning individual prospecting." },
+  },
+  // === E22: B2B Discovery / Qualification / Recommendation ===
+  E22: {
+    module_id: "E22",
+    title: "B2B Discovery / Qualification / Recommendation",
+    chapter: "B2B discovery, decision maps, tier recommendation, authority boundaries",
+    core_flow: "Conduct B2B discovery, create a decision map, and recommend the correct tier using ONLY current approved pricing.",
+    follow_me: { scenario_id: "b2b_brokerage_discovery", label: "Follow Me: Brokerage Discovery & Decision Map", description: "Observe how to conduct B2B discovery and create a decision map." },
+    do_it_yourself: { scenario_id: "b2b_tier_recommendation", label: "Do It Yourself: Approved Tier Recommendation", description: "Recommend the correct B2B tier without unauthorized discounts, credits, or term changes." },
+    customer_scenario: { scenario_id: "b2b_tier_recommendation", label: "Customer Scenario: Tier Match & Value", description: "Match discovery to the correct tier and explain the value." },
+    onboarding_practical: { description: "Prepare a B2B recommendation summary for a synthetic brokerage." },
+    teach_back: { scenario_id: "b2b_tier_recommendation", label: "Teach-Back: Authority Boundaries", description: "Teach the B2B authority boundaries: no altering credits, pricing, discounts, or terms." },
+  },
+  // === E23: B2B Customer360 / Organization / Admin / Members / Credits ===
+  E23: {
+    module_id: "E23",
+    title: "B2B Customer360 / Organization / Admin / Members / Credits",
+    chapter: "Organization creation, company admin, member management, credit pools",
+    core_flow: "Convert prospect to organization, assign company admin, add members, and explain shared credits.",
+    follow_me: { scenario_id: "b2b_convert_organization", label: "Follow Me: Convert to Organization", description: "Observe how to convert a synthetic prospect to a canonical B2B organization." },
+    do_it_yourself: { scenario_id: "b2b_assign_admin", label: "Do It Yourself: Assign Company Admin", description: "Assign a company admin and explain their responsibilities." },
+    customer_scenario: { scenario_id: "b2b_add_members", label: "Customer Scenario: Add Members & Verify Linkage", description: "Add member profiles and verify organization linkage." },
+    onboarding_practical: { description: "Onboard a company admin: explain role, credits, and member management." },
+    teach_back: { scenario_id: "b2b_consume_credits", label: "Teach-Back: Credit Pool & Consumption", description: "Teach how shared credits work and how bookings consume from the pool." },
+  },
+  // === E24: B2B Billing / Invoice / Account Hold / Onboarding / Adoption ===
+  E24: {
+    module_id: "E24",
+    title: "B2B Billing / Invoice / Account Hold / Onboarding / Adoption",
+    chapter: "Annual/monthly invoicing, account holds, customer admin boundaries, adoption",
+    core_flow: "B2B reuses the established invoice infrastructure. Handle billing states, account holds, and adoption without impersonating the customer admin.",
+    follow_me: { scenario_id: "b2b_annual_invoice", label: "Follow Me: Annual Invoice at Conversion", description: "Observe how annual prepaid B2B conversion uses the established invoice infrastructure." },
+    do_it_yourself: { scenario_id: "b2b_monthly_billing", label: "Do It Yourself: Monthly Billing State", description: "Check and explain the monthly recurring billing state for a B2B organization." },
+    customer_scenario: { scenario_id: "b2b_account_hold", label: "Customer Scenario: Failed Payment & Account Hold", description: "Handle a failed/overdue payment and account hold without bypassing it." },
+    onboarding_practical: { description: "Onboard a company admin through billing and adoption training." },
+    teach_back: { scenario_id: "b2b_account_hold", label: "Teach-Back: Customer Admin Financial Boundary", description: "Teach the boundary: reps explain, demonstrate, troubleshoot, and train — but never impersonate, enter credentials, or bypass holds." },
+  },
+  // === E25: B2B Retention / Expansion / Renewal / Commission / Balanced Performance ===
+  E25: {
+    module_id: "E25",
+    title: "B2B Retention / Expansion / Renewal / Commission / Balanced Performance",
+    chapter: "Under-utilization recovery, expansion, renewal, balanced performance, certification",
+    core_flow: "Maintain B2B through retention, expansion, and renewal. Balance individual and B2B motions. Final B2B certification.",
+    follow_me: { scenario_id: "b2b_underutilization_recovery", label: "Follow Me: Under-Utilization Recovery", description: "Observe how to identify under-utilization and create a customer-success recovery plan." },
+    do_it_yourself: { scenario_id: "b2b_expansion", label: "Do It Yourself: Expansion Without Unauthorized Terms", description: "Handle a B2B expansion without altering credits, pricing, or contract terms without approval." },
+    customer_scenario: { scenario_id: "b2b_renewal", label: "Customer Scenario: Renewal Conversation", description: "Conduct a renewal conversation and confirm renewal terms." },
+    onboarding_practical: { description: "Create a balanced-week plan that maintains individual prospecting while developing B2B." },
+    teach_back: { scenario_id: "b2b_final_certification", label: "Teach-Back: Full B2B Certification", description: "Demonstrate mastery of the full B2B lifecycle: recognize, discover, recommend, convert, onboard, adopt, expand." },
+  },
 };
 
 export function getPracticalsByModule(moduleId) {

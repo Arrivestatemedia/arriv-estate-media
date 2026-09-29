@@ -357,7 +357,240 @@ export function simulationReducer(state, action, input, scenario) {
     case "promise_staging":
     case "skip_lifecycle_stage":
     case "charge_real_stripe":
+    // B2B critical failures
+    case "b2b_abandon_individual":
+    case "b2b_invent_pricing":
+    case "b2b_invent_credits":
+    case "b2b_pitch_without_discovery":
+    case "b2b_skip_decision_map":
+    case "b2b_offer_custom_discount":
+    case "b2b_add_extra_credits":
+    case "b2b_alter_contract_terms":
+    case "b2b_charge_real_stripe":
+    case "b2b_create_real_org":
+    case "b2b_sign_on_behalf":
+    case "b2b_impersonate_customer_admin":
+    case "b2b_enter_financial_credentials":
+    case "b2b_add_unrelated_user":
+    case "b2b_alter_credit_allocation":
+    case "b2b_free_booking":
+    case "b2b_overcharge_credits":
+    case "b2b_create_second_invoice_engine":
+    case "b2b_fake_paid_state":
+    case "b2b_bypass_hold":
+    case "b2b_free_credits":
+    case "b2b_alter_contract":
+    case "b2b_invent_custom_plan":
+    case "b2b_free_extra_credits":
+    case "b2b_verbal_terms_change":
+    case "b2b_claim_residual":
+    case "b2b_invent_rate":
+    case "b2b_abandon_prospecting":
+    case "b2b_cert_custom_discount":
+    case "b2b_cert_enter_credentials":
+    case "b2b_cert_bypass_hold":
       newState.critical_failure = action;
+      return newState;
+
+    // === B2B Scenario Actions ===
+    // 14. Recognize B2B signal
+    case "b2b_identify_signal":
+      newState.b2b_opportunity_identified = true;
+      return newState;
+    case "b2b_preserve_and_note":
+      newState.individual_lead_preserved = true;
+      return newState;
+    case "b2b_submit_qualification":
+      newState.b2b_qualification_data = { ...input };
+      newState.completed = true;
+      return newState;
+
+    // 15. Brokerage discovery
+    case "b2b_log_decision_maker":
+      newState.decision_makers = [...(state.decision_makers || []), { ...input }];
+      return newState;
+    case "b2b_log_current_process":
+      newState.current_process = input.current_process;
+      newState.pain_points = input.pain_points;
+      return newState;
+    case "b2b_create_decision_map":
+      newState.decision_map_created = true;
+      newState.completed = true;
+      return newState;
+
+    // 16. Tier recommendation
+    case "b2b_recommend_portfolio":
+      newState.recommended_plan = "portfolio";
+      return newState;
+    case "b2b_recommend_business_wrong":
+    case "b2b_recommend_enterprise_wrong":
+      newState.wrong_tier_warning = action;
+      return newState;
+    case "b2b_explain_tier_value":
+      newState.tier_value_explanation = input.value_explanation;
+      return newState;
+    case "b2b_confirm_no_changes":
+      newState.completed = true;
+      return newState;
+
+    // 17. Convert to organization
+    case "b2b_submit_org_creation":
+      newState.organization_created = true;
+      return newState;
+    case "b2b_submit_contract_creation":
+      newState.contract_created = true;
+      return newState;
+    case "b2b_confirm_synthetic_only":
+      newState.completed = true;
+      return newState;
+
+    // 18. Assign company admin
+    case "b2b_submit_admin_selection":
+      newState.admin_selected = { ...input };
+      return newState;
+    case "b2b_explain_admin_role":
+      newState.admin_role_explained = input.admin_explanation;
+      return newState;
+    case "b2b_grant_authority":
+      newState.admin_assigned = true;
+      newState.completed = true;
+      return newState;
+
+    // 19. Add members
+    case "b2b_submit_members":
+      newState.members_added = 2;
+      return newState;
+    case "b2b_verify_linkage":
+      newState.linkage_verified = true;
+      return newState;
+    case "b2b_explain_shared_credits":
+      newState.completed = true;
+      return newState;
+
+    // 20. Consume credits
+    case "b2b_explain_pool":
+      newState.pool_explained = true;
+      return newState;
+    case "b2b_consume_credit":
+      newState.credits_after = state.credits_before - 1;
+      newState.credit_consumed = true;
+      return newState;
+    case "b2b_verify_ledger":
+      newState.completed = true;
+      return newState;
+
+    // 21. Annual invoice
+    case "b2b_explain_invoice_reuse":
+      newState.invoice_reuse_explained = true;
+      return newState;
+    case "b2b_generate_invoice":
+      newState.invoice_created = true;
+      return newState;
+    case "b2b_verify_invoice":
+      newState.completed = true;
+      return newState;
+
+    // 22. Monthly billing
+    case "b2b_explain_monthly":
+      newState.monthly_billing_explained = true;
+      return newState;
+    case "b2b_confirm_current":
+      newState.billing_state_confirmed = true;
+      return newState;
+    case "b2b_explain_next_invoice":
+      newState.completed = true;
+      return newState;
+
+    // 23. Account hold
+    case "b2b_acknowledge_hold":
+      newState.hold_acknowledged = true;
+      return newState;
+    case "b2b_explain_hold_resolution":
+      newState.hold_resolution_explained = true;
+      return newState;
+    case "b2b_guide_admin_resolution":
+      newState.completed = true;
+      return newState;
+
+    // 24. Admin onboarding
+    case "b2b_send_admin_welcome":
+      newState.onboarding_steps = { ...state.onboarding_steps, welcome_sent: true };
+      return newState;
+    case "b2b_train_admin_credits":
+      newState.onboarding_steps = { ...state.onboarding_steps, admin_role_explained: true, credits_explained: true };
+      return newState;
+    case "b2b_submit_admin_teachback":
+      newState.teachback_verified = true;
+      newState.completed = true;
+      return newState;
+
+    // 25. Under-utilization recovery
+    case "b2b_identify_underutilization":
+      newState.underutilization_identified = true;
+      return newState;
+    case "b2b_submit_root_cause":
+      newState.root_cause = input.root_cause;
+      return newState;
+    case "b2b_recovery_retrain":
+      newState.recovery_plan_created = true;
+      newState.completed = true;
+      return newState;
+
+    // 26. Expansion
+    case "b2b_qualify_expansion":
+      newState.expansion_qualified = true;
+      return newState;
+    case "b2b_recommend_enterprise_upgrade":
+      newState.expansion_recommended = "enterprise";
+      return newState;
+    case "b2b_escalate_expansion":
+      newState.completed = true;
+      return newState;
+
+    // 27. Renewal
+    case "b2b_review_renewal_account":
+      newState.renewal_reviewed = true;
+      return newState;
+    case "b2b_submit_renewal_notes":
+      newState.renewal_notes = input.renewal_notes;
+      return newState;
+    case "b2b_confirm_auto_renew":
+      newState.completed = true;
+      return newState;
+
+    // 28. Compensation
+    case "b2b_explain_compensation":
+      newState.compensation_explained = true;
+      return newState;
+    case "b2b_submit_compensation_calc":
+      newState.compensation_calculated = { ...input };
+      return newState;
+    case "b2b_confirm_comp_boundaries":
+      newState.completed = true;
+      return newState;
+
+    // 29. Balanced week
+    case "b2b_explain_motion_mix":
+      newState.motion_mix_explained = true;
+      return newState;
+    case "b2b_submit_week_plan":
+      newState.week_plan = { ...input };
+      return newState;
+    case "b2b_confirm_balance":
+      newState.balance_achieved = true;
+      newState.completed = true;
+      return newState;
+
+    // 30. B2B final certification
+    case "b2b_cert_discover":
+      newState.cert_steps = { ...state.cert_steps, signal_recognized: true, discovery_done: true };
+      return newState;
+    case "b2b_cert_convert_onboard":
+      newState.cert_steps = { ...state.cert_steps, recommended: true, converted: true, admin_assigned: true, members_added: true, credits_consumed: true, onboarded: true, adopted: true };
+      return newState;
+    case "b2b_cert_confirm_boundaries":
+      newState.cert_steps = { ...state.cert_steps, boundaries_confirmed: true };
+      newState.completed = true;
       return newState;
 
     default:

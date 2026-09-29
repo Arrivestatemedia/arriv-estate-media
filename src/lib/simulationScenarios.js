@@ -1423,10 +1423,20 @@ export const SCENARIOS = [
   },
 ];
 
+// --- B2B Scenarios (14–30) — imported from simulationB2BData.js ---
+import { B2B_SCENARIOS } from "./simulationB2BData";
+
+// Merge core + B2B scenarios into the canonical SCENARIOS list
+export const ALL_SCENARIOS = [...SCENARIOS, ...B2B_SCENARIOS];
+
 export function getScenariosByLevel(level) {
-  return SCENARIOS.filter(s => s.level === level);
+  return ALL_SCENARIOS.filter(s => s.level === level);
 }
 
 export function getScenarioById(id) {
-  return SCENARIOS.find(s => s.id === id);
+  return ALL_SCENARIOS.find(s => s.id === id);
+}
+
+export function getB2BScenarios() {
+  return B2B_SCENARIOS;
 }

@@ -1,9 +1,14 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { simulationReducer, validateAction, sanitizeInput, generateSessionId, generateEventId } from "@/lib/simulationEngine";
 import { getScenarioById, SIMULATION_LEVELS } from "@/lib/simulationScenarios";
 
 const SimulationContext = createContext(null);
+
+// Persistent TRAINING MODE flag — survives navigation and refresh.
+// Stored in sessionStorage so it persists across navigation but not across
+// new browser sessions. The client cannot silently disable it.
+const TRAINING_MODE_KEY = "arriv_training_mode_active";
 
 export function SimulationProvider({ children }) {
   const [sessionId] = useState(() => generateSessionId());
@@ -13,7 +18,20 @@ export function SimulationProvider({ children }) {
   const [events, setEvents] = useState([]);
   const [lastValidation, setLastValidation] = useState(null);
   const [isLogging, setIsLogging] = useState(false);
+  // Persistent TRAINING MODE — survives navigation and refresh
+  const [isTrainingMode, setIsTrainingMode] = useState(() => {
+    try {
+      return sessionStorage.getItem(TRAINING_MODE_KEY) === "true";
+    } catch { return false; }
+  });
   const eventCounter = useRef(0);
+
+  // Persist TRAINING MODE flag
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(TRAINING_MODE_KEY, isTrainingMode ? "true" : "false");
+    } catch {}
+  }, [isTrainingMode]);
 
   const learner = {
     id: localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id"),
@@ -29,6 +47,8 @@ export function SimulationProvider({ children }) {
   const startScenario = useCallback((scenarioId, level) => {
     const scenario = getScenarioById(scenarioId);
     if (!scenario) return;
+    // Activate TRAINING MODE when a scenario starts
+    setIsTrainingMode(true);
     setCurrentScenarioId(scenarioId);
     setCurrentLevel(level || scenario.level);
     setSimState({ ...scenario.initial_state, step_index: 0, completed: false });
@@ -125,10 +145,12 @@ export function SimulationProvider({ children }) {
     isLogging,
     isComplete,
     isSimulation: true, // Always true — used to prevent real API calls
+    isTrainingMode, // Persistent TRAINING MODE flag
     startScenario,
     resetScenario,
     dispatch,
     setCurrentLevel,
+    setIsTrainingMode,
   };
 
   return <SimulationContext.Provider value={value}>{children}</SimulationContext.Provider>;
