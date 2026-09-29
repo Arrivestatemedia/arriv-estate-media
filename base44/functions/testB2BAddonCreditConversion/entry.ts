@@ -293,14 +293,21 @@ Deno.serve(async (req) => {
     const allTests = Object.values(results) as any[];
     const passed = allTests.filter(t => t.pass).length;
     const failed = allTests.filter(t => !t.pass).length;
-    results._summary = {
-      total: allTests.length,
-      passed,
-      failed,
-      all_passed: failed === 0,
-    };
 
-    return Response.json(results);
+    const compact: any = {};
+    for (const [key, val] of Object.entries(results)) {
+      const t = val as any;
+      compact[key] = {
+        pass: t.pass,
+        ...(t.expected_credits != null ? { exp: t.expected_credits, got: t.actual_credits } : {}),
+        ...(t.expected_total != null ? { exp: t.expected_total, got: t.actual_total } : {}),
+        ...(t.calculation_method ? { method: t.calculation_method } : {}),
+        ...(t.note ? { note: t.note } : {}),
+      };
+    }
+    compact._summary = { total: allTests.length, passed, failed, all_passed: failed === 0 };
+
+    return Response.json(compact);
   } catch (error) {
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
