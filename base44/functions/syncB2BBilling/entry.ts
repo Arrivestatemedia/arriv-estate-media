@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         // 2. Check payment status from payroll (if enrolled)
         if (enrollmentAudits.length > 0) {
           try {
-            const paymentStatus = await fetchPaymentStatusFromPayroll(contract.id);
+            const paymentStatus = await fetchPaymentStatusFromPayroll(contract.contract_id);
             if (paymentStatus) {
               results.payment_checked++;
               const mappedStatus = mapPayrollPaymentStatus(paymentStatus.payment_status);

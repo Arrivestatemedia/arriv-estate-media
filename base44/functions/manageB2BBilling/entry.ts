@@ -2,11 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { buildBillingEnrollmentPayload, mapPayrollPaymentStatus, shouldApplyHold, shouldReleaseHold } from '../../shared/b2bBillingEngine.ts';
 import { buildLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.ts';
 import { applyHold, releaseHold, sendToPayroll, hmacSign } from '../../shared/b2bBillingHelpers.ts';
+import { verifySignature } from '../../shared/payrollCrypto.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
+    const rawBody = await req.text();
+    const body = JSON.parse(rawBody);
     const { action } = body;
 
     if (action === 'enroll_monthly') {
@@ -30,6 +32,13 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'receive_payment_status') {
+      // External webhook from Arriv Payroll — verify HMAC signature
+      const signature = req.headers.get('X-Arriv-Signature') || '';
+      const secret = Deno.env.get('ARRIV_PAYROLL_API_SECRET') || Deno.env.get('ARRIV_PAYROLL_WEBHOOK_SECRET') || '';
+      if (!secret) return Response.json({ status: 'ERROR', error: 'Payroll secret not configured' }, { status: 500 });
+      const valid = await verifySignature(secret, rawBody, signature);
+      if (!valid) return Response.json({ status: 'ERROR', error: 'Invalid signature' }, { status: 401 });
+
       const { organization_id, contract_id, payment_status, days_past_due, idempotency_key } = body;
 
       const existingAudit = await base44.asServiceRole.entities.B2BAuditLog.filter({ entity_type: 'B2B_PAYMENT_STATUS', entity_id: idempotency_key });

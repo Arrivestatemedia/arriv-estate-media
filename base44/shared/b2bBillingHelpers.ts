@@ -79,7 +79,7 @@ export async function sendToPayroll(base44: any, eventType: string, payload: any
     throw new Error('Payroll endpoint not configured');
   }
 
-  const response = await fetch(`${payrollEndpoint}/b2b/${eventType}`, {
+  const response = await fetch(`${payrollEndpoint}/${eventType}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
