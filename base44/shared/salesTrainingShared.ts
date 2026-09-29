@@ -33,7 +33,7 @@ export const CERTIFICATION_REQUIREMENTS = {
   practicum_min_score: 95, // legacy alias for system_crm
   min_watch_percentage: 95,
   prospect_prep_exercise_required: true,
-  modules_total: 20,
+  modules_total: 26,
   manager_authorization_required: true,
   overall_passing_score: 95,
 } as const;
@@ -107,6 +107,12 @@ export const CRITICAL_FAILURES = [
   "exposing_internal_provider_payout",
   "production_side_effects_from_training_mode",
   "bypassing_required_authorization",
+  "b2b_invented_pricing_or_credits",
+  "b2b_unauthorized_contract_term",
+  "b2b_fabricated_payment_state",
+  "b2b_bypass_customer_admin_authority",
+  "b2b_unrelated_users_in_organization",
+  "b2b_abandoning_individual_pipeline_for_b2b",
 ] as const;
 
 // ─── Certification Domains (ARRIV CERTIFIED) ───────────────────────────────
@@ -140,6 +146,12 @@ export const CERTIFICATION_DOMAINS = [
     label: "Customer Training",
     description: "E17: Training the customer to book, find deliverables, understand billing, and know where to get help.",
     assessed_by: ["teachback_practical", "simulation_events"],
+  },
+  {
+    key: "b2b_organization_sales",
+    label: "B2B Organization Sales",
+    description: "E21–E25: B2B recognition, discovery, recommendation, organization/credits, billing/account-hold, retention/expansion, and B2B commission timing. Uses locked current B2B commercial authority.",
+    assessed_by: ["b2b_practical", "module_quizzes", "simulation_events"],
   },
 ] as const;
 
@@ -209,6 +221,23 @@ export const TEACH_BACK_RUBRIC = {
     { key: "deliverables_guidance", label: "Deliverables Location & Access Guidance", points: 15 },
     { key: "billing_guidance", label: "Billing & Membership Guidance", points: 15 },
     { key: "support_guidance", label: "Support & Help-Seeking Guidance", points: 10 },
+  ],
+} as const;
+
+// ─── B2B Practical Rubric (E21–E25 B2B Extension) ─────────────────────────
+export const B2B_PRACTICAL_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "b2b_recognition", label: "B2B Signal Recognition", points: 10 },
+    { key: "b2b_discovery", label: "B2B Discovery Completeness (decision maker, admin, users, usage, billing, rollout)", points: 15 },
+    { key: "b2b_recommendation", label: "Approved Configuration Recommendation (no invented pricing/credits/terms)", points: 15 },
+    { key: "b2b_crm_truth", label: "Complete CRM Truth & Documentation", points: 10 },
+    { key: "b2b_organization_setup", label: "Organization Structure & Member Setup (canonical B2B model, no second login universe)", points: 15 },
+    { key: "b2b_billing_literacy", label: "Billing/Account-Hold Handling (no fabricated payment state, no billing bypass)", points: 10 },
+    { key: "b2b_customer_training", label: "Company Admin Training & Teach-Back", points: 10 },
+    { key: "b2b_balanced_performance", label: "Balanced Activity Plan (B2B + normal prospecting maintained)", points: 10 },
+    { key: "b2b_boundary_compliance", label: "Boundary Compliance (no critical failures)", points: 5 },
   ],
 } as const;
 
@@ -313,6 +342,7 @@ export function computeAuthorizationReadiness(cert: {
   const system_crm_passed = !!(cert.system_crm_passed || cert.practicum_passed);
   const onboarding_passed = !!cert.onboarding_passed;
   const teachback_passed = !!cert.teachback_passed;
+  const b2b_practical_passed = !!(cert as any).b2b_practical_passed;
   const no_critical_failures = (cert.critical_failures || []).length === 0;
   const no_remediation_pending = (cert.remediation_modules || []).length === 0;
 
@@ -325,6 +355,7 @@ export function computeAuthorizationReadiness(cert: {
     system_crm_passed &&
     onboarding_passed &&
     teachback_passed &&
+    b2b_practical_passed &&
     no_critical_failures &&
     no_remediation_pending;
 
@@ -337,6 +368,7 @@ export function computeAuthorizationReadiness(cert: {
     system_crm_passed,
     onboarding_passed,
     teachback_passed,
+    b2b_practical_passed,
     no_critical_failures,
     no_remediation_pending,
     ready_for_authorization,
@@ -370,6 +402,7 @@ export function computeDomainStatuses(cert: {
   const salesExecutionPassed = !!cert.roleplay_passed && !hasCriticalFailures;
   const customerOnboardingPassed = !!cert.onboarding_passed && !hasCriticalFailures;
   const customerTrainingPassed = !!cert.teachback_passed && !hasCriticalFailures;
+  const b2bPassed = !!(cert as any).b2b_practical_passed && !hasCriticalFailures;
 
   return {
     product_knowledge: productKnowledgePassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
@@ -377,6 +410,7 @@ export function computeDomainStatuses(cert: {
     sales_execution: salesExecutionPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
     customer_onboarding: customerOnboardingPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
     customer_training: customerTrainingPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+    b2b_organization_sales: b2bPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
   };
 }
 
@@ -404,7 +438,7 @@ export function checkCertificationEligibility(cert: {
   remediation_modules?: string[];
 }): { eligible: boolean; missing: string[] } {
   const missing: string[] = [];
-  if ((cert.modules_passed_count || 0) < CERTIFICATION_REQUIREMENTS.modules_total) missing.push("All 20 modules (E0–E19) passed");
+  if ((cert.modules_passed_count || 0) < CERTIFICATION_REQUIREMENTS.modules_total) missing.push("All 26 modules (E0–E25) passed");
   if ((cert.quiz_average_score || 0) < CERTIFICATION_REQUIREMENTS.module_quiz_min_score) missing.push("Quiz average >= 95%");
   if (cert.critical_questions_status !== "ALL_CORRECT") missing.push("All critical questions correct (100% required)");
   if (!cert.final_exam_passed) missing.push("Final exam passed (>= 95%)");
@@ -412,6 +446,7 @@ export function checkCertificationEligibility(cert: {
   if (!(cert.system_crm_passed || cert.practicum_passed)) missing.push("CRM/System practical passed (>= 95/100)");
   if (!cert.onboarding_passed) missing.push("Onboarding practical passed (>= 95/100)");
   if (!cert.teachback_passed) missing.push("Teach-back practical passed (>= 95/100)");
+  if (!(cert as any).b2b_practical_passed) missing.push("B2B practical passed (>= 95/100)");
   if ((cert.critical_failures || []).length > 0) missing.push("No unresolved critical failures");
   if ((cert.remediation_modules || []).length > 0) missing.push("No pending remediation modules");
   return { eligible: missing.length === 0, missing };

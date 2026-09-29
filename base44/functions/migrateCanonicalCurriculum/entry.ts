@@ -239,8 +239,8 @@ export default async function(req: Request): Promise<Response> {
 
       // Integrity checks
       integrity: {
-        active_module_count_is_20: activeCanonicalPost.length === 20,
-        active_ids_are_E0_through_E19_exactly_once: idsMatch,
+        active_module_count_is_26: activeCanonicalPost.length === 26,
+        active_ids_are_E0_through_E25_exactly_once: idsMatch,
         zero_orphaned_completions: orphanedCompletions.length === 0,
         zero_active_legacy_modules: activeLegacyPost.length === 0,
         historical_completions_preserved: completions.length === postCompletions.length,

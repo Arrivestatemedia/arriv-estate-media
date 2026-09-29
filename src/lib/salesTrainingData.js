@@ -34,6 +34,7 @@ export const COMPETENCIES = [
   "CRM",
   "FOLLOW_UP",
   "OPENING",
+  "B2B",
 ];
 
 // ─── E0–E19 Training Modules (from Estate Media Employee Training Manual & Workbook) ──
@@ -43,7 +44,7 @@ import { WORKBOOK_MODULES, MODULE_ID_ALIASES, resolveModuleId } from "./estateMe
 
 export { MODULE_ID_ALIASES, resolveModuleId };
 export const TRAINING_MODULES = WORKBOOK_MODULES;
-export const MODULES_TOTAL = 20;
+export const MODULES_TOTAL = 26;
 
 // Legacy module array retained for backward compatibility — now points to E0–E19
 const _LEGACY_TRAINING_MODULES = [
@@ -108,7 +109,33 @@ export const QUIZ_QUESTION_BANK = [
   { question_id: "Q41", question: "After generating a Prospect Brief using the Arriv One research capability, what must the rep do before making the call?", choices: ["Call immediately using the AI-generated opening without checking anything", "VERIFY the brief's research (listing intelligence, professional video status, contact info) against at least one independent source before calling", "Delete the brief and start over from scratch", "Send the brief directly to the prospect"], correct_index: 1, competency: "PROSPECTING", is_critical: true, explanation: "The rep must VERIFY research rather than blindly trust AI. Blindly trusting AI output without verification is a critical failure in the Prospect Prep Exercise." },
   { question_id: "Q42", question: "If a Prospect Brief identifies a staging-interest signal, what may the rep do?", choices: ["Quote staging pricing and promise a launch date", "Package staging into the current order", "Document the interest only — physical staging is NOT currently sales authorized. A separate Staging Sales Certification will be required", "Promise specific unfinished staging capabilities to close the deal"], correct_index: 2, competency: "BOUNDARIES", is_critical: true, explanation: "Physical staging is NOT currently sales authorized. Reps may document interest but may NOT quote, sell, promise pricing/launch date, package into orders, or promise specific unfinished staging capabilities. A separate Staging Sales Certification is required." },
   { question_id: "Q43", question: "What is the primary Estate Media prospecting gate checked by the Prospect Brief?", choices: ["Whether the prospect has a large brokerage", "Whether professional video is present on the prospect's listings", "Whether the prospect's listings are expensive", "Whether the prospect uses social media"], correct_index: 1, competency: "PROSPECTING", is_critical: true, explanation: "Professional video presence is the primary Estate Media prospecting gate. If evidence is insufficient, the brief uses UNKNOWN rather than guessing." },
+  { question_id: "Q44", question: "What is the ~100 outbound-attempt baseline for a full remote prospecting day?", choices: ["10 attempts is enough", "Approximately 100 outbound attempts (calls + voicemails + emails) is an operating baseline — but it is NOT the entire job and NOT permission to ignore follow-up, field opportunities, demos, onboarding, customer needs, or CRM accuracy", "300 attempts is required", "There is no baseline"], correct_index: 1, competency: "PROSPECTING", is_critical: true, explanation: "~100 outbound attempts is an operating baseline for a full remote prospecting day, not the entire job." },
+  { question_id: "Q45", question: "What is Customer360 and when is it required?", choices: ["Just the customer's email", "A complete customer relationship view required after supported conversion: identity, contact/activity history, pipeline/deal context, booking/project context, invoices/payment visibility where authorized, support/follow-up, notes, relationship ownership, and customer-success context", "Only the customer's billing address", "Only the first order details"], correct_index: 1, competency: "CRM", is_critical: true, explanation: "Customer360 is a complete customer relationship view required after supported conversion." },
+  { question_id: "Q46", question: "Does a brokerage or company name alone create a B2B opportunity?", choices: ["Yes, any company name means B2B", "No — look for centralized purchasing, multiple users, shared credits/capacity, standardization, or company administration", "Only if the company has more than 5 employees", "Only if the company is a franchise"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "A company name alone does not create a B2B opportunity. Look for centralized purchasing, multiple users, shared credits/capacity, standardization, company administration, or repeated organizational usage." },
+  { question_id: "Q47", question: "What are the current approved B2B plans and their monthly prices?", choices: ["Business $500, Portfolio $1,000, Enterprise $2,000", "Business $1,500/mo or $15,000 annual; Business Plus $2,500/mo; Portfolio $5,000/mo; Developer $7,500/mo; Enterprise $12,500/mo", "All B2B plans are $1,000/month", "B2B pricing is custom-negotiated by the rep"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "Business $1,500/mo or $15,000 annual; Business Plus $2,500/mo; Portfolio $5,000/mo; Developer $7,500/mo; Enterprise $12,500/mo. Reps cannot invent B2B prices." },
+  { question_id: "Q48", question: "What is the current approved B2B rep compensation structure?", choices: ["10% of all revenue forever", "60% of collected implementation fees; 15% of collected subscription revenue in month 1; 8% of collected subscription revenue thereafter while the rep remains employed", "Flat $500 per B2B deal", "50% of all collected revenue forever"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "60% of collected implementation fees. 15% of collected subscription revenue in month 1. 8% of collected subscription revenue thereafter while the rep remains employed. Recurring commissions stop when the rep leaves." },
+  { question_id: "Q49", question: "Do B2B recurring commissions continue after the rep leaves the company?", choices: ["Yes, recurring commissions continue forever", "No — recurring commissions stop when the rep leaves. No continuing residual, buyout, acceleration, or post-employment recurring payout", "Yes, for 5 years after leaving", "Only if the rep negotiates a buyout"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "Recurring commissions stop when the rep leaves. No continuing residual, buyout, acceleration, or post-employment recurring payout." },
+  { question_id: "Q50", question: "Should a rep stop normal prospecting while developing a larger B2B opportunity?", choices: ["Yes, focus entirely on the B2B deal", "No — maintain new-pipeline creation while larger B2B opportunities develop. B2B is an extension, not a replacement for balanced weekly activity", "Only if the B2B deal is Enterprise tier", "Only if the manager says so"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "Maintain new-pipeline creation while larger B2B opportunities develop. B2B is an extension, not a replacement for balanced weekly activity." },
+  { question_id: "Q51", question: "Can a rep invent B2B overage pricing or alter contract terms?", choices: ["Yes, to close the deal", "No — overages are allowed only through current approved system authority. Reps cannot alter credits, pricing, discounts, implementation, or contract terms without approval", "Yes, with manager verbal approval", "Only for Enterprise customers"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "Never invent an overage price. Reps cannot alter credits, pricing, discounts, implementation, or contract terms without approval." },
+  { question_id: "Q52", question: "Does B2B use a separate invoice engine from retail?", choices: ["Yes, B2B has its own invoice engine", "No — B2B reuses the established invoice infrastructure. Do not create a second invoice engine", "Only for Enterprise plans", "Only for annual prepaid customers"], correct_index: 1, competency: "B2B", is_critical: true, explanation: "B2B reuses the established invoice infrastructure. Annual B2B conversion invokes the established invoice system. Monthly B2B customers use the connected recurring billing workflow." },
 ];
+
+// ─── B2B Practical Scorecard ──────────────────────────────────────────────
+export const B2B_PRACTICAL_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "b2b_recognition", label: "B2B Signal Recognition", points: 10 },
+    { key: "b2b_discovery", label: "B2B Discovery Completeness", points: 15 },
+    { key: "b2b_recommendation", label: "Approved Configuration Recommendation", points: 15 },
+    { key: "b2b_crm_truth", label: "Complete CRM Truth & Documentation", points: 10 },
+    { key: "b2b_organization_setup", label: "Organization Structure & Member Setup", points: 15 },
+    { key: "b2b_billing_literacy", label: "Billing/Account-Hold Handling", points: 10 },
+    { key: "b2b_customer_training", label: "Company Admin Training & Teach-Back", points: 10 },
+    { key: "b2b_balanced_performance", label: "Balanced Activity Plan", points: 10 },
+    { key: "b2b_boundary_compliance", label: "Boundary Compliance", points: 5 },
+  ],
+};
 
 // ─── Roleplay Scorecard ───────────────────────────────────────────────────
 export const ROLEPLAY_RUBRIC = {
@@ -153,6 +180,12 @@ export const CRITICAL_FAILURES = [
   "fundamental_inability_to_explain_estate_media",
   "blindly_trusting_ai_without_verification",
   "selling_unauthorized_staging",
+  "b2b_invented_pricing_or_credits",
+  "b2b_unauthorized_contract_term",
+  "b2b_fabricated_payment_state",
+  "b2b_bypass_customer_admin_authority",
+  "b2b_unrelated_users_in_organization",
+  "b2b_abandoning_individual_pipeline_for_b2b",
 ];
 
 // ─── Professional Video Status ────────────────────────────────────────────
@@ -240,7 +273,7 @@ export const CERTIFICATION_REQUIREMENTS = {
   practicum_min_score: 95,
   min_watch_percentage: 95,
   prospect_prep_exercise_required: true,
-  modules_total: 20,
+  modules_total: 26,
   manager_authorization_required: true,
 };
 
@@ -385,6 +418,43 @@ export const STAGING_AWARENESS = {
   currently_sellable: false,
   message: "Physical staging is coming to Arriv Estate Media. Staging IQ will support staging operations. Staging is NOT currently authorized for sale. A separate Staging Sales Certification will be required before a rep becomes authorized to sell staging.",
   future_certification: "ARRIV ESTATE MEDIA — STAGING SALES CERTIFICATION",
+};
+
+// ─── B2B Commercial Authority (Locked Current) ────────────────────────────
+export const B2B_COMMERCIAL_AUTHORITY = {
+  plans: [
+    { id: "business", name: "Business", monthly_price: 1500, annual_prepaid_price: 15000, monthly_credits: 3, implementation_fee: 1000 },
+    { id: "business_plus", name: "Business Plus", monthly_price: 2500, annual_prepaid_price: null, monthly_credits: 5, implementation_fee: 1500 },
+    { id: "portfolio", name: "Portfolio", monthly_price: 5000, annual_prepaid_price: null, monthly_credits: 10, implementation_fee: 2500 },
+    { id: "developer", name: "Developer", monthly_price: 7500, annual_prepaid_price: null, monthly_credits: 15, implementation_fee: 3500 },
+    { id: "enterprise", name: "Enterprise", monthly_price: 12500, annual_prepaid_price: null, monthly_credits: 25, implementation_fee: 5000 },
+  ],
+  credit_rules: {
+    monthly_reset: true,
+    annual_prepaid_pool: true,
+    overage_authority: "current_approved_system_only",
+    overage_note: "Never invent an overage price. Overages are allowed only through current approved system authority.",
+  },
+  rep_compensation: {
+    implementation_fee_percentage: 60,
+    subscription_month1_percentage: 15,
+    subscription_thereafter_percentage: 8,
+    recurring_stops_on_departure: true,
+    no_continuing_residual: true,
+    no_buyout: true,
+    no_acceleration: true,
+    no_post_employment_recurring: true,
+  },
+  rep_authority_limits: {
+    cannot_alter_credits: true,
+    cannot_alter_pricing: true,
+    cannot_alter_discounts: true,
+    cannot_alter_implementation: true,
+    cannot_alter_contract_terms: true,
+    escalation_required_for_out_of_authority_terms: true,
+  },
+  future_programs_not_in_pitch: ["preferred", "preferred_plus"],
+  note: "Locked current B2B commercial authority. Reps cannot alter credits, pricing, discounts, implementation, or contract terms without approval.",
 };
 
 // ─── Standard Work Week ──────────────────────────────────────────────────
