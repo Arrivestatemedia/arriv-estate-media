@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, ShieldCheck, CheckCircle2, FolderOpen } from "lucide-react";
 
 const CAPABILITY_LABELS = {
   photography: "Photography",
@@ -315,13 +315,24 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                 Complete Background Check
               </Button>
             ) : isBookedByMe && job.media_partner_status === 'job_completed' && !job.footage_uploaded ? (
-              <Button
-                onClick={() => setShowFootageConfirmDialog(true)}
-                disabled={loading}
-                className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
-              >
-                {loading ? 'Processing...' : "I've uploaded my footage"}
-              </Button>
+              <div className="flex flex-col gap-2">
+                {job.google_drive_folder_url && (
+                  <Button
+                    onClick={() => window.open(job.google_drive_folder_url, '_blank')}
+                    className="w-full bg-[#1A1A1A] hover:bg-[#333] text-white text-sm font-medium"
+                  >
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Upload to Google Drive
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowFootageConfirmDialog(true)}
+                  disabled={loading}
+                  className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+                >
+                  {loading ? 'Processing...' : "I've uploaded my footage"}
+                </Button>
+              </div>
             ) : isBookedByMe && job.media_partner_status === 'job_completed' && job.footage_uploaded ? (
               <Button
                 variant="outline"
