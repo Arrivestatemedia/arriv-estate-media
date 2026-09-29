@@ -133,11 +133,12 @@ export const ALL_RUBRICS = {
 };
 
 export const CERTIFICATION_DOMAINS = [
-  { key: "product_knowledge", label: "Product Knowledge", description: "E0–E3, E5: Product truth, pricing authority, package/tier knowledge, provider boundary awareness." },
+  { key: "product_knowledge", label: "Product Knowledge", description: "E0–E3, E5, E20: Product truth, pricing authority, package/tier knowledge, provider boundary awareness, compensation/payroll." },
   { key: "system_operation", label: "System Operation", description: "E4: CRM navigation, pipeline, activity logging, booking flow, editing queue awareness." },
   { key: "sales_execution", label: "Sales Execution", description: "E6–E13: Discovery, cold calling, objections, pricing conversations, boundary classification, follow-up." },
   { key: "customer_onboarding", label: "Customer Onboarding", description: "E14, E16: Welcome, account access, service orientation, first-booking prep, billing/membership." },
   { key: "customer_training", label: "Customer Training", description: "E17: Training the customer to book, find deliverables, understand billing, get help." },
+  { key: "b2b_organization_sales", label: "B2B Organization Sales", description: "E21–E25: B2B signal recognition, discovery, recommendation, organization model, billing, account hold, onboarding, adoption, expansion, renewal, commission, balanced performance." },
 ];
 
 export function getCriticalFailureLabel(key) {
