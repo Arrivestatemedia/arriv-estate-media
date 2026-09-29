@@ -8,6 +8,10 @@
     "contract_id": {
       "type": "string"
     },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID governing this event"
+    },
     "period_id": {
       "type": "string",
       "description": "B2BReservedCapacityPeriod ID"
@@ -15,28 +19,43 @@
     "booking_id": {
       "type": "string"
     },
-    "job_id": {
-      "type": "string"
+    "booking_reference": {
+      "type": "string",
+      "description": "External booking reference (if applicable)"
+    },
+    "reservation_id": {
+      "type": "string",
+      "description": "Reservation ID linking RESERVATION, RESERVATION_RELEASE, and BOOKING_CONSUMPTION events"
+    },
+    "original_event_id": {
+      "type": "string",
+      "description": "ID of the original ledger event this entry reverses or compensates (for reversals)"
     },
     "amount": {
       "type": "integer",
       "description": "Shoot count (positive for allocation/reversal, negative for consumption)"
     },
     "balance_before": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Available shoot balance before this event"
     },
     "balance_after": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Available shoot balance after this event"
     },
     "event_type": {
       "type": "string",
       "enum": [
         "PERIOD_ALLOCATION",
+        "RESERVATION",
+        "RESERVATION_RELEASE",
         "BOOKING_CONSUMPTION",
         "BOOKING_REVERSAL",
         "OVERAGE",
         "EXPIRATION",
-        "ADMIN_ADJUSTMENT"
+        "ADMIN_ADJUSTMENT",
+        "CONTRACT_CHANGE",
+        "MIGRATION"
       ],
       "description": "Capacity ledger event type"
     },
@@ -45,6 +64,14 @@
     },
     "actor": {
       "type": "string"
+    },
+    "acting_user_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember user_id of the acting member"
+    },
+    "organization_member_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember ID of the acting member"
     },
     "config_version": {
       "type": "string"

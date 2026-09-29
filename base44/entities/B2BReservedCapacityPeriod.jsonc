@@ -10,6 +10,10 @@
       "type": "string",
       "description": "B2BContract ID"
     },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID \u2014 locked economics for this period"
+    },
     "production_standard": {
       "type": "string",
       "enum": [
@@ -23,19 +27,49 @@
       "type": "integer",
       "description": "Contracted reserved shoots for this period"
     },
-    "used_shoots": {
+    "available_shoots": {
       "type": "integer",
       "default": 0,
-      "description": "Shoots consumed this period"
+      "description": "Currently available (unreserved, unconsumed, unexpired) shoots"
     },
-    "remaining_shoots": {
+    "reserved_shoots": {
       "type": "integer",
-      "description": "Remaining shoots (derived from ledger)"
+      "default": 0,
+      "description": "Currently reserved (pending booking confirmation) shoots"
+    },
+    "consumed_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Consumed (committed) shoots"
     },
     "expired_shoots": {
       "type": "integer",
       "default": 0,
       "description": "Shoots expired at period end (no rollover)"
+    },
+    "adjusted_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Net admin adjustments (positive or negative) in shoots"
+    },
+    "overage_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Shoots consumed above contracted capacity this period (tracked separately)"
+    },
+    "used_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Shoots consumed this period (display only \u2014 derived from consumed_shoots)"
+    },
+    "remaining_shoots": {
+      "type": "integer",
+      "description": "Remaining shoots (display only \u2014 derived from available_shoots)"
+    },
+    "has_unresolved_reservations": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when period expired with outstanding reserved shoots not yet reconciled"
     },
     "period_start": {
       "type": "string",

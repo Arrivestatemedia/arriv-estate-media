@@ -10,6 +10,10 @@
       "type": "string",
       "description": "B2BContract ID"
     },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID governing this event"
+    },
     "period_id": {
       "type": "string",
       "description": "B2BMediaCreditPeriod ID"
@@ -18,31 +22,45 @@
       "type": "string",
       "description": "Associated booking ID (if applicable)"
     },
-    "job_id": {
+    "booking_reference": {
       "type": "string",
-      "description": "Associated job ID (if applicable)"
+      "description": "External booking reference (if applicable)"
+    },
+    "reservation_id": {
+      "type": "string",
+      "description": "Reservation ID linking RESERVATION, RESERVATION_RELEASE, and BOOKING_CONSUMPTION events"
+    },
+    "original_event_id": {
+      "type": "string",
+      "description": "ID of the original ledger event this entry reverses or compensates (for reversals)"
     },
     "amount": {
       "type": "number",
-      "description": "Credit amount (positive for allocation/reversal, negative for consumption)"
+      "description": "Credit amount (display only \u2014 derived from amount_units)"
     },
-    "balance_before": {
-      "type": "number",
-      "description": "Credit balance before this event"
+    "amount_units": {
+      "type": "integer",
+      "description": "Credit amount in integer units (1 credit = 100 units). Positive for allocation/reversal, negative for consumption/expiration."
     },
-    "balance_after": {
-      "type": "number",
-      "description": "Credit balance after this event"
+    "balance_before_units": {
+      "type": "integer",
+      "description": "Available credit balance (units) before this event"
+    },
+    "balance_after_units": {
+      "type": "integer",
+      "description": "Available credit balance (units) after this event"
     },
     "event_type": {
       "type": "string",
       "enum": [
         "PERIOD_ALLOCATION",
+        "RESERVATION",
+        "RESERVATION_RELEASE",
         "BOOKING_CONSUMPTION",
         "ADDON_CONSUMPTION",
-        "ADMIN_ADJUSTMENT",
         "BOOKING_REVERSAL",
         "EXPIRATION",
+        "ADMIN_ADJUSTMENT",
         "CONTRACT_CHANGE",
         "MIGRATION"
       ],
@@ -55,6 +73,14 @@
     "actor": {
       "type": "string",
       "description": "User/system that caused this event"
+    },
+    "acting_user_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember user_id of the acting member (for booking operations)"
+    },
+    "organization_member_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember ID of the acting member"
     },
     "config_version": {
       "type": "string",
@@ -72,7 +98,7 @@
   "required": [
     "organization_id",
     "contract_id",
-    "amount",
+    "amount_units",
     "event_type",
     "idempotency_key"
   ],

@@ -10,6 +10,10 @@
       "type": "string",
       "description": "B2BContract ID"
     },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID \u2014 locked economics for this period"
+    },
     "period_start": {
       "type": "string",
       "format": "date",
@@ -22,21 +26,55 @@
     },
     "credits_allocated": {
       "type": "number",
-      "description": "Credits allocated for this period"
+      "description": "Credits allocated for this period (display only \u2014 derived from credits_allocated_units)"
+    },
+    "credits_allocated_units": {
+      "type": "integer",
+      "description": "Credits allocated in integer units (1 credit = 100 units). Authoritative."
+    },
+    "credits_available_units": {
+      "type": "integer",
+      "default": 0,
+      "description": "Currently available (unreserved, unconsumed, unexpired) credit units"
+    },
+    "credits_reserved_units": {
+      "type": "integer",
+      "default": 0,
+      "description": "Currently reserved (pending booking confirmation) credit units"
+    },
+    "credits_consumed_units": {
+      "type": "integer",
+      "default": 0,
+      "description": "Consumed (committed) credit units"
+    },
+    "credits_expired_units": {
+      "type": "integer",
+      "default": 0,
+      "description": "Credits expired at period end (no rollover)"
+    },
+    "credits_adjusted_units": {
+      "type": "integer",
+      "default": 0,
+      "description": "Net admin adjustments (positive or negative) in credit units"
     },
     "credits_used": {
       "type": "number",
       "default": 0,
-      "description": "Credits consumed this period"
+      "description": "Credits consumed this period (display only \u2014 derived from credits_consumed_units)"
     },
     "credits_remaining": {
       "type": "number",
-      "description": "Credits remaining (derived from ledger, not authoritative alone)"
+      "description": "Credits remaining (display only \u2014 derived from credits_available_units)"
     },
     "credits_expired": {
       "type": "number",
       "default": 0,
-      "description": "Credits expired at period end (no rollover)"
+      "description": "Credits expired at period end (display only \u2014 derived from credits_expired_units)"
+    },
+    "has_unresolved_reservations": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when period expired with outstanding reserved credits not yet reconciled"
     },
     "status": {
       "type": "string",
@@ -66,7 +104,7 @@
     "contract_id",
     "period_start",
     "period_end",
-    "credits_allocated",
+    "credits_allocated_units",
     "status"
   ],
   "rls": {

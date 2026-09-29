@@ -12,17 +12,50 @@
     "contract_id": {
       "type": "string"
     },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID governing this overage"
+    },
     "period_id": {
       "type": "string",
-      "description": "B2BReservedCapacityPeriod ID where overage occurred"
+      "description": "B2BReservedCapacityPeriod or B2BMediaCreditPeriod ID where overage occurred"
+    },
+    "period_type": {
+      "type": "string",
+      "enum": [
+        "capacity",
+        "credit"
+      ],
+      "description": "Whether this overage is for a capacity period or credit period"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking reference that triggered this overage (when available)"
+    },
+    "booking_reference": {
+      "type": "string",
+      "description": "External booking reference (when available)"
+    },
+    "overage_type": {
+      "type": "string",
+      "enum": [
+        "capacity_overage",
+        "credit_shortfall",
+        "large_property_surcharge"
+      ],
+      "description": "Type of overage: capacity_overage = reserved shoots above contracted, credit_shortfall = credits consumed above available (split-tender cash obligation), large_property_surcharge = surcharge for >10K sqft properties"
     },
     "shoots_over": {
       "type": "integer",
-      "description": "Number of shoots above contracted capacity"
+      "description": "Number of shoots above contracted capacity (for capacity_overage)"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity of the overage unit (credit units for credit_shortfall, shoots for capacity_overage)"
     },
     "contracted_per_shoot_rate": {
       "type": "number",
-      "description": "Contracted effective per-shoot rate (dollars)"
+      "description": "Contracted effective per-shoot rate (dollars, for capacity_overage)"
     },
     "overage_rate_multiplier": {
       "type": "number",
@@ -36,9 +69,17 @@
       "type": "number",
       "description": "Total overage charge (dollars)"
     },
+    "unit_economics": {
+      "type": "string",
+      "description": "Human-readable description of the unit economics applied (e.g. '1 shoot \u00d7 $350 \u00d7 1.10 = $385')"
+    },
+    "locked_config_snapshot": {
+      "type": "string",
+      "description": "JSON reference to the locked contract-version config snapshot governing this overage"
+    },
     "snapshot_json": {
       "type": "string",
-      "description": "Immutable overage snapshot: contract terms, capacity config, period, calculation"
+      "description": "Immutable overage snapshot: contract terms, capacity/credit config, period, calculation"
     },
     "status": {
       "type": "string",
@@ -50,6 +91,10 @@
         "waived"
       ],
       "default": "created"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key to prevent duplicate overage records"
     },
     "created_at": {
       "type": "string",
@@ -64,8 +109,9 @@
     "overage_id",
     "organization_id",
     "contract_id",
-    "shoots_over",
-    "overage_amount"
+    "overage_type",
+    "overage_amount",
+    "idempotency_key"
   ],
   "rls": {
     "read": {

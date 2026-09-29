@@ -80,17 +80,21 @@
         "quoted",
         "sent",
         "awaiting_signature",
+        "signed",
         "awaiting_payment",
         "active",
         "implementing",
         "live",
+        "past_due",
         "suspended",
         "expired",
+        "cancelled",
         "terminated",
         "renewed",
         "expanded"
       ],
-      "default": "draft"
+      "default": "draft",
+      "description": "Contract status. Consumption requires 'active' (or 'live'/'implementing' with controlled exceptions). 'signed' = contract signed but not yet activated. 'past_due' = payment overdue. 'cancelled' = contract cancelled by either party."
     },
     "sales_rep_id": {
       "type": "string",

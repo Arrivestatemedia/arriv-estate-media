@@ -12,7 +12,11 @@
     },
     "terms_json": {
       "type": "string",
-      "description": "Immutable snapshot of ALL commercial terms at signing: plan, price, term, billing, annual prepayment, credits/capacity, sqft treatment, add-ons, overages, large-property surcharge, seats, implementation, deployment, renewal, cancellation/termination, effective date, and ALL config version IDs (plan, credit, capacity, seat, implementation, sqft surcharge, commission plan) that governed this contract."
+      "description": "Immutable snapshot of ALL commercial terms at signing: plan, price, term, billing, annual prepayment, credits/capacity, sqft treatment, add-ons, overages, large-property surcharge, seats, implementation, deployment, renewal, cancellation/termination, effective date, and ALL config version IDs that governed this contract."
+    },
+    "locked_config_snapshots": {
+      "type": "string",
+      "description": "JSON of complete immutable configuration snapshots for EVERY governing config: { plan: {config_id, version, snapshot}, media_credit: {...}, reserved_capacity: {...}, seats: {...}, implementation: {...}, sqft_surcharge: {...}, commission: {...} }. Runtime calculations for this contract version use these locked snapshots, NOT the current active config."
     },
     "effective_at": {
       "type": "string",
