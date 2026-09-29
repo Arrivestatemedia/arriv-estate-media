@@ -16,11 +16,7 @@ Deno.serve(async (req) => {
     // We fetch a generous batch and filter server-side.
     const allJobs = await base44.asServiceRole.entities.Job.list('-completed_date', 500);
 
-    const workedJobs = allJobs.filter(j =>
-      j.status === 'completed' ||
-      j.media_partner_fulfillment_status === 'completed' ||
-      j.capture_status === 'captured'
-    );
+    const workedJobs = allJobs.filter(j => j.status === 'completed');
 
     let totalEarned = 0;   // sum of client_price (revenue)
     let totalPaidOut = 0;   // sum of pay_rate (contractor payout)
