@@ -164,6 +164,81 @@ Deno.serve(async (req) => {
       // Inbound call — route to all active sales reps via Twilio Client
       console.log('Inbound from:', from, 'to:', to);
 
+      // --- Authorized admin/owner dial-out (DISA) ---
+      // Allows the owner/admin to call the 855 number, enter a destination,
+      // and dial out from the company number as caller ID. Restricted to
+      // authorized phone numbers to prevent toll fraud. Takes precedence
+      // over all other inbound routing for authorized callers only.
+      const normPhone = (n) => {
+        if (!n) return '';
+        let d = String(n).replace(/\D/g, '');
+        if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+        return d;
+      };
+      const callerNormAdmin = normPhone(from);
+      const authorizedNumbers = [
+        Deno.env.get('OWNER_PHONE_NUMBER'),
+        Deno.env.get('ADMIN_PHONE'),
+        Deno.env.get('BRADLEY_PHONE'),
+      ].filter(Boolean).map(n => normPhone(n));
+
+      if (callerNormAdmin && authorizedNumbers.includes(callerNormAdmin) && defaultCallerId) {
+        const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
+        const adminActionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=admin` : '';
+        const adminDialActionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=admin_dial` : '';
+
+        // Stage 3: admin entered a destination number → dial out from 855
+        if (menu === 'admin_dial' && digits) {
+          const cleanDigits = digits.replace(/\D/g, '');
+          if (cleanDigits.length === 10) {
+            const dest = '+1' + cleanDigits;
+            console.log('Admin dial-out →', dest, 'callerId:', defaultCallerId);
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="30">
+    <Number>${dest}</Number>
+  </Dial>
+</Response>`);
+          }
+          console.log('Admin dial-out invalid digits:', digits);
+          return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Invalid number entered. Goodbye.</Say>
+</Response>`);
+        }
+
+        // Stage 2: admin chose an option from the first menu
+        if (menu === 'admin') {
+          if (digits === '1') {
+            console.log('Admin pressed 1 → prompting for destination number');
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="10" action="${adminDialActionUrl}" method="POST" timeout="20" finishOnKey="#">
+    <Say voice="Polly.Joanna">Enter the 10 digit number you want to reach, followed by the pound key.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">No number entered. Goodbye.</Say>
+</Response>`);
+          }
+          if (digits === '2') {
+            console.log('Admin pressed 2 → support');
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+</Response>`);
+          }
+        }
+
+        // Stage 1: first contact — present admin IVR menu
+        console.log('Authorized admin/owner inbound → presenting dial-out IVR');
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${adminActionUrl}" method="POST" timeout="8" finishOnKey="">
+    <Say voice="Polly.Joanna">Welcome. To dial out from the company number, press 1. To reach support, press 2.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+</Response>`);
+      }
+
       const base44 = createClientFromRequest(req);
 
       // --- Media-partner shortcut ---
