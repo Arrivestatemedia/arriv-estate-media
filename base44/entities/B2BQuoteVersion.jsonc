@@ -1,0 +1,88 @@
+{
+  "name": "B2BQuoteVersion",
+  "type": "object",
+  "properties": {
+    "quote_id": {
+      "type": "string",
+      "description": "B2BQuote ID this version belongs to"
+    },
+    "version_number": {
+      "type": "integer",
+      "description": "Monotonic version number"
+    },
+    "quote_data_json": {
+      "type": "string",
+      "description": "Immutable snapshot of the full quote: recommended plans, monthly cost, annual prepaid cost, implementation, seat costs, retail comparison, estimated savings, credit/capacity model, large-property treatment, overage rules, contract term"
+    },
+    "plan_config_version": {
+      "type": "string",
+      "description": "B2BPlanConfig version used for this quote"
+    },
+    "capacity_config_version": {
+      "type": "string"
+    },
+    "credit_config_version": {
+      "type": "string"
+    },
+    "seat_config_version": {
+      "type": "string"
+    },
+    "implementation_config_version": {
+      "type": "string"
+    },
+    "sqft_surcharge_config_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "expired"
+      ],
+      "default": "active"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "quote_id",
+    "version_number",
+    "quote_data_json",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

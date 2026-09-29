@@ -1,0 +1,67 @@
+{
+  "name": "B2BReservedCapacityConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Canonical config version ID (e.g. AEM_B2B_CAPACITY_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON: standards (essentials/cinematic/premium \u00d7 40/60/100 shoots with monthly prices), annual_prepay_discount (0.05), min_term_months (12), overage_rate_multiplier (1.10), included seats, base_implementation_fee, max_standard_sqft, rollover=false"
+    },
+    "current_version_id": {
+      "type": "string",
+      "description": "ID of the active version record"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

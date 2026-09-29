@@ -1,0 +1,90 @@
+{
+  "name": "B2BPlanVersion",
+  "type": "object",
+  "properties": {
+    "plan_config_version": {
+      "type": "string",
+      "description": "The config_version from B2BPlanConfig this version records"
+    },
+    "version_number": {
+      "type": "integer",
+      "description": "Monotonic version number"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Immutable snapshot of the full plan configuration at this version"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this version became effective"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this version expired (null if still active)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "expired"
+      ],
+      "default": "active",
+      "description": "Version status"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true,
+      "description": "Always true \u2014 this record is immutable once created"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Admin who created this version"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string",
+      "description": "Reason for this version"
+    }
+  },
+  "required": [
+    "plan_config_version",
+    "version_number",
+    "config_json",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

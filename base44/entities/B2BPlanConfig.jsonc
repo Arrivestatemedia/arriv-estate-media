@@ -1,0 +1,73 @@
+{
+  "name": "B2BPlanConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Canonical config version ID (e.g. AEM_B2B_PLAN_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this is the currently active plan configuration"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this config version became effective. Config changes only affect NEW contracts; historical contracts preserve their signed version."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this config version expires (null if active indefinitely)"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON of the plan configuration: plans (business/portfolio/developer/enterprise with monthly_price, annual_prepaid_price, monthly_media_credits, included seats, base_implementation_fee) + credit_policy"
+    },
+    "current_version_id": {
+      "type": "string",
+      "description": "ID of the active B2BPlanVersion record this config points to"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this config was activated"
+    },
+    "activated_by": {
+      "type": "string",
+      "description": "Admin who activated this config version"
+    },
+    "change_reason": {
+      "type": "string",
+      "description": "Reason for this configuration change"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

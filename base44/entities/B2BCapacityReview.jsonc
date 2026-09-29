@@ -1,0 +1,95 @@
+{
+  "name": "B2BCapacityReview",
+  "type": "object",
+  "properties": {
+    "review_id": {
+      "type": "string",
+      "description": "Canonical review ID (unique)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "consecutive_overage_periods": {
+      "type": "integer",
+      "description": "Number of consecutive overage periods (triggers at 3)"
+    },
+    "overage_period_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of the consecutive overage periods"
+    },
+    "current_capacity_band": {
+      "type": "string",
+      "description": "Current contracted capacity band"
+    },
+    "suggested_action": {
+      "type": "string",
+      "description": "Suggested action (e.g. 'upgrade capacity band')"
+    },
+    "notified_parties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Parties notified (account owner, assigned sales rep, sales manager/admin)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "reviewed",
+        "action_taken",
+        "dismissed"
+      ],
+      "default": "open"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "review_id",
+    "organization_id",
+    "contract_id",
+    "consecutive_overage_periods",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

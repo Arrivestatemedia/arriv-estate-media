@@ -1,0 +1,107 @@
+{
+  "name": "B2BMarginGuard",
+  "type": "object",
+  "properties": {
+    "guard_id": {
+      "type": "string",
+      "description": "Canonical margin guard ID (unique)"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "B2B config version being evaluated"
+    },
+    "config_type": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "capacity",
+        "credit",
+        "seat",
+        "implementation",
+        "commission",
+        "sqft_surcharge"
+      ],
+      "description": "Type of configuration evaluated"
+    },
+    "worst_case_economics_json": {
+      "type": "string",
+      "description": "Full worst-case economic model: subscription revenue, annual discount, rep commission, annual-close bonus allocation, provider compensation, estimated editing cost, payment processing, included seat/service cost, expected maximum entitlement utilization. For Reserved Capacity, models FULL contracted utilization."
+    },
+    "margin_result": {
+      "type": "object",
+      "properties": {
+        "gross_revenue": {
+          "type": "number"
+        },
+        "total_direct_costs": {
+          "type": "number"
+        },
+        "contribution_before_overhead": {
+          "type": "number"
+        },
+        "margin_percentage": {
+          "type": "number"
+        }
+      },
+      "description": "Calculated margin result"
+    },
+    "admin_threshold": {
+      "type": "number",
+      "description": "Admin-defined minimum margin threshold (percentage)"
+    },
+    "warning_triggered": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if margin fell below threshold"
+    },
+    "hard_block": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if configured as hard enforcement (blocks publish)"
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the config publish was blocked"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluated_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "guard_id",
+    "config_version",
+    "config_type",
+    "margin_result"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

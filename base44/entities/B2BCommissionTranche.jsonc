@@ -1,0 +1,112 @@
+{
+  "name": "B2BCommissionTranche",
+  "type": "object",
+  "properties": {
+    "tranche_id": {
+      "type": "string",
+      "description": "Canonical tranche ID (unique)"
+    },
+    "source_contract_id": {
+      "type": "string",
+      "description": "B2BContract ID that originated this tranche"
+    },
+    "source_expansion_id": {
+      "type": "string",
+      "description": "B2BContractExpansion ID (if this tranche is from an expansion)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep earning this tranche"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this tranche became effective"
+    },
+    "monthly_commission_basis": {
+      "type": "number",
+      "description": "Monthly recurring revenue basis for this tranche (dollars)"
+    },
+    "lifecycle_month": {
+      "type": "integer",
+      "default": 1,
+      "description": "Current lifecycle month (1 = first month, 2-12, 13+)"
+    },
+    "current_rate": {
+      "type": "number",
+      "description": "Current commission rate for this tranche (0.15, 0.08, or 0.05)"
+    },
+    "commission_plan_version": {
+      "type": "string",
+      "description": "B2BCommissionPlan version governing this tranche"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "matured",
+        "stopped_rep_departure",
+        "superseded",
+        "terminated"
+      ],
+      "default": "active",
+      "description": "Tranche status. 'stopped_rep_departure' = future recurring stops, no buyout."
+    },
+    "stopped_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When recurring was stopped (rep departure)"
+    },
+    "stop_reason": {
+      "type": "string"
+    },
+    "tranche_kind": {
+      "type": "string",
+      "enum": [
+        "initial",
+        "expansion"
+      ],
+      "default": "initial",
+      "description": "Whether this tranche is from the initial contract or an expansion"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tranche_id",
+    "source_contract_id",
+    "sales_rep_id",
+    "monthly_commission_basis",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

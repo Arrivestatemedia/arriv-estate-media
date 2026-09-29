@@ -1,0 +1,88 @@
+{
+  "name": "B2BSeatEntitlement",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID"
+    },
+    "included_full_seats": {
+      "type": "integer",
+      "description": "Full seats included in plan"
+    },
+    "included_admin_seats": {
+      "type": "integer",
+      "description": "Admin seats included in plan"
+    },
+    "additional_full_seats": {
+      "type": "integer",
+      "default": 0,
+      "description": "Additional full seats purchased"
+    },
+    "additional_admin_seats": {
+      "type": "integer",
+      "default": 0,
+      "description": "Additional admin seats purchased"
+    },
+    "booking_only_seats": {
+      "type": "integer",
+      "default": 0,
+      "description": "Booking-only seats"
+    },
+    "total_full_seats": {
+      "type": "integer",
+      "description": "Total full seats (included + additional)"
+    },
+    "total_admin_seats": {
+      "type": "integer",
+      "description": "Total admin seats (included + additional)"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "B2BSeatConfig version at entitlement setup"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded"
+      ],
+      "default": "active"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organization_id",
+    "contract_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "B2BAuditLog",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "description": "User/system that performed the action"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "sales_rep",
+        "system",
+        "workflow",
+        "client_org_admin"
+      ],
+      "description": "Type of actor"
+    },
+    "action": {
+      "type": "string",
+      "description": "Action performed (e.g. 'entitlement_adjustment', 'contract_signed', 'config_published')"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the action (required for all manual financial changes)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Type of entity affected (B2BOrganization, B2BContract, B2BMediaCreditLedger, etc.)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the affected entity"
+    },
+    "before_snapshot": {
+      "type": "string",
+      "description": "JSON snapshot of entity state before the change"
+    },
+    "after_snapshot": {
+      "type": "string",
+      "description": "JSON snapshot of entity state after the change"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Request/correlation ID for traceability"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address (if available through existing infrastructure)"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent (if available)"
+    }
+  },
+  "required": [
+    "actor",
+    "action",
+    "entity_type",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

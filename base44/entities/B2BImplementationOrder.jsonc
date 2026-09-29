@@ -1,0 +1,124 @@
+{
+  "name": "B2BImplementationOrder",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "Canonical implementation order ID (unique)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract that triggered this implementation"
+    },
+    "commercial_snapshot_id": {
+      "type": "string"
+    },
+    "implementation_fee": {
+      "type": "number",
+      "description": "Total implementation fee (base + deployment, dollars)"
+    },
+    "base_implementation_fee": {
+      "type": "number"
+    },
+    "deployment_fee": {
+      "type": "number"
+    },
+    "initial_user_count": {
+      "type": "integer",
+      "description": "Initial user count for deployment band"
+    },
+    "deployment_band_label": {
+      "type": "string",
+      "description": "Deployment band applied"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "Implementation owner (SalesTeamMember or admin ID)"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "stages_json": {
+      "type": "string",
+      "description": "JSON array of all implementation stages with status, due_date, completed_date, notes, blockers, customer_contacts"
+    },
+    "current_stage": {
+      "type": "string",
+      "enum": [
+        "CONTRACT_COMPLETE",
+        "PAYMENT_COMPLETE",
+        "ORGANIZATION_SETUP",
+        "ADMIN_USERS_CREATED",
+        "TEAM_IMPORT",
+        "PERMISSIONS_CONFIGURED",
+        "BILLING_CONFIGURED",
+        "ENTITLEMENT_CONFIGURED",
+        "ADMIN_TRAINING",
+        "TEAM_TRAINING",
+        "TEST_BOOKING",
+        "GO_LIVE_REVIEW",
+        "LIVE"
+      ],
+      "description": "Current implementation stage"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "blocked",
+        "complete",
+        "cancelled"
+      ],
+      "default": "not_started"
+    },
+    "go_live_ready": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when all required gates pass"
+    },
+    "go_live_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "order_id",
+    "organization_id",
+    "contract_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

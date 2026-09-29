@@ -1,0 +1,66 @@
+{
+  "name": "B2BSeatConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Canonical config version ID (e.g. AEM_B2B_SEAT_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON: additional_full_seat_monthly (10), booking_only_seat_monthly (4), additional_admin_seat_monthly (10)"
+    },
+    "current_version_id": {
+      "type": "string"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

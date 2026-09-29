@@ -1,0 +1,84 @@
+{
+  "name": "B2BSeatUsageSnapshot",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "active_full_seats": {
+      "type": "integer",
+      "description": "Active full seats in use"
+    },
+    "active_admin_seats": {
+      "type": "integer",
+      "description": "Active admin seats in use"
+    },
+    "active_booking_only_seats": {
+      "type": "integer",
+      "description": "Active booking-only seats in use"
+    },
+    "invited_pending_seats": {
+      "type": "integer",
+      "description": "Invited but not yet activated seats"
+    },
+    "total_seats_in_use": {
+      "type": "integer",
+      "description": "Total seats in use (active + invited)"
+    },
+    "entitled_full_seats": {
+      "type": "integer",
+      "description": "Entitled full seats at snapshot time"
+    },
+    "entitled_admin_seats": {
+      "type": "integer",
+      "description": "Entitled admin seats at snapshot time"
+    },
+    "overage_full_seats": {
+      "type": "integer",
+      "default": 0,
+      "description": "Full seats over entitlement"
+    },
+    "overage_admin_seats": {
+      "type": "integer",
+      "default": 0,
+      "description": "Admin seats over entitlement"
+    },
+    "member_breakdown_json": {
+      "type": "string",
+      "description": "JSON snapshot of member seat assignments at this point"
+    }
+  },
+  "required": [
+    "organization_id",
+    "snapshot_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

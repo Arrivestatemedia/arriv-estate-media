@@ -1,0 +1,84 @@
+{
+  "name": "B2BCommissionPlanVersion",
+  "type": "object",
+  "properties": {
+    "commission_config_version": {
+      "type": "string",
+      "description": "The config_version from B2BCommissionPlan this version records"
+    },
+    "version_number": {
+      "type": "integer",
+      "description": "Monotonic version number"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Immutable snapshot of the full B2B commission configuration at this version"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "expired"
+      ],
+      "default": "active"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "commission_config_version",
+    "version_number",
+    "config_json",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

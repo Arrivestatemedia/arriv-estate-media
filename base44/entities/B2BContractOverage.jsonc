@@ -1,0 +1,92 @@
+{
+  "name": "B2BContractOverage",
+  "type": "object",
+  "properties": {
+    "overage_id": {
+      "type": "string",
+      "description": "Canonical overage ID (unique)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "period_id": {
+      "type": "string",
+      "description": "B2BReservedCapacityPeriod ID where overage occurred"
+    },
+    "shoots_over": {
+      "type": "integer",
+      "description": "Number of shoots above contracted capacity"
+    },
+    "contracted_per_shoot_rate": {
+      "type": "number",
+      "description": "Contracted effective per-shoot rate (dollars)"
+    },
+    "overage_rate_multiplier": {
+      "type": "number",
+      "description": "Overage multiplier (1.10)"
+    },
+    "overage_per_shoot_rate": {
+      "type": "number",
+      "description": "Overage per-shoot rate (contracted \u00d7 multiplier)"
+    },
+    "overage_amount": {
+      "type": "number",
+      "description": "Total overage charge (dollars)"
+    },
+    "snapshot_json": {
+      "type": "string",
+      "description": "Immutable overage snapshot: contract terms, capacity config, period, calculation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "invoiced",
+        "paid",
+        "disputed",
+        "waived"
+      ],
+      "default": "created"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "overage_id",
+    "organization_id",
+    "contract_id",
+    "shoots_over",
+    "overage_amount"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

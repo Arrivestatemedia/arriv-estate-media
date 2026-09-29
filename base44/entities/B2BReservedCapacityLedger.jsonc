@@ -1,0 +1,90 @@
+{
+  "name": "B2BReservedCapacityLedger",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "period_id": {
+      "type": "string",
+      "description": "B2BReservedCapacityPeriod ID"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "integer",
+      "description": "Shoot count (positive for allocation/reversal, negative for consumption)"
+    },
+    "balance_before": {
+      "type": "integer"
+    },
+    "balance_after": {
+      "type": "integer"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "PERIOD_ALLOCATION",
+        "BOOKING_CONSUMPTION",
+        "BOOKING_REVERSAL",
+        "OVERAGE",
+        "EXPIRATION",
+        "ADMIN_ADJUSTMENT"
+      ],
+      "description": "Capacity ledger event type"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "config_version": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key to prevent double consumption"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organization_id",
+    "contract_id",
+    "amount",
+    "event_type",
+    "idempotency_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

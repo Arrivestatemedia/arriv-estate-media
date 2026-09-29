@@ -1,0 +1,101 @@
+{
+  "name": "B2BMediaCreditLedger",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID"
+    },
+    "period_id": {
+      "type": "string",
+      "description": "B2BMediaCreditPeriod ID"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Associated booking ID (if applicable)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Associated job ID (if applicable)"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Credit amount (positive for allocation/reversal, negative for consumption)"
+    },
+    "balance_before": {
+      "type": "number",
+      "description": "Credit balance before this event"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Credit balance after this event"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "PERIOD_ALLOCATION",
+        "BOOKING_CONSUMPTION",
+        "ADDON_CONSUMPTION",
+        "ADMIN_ADJUSTMENT",
+        "BOOKING_REVERSAL",
+        "EXPIRATION",
+        "CONTRACT_CHANGE",
+        "MIGRATION"
+      ],
+      "description": "Credit ledger event type"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable reason for this event"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User/system that caused this event"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "B2BMediaCreditConfig version at event time"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key to prevent double consumption on retry"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organization_id",
+    "contract_id",
+    "amount",
+    "event_type",
+    "idempotency_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

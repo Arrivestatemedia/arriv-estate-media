@@ -1,0 +1,66 @@
+{
+  "name": "B2BSqftSurchargeConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Canonical config version ID (e.g. AEM_B2B_SQFT_SURCHARGE_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON: base_tier (B2B_TIER_5), base_retail_prices, large_property_retail (B2B_LARGE_1\u20135 retail prices per package), custom_tier. Surcharge = large_property_retail - base_retail_prices. Frozen for signed contracts."
+    },
+    "current_version_id": {
+      "type": "string"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

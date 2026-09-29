@@ -1,0 +1,118 @@
+{
+  "name": "B2BRenewalBonus",
+  "type": "object",
+  "properties": {
+    "bonus_id": {
+      "type": "string",
+      "description": "Canonical renewal bonus ID (unique)"
+    },
+    "renewal_id": {
+      "type": "string",
+      "description": "B2BContractRenewal ID"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "New (renewed) B2BContract ID"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "renewed_acv": {
+      "type": "number",
+      "description": "Renewed annual contract value (dollars)"
+    },
+    "bonus_rate": {
+      "type": "number",
+      "description": "Renewal bonus rate (0.01)"
+    },
+    "calculated_bonus": {
+      "type": "number",
+      "description": "Calculated bonus (renewed_acv \u00d7 rate)"
+    },
+    "cap": {
+      "type": "number",
+      "description": "Maximum renewal bonus cap ($2,500)"
+    },
+    "final_bonus": {
+      "type": "number",
+      "description": "Final renewal bonus after cap"
+    },
+    "rep_active": {
+      "type": "boolean",
+      "description": "Whether the rep was active and commission-eligible at renewal"
+    },
+    "eligibility": {
+      "type": "string",
+      "enum": [
+        "eligible",
+        "not_eligible",
+        "pending"
+      ],
+      "default": "pending"
+    },
+    "eligibility_reason": {
+      "type": "string"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "not_applicable"
+      ],
+      "default": "pending"
+    },
+    "commission_event_id": {
+      "type": "string",
+      "description": "B2BCommissionEvent ID for this bonus"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "bonus_id",
+    "renewal_id",
+    "sales_rep_id",
+    "renewed_acv",
+    "final_bonus"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

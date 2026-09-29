@@ -1,0 +1,230 @@
+{
+  "name": "B2BOrganization",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Canonical B2B organization ID (unique). Generated as b2borg_{timestamp}_{random}."
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Reference to the existing Account entity (optional \u2014 Account schema is NOT modified). Read-only link."
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "Legal organization name"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for UI"
+    },
+    "billing_contact_email": {
+      "type": "string",
+      "description": "Primary billing contact email"
+    },
+    "billing_contact_name": {
+      "type": "string"
+    },
+    "billing_contact_phone": {
+      "type": "string"
+    },
+    "primary_admin_user_id": {
+      "type": "string",
+      "description": "User ID of the primary organization admin"
+    },
+    "primary_admin_email": {
+      "type": "string"
+    },
+    "assigned_sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the assigned sales rep"
+    },
+    "assigned_sales_rep_email": {
+      "type": "string"
+    },
+    "contract_type": {
+      "type": "string",
+      "enum": [
+        "business",
+        "portfolio",
+        "developer",
+        "enterprise",
+        "reserved_capacity",
+        "custom_enterprise"
+      ],
+      "description": "Type of B2B contract"
+    },
+    "plan_id": {
+      "type": "string",
+      "description": "Active plan ID (business/portfolio/developer/enterprise) or 'reserved_capacity' / 'custom_enterprise'"
+    },
+    "contract_status": {
+      "type": "string",
+      "enum": [
+        "prospective",
+        "quoted",
+        "contract_sent",
+        "awaiting_signature",
+        "awaiting_payment",
+        "active",
+        "implementing",
+        "live",
+        "suspended",
+        "churned",
+        "renewed",
+        "expanded"
+      ],
+      "default": "prospective",
+      "description": "Current contract status"
+    },
+    "contract_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "contract_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "billing_frequency": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "annual_prepaid"
+      ],
+      "description": "Billing frequency"
+    },
+    "annual_prepaid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this contract is annual prepaid"
+    },
+    "renewal_type": {
+      "type": "string",
+      "enum": [
+        "auto_renew",
+        "manual_renew",
+        "month_to_month",
+        "non_renewing"
+      ],
+      "default": "manual_renew"
+    },
+    "seat_counts": {
+      "type": "object",
+      "properties": {
+        "included_full_seats": {
+          "type": "integer"
+        },
+        "included_admin_seats": {
+          "type": "integer"
+        },
+        "additional_full_seats": {
+          "type": "integer",
+          "default": 0
+        },
+        "additional_admin_seats": {
+          "type": "integer",
+          "default": 0
+        },
+        "booking_only_seats": {
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "description": "Seat counts for this organization"
+    },
+    "implementation_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "complete",
+        "blocked"
+      ],
+      "default": "not_started"
+    },
+    "credit_entitlement": {
+      "type": "number",
+      "description": "Monthly media credit entitlement (for credit-based plans)"
+    },
+    "capacity_entitlement": {
+      "type": "object",
+      "properties": {
+        "production_standard": {
+          "type": "string",
+          "enum": [
+            "essentials",
+            "cinematic",
+            "premium"
+          ]
+        },
+        "contracted_shoots": {
+          "type": "integer"
+        }
+      },
+      "description": "Reserved capacity entitlement (for capacity contracts)"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID for this organization"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Stripe subscription ID for the active contract"
+    },
+    "current_contract_version_id": {
+      "type": "string",
+      "description": "ID of the current B2BContractVersion"
+    },
+    "current_contract_id": {
+      "type": "string",
+      "description": "ID of the current B2BContract"
+    },
+    "account_health": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "at_risk",
+        "critical",
+        "churned"
+      ],
+      "default": "healthy"
+    },
+    "renewal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Upcoming renewal date"
+    },
+    "preferred_stacking_eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether Preferred membership benefits can stack with B2B contract. Default false per \u00a7XXXVII \u2014 B2B economics take precedence."
+    }
+  },
+  "required": [
+    "organization_id",
+    "legal_name",
+    "contract_status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

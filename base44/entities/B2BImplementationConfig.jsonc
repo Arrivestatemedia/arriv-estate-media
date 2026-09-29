@@ -1,0 +1,66 @@
+{
+  "name": "B2BImplementationConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Canonical config version ID (e.g. AEM_B2B_IMPL_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON: base_implementation_fees (per plan + reserved_capacity), deployment_bands (1-25 included, 26-50 +$500, 51-100 +$1,000, 101-250 +$2,000, 251-500 +$3,500, 501+ custom), bands_are_cumulative=false"
+    },
+    "current_version_id": {
+      "type": "string"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "name": "B2BCommissionEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Canonical event ID (unique)"
+    },
+    "tranche_id": {
+      "type": "string",
+      "description": "B2BCommissionTranche ID (for recurring/expansion/mature events)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "B2B_IMPLEMENTATION_COMMISSION",
+        "B2B_FIRST_MONTH_COMMISSION",
+        "B2B_RECURRING_COMMISSION",
+        "B2B_MATURE_RESIDUAL",
+        "B2B_ANNUAL_CLOSE_BONUS",
+        "B2B_RENEWAL_BONUS",
+        "B2B_EXPANSION_COMMISSION",
+        "B2B_COMMISSION_ADJUSTMENT"
+      ],
+      "description": "B2B commission event type"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Commission amount (dollars)"
+    },
+    "commission_rate": {
+      "type": "number",
+      "description": "Rate applied for this event"
+    },
+    "commission_basis": {
+      "type": "number",
+      "description": "Basis amount this event was calculated from"
+    },
+    "source_record_id": {
+      "type": "string",
+      "description": "ID of the source record (implementation order, contract, renewal, expansion, tranche)"
+    },
+    "source_record_type": {
+      "type": "string",
+      "description": "Type of source record"
+    },
+    "commission_plan_version": {
+      "type": "string",
+      "description": "B2BCommissionPlan version used"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key \u2014 prevents duplicate payroll events"
+    },
+    "payroll_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent_to_payroll",
+        "paid",
+        "failed",
+        "not_applicable"
+      ],
+      "default": "pending",
+      "description": "Payroll handoff status"
+    },
+    "payroll_event_id": {
+      "type": "string",
+      "description": "ID of the payroll event once sent"
+    },
+    "payroll_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "eligible_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this event became eligible"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "event_id",
+    "sales_rep_id",
+    "event_type",
+    "amount",
+    "idempotency_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

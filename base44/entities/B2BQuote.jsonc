@@ -1,0 +1,97 @@
+{
+  "name": "B2BQuote",
+  "type": "object",
+  "properties": {
+    "quote_id": {
+      "type": "string",
+      "description": "Canonical quote ID (unique). Generated as b2bquote_{timestamp}_{random}."
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID (if linked to an existing org, else null for prospect quotes)"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Existing Account ID (prospect account, read-only link)"
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who created this quote"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "current_version_id": {
+      "type": "string",
+      "description": "ID of the current B2BQuoteVersion"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "prepared",
+        "sent",
+        "accepted",
+        "rejected",
+        "expired",
+        "converted"
+      ],
+      "default": "draft"
+    },
+    "inputs_json": {
+      "type": "string",
+      "description": "Quote inputs: organization type, expected bookings/month, typical sqft, package mix, user count, billing preference, contract preference, geography, add-on usage estimate"
+    },
+    "recommended_plan_id": {
+      "type": "string",
+      "description": "Recommended plan ID (not forced \u2014 rep may select another eligible plan)"
+    },
+    "selected_plan_id": {
+      "type": "string",
+      "description": "Plan the rep selected"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "converted_contract_id": {
+      "type": "string",
+      "description": "B2BContract ID if this quote was converted to a contract"
+    }
+  },
+  "required": [
+    "quote_id",
+    "sales_rep_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

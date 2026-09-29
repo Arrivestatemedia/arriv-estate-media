@@ -1,0 +1,94 @@
+{
+  "name": "B2BMediaCreditPeriod",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Period start date"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "Period end date (credits expire at end of this period)"
+    },
+    "credits_allocated": {
+      "type": "number",
+      "description": "Credits allocated for this period"
+    },
+    "credits_used": {
+      "type": "number",
+      "default": 0,
+      "description": "Credits consumed this period"
+    },
+    "credits_remaining": {
+      "type": "number",
+      "description": "Credits remaining (derived from ledger, not authoritative alone)"
+    },
+    "credits_expired": {
+      "type": "number",
+      "default": 0,
+      "description": "Credits expired at period end (no rollover)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "closed"
+      ],
+      "default": "active",
+      "description": "Period status"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "B2BMediaCreditConfig version at allocation time"
+    },
+    "allocation_ledger_id": {
+      "type": "string",
+      "description": "B2BMediaCreditLedger ID for the PERIOD_ALLOCATION event"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organization_id",
+    "contract_id",
+    "period_start",
+    "period_end",
+    "credits_allocated",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

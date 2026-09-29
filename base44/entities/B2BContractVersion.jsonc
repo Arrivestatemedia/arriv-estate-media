@@ -1,0 +1,79 @@
+{
+  "name": "B2BContractVersion",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID this version belongs to"
+    },
+    "version_number": {
+      "type": "integer",
+      "description": "Monotonic version number"
+    },
+    "terms_json": {
+      "type": "string",
+      "description": "Immutable snapshot of ALL commercial terms at signing: plan, price, term, billing, annual prepayment, credits/capacity, sqft treatment, add-ons, overages, large-property surcharge, seats, implementation, deployment, renewal, cancellation/termination, effective date, and ALL config version IDs (plan, credit, capacity, seat, implementation, sqft surcharge, commission plan) that governed this contract."
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "expired"
+      ],
+      "default": "active"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true,
+      "description": "Always true \u2014 this record is immutable once created. Future config changes must not change historical contract economics."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "change_reason": {
+      "type": "string",
+      "description": "Reason for this version (initial signing, renewal, expansion, amendment)"
+    }
+  },
+  "required": [
+    "contract_id",
+    "version_number",
+    "terms_json",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

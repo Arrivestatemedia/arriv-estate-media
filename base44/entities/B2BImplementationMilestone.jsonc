@@ -1,0 +1,102 @@
+{
+  "name": "B2BImplementationMilestone",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "B2BImplementationOrder ID"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "CONTRACT_COMPLETE",
+        "PAYMENT_COMPLETE",
+        "ORGANIZATION_SETUP",
+        "ADMIN_USERS_CREATED",
+        "TEAM_IMPORT",
+        "PERMISSIONS_CONFIGURED",
+        "BILLING_CONFIGURED",
+        "ENTITLEMENT_CONFIGURED",
+        "ADMIN_TRAINING",
+        "TEAM_TRAINING",
+        "TEST_BOOKING",
+        "GO_LIVE_REVIEW",
+        "LIVE"
+      ],
+      "description": "Implementation stage"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "complete",
+        "blocked",
+        "skipped"
+      ],
+      "default": "pending"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "Owner for this stage"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "blockers": {
+      "type": "string",
+      "description": "Current blockers for this stage"
+    },
+    "customer_contacts_json": {
+      "type": "string",
+      "description": "JSON array of customer contacts involved in this stage"
+    },
+    "order_sequence": {
+      "type": "integer",
+      "description": "Display order for this stage"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "order_id",
+    "stage",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

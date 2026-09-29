@@ -1,0 +1,100 @@
+{
+  "name": "B2BReservedCapacityPeriod",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID"
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID"
+    },
+    "production_standard": {
+      "type": "string",
+      "enum": [
+        "essentials",
+        "cinematic",
+        "premium"
+      ],
+      "description": "Production standard for this capacity period"
+    },
+    "contracted_shoots": {
+      "type": "integer",
+      "description": "Contracted reserved shoots for this period"
+    },
+    "used_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Shoots consumed this period"
+    },
+    "remaining_shoots": {
+      "type": "integer",
+      "description": "Remaining shoots (derived from ledger)"
+    },
+    "expired_shoots": {
+      "type": "integer",
+      "default": 0,
+      "description": "Shoots expired at period end (no rollover)"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "B2BReservedCapacityConfig version at allocation time"
+    },
+    "allocation_ledger_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organization_id",
+    "contract_id",
+    "production_standard",
+    "contracted_shoots",
+    "period_start",
+    "period_end",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

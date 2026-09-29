@@ -1,0 +1,174 @@
+{
+  "name": "B2BContract",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "description": "Canonical B2B contract ID (unique). Generated as b2bctr_{timestamp}_{random}."
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID"
+    },
+    "plan_id": {
+      "type": "string",
+      "description": "Plan ID (business/portfolio/developer/enterprise/reserved_capacity/custom_enterprise)"
+    },
+    "contract_type": {
+      "type": "string",
+      "enum": [
+        "business",
+        "portfolio",
+        "developer",
+        "enterprise",
+        "reserved_capacity",
+        "custom_enterprise"
+      ]
+    },
+    "contract_version_id": {
+      "type": "string",
+      "description": "ID of the current B2BContractVersion (immutable terms)"
+    },
+    "commercial_snapshot_id": {
+      "type": "string",
+      "description": "ID of the B2BCommercialSnapshot (authoritative B2B economics)"
+    },
+    "billing_frequency": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "annual_prepaid"
+      ]
+    },
+    "annual_prepaid": {
+      "type": "boolean",
+      "default": false
+    },
+    "term_months": {
+      "type": "integer",
+      "description": "Contract term in months (12 for annual, 0 for month-to-month)"
+    },
+    "monthly_price": {
+      "type": "number",
+      "description": "Monthly recurring price (dollars)"
+    },
+    "annual_prepaid_price": {
+      "type": "number",
+      "description": "Annual prepaid price (dollars, if annual_prepaid)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "renewal_type": {
+      "type": "string",
+      "enum": [
+        "auto_renew",
+        "manual_renew",
+        "month_to_month",
+        "non_renewing"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "quoted",
+        "sent",
+        "awaiting_signature",
+        "awaiting_payment",
+        "active",
+        "implementing",
+        "live",
+        "suspended",
+        "expired",
+        "terminated",
+        "renewed",
+        "expanded"
+      ],
+      "default": "draft"
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who owns this contract"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "stripe_subscription_id": {
+      "type": "string"
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signed_by": {
+      "type": "string",
+      "description": "Name/email of signer"
+    },
+    "signature_data": {
+      "type": "string",
+      "description": "Signature reference/audit data"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "terminated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "termination_reason": {
+      "type": "string"
+    },
+    "parent_contract_id": {
+      "type": "string",
+      "description": "Original contract ID if this is a renewal or expansion"
+    },
+    "contract_kind": {
+      "type": "string",
+      "enum": [
+        "initial",
+        "renewal",
+        "expansion"
+      ],
+      "default": "initial"
+    }
+  },
+  "required": [
+    "contract_id",
+    "organization_id",
+    "plan_id",
+    "contract_type",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

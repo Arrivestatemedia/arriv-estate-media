@@ -1,0 +1,120 @@
+{
+  "name": "B2BContractRenewal",
+  "type": "object",
+  "properties": {
+    "renewal_id": {
+      "type": "string",
+      "description": "Canonical renewal ID (unique)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "original_contract_id": {
+      "type": "string",
+      "description": "Original B2BContract ID being renewed"
+    },
+    "new_contract_id": {
+      "type": "string",
+      "description": "New B2BContract ID created by the renewal"
+    },
+    "renewed_acv": {
+      "type": "number",
+      "description": "Renewed annual contract value (dollars)"
+    },
+    "bonus_rate": {
+      "type": "number",
+      "description": "Renewal bonus rate (0.01)"
+    },
+    "calculated_bonus": {
+      "type": "number",
+      "description": "Calculated renewal bonus (renewed_acv \u00d7 bonus_rate)"
+    },
+    "bonus_cap": {
+      "type": "number",
+      "description": "Renewal bonus cap ($2,500)"
+    },
+    "final_bonus": {
+      "type": "number",
+      "description": "Final renewal bonus after cap (dollars)"
+    },
+    "eligibility": {
+      "type": "string",
+      "enum": [
+        "eligible",
+        "not_eligible",
+        "pending"
+      ],
+      "description": "Whether the renewal qualifies for the bonus (rep must be active and commission-eligible)"
+    },
+    "eligibility_reason": {
+      "type": "string"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "not_applicable"
+      ],
+      "default": "pending"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "renewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bonus_paid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "snapshot_json": {
+      "type": "string",
+      "description": "Immutable renewal snapshot"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "renewal_id",
+    "organization_id",
+    "original_contract_id",
+    "renewed_acv",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

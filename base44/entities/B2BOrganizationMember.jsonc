@@ -1,0 +1,101 @@
+{
+  "name": "B2BOrganizationMember",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID this member belongs to"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Platform User ID"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Member email (denormalized)"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Member name (denormalized)"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "full",
+        "admin",
+        "booking_only"
+      ],
+      "description": "Organization role: full (full seat), admin (org admin), booking_only (booking-only seat)"
+    },
+    "seat_type": {
+      "type": "string",
+      "enum": [
+        "included_full",
+        "included_admin",
+        "additional_full",
+        "additional_admin",
+        "booking_only"
+      ],
+      "description": "Seat type this member consumes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "active",
+        "deactivated"
+      ],
+      "default": "invited"
+    },
+    "invited_by": {
+      "type": "string",
+      "description": "User ID or email of the inviter"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deactivated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deactivated_by": {
+      "type": "string"
+    },
+    "deactivation_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "organization_id",
+    "user_email",
+    "role",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

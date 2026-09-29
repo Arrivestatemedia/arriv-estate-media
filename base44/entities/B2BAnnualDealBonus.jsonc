@@ -1,0 +1,123 @@
+{
+  "name": "B2BAnnualDealBonus",
+  "type": "object",
+  "properties": {
+    "bonus_id": {
+      "type": "string",
+      "description": "Canonical bonus ID (unique)"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "contract_term": {
+      "type": "string",
+      "enum": [
+        "month_to_month",
+        "twelve_month_billed_monthly",
+        "annual_prepaid"
+      ],
+      "description": "Contract term type"
+    },
+    "bonus_rate": {
+      "type": "number",
+      "description": "Bonus rate (0.0, 0.015, or 0.03)"
+    },
+    "first_year_contracted_value": {
+      "type": "number",
+      "description": "First-year contracted value (dollars)"
+    },
+    "calculated_bonus": {
+      "type": "number",
+      "description": "Calculated bonus (rate \u00d7 contracted value)"
+    },
+    "cap": {
+      "type": "number",
+      "description": "Maximum bonus cap ($7,500)"
+    },
+    "final_bonus": {
+      "type": "number",
+      "description": "Final bonus after cap (dollars)"
+    },
+    "is_initial": {
+      "type": "boolean",
+      "default": true,
+      "description": "True for initial qualifying contract only \u2014 does not repeat at renewal"
+    },
+    "eligibility": {
+      "type": "string",
+      "enum": [
+        "eligible",
+        "not_eligible",
+        "pending"
+      ],
+      "default": "pending"
+    },
+    "eligibility_reason": {
+      "type": "string"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "not_applicable"
+      ],
+      "default": "pending"
+    },
+    "commission_event_id": {
+      "type": "string",
+      "description": "B2BCommissionEvent ID for this bonus"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "bonus_id",
+    "contract_id",
+    "sales_rep_id",
+    "contract_term",
+    "final_bonus"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

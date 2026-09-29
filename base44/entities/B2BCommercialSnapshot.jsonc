@@ -1,0 +1,119 @@
+{
+  "name": "B2BCommercialSnapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "description": "Canonical snapshot ID (unique). Generated as b2bsnap_{timestamp}_{random}."
+    },
+    "contract_id": {
+      "type": "string",
+      "description": "B2BContract ID"
+    },
+    "contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "billing_model": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "annual_prepaid"
+      ]
+    },
+    "retail_reference_json": {
+      "type": "string",
+      "description": "Frozen retail pricing reference (read-only snapshot from the retail pricing adapter at contract signing time). Used for large-property surcharge and retail comparison. Never mutates the retail engine."
+    },
+    "credits_config_version": {
+      "type": "string",
+      "description": "B2BMediaCreditConfig version at signing"
+    },
+    "capacity_config_version": {
+      "type": "string",
+      "description": "B2BReservedCapacityConfig version at signing"
+    },
+    "seat_config_version": {
+      "type": "string"
+    },
+    "implementation_config_version": {
+      "type": "string"
+    },
+    "sqft_surcharge_config_version": {
+      "type": "string"
+    },
+    "commission_plan_version": {
+      "type": "string",
+      "description": "B2BCommissionPlan version at signing"
+    },
+    "plan_config_version": {
+      "type": "string"
+    },
+    "funding_calculation_json": {
+      "type": "string",
+      "description": "Full immutable funding calculation: package, sqft, tier, credits/capacity consumed, split tender, cash remainder, >10K surcharge, add-ons, customer amount, entitlement consumed"
+    },
+    "customer_amount": {
+      "type": "number",
+      "description": "Final customer amount for this transaction (dollars)"
+    },
+    "entitlement_consumed": {
+      "type": "string",
+      "description": "What entitlement was consumed (credits, capacity, overage, or contract cash)"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Associated booking ID (if this snapshot is for a specific booking)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Associated job ID (if applicable)"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true,
+      "description": "Always true \u2014 this is the authoritative B2B economics record and is immutable."
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "contract_id",
+    "organization_id",
+    "plan_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

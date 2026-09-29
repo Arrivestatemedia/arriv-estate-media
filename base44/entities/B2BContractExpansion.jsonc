@@ -1,0 +1,95 @@
+{
+  "name": "B2BContractExpansion",
+  "type": "object",
+  "properties": {
+    "expansion_id": {
+      "type": "string",
+      "description": "Canonical expansion ID (unique)"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "source_contract_id": {
+      "type": "string",
+      "description": "Original B2BContract ID"
+    },
+    "new_contract_id": {
+      "type": "string",
+      "description": "New B2BContract ID created by the expansion (if applicable)"
+    },
+    "expansion_type": {
+      "type": "string",
+      "enum": [
+        "plan_upgrade",
+        "capacity_upgrade",
+        "new_geography",
+        "new_recurring_service",
+        "additional_seat_block",
+        "production_expansion"
+      ],
+      "description": "Type of expansion"
+    },
+    "incremental_monthly_value": {
+      "type": "number",
+      "description": "Incremental recurring revenue from this expansion (dollars/month)"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "commission_tranche_id": {
+      "type": "string",
+      "description": "B2BCommissionTranche created for this expansion (ages independently)"
+    },
+    "snapshot_json": {
+      "type": "string",
+      "description": "Immutable expansion snapshot: terms, incremental value, commission config version"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "superseded"
+      ],
+      "default": "active"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "expansion_id",
+    "organization_id",
+    "source_contract_id",
+    "incremental_monthly_value",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
