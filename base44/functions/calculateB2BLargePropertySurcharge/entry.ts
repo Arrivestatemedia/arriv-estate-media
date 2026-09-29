@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { getLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.ts';
 import { calculateB2BLargePropertySurcharge as calcSurcharge } from '../../shared/b2bCreditCostResolver.ts';
 

@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { commitB2BMediaCreditReservation } from '../../shared/b2bEntitlementEngine.ts';
 
 Deno.serve(async (req) => {

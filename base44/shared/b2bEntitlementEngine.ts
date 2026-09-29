@@ -385,22 +385,22 @@ export async function reserveB2BMediaCredits(client: any, params: {
   }
 
   // Atomic conditional update: only succeed if available >= creditApplied
-  await client.entities.B2BMediaCreditPeriod.updateMany(
+  const updateResult = await client.entities.B2BMediaCreditPeriod.updateMany(
     { id: params.period_id, credits_available_units: { $gte: creditApplied }, status: 'active' },
     { $inc: { credits_reserved_units: creditApplied, credits_available_units: -creditApplied } }
   );
 
-  // Read updated period
-  const updated = await client.entities.B2BMediaCreditPeriod.get(params.period_id);
-  const availableAfter = updated.credits_available_units || 0;
-
-  // Check if our update succeeded (available should have decreased)
-  if (availableAfter >= availableBefore) {
+  // Check if update succeeded (updateMany returns { updated: N })
+  if (!updateResult || updateResult.updated === 0) {
     return {
       success: false, reason: 'INSUFFICIENT_CREDITS',
       credit_requirement: required, credit_applied: 0, credit_shortfall: required,
     };
   }
+
+  // Read updated period
+  const updated = await client.entities.B2BMediaCreditPeriod.get(params.period_id);
+  const availableAfter = updated.credits_available_units || 0;
 
   // Create ledger event
   const ledger = await client.entities.B2BMediaCreditLedger.create({
@@ -504,19 +504,19 @@ export async function reserveB2BCapacity(client: any, params: {
     return { success: false, reason: 'INSUFFICIENT_CAPACITY', shoots_required: required, shoots_applied: 0 };
   }
 
+  let updateResult: any = { updated: 0 };
   if (applied > 0) {
-    await client.entities.B2BReservedCapacityPeriod.updateMany(
+    updateResult = await client.entities.B2BReservedCapacityPeriod.updateMany(
       { id: params.period_id, available_shoots: { $gte: applied }, status: 'active' },
       { $inc: { reserved_shoots: applied, available_shoots: -applied } }
     );
+    if (!updateResult || updateResult.updated === 0) {
+      return { success: false, reason: 'INSUFFICIENT_CAPACITY', shoots_required: required, shoots_applied: 0 };
+    }
   }
 
   const updated = await client.entities.B2BReservedCapacityPeriod.get(params.period_id);
   const availableAfter = updated.available_shoots || 0;
-
-  if (applied > 0 && availableAfter >= availableBefore) {
-    return { success: false, reason: 'INSUFFICIENT_CAPACITY', shoots_required: required, shoots_applied: 0 };
-  }
 
   const ledger = await client.entities.B2BReservedCapacityLedger.create({
     organization_id: period.organization_id,
@@ -548,7 +548,7 @@ export async function reserveB2BCapacity(client: any, params: {
     const lockedSnapshots = await getLockedConfigSnapshots(client, params.contract_version_id);
     const capConfig = lockedSnapshots.reserved_capacity.snapshot;
     const standard = capConfig.standards[period.production_standard];
-    const band = standard.bands.find((b: any) => b.shoots === period.contracted_shoots);
+    const band = standard.bands.find((b: any) => b.shoots === period.contracted_shoots) || standard.bands[0];
     const perShootRate = band ? band.monthly_price / band.shoots : 0;
     const overageRate = perShootRate * (capConfig.overage_rate_multiplier || 1.10);
     const overageAmount = shortfall * overageRate;

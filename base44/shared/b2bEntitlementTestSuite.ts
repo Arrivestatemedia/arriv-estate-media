@@ -838,9 +838,10 @@ export async function runB2BEntitlementRegressionTests(client: any) {
     check('A18. Final calculation preserves B2B sqft tier', reqResult.b2b_sqft_tier === 'B2B_TIER_3', `tier=${reqResult.b2b_sqft_tier}`);
 
     // A19. Credit balance belongs to organization, not individual member
+    const creditResolveFresh = await resolveB2BEntitlement(client, { email: `${TEST_PREFIX}full@test.com` });
     check('A19. Credit balance belongs to organization, not individual member',
-      creditResolve.credits?.credits_available_units === adminResolve.credits?.credits_available_units,
-      `credit=${creditResolve.credits?.credits_available_units}, admin=${adminResolve.credits?.credits_available_units}`);
+      creditResolveFresh.credits?.credits_available_units === adminResolve.credits?.credits_available_units,
+      `credit=${creditResolveFresh.credits?.credits_available_units}, admin=${adminResolve.credits?.credits_available_units}`);
 
     // A20. Booking-only member can resolve booking entitlement
     const bookingResolve = await resolveB2BEntitlement(client, { email: `${TEST_PREFIX}booking@test.com` });
@@ -854,7 +855,10 @@ export async function runB2BEntitlementRegressionTests(client: any) {
       inactiveResolve.commercial_domain === 'RETAIL', `domain=${inactiveResolve.commercial_domain}`);
 
     // A22. Expired B2B contract resolves no active B2B funding
+    // Set all contracts for this org to non-active states
     await client.entities.B2BContract.update(creditContract.id, { status: 'expired' });
+    await client.entities.B2BContract.update(newContract.id, { status: 'expired' });
+    await client.entities.B2BContract.update(draftContract.id, { status: 'expired' });
     const expiredResolve = await resolveB2BEntitlement(client, { email: `${TEST_PREFIX}full@test.com` });
     check('A22. Expired B2B contract resolves no active B2B funding',
       expiredResolve.can_book === false, `can_book=${expiredResolve.can_book}`);

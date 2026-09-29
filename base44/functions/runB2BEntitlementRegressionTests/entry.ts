@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { runB2BEntitlementRegressionTests } from '../../shared/b2bEntitlementTestSuite.ts';
 
 Deno.serve(async (req) => {
