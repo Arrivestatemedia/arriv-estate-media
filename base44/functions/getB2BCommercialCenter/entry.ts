@@ -54,12 +54,15 @@ Deno.serve(async (req) => {
 
     // Get upcoming renewals (next 120 days)
     const now = new Date();
-    const renewals = await base44.asServiceRole.entities.B2BContractRenewal.list('-created_at', 50);
-    const upcomingRenewals = renewals.filter((r: any) => {
-      const renewDate = new Date(r.renewal_date || r.effective_date || '');
-      const daysUntil = (renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      return daysUntil > 0 && daysUntil <= 120;
-    });
+    let upcomingRenewals: any[] = [];
+    try {
+      const renewals = await base44.asServiceRole.entities.B2BContractRenewal.list('-created_at', 50);
+      upcomingRenewals = (renewals || []).filter((r: any) => {
+        const renewDate = new Date(r.renewal_date || r.effective_date || '');
+        const daysUntil = (renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return daysUntil > 0 && daysUntil <= 120;
+      });
+    } catch (e) { /* entity may not have records yet */ }
 
     return Response.json({
       status: 'OK',
