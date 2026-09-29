@@ -15,7 +15,7 @@ export const CERTIFICATION_REQUIREMENTS = {
   onboarding_min_score: 95,
   teachback_min_score: 95,
   overall_passing_score: 95,
-  modules_total: 20,
+  modules_total: 26,
   manager_authorization_required: true,
 };
 
@@ -37,6 +37,22 @@ export const CRITICAL_FAILURES = [
   { key: "exposing_internal_provider_payout", label: "Exposing internal provider payout details" },
   { key: "production_side_effects_from_training_mode", label: "Causing production side effects from Training Mode" },
   { key: "bypassing_required_authorization", label: "Bypassing required authorization" },
+  // B2B-specific critical failures (E21-E25)
+  { key: "b2b_abandon_individual", label: "B2B: Abandoning individual lead to chase B2B" },
+  { key: "b2b_invent_pricing", label: "B2B: Inventing pricing" },
+  { key: "b2b_invent_credits", label: "B2B: Inventing credit allocations" },
+  { key: "b2b_offer_custom_discount", label: "B2B: Offering unauthorized custom discount" },
+  { key: "b2b_add_extra_credits", label: "B2B: Adding extra credits without approval" },
+  { key: "b2b_alter_contract_terms", label: "B2B: Altering contract terms without approval" },
+  { key: "b2b_impersonate_customer_admin", label: "B2B: Impersonating customer admin" },
+  { key: "b2b_enter_financial_credentials", label: "B2B: Entering financial credentials on behalf of customer" },
+  { key: "b2b_fake_paid_state", label: "B2B: Faking a paid state" },
+  { key: "b2b_bypass_hold", label: "B2B: Bypassing account hold" },
+  { key: "b2b_invent_custom_plan", label: "B2B: Inventing a custom plan" },
+  { key: "b2b_verbal_terms_change", label: "B2B: Verbally agreeing to different terms without amendment" },
+  { key: "b2b_claim_residual", label: "B2B: Claiming continuing residual after departure" },
+  { key: "b2b_invent_rate", label: "B2B: Inventing a higher commission rate" },
+  { key: "b2b_abandon_prospecting", label: "B2B: Abandoning prospecting for B2B-only week" },
 ];
 
 export const ROLEPLAY_RUBRIC = {
@@ -92,11 +108,28 @@ export const TEACH_BACK_RUBRIC = {
   ],
 };
 
+export const B2B_PRACTICAL_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "b2b_recognition", label: "B2B Signal Recognition", points: 10 },
+    { key: "b2b_discovery", label: "B2B Discovery Completeness (decision maker, admin, users, usage, billing, rollout)", points: 15 },
+    { key: "b2b_recommendation", label: "Approved Configuration Recommendation (no invented pricing/credits/terms)", points: 15 },
+    { key: "b2b_crm_truth", label: "Complete CRM Truth & Documentation", points: 10 },
+    { key: "b2b_organization_setup", label: "Organization Structure & Member Setup (canonical B2B model, no second login universe)", points: 15 },
+    { key: "b2b_billing_literacy", label: "Billing/Account-Hold Handling (no fabricated payment state, no billing bypass)", points: 10 },
+    { key: "b2b_customer_training", label: "Company Admin Training & Teach-Back", points: 10 },
+    { key: "b2b_balanced_performance", label: "Balanced Activity Plan (B2B + normal prospecting maintained)", points: 10 },
+    { key: "b2b_boundary_compliance", label: "Boundary Compliance (no critical failures)", points: 5 },
+  ],
+};
+
 export const ALL_RUBRICS = {
   roleplay: { label: "Role-Play", rubric: ROLEPLAY_RUBRIC },
   system_crm: { label: "CRM / System Practical", rubric: CRM_SYSTEM_RUBRIC },
   onboarding: { label: "Customer Onboarding", rubric: ONBOARDING_RUBRIC },
   teachback: { label: "Teach-Back", rubric: TEACH_BACK_RUBRIC },
+  b2b_practical: { label: "B2B Practical (E21-E25)", rubric: B2B_PRACTICAL_RUBRIC },
 };
 
 export const CERTIFICATION_DOMAINS = [
