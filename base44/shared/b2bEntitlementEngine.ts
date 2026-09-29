@@ -28,6 +28,7 @@ import {
 } from './b2bContractVersionLock.ts';
 import { resolveCreditCost, calculateB2BLargePropertySurcharge, AddOnInput } from './b2bCreditCostResolver.ts';
 import { resolveB2BGoverningContract, isOrganizationOnHold, canConsumeWithContractStatus } from './b2bGoverningContract.ts';
+import { getActivePricingConfig } from './mediaConfigLoader.ts';
 
 // --- Contract state validation (§3) ---
 
@@ -1323,7 +1324,30 @@ export async function resolveB2BBookingEntitlementRequirement(client: any, param
     const period = periods[0];
     const availableUnits = period?.credits_available_units || 0;
 
-    const costResult = resolveCreditCost(lockedSnapshots, params.package, params.property_sqft, params.selected_add_ons || []);
+    // READ-ONLY retail add-on price lookup from the active MediaPricingConfig.
+    // The retail config is NEVER mutated — we only read add-on customer_price
+    // to compute the B2B credit conversion (retail_price / divisor).
+    let resolvedAddOns: AddOnInput[] = params.selected_add_ons || [];
+    const hasZeroPrices = resolvedAddOns.some(a => !a.retail_price || a.retail_price === 0);
+    if (hasZeroPrices || resolvedAddOns.length === 0 && (params as any).addon_ids) {
+      try {
+        const pricingConfig = await getActivePricingConfig(client);
+        const addonMap = new Map<string, number>();
+        for (const a of (pricingConfig.add_ons || [])) {
+          if (a.active) addonMap.set(a.id, a.customer_price);
+        }
+        // Support both AddOnInput[] and string[] (addon_ids) from frontend
+        const inputIds: string[] = (params as any).addon_ids || resolvedAddOns.map(a => a.id);
+        resolvedAddOns = inputIds.map(id => ({
+          id,
+          retail_price: addonMap.get(id) || 0,
+        }));
+      } catch (e) {
+        // If pricing config can't be loaded, proceed with whatever prices we have
+      }
+    }
+
+    const costResult = resolveCreditCost(lockedSnapshots, params.package, params.property_sqft, resolvedAddOns);
 
     if (costResult.requires_custom_quote) {
       return {
@@ -1373,6 +1397,7 @@ export async function resolveB2BBookingEntitlementRequirement(client: any, param
       cash_obligation_if_applicable: cashObligation,
       requires_custom_quote: false,
       non_credit_charges: costResult.non_credit_charges,
+      addon_breakdown: costResult.addon_breakdown,
       locked_config_versions: {
         plan: lockedSnapshots.plan.version,
         media_credit: lockedSnapshots.media_credit.version,

@@ -41,7 +41,7 @@ export default function B2BBookingAdapter({ userEmail, packageName, propertySqft
         email: userEmail,
         package_name: packageName,
         property_sqft: propertySqft,
-        add_ons: (addOns || []).map(id => ({ id, retail_price: 0 })),
+        addon_ids: addOns || [],
       });
       setRequirement(res?.data || res);
     } catch (e) {
@@ -77,20 +77,43 @@ export default function B2BBookingAdapter({ userEmail, packageName, propertySqft
 
       {entitlement.funding_mode === 'media_credit' && requirement.funding_mode === 'media_credit' && (
         <div className="space-y-2 text-sm">
+          {requirement.addon_breakdown && requirement.addon_breakdown.length > 0 && (
+            <div className="space-y-1 pb-2 border-b border-[#B8956A]/10">
+              <div className="flex justify-between">
+                <span className="text-[#1A1A1A]/60">Package ({packageName})</span>
+                <span className="font-medium text-[#1A1A1A]">{((requirement.base_credit_requirement || 0) / 100).toFixed(2)}</span>
+              </div>
+              {requirement.addon_breakdown
+                .filter(a => a.calculation_method !== 'EXCLUDED' && a.calculation_method !== 'NOT_ELIGIBLE')
+                .map((a, i) => (
+                <div key={i} className="flex justify-between">
+                  <span className="text-[#1A1A1A]/60 capitalize">
+                    {a.addon_id.replace(/_/g, ' ')}
+                  </span>
+                  <span className="font-medium text-[#1A1A1A]">+{a.credit_cost_display?.toFixed(2) || '0.00'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-[#1A1A1A]/60">Total Required</span>
+            <span className="font-medium text-[#1A1A1A]">{requirement.total_credit_requirement_display?.toFixed(2) || '—'}</span>
+          </div>
           <div className="flex justify-between">
             <span className="text-[#1A1A1A]/60">Available Credits</span>
             <span className="font-medium text-[#1A1A1A]">{((entitlement.credits?.credits_available_units || 0) / 100).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#1A1A1A]/60">Required Credits</span>
-            <span className="font-medium text-[#1A1A1A]">{requirement.total_credit_requirement_display?.toFixed(2) || '—'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[#1A1A1A]/60">Projected Balance</span>
+            <span className="text-[#1A1A1A]/60">After Booking</span>
             <span className="font-medium text-[#1A1A1A]">
               {Math.max(0, ((entitlement.credits?.credits_available_units || 0) / 100) - (requirement.total_credit_requirement_display || 0)).toFixed(2)}
             </span>
           </div>
+          {requirement.credit_shortfall > 0 && requirement.cash_obligation_if_applicable > 0 && (
+            <p className="text-amber-600 text-xs">
+              Insufficient credits: {(requirement.credit_shortfall / 100).toFixed(2)} credits require ${requirement.cash_obligation_if_applicable.toFixed(2)} cash.
+            </p>
+          )}
           {requirement.requires_custom_quote && (
             <p className="text-amber-600 text-xs">Custom quote required for this property size.</p>
           )}

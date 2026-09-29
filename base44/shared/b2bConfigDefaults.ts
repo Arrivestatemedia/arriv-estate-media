@@ -152,7 +152,33 @@ export const DEFAULT_B2B_CREDIT_CONFIG = {
   config_version: B2B_CREDIT_CONFIG_VERSION,
   credit_matrix: B2B_CREDIT_MATRIX,
   addon_default_divisor: 275, // eligible add-on retail price / $275 = Media Credits
-  addon_overrides: {} as Record<string, number>, // add-on ID → explicit credit value (overrides default)
+  addon_rounding_rule: "ROUND_TO_2_DECIMALS" as const, // 2 decimal places (1 credit = 100 units)
+  // Eligible Arriv Estate Media service add-ons that CAN be converted to Media Credits.
+  // Studio products are NOT listed here — they remain separate cash purchases.
+  eligible_addon_ids: [
+    "drone",
+    "3d_tour",
+    "twilight",
+    "rush_delivery",
+    "vertical_reel",
+    "ai_staging",
+  ],
+  // Explicitly excluded add-ons — these are NEVER converted to Media Credits.
+  // Includes all Arriv Studio products (subscriptions and one-time productions).
+  excluded_addon_ids: [
+    "studio_creator_subscription",
+    "studio_pro_subscription",
+    "studio_brokerage_subscription",
+    "listing_reel_studio",
+    "property_promo_studio",
+    "just_listed_video_studio",
+    "social_content_pack_studio",
+    "custom_studio_production",
+  ],
+  addon_overrides: {} as Record<string, number>, // add-on ID → explicit credit value (config-level override)
+  // Contract-specific add-on credit overrides — populated per-contract at lock time.
+  // Resolution precedence: contract_specific > config addon_overrides > retail conversion.
+  contract_specific_addon_overrides: {} as Record<string, number>,
   // §XXIII: Explicit per-credit dollar rate for credit shortfall cash obligations.
   // When set, used directly instead of deriving from plan (monthly_price / monthly_media_credits).
   // null = derive from plan (legacy behavior).

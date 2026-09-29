@@ -7,15 +7,37 @@
 //
 // Uses b2bSqftResolver.ts (NOT propertyDataProvider.ts) for tier resolution.
 // All credit values are in integer units (1 credit = 100 units).
+//
+// ADD-ON CREDIT CONVERSION (Addendum §1):
+//   B2B_MEDIA_CREDIT_COST = ROUND_TO_2_DECIMALS(RETAIL_ADDON_PRICE / 275)
+//
+// Resolution precedence for each add-on:
+//   1. Contract-specific locked override (contract_specific_addon_overrides)
+//   2. Config-level explicit override (addon_overrides)
+//   3. Retail price conversion: ROUND(retail_price / divisor, 2)
+//
+// Studio products are NEVER converted — they are in excluded_addon_ids.
+// Only add-ons in eligible_addon_ids are converted.
 // ============================================================================
 
 import { determineB2BTier, isB2BCustomTier, isB2BLargeTier, B2BTier } from './b2bSqftResolver.ts';
-import { creditsToUnits, divUnits, unitsToCredits, CREDIT_SCALE } from './b2bCreditUnits.ts';
+import { creditsToUnits, unitsToCredits, CREDIT_SCALE } from './b2bCreditUnits.ts';
 import { LockedConfigSnapshots } from './b2bContractVersionLock.ts';
 
 export interface AddOnInput {
   id: string;
   retail_price: number;
+}
+
+export interface AddOnCreditBreakdown {
+  addon_id: string;
+  addon_name: string;
+  retail_reference_price: number;       // in DOLLARS (read-only from retail config)
+  calculation_method: "ADDON_OVERRIDE" | "RETAIL_PRICE_CONVERSION" | "EXCLUDED" | "NOT_ELIGIBLE";
+  divisor_used: number | null;
+  override_used: number | null;          // in credit units (if override applied)
+  credit_cost_units: number;            // in integer credit units
+  credit_cost_display: number;           // in decimal credits (2 dp)
 }
 
 export interface CreditCostResult {
@@ -27,11 +49,16 @@ export interface CreditCostResult {
   total_credit_requirement_display: number; // in decimal credits
   requires_custom_quote: boolean;
   non_credit_charges: string[];
+  addon_breakdown: AddOnCreditBreakdown[];
 }
 
 /**
  * Resolve the credit cost for a package + sqft + add-ons using a locked config snapshot.
  * Returns credit amounts in integer units (1 credit = 100 units).
+ *
+ * Retail add-on prices are passed in via AddOnInput.retail_price. The caller is
+ * responsible for reading these READ-ONLY from the active MediaPricingConfig.
+ * This module NEVER reads or mutates the retail pricing config directly.
  */
 export function resolveCreditCost(
   lockedSnapshots: LockedConfigSnapshots,
@@ -53,6 +80,7 @@ export function resolveCreditCost(
       total_credit_requirement_display: 0,
       requires_custom_quote: true,
       non_credit_charges: nonCreditCharges,
+      addon_breakdown: [],
     };
   }
 
@@ -67,6 +95,7 @@ export function resolveCreditCost(
       total_credit_requirement_display: 0,
       requires_custom_quote: true,
       non_credit_charges: nonCreditCharges,
+      addon_breakdown: [],
     };
   }
 
@@ -81,36 +110,95 @@ export function resolveCreditCost(
       total_credit_requirement_display: 0,
       requires_custom_quote: true,
       non_credit_charges: nonCreditCharges,
+      addon_breakdown: [],
     };
   }
 
   const baseUnits = creditsToUnits(baseCostRaw);
 
-  // Add-on credit conversion
-  const addonOverrides = creditConfig.addon_overrides || {};
+  // --- Add-on credit conversion (Addendum §1, §3) ---
   const divisor = creditConfig.addon_default_divisor || 275;
-  let addonUnits = 0;
-  for (const addon of addOns) {
-    if (addonOverrides[addon.id] != null) {
-      addonUnits += creditsToUnits(addonOverrides[addon.id]);
-    } else if (addon.retail_price && divisor > 0) {
-      addonUnits += divUnits(creditsToUnits(addon.retail_price / 1), divisor);
-      // Convert retail price to credit units: (price / divisor) * CREDIT_SCALE
-      addonUnits += Math.round((addon.retail_price / divisor) * CREDIT_SCALE) - divUnits(creditsToUnits(addon.retail_price / 1), divisor);
-      // The above is redundant; use the direct formula:
-    }
-    // Actually, let me simplify: addon credits = (retail_price / divisor)
-    // In units: (retail_price / divisor) * CREDIT_SCALE = Math.round(retail_price * CREDIT_SCALE / divisor)
-  }
+  const eligibleAddonIds: string[] = creditConfig.eligible_addon_ids || [];
+  const excludedAddonIds: string[] = creditConfig.excluded_addon_ids || [];
+  const configOverrides: Record<string, number> = creditConfig.addon_overrides || {};
+  const contractOverrides: Record<string, number> = creditConfig.contract_specific_addon_overrides || {};
 
-  // Recalculate addon units cleanly
-  addonUnits = 0;
+  let addonUnits = 0;
+  const addonBreakdown: AddOnCreditBreakdown[] = [];
+
   for (const addon of addOns) {
-    if (addonOverrides[addon.id] != null) {
-      addonUnits += creditsToUnits(addonOverrides[addon.id]);
-    } else if (addon.retail_price && divisor > 0) {
-      addonUnits += Math.round((addon.retail_price / divisor) * CREDIT_SCALE);
+    const addonId = addon.id;
+    const retailPrice = addon.retail_price || 0;
+
+    // Check exclusion first — excluded add-ons (Studio products) are NEVER converted
+    if (excludedAddonIds.includes(addonId)) {
+      addonBreakdown.push({
+        addon_id: addonId,
+        addon_name: addonId,
+        retail_reference_price: retailPrice,
+        calculation_method: "EXCLUDED",
+        divisor_used: null,
+        override_used: null,
+        credit_cost_units: 0,
+        credit_cost_display: 0,
+      });
+      continue;
     }
+
+    // Check eligibility — only eligible add-ons are converted
+    if (eligibleAddonIds.length > 0 && !eligibleAddonIds.includes(addonId)) {
+      addonBreakdown.push({
+        addon_id: addonId,
+        addon_name: addonId,
+        retail_reference_price: retailPrice,
+        calculation_method: "NOT_ELIGIBLE",
+        divisor_used: null,
+        override_used: null,
+        credit_cost_units: 0,
+        credit_cost_display: 0,
+      });
+      continue;
+    }
+
+    // Resolution precedence:
+    // 1. Contract-specific locked override
+    // 2. Config-level explicit override
+    // 3. Retail price conversion: ROUND(retail_price / divisor, 2)
+    let creditUnits: number;
+    let calculationMethod: "ADDON_OVERRIDE" | "RETAIL_PRICE_CONVERSION";
+    let overrideUsed: number | null = null;
+    let divisorUsed: number | null = null;
+
+    if (contractOverrides[addonId] != null) {
+      creditUnits = creditsToUnits(contractOverrides[addonId]);
+      overrideUsed = creditUnits;
+      calculationMethod = "ADDON_OVERRIDE";
+    } else if (configOverrides[addonId] != null) {
+      creditUnits = creditsToUnits(configOverrides[addonId]);
+      overrideUsed = creditUnits;
+      calculationMethod = "ADDON_OVERRIDE";
+    } else if (retailPrice > 0 && divisor > 0) {
+      // ROUND_TO_2_DECIMALS(retail_price / divisor) in credit units
+      creditUnits = Math.round((retailPrice / divisor) * CREDIT_SCALE);
+      divisorUsed = divisor;
+      calculationMethod = "RETAIL_PRICE_CONVERSION";
+    } else {
+      creditUnits = 0;
+      calculationMethod = "RETAIL_PRICE_CONVERSION";
+      divisorUsed = divisor;
+    }
+
+    addonUnits += creditUnits;
+    addonBreakdown.push({
+      addon_id: addonId,
+      addon_name: addonId,
+      retail_reference_price: retailPrice,
+      calculation_method: calculationMethod,
+      divisor_used: divisorUsed,
+      override_used: overrideUsed,
+      credit_cost_units: creditUnits,
+      credit_cost_display: unitsToCredits(creditUnits),
+    });
   }
 
   const totalUnits = baseUnits + addonUnits;
@@ -124,6 +212,7 @@ export function resolveCreditCost(
     total_credit_requirement_display: unitsToCredits(totalUnits),
     requires_custom_quote: false,
     non_credit_charges: nonCreditCharges,
+    addon_breakdown: addonBreakdown,
   };
 }
 
