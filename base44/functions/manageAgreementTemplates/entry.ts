@@ -22,8 +22,9 @@ Deno.serve(async (req) => {
     // ── GET TEMPLATE (with current version) ────────────────────────
     if (action === 'get') {
       const { template_id } = body;
-      const template = await base44.asServiceRole.entities.AgreementTemplate.get(template_id);
-      if (!template) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+      const _templates = await base44.asServiceRole.entities.AgreementTemplate.filter({ template_id });
+      if (_templates.length === 0) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+      const template = _templates[0];
 
       let currentVersion = null;
       if (template.current_version_id) {
@@ -73,8 +74,9 @@ Deno.serve(async (req) => {
     if (action === 'update') {
       const { template_id, name, description, document_body, document_file_uri, document_file_name, merge_fields, default_recipients, default_fields, routing_type, notification_rules, change_reason, actor } = body;
 
-      const template = await base44.asServiceRole.entities.AgreementTemplate.get(template_id);
-      if (!template) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+      const _templates = await base44.asServiceRole.entities.AgreementTemplate.filter({ template_id });
+      if (_templates.length === 0) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+      const template = _templates[0];
 
       const newVersionNumber = (template.current_version_number || 0) + 1;
       const now = new Date().toISOString();
@@ -117,7 +119,7 @@ Deno.serve(async (req) => {
       }
 
       // Update template to point to new version
-      await base44.asServiceRole.entities.AgreementTemplate.update(template_id, {
+      await base44.asServiceRole.entities.AgreementTemplate.update(template.id, {
         name: name || template.name,
         description: description || template.description,
         document_body: document_body || template.document_body,
@@ -140,7 +142,9 @@ Deno.serve(async (req) => {
     // ── ACTIVATE/ARCHIVE TEMPLATE ──────────────────────────────────
     if (action === 'set_status') {
       const { template_id, status, actor } = body;
-      await base44.asServiceRole.entities.AgreementTemplate.update(template_id, { status, updated_at: new Date().toISOString() });
+      const _templates = await base44.asServiceRole.entities.AgreementTemplate.filter({ template_id });
+      if (_templates.length === 0) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+      await base44.asServiceRole.entities.AgreementTemplate.update(_templates[0].id, { status, updated_at: new Date().toISOString() });
       return Response.json({ status: 'OK' });
     }
 
