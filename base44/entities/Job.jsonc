@@ -241,7 +241,17 @@
     "footage_reminder_sent_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When footage upload reminder was sent"
+      "description": "Legacy: when the first footage upload reminder was sent (old 24h cadence)"
+    },
+    "footage_reminder_2h_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 2-hour footage upload reminder was sent"
+    },
+    "footage_reminder_6h_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 6-hour footage upload reminder was sent"
     },
     "expanded_radius_notified_at": {
       "type": "string",
