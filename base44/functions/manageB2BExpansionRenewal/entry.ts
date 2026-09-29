@@ -3,10 +3,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     if (action === 'create_expansion') {
-      const { organization_id, source_contract_id, expansion_type, incremental_monthly_value, effective_date, actor } = await req.json();
+      const { organization_id, source_contract_id, expansion_type, incremental_monthly_value, effective_date, actor } = body;
 
       // Get source contract
       const sourceContract = await base44.asServiceRole.entities.B2BContract.get(source_contract_id);
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_renewal') {
-      const { organization_id, source_contract_id, renewed_acv, new_start_date, new_term_months, rep_active, actor } = await req.json();
+      const { organization_id, source_contract_id, renewed_acv, new_start_date, new_term_months, rep_active, actor } = body;
 
       const sourceContract = await base44.asServiceRole.entities.B2BContract.get(source_contract_id);
       if (!sourceContract) return Response.json({ status: 'ERROR', error: 'Source contract not found' }, { status: 404 });

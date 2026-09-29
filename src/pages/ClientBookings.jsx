@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, DollarSign, Edit2 } from "lucide-react";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
+import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -82,6 +83,8 @@ export default function ClientBookings() {
       <div className="min-h-screen bg-[var(--bg-primary)] py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-8">Your Booking Requests</h1>
+
+          <B2BClientDashboard email={user.email} />
 
         {isLoading ? (
           <p className="text-[var(--text-secondary)]">Loading your bookings...</p>

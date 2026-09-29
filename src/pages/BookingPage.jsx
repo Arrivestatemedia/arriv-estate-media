@@ -11,6 +11,7 @@ import BookingForm from "../components/booking/BookingForm";
 import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
 import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
+import B2BBookingAdapter from "@/components/b2b/B2BBookingAdapter";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
   return (
@@ -552,6 +553,13 @@ export default function BookingPage() {
             />
             ))}
             </div>
+
+            <B2BBookingAdapter
+              userEmail={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+              packageName={selectedPackage?.id}
+              propertySqft={propertySqft}
+              addOns={cartAddOns}
+            />
 
             <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
             <button

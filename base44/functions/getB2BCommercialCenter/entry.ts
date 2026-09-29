@@ -52,17 +52,21 @@ Deno.serve(async (req) => {
     const overages = await base44.asServiceRole.entities.B2BContractOverage.list('-created_at', 50);
     const totalOverageRevenue = overages.reduce((sum: number, o: any) => sum + (o.overage_amount || 0), 0);
 
-    // Get upcoming renewals (next 120 days)
+    // Get upcoming renewals (next 120 days) — defensive in case entity has no records
     const now = new Date();
-    let upcomingRenewals: any[] = [];
+    const upcomingRenewalsList: any[] = [];
     try {
-      const renewals = await base44.asServiceRole.entities.B2BContractRenewal.list('-created_at', 50);
-      upcomingRenewals = (renewals || []).filter((r: any) => {
+      const renewalRecords = await base44.asServiceRole.entities.B2BContractRenewal.list('-created_at', 50);
+      for (const r of (renewalRecords || [])) {
         const renewDate = new Date(r.renewal_date || r.effective_date || '');
         const daysUntil = (renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-        return daysUntil > 0 && daysUntil <= 120;
-      });
-    } catch (e) { /* entity may not have records yet */ }
+        if (daysUntil > 0 && daysUntil <= 120) {
+          upcomingRenewalsList.push(r);
+        }
+      }
+    } catch (renewalErr) {
+      // Entity may not have records yet — continue with empty list
+    }
 
     return Response.json({
       status: 'OK',
@@ -81,11 +85,11 @@ Deno.serve(async (req) => {
           orgs_by_type: orgsByType,
           total_b2b_commission: Math.round(totalB2BCommission * 100) / 100,
           total_overage_revenue: Math.round(totalOverageRevenue * 100) / 100,
-          upcoming_renewals: upcomingRenewals.length,
+          upcoming_renewals_count: upcomingRenewalsList.length,
         },
         commission_events: commissionEvents,
         overages,
-        upcoming_renewals,
+        upcoming_renewals: upcomingRenewalsList,
       },
     });
   } catch (e) {

@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
+import ConvertToB2BModal from "@/components/b2b/ConvertToB2BModal";
 import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
 import CustomerIntelligencePanel from "@/components/sales/CustomerIntelligencePanel";
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
@@ -58,6 +59,7 @@ export default function Customer360({ contact, contactKey, activities, onReload,
   const [showLogActivity, setShowLogActivity] = useState(false);
   const [showNewJobModal, setShowNewJobModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showConvertB2B, setShowConvertB2B] = useState(false);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [savingFollowUp, setSavingFollowUp] = useState(false);
@@ -295,6 +297,13 @@ export default function Customer360({ contact, contactKey, activities, onReload,
                 onClick={() => setShowDiscountModal(true)}>
                 <Tag className="w-4 h-4" /> Request Discount
               </Button>
+              {isAdmin && (
+                <Button size="sm" variant="outline" className="gap-2"
+                  style={{ borderColor: '#B8956A', color: '#B8956A', backgroundColor: 'transparent' }}
+                  onClick={() => setShowConvertB2B(true)}>
+                  <Building2 className="w-4 h-4" /> Convert to B2B
+                </Button>
+              )}
               {pendingSignup?.status === "pending" && (
                 <Button size="sm" variant="outline" className="gap-2"
                   style={{ borderColor: '#B8956A', color: '#B8956A', backgroundColor: 'transparent' }}
@@ -559,6 +568,12 @@ export default function Customer360({ contact, contactKey, activities, onReload,
           salesMemberId={localStorage.getItem('sales_member_id')}
           salesMemberEmail={localStorage.getItem('sales_member_email')}
           onLogged={() => { setShowLogActivity(false); if (onReload) onReload(); }}
+        />
+        <ConvertToB2BModal
+          isOpen={showConvertB2B}
+          onClose={() => setShowConvertB2B(false)}
+          contact={contact}
+          onConverted={onReload}
         />
         <ConvertToJobModal
           open={showNewJobModal}

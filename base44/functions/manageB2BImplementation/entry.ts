@@ -3,10 +3,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { action, organization_id, actor } = await req.json();
+    const body = await req.json();
+    const { action, organization_id, actor } = body;
 
     if (action === 'advance_stage') {
-      const { new_stage, notes } = await req.json();
+      const { new_stage, notes } = body;
       const implOrders = await base44.asServiceRole.entities.B2BImplementationOrder.filter({ organization_id });
       const implOrder = implOrders[0];
       if (!implOrder) return Response.json({ status: 'ERROR', error: 'No implementation order' }, { status: 404 });

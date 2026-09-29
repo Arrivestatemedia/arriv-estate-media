@@ -5,7 +5,26 @@ import { buildLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { action, organization_id, member_email, member_name, member_user_id, role, actor } = await req.json();
+    // Read body ONCE — Deno body is a stream that can only be consumed once
+    const body = await req.json();
+    const { action, organization_id, member_email, member_name, member_user_id, role, actor } = body;
+
+    if (action === 'list') {
+      const members = await base44.asServiceRole.entities.B2BOrganizationMember.filter({
+        organization_id, status: 'active',
+      });
+      const seatEntitlements = await base44.asServiceRole.entities.B2BSeatEntitlement.filter({
+        organization_id, status: 'active',
+      });
+      return Response.json({
+        status: 'OK',
+        data: {
+          seat_entitlement: seatEntitlements[0] || null,
+          active_members: members.length,
+          members,
+        },
+      });
+    }
 
     if (action === 'invite') {
       const seatEntitlements = await base44.asServiceRole.entities.B2BSeatEntitlement.filter({
@@ -85,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update_seats') {
-      const { additional_full_seats, additional_admin_seats, booking_only_seats } = await req.json();
+      const { additional_full_seats, additional_admin_seats, booking_only_seats } = body;
       const seatEntitlements = await base44.asServiceRole.entities.B2BSeatEntitlement.filter({
         organization_id, status: 'active',
       });

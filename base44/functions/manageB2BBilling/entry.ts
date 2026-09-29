@@ -5,10 +5,11 @@ import { buildLockedConfigSnapshots, getLockedConfigSnapshots } from '../../shar
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     if (action === 'enroll_monthly') {
-      const { organization_id, actor } = await req.json();
+      const { organization_id, actor } = body;
       const org = await base44.asServiceRole.entities.B2BOrganization.get(organization_id);
       if (!org) return Response.json({ status: 'ERROR', error: 'Organization not found' }, { status: 404 });
 
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'receive_payment_status') {
-      const { organization_id, contract_id, payment_status, days_past_due, idempotency_key } = await req.json();
+      const { organization_id, contract_id, payment_status, days_past_due, idempotency_key } = body;
 
       const existingAudit = await base44.asServiceRole.entities.B2BAuditLog.filter({ entity_type: 'B2B_PAYMENT_STATUS', entity_id: idempotency_key });
       if (existingAudit.length > 0) return Response.json({ status: 'OK', data: { idempotent: true } });
@@ -63,13 +64,13 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'apply_hold') {
-      const { organization_id, contract_id, reason, actor } = await req.json();
+      const { organization_id, contract_id, reason, actor } = body;
       await applyHold(base44, organization_id, contract_id, reason || 'MANUAL_HOLD', `manual_${Date.now()}`);
       return Response.json({ status: 'OK' });
     }
 
     if (action === 'release_hold') {
-      const { organization_id, contract_id, actor } = await req.json();
+      const { organization_id, contract_id, actor } = body;
       await releaseHold(base44, organization_id, contract_id, 'MANUAL_RELEASE', `manual_release_${Date.now()}`);
       return Response.json({ status: 'OK' });
     }

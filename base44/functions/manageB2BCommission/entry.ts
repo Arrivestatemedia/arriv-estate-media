@@ -5,10 +5,12 @@ import { getLockedConfigSnapshots } from '../../shared/b2bContractVersionLock.ts
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { action } = await req.json();
+    // Read body ONCE — Deno body is a stream that can only be consumed once
+    const body = await req.json();
+    const { action } = body;
 
     if (action === 'create_implementation_commission') {
-      const { contract_id, contract_version_id, organization_id, sales_rep_id, sales_rep_email, implementation_revenue, idempotency_key } = await req.json();
+      const { contract_id, contract_version_id, organization_id, sales_rep_id, sales_rep_email, implementation_revenue, idempotency_key } = body;
 
       const lockedSnapshots = await getLockedConfigSnapshots(base44.asServiceRole, contract_version_id);
       const config = getCommissionConfig(lockedSnapshots);
@@ -40,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_recurring_commission') {
-      const { tranche_id, contract_id, organization_id, sales_rep_id, sales_rep_email, monthly_basis, lifecycle_month, idempotency_key } = await req.json();
+      const { tranche_id, contract_id, organization_id, sales_rep_id, sales_rep_email, monthly_basis, lifecycle_month, idempotency_key } = body;
 
       const tranches = await base44.asServiceRole.entities.B2BCommissionTranche.filter({ tranche_id });
       const tranche = tranches[0];
@@ -86,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_annual_close_bonus') {
-      const { contract_id, contract_version_id, organization_id, sales_rep_id, sales_rep_email, first_year_value, billing_frequency, term_months, idempotency_key } = await req.json();
+      const { contract_id, contract_version_id, organization_id, sales_rep_id, sales_rep_email, first_year_value, billing_frequency, term_months, idempotency_key } = body;
 
       const lockedSnapshots = await getLockedConfigSnapshots(base44.asServiceRole, contract_version_id);
       const config = getCommissionConfig(lockedSnapshots);
@@ -119,7 +121,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_renewal_bonus') {
-      const { renewal_id, contract_id, organization_id, sales_rep_id, sales_rep_email, renewed_acv, rep_active, idempotency_key } = await req.json();
+      const { renewal_id, contract_id, organization_id, sales_rep_id, sales_rep_email, renewed_acv, rep_active, idempotency_key } = body;
 
       const contract = await base44.asServiceRole.entities.B2BContract.get(contract_id);
       const lockedSnapshots = await getLockedConfigSnapshots(base44.asServiceRole, contract?.contract_version_id);
@@ -153,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create_expansion_commission') {
-      const { tranche_id, contract_id, organization_id, sales_rep_id, sales_rep_email, incremental_monthly_value, lifecycle_month, idempotency_key } = await req.json();
+      const { tranche_id, contract_id, organization_id, sales_rep_id, sales_rep_email, incremental_monthly_value, lifecycle_month, idempotency_key } = body;
 
       const contract = await base44.asServiceRole.entities.B2BContract.get(contract_id);
       const lockedSnapshots = await getLockedConfigSnapshots(base44.asServiceRole, contract?.contract_version_id);
@@ -188,7 +190,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'stop_tranche_rep_departure') {
-      const { tranche_id, reason, actor } = await req.json();
+      const { tranche_id, reason, actor } = body;
       const tranches = await base44.asServiceRole.entities.B2BCommissionTranche.filter({ tranche_id });
       const tranche = tranches[0];
       if (!tranche) return Response.json({ status: 'ERROR', error: 'Tranche not found' }, { status: 404 });
@@ -214,7 +216,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'list_events') {
-      const { organization_id, sales_rep_id } = await req.json();
+      const { organization_id, sales_rep_id } = body;
       const filter: any = {};
       if (organization_id) filter.organization_id = organization_id;
       if (sales_rep_id) filter.sales_rep_id = sales_rep_id;
