@@ -88,7 +88,21 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleOnMyWay = () => {
+  const handleOnMyWay = async () => {
+    // Bypass attire verification for first and second shoots
+    // (new contractors may not have received branded clothing yet)
+    try {
+      const allJobs = await base44.entities.Job.filter({ booked_by: currentUserEmail });
+      const activeShoots = allJobs.filter(j =>
+        ['booked', 'in_progress', 'completed'].includes(j.status)
+      );
+      if (activeShoots.length <= 2) {
+        await handleAttireVerified();
+        return;
+      }
+    } catch (e) {
+      console.error('Failed to check shoot count, defaulting to attire check:', e);
+    }
     setShowAttireDialog(true);
   };
 
