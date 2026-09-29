@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     // For each agreement, get recipient summary
     const result = [];
     for (const agreement of agreements) {
-      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.id });
+      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.agreement_id });
       const required = recipients.filter(r => r.is_required !== false && r.role !== 'CC' && r.role !== 'VIEWER');
       const completed = required.filter(r => r.status === 'COMPLETED' || r.status === 'SIGNED' || r.status === 'APPROVED');
 

@@ -19,11 +19,12 @@ Deno.serve(async (req) => {
     for (const agreement of agreements) {
       let orgName = '';
       if (agreement.organization_id) {
-        const org = await base44.asServiceRole.entities.B2BOrganization.get(agreement.organization_id).catch(() => null);
+        const _orgs = await base44.asServiceRole.entities.B2BOrganization.filter({ organization_id: agreement.organization_id }).catch(() => []);
+        const org = _orgs[0];
         orgName = org?.display_name || org?.legal_name || '';
       }
 
-      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.id });
+      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.agreement_id });
       const required = recipients.filter(r => r.is_required !== false && r.role !== 'CC' && r.role !== 'VIEWER');
       const completed = required.filter(r => r.status === 'COMPLETED' || r.status === 'SIGNED' || r.status === 'APPROVED');
 

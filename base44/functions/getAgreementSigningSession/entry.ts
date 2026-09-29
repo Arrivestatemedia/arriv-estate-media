@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       const presenceExpiresAt = new Date(Date.now() + PRESENCE_TIMEOUT_SECONDS * 1000).toISOString();
 
       await base44.asServiceRole.entities.AgreementSession.create({
-        agreement_id: agreement.id,
+        agreement_id: agreement.agreement_id,
         recipient_id: recipient.recipient_id,
         session_id: sessionId,
         session_token_hash: sessionTokenHash,
@@ -87,20 +87,20 @@ Deno.serve(async (req) => {
         });
       }
 
-      await logAgreementEvent(base44.asServiceRole, agreement.id, 'AGREEMENT_OPENED', {
+      await logAgreementEvent(base44.asServiceRole, agreement.agreement_id, 'AGREEMENT_OPENED', {
         recipient_id: recipient.recipient_id, actor: recipient.recipient_id, actor_type: 'recipient',
         metadata_json: { session_id: sessionId },
       });
-      await logAgreementEvent(base44.asServiceRole, agreement.id, 'SESSION_CREATED', {
+      await logAgreementEvent(base44.asServiceRole, agreement.agreement_id, 'SESSION_CREATED', {
         recipient_id: recipient.recipient_id, actor: 'system', actor_type: 'system',
         metadata_json: { session_id: sessionId },
       });
 
       // Get fields for this recipient
-      const fields = await base44.asServiceRole.entities.AgreementField.filter({ agreement_id: agreement.id, recipient_id: recipient.recipient_id });
+      const fields = await base44.asServiceRole.entities.AgreementField.filter({ agreement_id: agreement.agreement_id, recipient_id: recipient.recipient_id });
 
       // Get existing field values
-      const fieldValues = await base44.asServiceRole.entities.AgreementFieldValue.filter({ agreement_id: agreement.id, recipient_id: recipient.recipient_id });
+      const fieldValues = await base44.asServiceRole.entities.AgreementFieldValue.filter({ agreement_id: agreement.agreement_id, recipient_id: recipient.recipient_id });
 
       // Return data for signing UI (never expose other recipients' tokens)
       return Response.json({

@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       // Check expiration
       if (agreement.expires_at && new Date(agreement.expires_at) < now) {
         await base44.asServiceRole.entities.Agreement.update(agreement.id, { status: AGREEMENT_STATES.EXPIRED, updated_at: now.toISOString() });
-        await logAgreementEvent(base44.asServiceRole, agreement.id, 'AGREEMENT_EXPIRED', { actor: 'system', actor_type: 'system' });
+        await logAgreementEvent(base44.asServiceRole, agreement.agreement_id, 'AGREEMENT_EXPIRED', { actor: 'system', actor_type: 'system' });
         expiredCount++;
         continue;
       }
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       if (agreement.reminders_paused) continue;
 
       // Get recipients who haven't completed
-      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.id });
+      const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.agreement_id });
       const pendingRecipients = recipients.filter(r =>
         r.is_required !== false &&
         r.role !== 'CC' && r.role !== 'VIEWER' &&
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       for (const recipient of pendingRecipients) {
         // Check which reminder tier they're due for
         const existingReminders = await base44.asServiceRole.entities.AgreementNotification.filter({
-          agreement_id: agreement.id,
+          agreement_id: agreement.agreement_id,
           recipient_id: recipient.recipient_id,
           notification_type: 'AGREEMENT_REMINDER',
         });
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
           // Send reminder via manageAgreements
           await base44.functions.invoke('manageAgreements', {
             action: 'send_reminder',
-            agreement_id: agreement.id,
+            agreement_id: agreement.agreement_id,
             recipient_id: recipient.recipient_id,
             reminder_number: reminderCount + 1,
             actor: 'system',

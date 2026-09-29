@@ -10,9 +10,9 @@ Deno.serve(async (req) => {
     if (agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
     const agreement = agreements[0];
 
-    const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.id });
-    const fields = await base44.asServiceRole.entities.AgreementField.filter({ agreement_id: agreement.id });
-    const events = await base44.asServiceRole.entities.AgreementEvent.filter({ agreement_id: agreement.id }, 'timestamp', 200);
+    const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.agreement_id });
+    const fields = await base44.asServiceRole.entities.AgreementField.filter({ agreement_id: agreement.agreement_id });
+    const events = await base44.asServiceRole.entities.AgreementEvent.filter({ agreement_id: agreement.agreement_id }, 'timestamp', 200);
 
     // Check for stale presence (viewing sessions that have expired)
     const now = new Date();

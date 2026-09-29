@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
       let notificationRules: any = { send_on_create: false, reminder_schedule_hours: [24, 72, 168] };
 
       if (template_id) {
-        const template = await base44.asServiceRole.entities.AgreementTemplate.get(template_id);
-        if (!template) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+        const templates = await base44.asServiceRole.entities.AgreementTemplate.filter({ template_id });
+        if (templates.length === 0) return Response.json({ status: 'ERROR', error: 'Template not found' }, { status: 404 });
+        const template = templates[0];
 
         templateVersionId = template.current_version_id || '';
         templateVersionNumber = template.current_version_number || 0;
@@ -150,8 +151,9 @@ Deno.serve(async (req) => {
     if (action === 'add_recipient') {
       const { agreement_id, name, email, phone, role, routing_order, is_required, signing_authority, organization_member_id, user_id, actor } = body;
 
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
       if (isTerminal(agreement.status)) return Response.json({ status: 'ERROR', error: 'Agreement is terminal' }, { status: 400 });
 
       const recipientId = generateRecipientId();
@@ -188,8 +190,9 @@ Deno.serve(async (req) => {
     // ── REMOVE RECIPIENT ───────────────────────────────────────────
     if (action === 'remove_recipient') {
       const { agreement_id, recipient_id, actor } = body;
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
       if (isTerminal(agreement.status)) return Response.json({ status: 'ERROR', error: 'Cannot modify terminal agreement' }, { status: 400 });
 
       const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id, recipient_id });
@@ -244,8 +247,9 @@ Deno.serve(async (req) => {
     // ── SEND AGREEMENT ─────────────────────────────────────────────
     if (action === 'send') {
       const { agreement_id, actor } = body;
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
 
       // Check for unresolved merge fields
       if (agreement.merge_field_errors && agreement.merge_field_errors.length > 0) {
@@ -309,8 +313,9 @@ Deno.serve(async (req) => {
     // ── VOID AGREEMENT ─────────────────────────────────────────────
     if (action === 'void') {
       const { agreement_id, reason, actor } = body;
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
       if (isTerminal(agreement.status)) return Response.json({ status: 'ERROR', error: 'Agreement is already terminal' }, { status: 400 });
 
       const now = new Date().toISOString();
@@ -338,8 +343,9 @@ Deno.serve(async (req) => {
     // ── DECLINE AGREEMENT (recipient action) ───────────────────────
     if (action === 'decline') {
       const { agreement_id, recipient_id, reason } = body;
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
       if (isTerminal(agreement.status)) return Response.json({ status: 'ERROR', error: 'Agreement is terminal' }, { status: 400 });
 
       const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id, recipient_id });
@@ -372,8 +378,9 @@ Deno.serve(async (req) => {
     // ── SEND REMINDER ───────────────────────────────────────────────
     if (action === 'send_reminder') {
       const { agreement_id, recipient_id, reminder_number, actor } = body;
-      const agreement = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!agreement) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const agreement = _agreements[0];
       if (isTerminal(agreement.status)) return Response.json({ status: 'OK', data: { skipped: true, reason: 'terminal' } });
       if (agreement.reminders_paused) return Response.json({ status: 'OK', data: { skipped: true, reason: 'paused' } });
 
@@ -406,8 +413,9 @@ Deno.serve(async (req) => {
     // ── DUPLICATE AGREEMENT ────────────────────────────────────────
     if (action === 'duplicate') {
       const { agreement_id, actor } = body;
-      const source = await base44.asServiceRole.entities.Agreement.get(agreement_id);
-      if (!source) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const _sources = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+      if (_sources.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+      const source = _sources[0];
 
       const newAgreementId = generateAgreementId();
       const now = new Date().toISOString();
