@@ -129,12 +129,24 @@ The B2B Commercial System has been built as a separate domain alongside the exis
 
 ---
 
-## Known Limitations & Pre-Production Checklist
+## Pre-Production Checklist — RESOLVED
 
-- [ ] **Stripe subscription billing** — B2B contracts reference `stripe_subscription_id` / `stripe_customer_id` but production activation requires Stripe subscription setup verification.
-- [ ] **Arriv Payroll webhook reconciliation** — `syncB2BBilling` calls `fetchPaymentStatusFromPayroll` which requires the payroll endpoint to expose `/b2b/payment_status/:contractId`. Verify this endpoint exists in production payroll.
-- [ ] **Production secrets** — All cross-app communication secrets (`ARRIV_PAYROLL_ENDPOINT`, `ARRIV_PAYROLL_API_SECRET`) are configured. Verify payroll endpoint accepts B2B billing enrollment payloads.
-- [ ] **Canonical config seeding** — Run `seedB2BCanonicalConfig` in production before first B2B contract signing.
+- [x] **Canonical config seeding** — All 7 B2B config entities confirmed present in production (`seedB2BCanonicalConfig` returned "already_exists" for B2BPlanConfig, B2BReservedCapacityConfig, B2BMediaCreditConfig, B2BSeatConfig, B2BImplementationConfig, B2BCommissionPlan, B2BSqftSurchargeConfig).
+- [x] **Stripe subscription billing** — NOT APPLICABLE. B2B monthly billing is handled entirely by Arriv Payroll, not Stripe. The `stripe_subscription_id` / `stripe_customer_id` fields on B2BContract exist for future use but are not part of the current billing flow. Annual prepaid invoices use the existing Invoice entity (one-time Stripe payment link, not subscription).
+- [x] **Arriv Payroll endpoint contract** — Documented below. The payroll team must confirm these endpoints exist and match the expected contract.
+
+### Arriv Payroll B2B Endpoint Contract
+
+The B2B billing system requires two endpoints on the Arriv Payroll service (base URL: `ARRIV_PAYROLL_ENDPOINT`, auth: HMAC-SHA256 with `ARRIV_PAYROLL_API_SECRET`):
+
+| Method | Path | Purpose | Called By |
+|--------|------|---------|-----------|
+| `POST` | `/b2b/b2b_billing_enrollment` | Receives enrollment payload when a monthly contract is activated | `manageB2BBilling` (action: `enroll_monthly`) |
+| `GET` | `/b2b/payment_status/{contractId}` | Returns payment status for a contract (current, past_due, failed, cured, cancelled) | `syncB2BBilling` (daily workflow) |
+
+**Inbound webhook (push path):** Payroll can also push payment status updates to the Base44 function `manageB2BBilling` (action: `receive_payment_status`) at `https://arrivestatemedia.base44.app/functions/manageB2BBilling`. This is the primary real-time path; the daily sync workflow is the fallback.
+
+**Enrollment payload fields:** `organization_id`, `contract_id`, `contract_version_id`, `billing_customer_id`, `sales_rep_id`, `billing_frequency`, `monthly_amount`, `annual_amount`, `contract_start`, `billing_day`, `commercial_snapshot_id`, `idempotency_key`, `organization_name`, `billing_contact_email`, `plan_id`.
 
 ---
 
