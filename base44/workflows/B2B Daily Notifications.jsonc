@@ -1,0 +1,44 @@
+{
+  "description": "Sends B2B renewal countdown notifications (120/90/60/30 days) and credit/capacity usage threshold notifications (80%/100%). Runs daily at 9am ET.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "B2B Daily Notifications",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "b2b_daily_notifications",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_notifications": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processB2BNotifications"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send B2B notifications",
+            "description": "Renewal countdown, credit/capacity thresholds"
+          }
+        }
+      }
+    ]
+  }
+}

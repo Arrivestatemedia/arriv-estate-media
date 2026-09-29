@@ -76,6 +76,16 @@
       "default": false,
       "description": "True when period expired with outstanding reserved credits not yet reconciled"
     },
+    "usage_80_notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the 80% credit usage notification has been sent for this period"
+    },
+    "usage_100_notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the 100% credit usage notification has been sent for this period"
+    },
     "status": {
       "type": "string",
       "enum": [

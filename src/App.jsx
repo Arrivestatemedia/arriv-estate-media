@@ -59,6 +59,8 @@ import StudioWorkspace from './pages/StudioWorkspace';
 import PropertyAccess from './pages/PropertyAccess';
 import ShortRedirect from './pages/ShortRedirect';
 import AdminPhoneNumbers from './pages/AdminPhoneNumbers';
+import B2BCommercialCenter from './pages/B2BCommercialCenter';
+import B2BOrganization360 from './pages/B2BOrganization360';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -496,6 +498,22 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminPhoneNumbers">
             <AdminPhoneNumbers />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/B2BCommercialCenter"
+        element={
+          <LayoutWrapper currentPageName="B2BCommercialCenter">
+            <B2BCommercialCenter />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/B2BOrganization360"
+        element={
+          <LayoutWrapper currentPageName="B2BOrganization360">
+            <B2BOrganization360 />
           </LayoutWrapper>
         }
       />

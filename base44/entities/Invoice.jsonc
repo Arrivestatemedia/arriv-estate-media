@@ -12,9 +12,34 @@
         "pay_up_front",
         "deposit",
         "final_closing",
-        "receipt"
+        "receipt",
+        "b2b_annual_contract",
+        "b2b_implementation",
+        "b2b_approved_overage"
       ],
-      "description": "Type of invoice/document"
+      "description": "Type of invoice/document. B2B types are for B2B commercial invoices."
+    },
+    "invoice_source": {
+      "type": "string",
+      "enum": [
+        "retail_booking",
+        "b2b_annual_contract",
+        "b2b_implementation",
+        "b2b_approved_overage"
+      ],
+      "description": "Source context: distinguishes retail booking invoices from B2B commercial invoices."
+    },
+    "b2b_organization_id": {
+      "type": "string",
+      "description": "B2B Organization ID (for B2B invoice types only)"
+    },
+    "b2b_contract_id": {
+      "type": "string",
+      "description": "B2B Contract ID (for B2B invoice types only)"
+    },
+    "b2b_contract_version_id": {
+      "type": "string",
+      "description": "B2B Contract Version ID (for B2B invoice types only)"
     },
     "job_id": {
       "type": "string",
@@ -151,6 +176,20 @@
     "package_minimum": {
       "type": "number",
       "description": "Package minimum for pay-at-closing"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date for B2B invoices"
+    },
+    "invoice_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Invoice creation date for B2B invoices"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes for B2B invoices"
     }
   },
   "required": [

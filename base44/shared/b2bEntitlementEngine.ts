@@ -27,6 +27,7 @@ import {
   getPlanMonthlyCredits, getFundingMode, LockedConfigSnapshots,
 } from './b2bContractVersionLock.ts';
 import { resolveCreditCost, calculateB2BLargePropertySurcharge, AddOnInput } from './b2bCreditCostResolver.ts';
+import { resolveB2BGoverningContract, isOrganizationOnHold, canConsumeWithContractStatus } from './b2bGoverningContract.ts';
 
 // --- Contract state validation (§3) ---
 
@@ -106,12 +107,11 @@ export async function resolveB2BEntitlement(client: any, params: {
   try { org = await client.entities.B2BOrganization.get(member.organization_id); } catch {}
   if (!org) return { commercial_domain: 'RETAIL', can_book: true, reason_if_cannot_book: null };
 
-  // 3. Find active B2BContract (one active booking organization per member)
-  const contracts = await client.entities.B2BContract.filter({ organization_id: org.id });
-  const activeContract = contracts.find(c => CONSUMPTION_ALLOWED_STATES.includes(c.status));
-  const anyContract = contracts[0];
+  // 3. Resolve governing contract (deterministic, fail-closed on ambiguity)
+  const governingResult = await resolveB2BGoverningContract(client, org.id);
 
-  if (!activeContract && !anyContract) {
+  if (!governingResult.contract) {
+    // No governing contract — retail experience
     return {
       commercial_domain: 'RETAIL',
       can_book: true,
@@ -123,13 +123,55 @@ export async function resolveB2BEntitlement(client: any, params: {
     };
   }
 
-  const contract = activeContract || anyContract;
-  const fundingMode = getFundingMode(contract.contract_type);
+  if (governingResult.ambiguous) {
+    // Ambiguous governing contracts — fail closed
+    return {
+      commercial_domain: 'B2B',
+      can_book: false,
+      organization_id: org.id,
+      organization_name: org.display_name || org.legal_name,
+      organization_member_id: member.id,
+      organization_role: member.role,
+      contract_id: governingResult.contract.id,
+      contract_status: governingResult.contract.status,
+      reason_if_cannot_book: 'AMBIGUOUS_GOVERNING_CONTRACT: Multiple qualifying contracts. Commercial resolution required.',
+    };
+  }
 
-  // 4. Find active B2BContractVersion
-  let lockedSnapshots: LockedConfigSnapshots | null = null;
-  if (contract.contract_version_id) {
-    try { lockedSnapshots = await getLockedConfigSnapshots(client, contract.contract_version_id); } catch {}
+  const contract = governingResult.contract;
+  const lockedSnapshots = governingResult.locked_snapshots;
+  const fundingMode = governingResult.funding_mode;
+
+  // 4. Check account hold (non-payment suspension)
+  const holdCheck = isOrganizationOnHold(org, contract);
+  if (holdCheck.on_hold) {
+    return {
+      commercial_domain: 'B2B',
+      funding_mode: fundingMode,
+      organization_id: org.id,
+      organization_name: org.display_name || org.legal_name,
+      organization_member_id: member.id,
+      organization_role: member.role,
+      contract_id: contract.id,
+      contract_version_id: contract.contract_version_id,
+      contract_type: contract.contract_type,
+      contract_status: contract.status,
+      billing_frequency: contract.billing_frequency,
+      implementation_status: org.implementation_status,
+      account_hold: true,
+      hold_reason: holdCheck.reason,
+      can_book: false,
+      reason_if_cannot_book: 'ACCOUNT_ON_HOLD: Your account is currently on hold. Please contact your sales representative for assistance.',
+      locked_config_versions: lockedSnapshots ? {
+        plan: lockedSnapshots.plan.version,
+        media_credit: lockedSnapshots.media_credit.version,
+        reserved_capacity: lockedSnapshots.reserved_capacity.version,
+        seats: lockedSnapshots.seats.version,
+        implementation: lockedSnapshots.implementation.version,
+        sqft_surcharge: lockedSnapshots.sqft_surcharge.version,
+        commission: lockedSnapshots.commission.version,
+      } : null,
+    };
   }
 
   // 5. Determine entitlement period based on funding mode
@@ -142,6 +184,16 @@ export async function resolveB2BEntitlement(client: any, params: {
       organization_id: org.id, contract_id: contract.id, status: 'active',
     });
     period = periods[0];
+
+    // JIT ALLOCATION FALLBACK: if period missing and contract is eligible, create it
+    if (!period && canConsumeWithContractStatus(contract.status)) {
+      try {
+        period = await jitAllocateCreditPeriod(client, org, contract, lockedSnapshots);
+      } catch (e) {
+        // JIT allocation failed — continue without period (booking will fail)
+      }
+    }
+
     if (period) {
       credits = {
         credits_allocated: unitsToCredits(period.credits_allocated_units || 0),
@@ -160,6 +212,16 @@ export async function resolveB2BEntitlement(client: any, params: {
       organization_id: org.id, contract_id: contract.id, status: 'active',
     });
     period = periods[0];
+
+    // JIT ALLOCATION FALLBACK
+    if (!period && canConsumeWithContractStatus(contract.status)) {
+      try {
+        period = await jitAllocateCapacityPeriod(client, org, contract, lockedSnapshots);
+      } catch (e) {
+        // JIT allocation failed
+      }
+    }
+
     if (period) {
       capacity = {
         production_standard: period.production_standard,
@@ -1370,4 +1432,170 @@ export async function lockB2BContractVersion(client: any, params: {
   });
 
   return { success: true, version, locked_config_snapshots: lockedSnapshots };
+}
+
+// ============================================================================
+// 13. JIT ALLOCATION FALLBACK (§XXVI)
+// ============================================================================
+
+/**
+ * Just-in-time credit period allocation.
+ * If an eligible organization reaches entitlement resolution and the current
+ * period is missing, create the correct current period exactly once.
+ * Uses concurrency protection (idempotency by period_start + period_end).
+ */
+async function jitAllocateCreditPeriod(
+  client: any,
+  org: any,
+  contract: any,
+  lockedSnapshots: LockedConfigSnapshots | null
+): Promise<any> {
+  if (!lockedSnapshots) return null;
+
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+  // Concurrency check: see if period was already created by another request
+  const existing = await client.entities.B2BMediaCreditPeriod.filter({
+    organization_id: org.id, contract_id: contract.id,
+    period_start: periodStart, period_end: periodEnd,
+  });
+  if (existing.length > 0) return existing[0];
+
+  // Get monthly credits from locked plan config
+  const monthlyCredits = getPlanMonthlyCredits(lockedSnapshots, contract.plan_id);
+  if (monthlyCredits <= 0) return null;
+
+  const allocatedUnits = creditsToUnits(monthlyCredits);
+  const idempotencyKey = `jit_credit_${contract.id}_${periodStart}`;
+
+  // Check idempotency
+  const existingLedger = await checkIdempotency(client, 'B2BMediaCreditLedger', idempotencyKey);
+  if (existingLedger) return null;
+
+  // Create period
+  const period = await client.entities.B2BMediaCreditPeriod.create({
+    organization_id: org.id,
+    contract_id: contract.id,
+    contract_version_id: contract.contract_version_id || '',
+    period_start: periodStart,
+    period_end: periodEnd,
+    credits_allocated: monthlyCredits,
+    credits_allocated_units: allocatedUnits,
+    credits_available_units: allocatedUnits,
+    credits_reserved_units: 0,
+    credits_consumed_units: 0,
+    credits_expired_units: 0,
+    credits_adjusted_units: 0,
+    status: 'active',
+    config_version: lockedSnapshots.media_credit.version,
+    created_at: new Date().toISOString(),
+  });
+
+  // Create allocation ledger event
+  const ledger = await client.entities.B2BMediaCreditLedger.create({
+    organization_id: org.id,
+    contract_id: contract.id,
+    contract_version_id: contract.contract_version_id || '',
+    period_id: period.id,
+    amount: monthlyCredits,
+    amount_units: allocatedUnits,
+    balance_before_units: 0,
+    balance_after_units: allocatedUnits,
+    event_type: 'PERIOD_ALLOCATION',
+    reason: `JIT monthly allocation: ${monthlyCredits} credits for ${periodStart} to ${periodEnd}`,
+    actor: 'system_jit',
+    config_version: lockedSnapshots.media_credit.version,
+    idempotency_key: idempotencyKey,
+    timestamp: new Date().toISOString(),
+  });
+
+  await client.entities.B2BMediaCreditPeriod.update(period.id, {
+    allocation_ledger_id: ledger.id,
+    credits_remaining: unitsToCredits(allocatedUnits),
+    credits_used: 0,
+    credits_expired: 0,
+  });
+
+  return period;
+}
+
+/**
+ * Just-in-time capacity period allocation.
+ */
+async function jitAllocateCapacityPeriod(
+  client: any,
+  org: any,
+  contract: any,
+  lockedSnapshots: LockedConfigSnapshots | null
+): Promise<any> {
+  if (!lockedSnapshots) return null;
+
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+  // Concurrency check
+  const existing = await client.entities.B2BReservedCapacityPeriod.filter({
+    organization_id: org.id, contract_id: contract.id,
+    period_start: periodStart, period_end: periodEnd,
+  });
+  if (existing.length > 0) return existing[0];
+
+  // Get capacity config from locked snapshots
+  const capacityConfig = lockedSnapshots.reserved_capacity.snapshot;
+  const standard = org.capacity_entitlement?.production_standard || 'essentials';
+  const contractedShoots = org.capacity_entitlement?.contracted_shoots || 40;
+
+  if (contractedShoots <= 0) return null;
+
+  const idempotencyKey = `jit_capacity_${contract.id}_${periodStart}`;
+
+  // Check idempotency
+  const existingLedger = await checkIdempotency(client, 'B2BReservedCapacityLedger', idempotencyKey);
+  if (existingLedger) return null;
+
+  // Create period
+  const period = await client.entities.B2BReservedCapacityPeriod.create({
+    organization_id: org.id,
+    contract_id: contract.id,
+    contract_version_id: contract.contract_version_id || '',
+    production_standard: standard,
+    contracted_shoots: contractedShoots,
+    available_shoots: contractedShoots,
+    reserved_shoots: 0,
+    consumed_shoots: 0,
+    expired_shoots: 0,
+    adjusted_shoots: 0,
+    overage_shoots: 0,
+    period_start: periodStart,
+    period_end: periodEnd,
+    status: 'active',
+    config_version: lockedSnapshots.reserved_capacity.version,
+    created_at: new Date().toISOString(),
+  });
+
+  // Create allocation ledger event
+  const ledger = await client.entities.B2BReservedCapacityLedger.create({
+    organization_id: org.id,
+    contract_id: contract.id,
+    contract_version_id: contract.contract_version_id || '',
+    period_id: period.id,
+    amount: contractedShoots,
+    balance_before: 0,
+    balance_after: contractedShoots,
+    event_type: 'PERIOD_ALLOCATION',
+    reason: `JIT monthly allocation: ${contractedShoots} shoots for ${periodStart} to ${periodEnd}`,
+    actor: 'system_jit',
+    config_version: lockedSnapshots.reserved_capacity.version,
+    idempotency_key: idempotencyKey,
+    timestamp: new Date().toISOString(),
+  });
+
+  await client.entities.B2BReservedCapacityPeriod.update(period.id, {
+    allocation_ledger_id: ledger.id,
+  });
+
+  return period;
 }

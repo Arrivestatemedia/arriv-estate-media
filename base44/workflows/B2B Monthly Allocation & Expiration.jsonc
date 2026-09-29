@@ -1,0 +1,44 @@
+{
+  "description": "Allocates monthly Media Credits and Reserved Capacity for all active B2B contracts, and expires previous periods. Runs on the 1st of each month at 12am ET.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 0 1 * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "B2B Monthly Allocation & Expiration",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "b2b_monthly_allocation",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "allocate_and_expire": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processB2BMonthlyAllocation"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Allocate monthly entitlements & expire previous periods",
+            "description": "Credits, capacity, expiration"
+          }
+        }
+      }
+    ]
+  }
+}
