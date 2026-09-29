@@ -1,0 +1,278 @@
+{
+  "name": "Agreement",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string",
+      "description": "Canonical agreement ID (unique). Generated as agrmt_{timestamp}_{random}."
+    },
+    "name": {
+      "type": "string",
+      "description": "Agreement name/title"
+    },
+    "agreement_type": {
+      "type": "string",
+      "enum": [
+        "B2B_SERVICE_AGREEMENT",
+        "ORDER_FORM",
+        "STATEMENT_OF_WORK",
+        "AMENDMENT",
+        "RENEWAL",
+        "NDA",
+        "MEDIA_SPECIALIST_AGREEMENT",
+        "EMPLOYMENT_AGREEMENT",
+        "VENDOR_AGREEMENT",
+        "RELEASE",
+        "OTHER"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PREPARING",
+        "READY_TO_SEND",
+        "SENT",
+        "DELIVERED",
+        "OPENED",
+        "VIEWING",
+        "SIGNING",
+        "PARTIALLY_SIGNED",
+        "COMPLETED",
+        "DECLINED",
+        "VOIDED",
+        "EXPIRED"
+      ],
+      "default": "DRAFT"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "NATIVE_ARRIV",
+        "DOCUSIGN_FUTURE",
+        "OTHER_FUTURE"
+      ],
+      "default": "NATIVE_ARRIV"
+    },
+    "template_id": {
+      "type": "string",
+      "description": "AgreementTemplate ID (if created from a template)"
+    },
+    "template_version_id": {
+      "type": "string",
+      "description": "AgreementTemplateVersion ID (locked version at creation time)"
+    },
+    "template_version_number": {
+      "type": "integer"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "template",
+        "upload",
+        "duplicate",
+        "b2b_quote",
+        "b2b_contract"
+      ],
+      "description": "How this agreement was created"
+    },
+    "source_agreement_id": {
+      "type": "string",
+      "description": "Original agreement ID if duplicated"
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "B2BOrganization ID (if B2B)"
+    },
+    "b2b_contract_id": {
+      "type": "string",
+      "description": "B2BContract ID (if linked to a B2B contract)"
+    },
+    "b2b_contract_version_id": {
+      "type": "string",
+      "description": "B2BContractVersion ID"
+    },
+    "b2b_commercial_snapshot_id": {
+      "type": "string",
+      "description": "B2BCommercialSnapshot ID"
+    },
+    "b2b_quote_id": {
+      "type": "string",
+      "description": "B2BQuote ID (if created from a quote)"
+    },
+    "b2b_quote_version_id": {
+      "type": "string"
+    },
+    "sales_rep_id": {
+      "type": "string"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "routing_type": {
+      "type": "string",
+      "enum": [
+        "parallel",
+        "sequential"
+      ],
+      "default": "parallel"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "native",
+        "uploaded"
+      ],
+      "default": "native"
+    },
+    "document_body": {
+      "type": "string",
+      "description": "Native document body (HTML) with merge fields resolved"
+    },
+    "document_file_uri": {
+      "type": "string",
+      "description": "Uploaded document file URI"
+    },
+    "document_file_name": {
+      "type": "string"
+    },
+    "source_document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the source document before field placement"
+    },
+    "prepared_document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the prepared/signable document version (after field placement, before signing)"
+    },
+    "final_document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the final executed document (set on completion)"
+    },
+    "final_document_uri": {
+      "type": "string",
+      "description": "File URI of the final executed document"
+    },
+    "merge_field_data_json": {
+      "type": "string",
+      "description": "Resolved merge field values at agreement creation time (snapshot)"
+    },
+    "merge_field_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Missing merge field errors that block sending"
+    },
+    "signing_auth_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, recipients must authenticate via Arriv account to sign"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Agreement expiration timestamp"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "voided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "voided_reason": {
+      "type": "string"
+    },
+    "voided_by": {
+      "type": "string"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "declined_by": {
+      "type": "string"
+    },
+    "declined_reason": {
+      "type": "string"
+    },
+    "reminder_schedule_hours": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "default": [
+        24,
+        72,
+        168
+      ]
+    },
+    "reminders_paused": {
+      "type": "boolean",
+      "default": false
+    },
+    "parent_agreement_id": {
+      "type": "string",
+      "description": "Original agreement ID if this is an amendment"
+    },
+    "amendment_number": {
+      "type": "integer",
+      "default": 0,
+      "description": "Amendment number (0 for original, 1+ for amendments)"
+    },
+    "completion_certificate_id": {
+      "type": "string",
+      "description": "AgreementCompletionCertificate ID (set on completion)"
+    },
+    "b2b_agreement_executed_emitted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the B2B_AGREEMENT_EXECUTED downstream event has been emitted"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "name",
+    "agreement_type",
+    "status",
+    "provider"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

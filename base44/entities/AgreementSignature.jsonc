@@ -1,0 +1,91 @@
+{
+  "name": "AgreementSignature",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "recipient_id": {
+      "type": "string"
+    },
+    "field_id": {
+      "type": "string"
+    },
+    "signature_id": {
+      "type": "string",
+      "description": "Canonical signature ID (unique)"
+    },
+    "signature_type": {
+      "type": "string",
+      "enum": [
+        "SIGNATURE",
+        "INITIALS",
+        "APPROVAL",
+        "ACKNOWLEDGEMENT"
+      ]
+    },
+    "signature_data_uri": {
+      "type": "string",
+      "description": "Base64 data URI of the drawn/typed signature image"
+    },
+    "signature_text": {
+      "type": "string",
+      "description": "Typed signature text (e.g. full name for typed signatures)"
+    },
+    "signature_font": {
+      "type": "string",
+      "description": "Font used for typed signature"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "AgreementSession ID"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "idempotency_key": {
+      "type": "string"
+    },
+    "immutable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Signature is immutable once captured"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "recipient_id",
+    "signature_id",
+    "signature_type",
+    "signed_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

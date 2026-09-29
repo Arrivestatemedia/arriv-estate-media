@@ -201,6 +201,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Email Settings", page: "AdminEmailSettings", icon: Mail },
             { label: "Phone Numbers", page: "AdminPhoneNumbers", icon: Phone },
             { label: "B2B Commercial", page: "B2BCommercialCenter", icon: Building2 },
+            { label: "Arriv Agreements", page: "ArrivAgreementsCenter", icon: FileText },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
             { label: "Editing Queue", page: "EditingQueuePage", icon: Scissors },

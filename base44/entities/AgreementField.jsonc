@@ -1,0 +1,121 @@
+{
+  "name": "AgreementField",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "field_id": {
+      "type": "string",
+      "description": "Canonical field ID (unique within agreement)"
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "AgreementRecipient ID who must complete this field (null for system-auto-populated fields)"
+    },
+    "field_type": {
+      "type": "string",
+      "enum": [
+        "SIGNATURE",
+        "INITIALS",
+        "FULL_NAME",
+        "TITLE",
+        "COMPANY",
+        "EMAIL",
+        "DATE_SIGNED",
+        "TEXT",
+        "CHECKBOX",
+        "RADIO",
+        "DROPDOWN",
+        "DATE",
+        "NUMBER",
+        "APPROVAL",
+        "ACKNOWLEDGEMENT"
+      ]
+    },
+    "label": {
+      "type": "string",
+      "description": "Field label"
+    },
+    "required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this field must be completed"
+    },
+    "read_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, field is display-only"
+    },
+    "prefilled_value": {
+      "type": "string",
+      "description": "Pre-filled value (for pre-populated fields)"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Options for RADIO/DROPDOWN fields"
+    },
+    "page": {
+      "type": "integer",
+      "default": 1,
+      "description": "Page number (for uploaded documents)"
+    },
+    "x": {
+      "type": "number",
+      "description": "X coordinate (for uploaded documents)"
+    },
+    "y": {
+      "type": "number",
+      "description": "Y coordinate"
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
+    "anchor_string": {
+      "type": "string",
+      "description": "Anchor text for auto-positioning fields in native documents"
+    },
+    "order": {
+      "type": "integer",
+      "default": 0,
+      "description": "Field completion order within a recipient"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "field_id",
+    "field_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -16,6 +16,8 @@ import ConvertToB2BModal from "@/components/b2b/ConvertToB2BModal";
 import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
 import CustomerIntelligencePanel from "@/components/sales/CustomerIntelligencePanel";
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
+import AgreementsSection from "@/components/agreements/AgreementsSection";
+import CreateAgreementModal from "@/components/agreements/CreateAgreementModal";
 
 const PACKAGE_LABELS = {
   mls_walkthrough: "MLS Walkthrough",
@@ -63,6 +65,9 @@ export default function Customer360({ contact, contactKey, activities, onReload,
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [savingFollowUp, setSavingFollowUp] = useState(false);
+  const [b2bOrg, setB2bOrg] = useState(null);
+  const [b2bContract, setB2bContract] = useState(null);
+  const [showCreateAgreement, setShowCreateAgreement] = useState(false);
 
   const customerEmail = (contact?.email || contactKey || "").toLowerCase().trim();
 
@@ -96,6 +101,18 @@ export default function Customer360({ contact, contactKey, activities, onReload,
         (app.documents || []).forEach(url => appDocs.push({ type: 'Document', url, date: app.created_date }));
       });
       setDocuments(appDocs);
+
+      // B2B organization lookup for Agreements integration
+      try {
+        const b2bOrgs = await base44.entities.B2BOrganization.filter({ billing_contact_email: customerEmail }).catch(() => []);
+        if (b2bOrgs && b2bOrgs.length > 0) {
+          setB2bOrg(b2bOrgs[0]);
+          if (b2bOrgs[0].current_contract_id) {
+            const contract = await base44.entities.B2BContract.get(b2bOrgs[0].current_contract_id).catch(() => null);
+            setB2bContract(contract);
+          }
+        }
+      } catch {}
     } catch (e) {
       console.error("Customer360 load error:", e);
     } finally {
@@ -361,6 +378,7 @@ export default function Customer360({ contact, contactKey, activities, onReload,
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            {b2bOrg && <TabsTrigger value="agreements">Agreements</TabsTrigger>}
             <TabsTrigger value="video_calls">Video Calls</TabsTrigger>
             <TabsTrigger value="relationship">Relationship</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
@@ -513,6 +531,25 @@ export default function Customer360({ contact, contactKey, activities, onReload,
             <DocumentsTab documents={documents} />
           </TabsContent>
 
+          {/* ── Agreements Tab (B2B only) ──────────────────────────── */}
+          {b2bOrg && (
+            <TabsContent value="agreements">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4" style={{ color: '#B8956A' }} />
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>
+                    Arriv Agreements — {b2bOrg.display_name || b2bOrg.legal_name}
+                  </p>
+                </div>
+                <AgreementsSection
+                  organizationId={b2bOrg.id}
+                  contractId={b2bContract?.id}
+                  onShowCreate={() => setShowCreateAgreement(true)}
+                />
+              </div>
+            </TabsContent>
+          )}
+
           {/* ── Video Calls Tab ────────────────────────────────────── */}
           <TabsContent value="video_calls">
             <VideoCallsTab videoCalls={videoCalls} />
@@ -575,6 +612,16 @@ export default function Customer360({ contact, contactKey, activities, onReload,
           contact={contact}
           onConverted={onReload}
         />
+        {b2bOrg && (
+          <CreateAgreementModal
+            open={showCreateAgreement}
+            onClose={() => setShowCreateAgreement(false)}
+            organizationId={b2bOrg.id}
+            contractId={b2bContract?.id}
+            salesRepEmail={localStorage.getItem('sales_member_email')}
+            onCreated={() => { setShowCreateAgreement(false); loadCustomerData(); }}
+          />
+        )}
         <ConvertToJobModal
           open={showNewJobModal}
           onClose={() => setShowNewJobModal(false)}

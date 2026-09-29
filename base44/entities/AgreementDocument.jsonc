@@ -1,0 +1,107 @@
+{
+  "name": "AgreementDocument",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string",
+      "description": "Agreement ID"
+    },
+    "document_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Document version number (increments when document is modified after signing begins)"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "native",
+        "uploaded"
+      ],
+      "default": "native"
+    },
+    "body_html": {
+      "type": "string",
+      "description": "Native document HTML body (for native documents)"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Uploaded file URI (for uploaded documents)"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "file_content_type": {
+      "type": "string"
+    },
+    "source_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the source document"
+    },
+    "prepared_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the prepared signable document (after field placement)"
+    },
+    "final_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the final executed document"
+    },
+    "final_file_uri": {
+      "type": "string",
+      "description": "File URI of the final executed document"
+    },
+    "page_count": {
+      "type": "integer",
+      "default": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "source",
+        "prepared",
+        "signed",
+        "executed"
+      ],
+      "default": "source"
+    },
+    "signatures_invalidated": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if document was modified after signing began, invalidating existing signatures"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "document_version",
+    "document_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

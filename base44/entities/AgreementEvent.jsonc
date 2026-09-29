@@ -1,0 +1,104 @@
+{
+  "name": "AgreementEvent",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Canonical event ID (unique, append-only)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "AGREEMENT_CREATED",
+        "DOCUMENT_UPLOADED",
+        "TEMPLATE_APPLIED",
+        "RECIPIENT_ADDED",
+        "RECIPIENT_REMOVED",
+        "FIELD_ADDED",
+        "AGREEMENT_SENT",
+        "EMAIL_DELIVERED",
+        "EMAIL_FAILED",
+        "AGREEMENT_OPENED",
+        "SIGNING_STARTED",
+        "FIELD_COMPLETED",
+        "SIGNATURE_COMPLETED",
+        "APPROVAL_COMPLETED",
+        "RECIPIENT_COMPLETED",
+        "AGREEMENT_COMPLETED",
+        "REMINDER_SENT",
+        "AGREEMENT_DECLINED",
+        "AGREEMENT_VOIDED",
+        "AGREEMENT_EXPIRED",
+        "DOCUMENT_DOWNLOADED",
+        "CONSENT_ACCEPTED",
+        "CONSENT_DECLINED",
+        "SESSION_CREATED",
+        "SESSION_EXPIRED",
+        "SESSION_REVOKED",
+        "PRESENCE_HEARTBEAT",
+        "B2B_AGREEMENT_EXECUTED"
+      ]
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "Related recipient (if applicable)"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User/system that caused this event"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "sales_rep",
+        "recipient",
+        "system"
+      ]
+    },
+    "metadata_json": {
+      "type": "string",
+      "description": "Additional event metadata (JSON)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "immutable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Events are append-only and never rewritten"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "event_id",
+    "event_type",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

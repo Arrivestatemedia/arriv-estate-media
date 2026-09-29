@@ -1,0 +1,223 @@
+{
+  "name": "AgreementTemplate",
+  "type": "object",
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "Canonical template ID (unique). Generated as agtmplt_{timestamp}_{random}."
+    },
+    "name": {
+      "type": "string",
+      "description": "Template name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "B2B_SERVICE_AGREEMENT",
+        "ORDER_FORM",
+        "STATEMENT_OF_WORK",
+        "AMENDMENT",
+        "RENEWAL",
+        "NDA",
+        "MEDIA_SPECIALIST_AGREEMENT",
+        "EMPLOYMENT_AGREEMENT",
+        "VENDOR_AGREEMENT",
+        "RELEASE",
+        "OTHER"
+      ],
+      "description": "Template category"
+    },
+    "description": {
+      "type": "string",
+      "description": "Template description"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "current_version_id": {
+      "type": "string",
+      "description": "ID of the current AgreementTemplateVersion"
+    },
+    "current_version_number": {
+      "type": "integer",
+      "default": 0,
+      "description": "Current version number"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "native",
+        "uploaded"
+      ],
+      "default": "native",
+      "description": "native = built with editor; uploaded = PDF/document file"
+    },
+    "document_body": {
+      "type": "string",
+      "description": "Native document body (HTML/structured content) for native templates"
+    },
+    "document_file_uri": {
+      "type": "string",
+      "description": "Uploaded document file URI (for uploaded templates)"
+    },
+    "document_file_name": {
+      "type": "string"
+    },
+    "document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the source document content"
+    },
+    "merge_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of merge field variables used in this template (e.g. organization.legal_name)"
+    },
+    "default_recipients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "SIGNER",
+              "APPROVER",
+              "VIEWER",
+              "CC",
+              "INTERNAL_SIGNER"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          }
+        }
+      },
+      "description": "Default recipient roles for this template"
+    },
+    "default_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_type": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "recipient_index": {
+            "type": "integer"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Default signature/form fields for this template"
+    },
+    "routing_type": {
+      "type": "string",
+      "enum": [
+        "parallel",
+        "sequential"
+      ],
+      "default": "parallel"
+    },
+    "notification_rules": {
+      "type": "object",
+      "properties": {
+        "send_on_create": {
+          "type": "boolean",
+          "default": false
+        },
+        "reminder_schedule_hours": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "default": [
+            24,
+            72,
+            168
+          ]
+        }
+      },
+      "description": "Notification and reminder rules"
+    },
+    "product_scope": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "studio",
+        "universal"
+      ],
+      "default": "estate_media",
+      "description": "Which Arriv product this template belongs to"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "template_id",
+    "name",
+    "category",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "AgreementTemplateVersion",
+  "type": "object",
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "AgreementTemplate ID this version belongs to"
+    },
+    "version_number": {
+      "type": "integer",
+      "description": "Monotonic version number"
+    },
+    "version_data_json": {
+      "type": "string",
+      "description": "Immutable snapshot of the full template at this version: name, category, document body/file, merge fields, default recipients, default fields, routing, notification rules"
+    },
+    "document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the document content at this version"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded"
+      ],
+      "default": "active"
+    },
+    "immutable_snapshot": {
+      "type": "boolean",
+      "default": true,
+      "description": "Always true \u2014 agreements generated from this version are never affected by future template edits"
+    },
+    "change_reason": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "template_id",
+    "version_number",
+    "version_data_json",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

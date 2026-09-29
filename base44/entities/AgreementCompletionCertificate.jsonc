@@ -1,0 +1,114 @@
+{
+  "name": "AgreementCompletionCertificate",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "certificate_id": {
+      "type": "string",
+      "description": "Canonical certificate ID (unique)"
+    },
+    "agreement_name": {
+      "type": "string"
+    },
+    "agreement_version": {
+      "type": "integer",
+      "default": 1
+    },
+    "template_id": {
+      "type": "string"
+    },
+    "template_version_number": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipients_json": {
+      "type": "string",
+      "description": "JSON array of recipient completion records: name, email, role, status, consent, signed_at, ip, user_agent"
+    },
+    "required_recipients_count": {
+      "type": "integer"
+    },
+    "completed_recipients_count": {
+      "type": "integer"
+    },
+    "document_hash": {
+      "type": "string",
+      "description": "Source document hash"
+    },
+    "prepared_document_hash": {
+      "type": "string"
+    },
+    "final_document_hash": {
+      "type": "string"
+    },
+    "final_document_uri": {
+      "type": "string"
+    },
+    "event_summary_json": {
+      "type": "string",
+      "description": "Summary of agreement events"
+    },
+    "b2b_contract_id": {
+      "type": "string"
+    },
+    "b2b_organization_id": {
+      "type": "string"
+    },
+    "b2b_contract_version_id": {
+      "type": "string"
+    },
+    "b2b_commercial_snapshot_id": {
+      "type": "string"
+    },
+    "certificate_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the certificate content for tamper detection"
+    },
+    "immutable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Certificate is immutable once generated"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "certificate_id",
+    "agreement_name",
+    "completed_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

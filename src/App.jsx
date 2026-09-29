@@ -61,6 +61,8 @@ import ShortRedirect from './pages/ShortRedirect';
 import AdminPhoneNumbers from './pages/AdminPhoneNumbers';
 import B2BCommercialCenter from './pages/B2BCommercialCenter';
 import B2BOrganization360 from './pages/B2BOrganization360';
+import ArrivAgreementsCenter from './pages/ArrivAgreementsCenter';
+import AgreementSigning from './pages/AgreementSigning';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -517,6 +519,15 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route
+        path="/ArrivAgreementsCenter"
+        element={
+          <LayoutWrapper currentPageName="ArrivAgreementsCenter">
+            <ArrivAgreementsCenter />
+          </LayoutWrapper>
+        }
+      />
+      <Route path="/AgreementSigning" element={<AgreementSigning />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

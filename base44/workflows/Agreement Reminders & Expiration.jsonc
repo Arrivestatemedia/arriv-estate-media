@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 10 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "agreement_reminders_expiration",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_reminders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendAgreementReminders"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send agreement reminders and expire overdue agreements",
+            "description": "Sends scheduled reminders to pending recipients and expires overdue agreements"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Daily check for agreement reminders and expiration \u2014 sends scheduled reminders to pending recipients and expires overdue agreements",
+  "name": "Agreement Reminders & Expiration"
+}

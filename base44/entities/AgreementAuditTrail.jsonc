@@ -1,0 +1,96 @@
+{
+  "name": "AgreementAuditTrail",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "audit_id": {
+      "type": "string",
+      "description": "Canonical audit ID (unique)"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "sales_rep",
+        "recipient",
+        "system",
+        "provider"
+      ]
+    },
+    "actor_user_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "description": "Sensitive action performed"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "recipient_id": {
+      "type": "string"
+    },
+    "before_snapshot": {
+      "type": "string"
+    },
+    "after_snapshot": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "audit_id",
+    "actor",
+    "action",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

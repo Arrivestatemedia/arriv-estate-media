@@ -1,0 +1,182 @@
+{
+  "name": "AgreementRecipient",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string",
+      "description": "Agreement ID"
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "Canonical recipient ID (unique within agreement). Generated as rcpt_{random}."
+    },
+    "name": {
+      "type": "string",
+      "description": "Recipient name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Recipient email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "SIGNER",
+        "APPROVER",
+        "VIEWER",
+        "CC",
+        "INTERNAL_SIGNER"
+      ],
+      "description": "Recipient role"
+    },
+    "routing_order": {
+      "type": "integer",
+      "default": 1,
+      "description": "Signing order (for sequential routing). 1 = first."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "NOTIFIED",
+        "DELIVERED",
+        "OPENED",
+        "VIEWING",
+        "SIGNING",
+        "SIGNED",
+        "APPROVED",
+        "COMPLETED",
+        "DECLINED",
+        "EXPIRED"
+      ],
+      "default": "PENDING"
+    },
+    "organization_member_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember ID (if this recipient is an authenticated B2B org member)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Base44 User ID (if authenticated)"
+    },
+    "is_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this recipient's completion is required for agreement completion"
+    },
+    "signing_authority": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this recipient has been granted signing authority for the organization"
+    },
+    "consent_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "consent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "consent_ip": {
+      "type": "string"
+    },
+    "consent_user_agent": {
+      "type": "string"
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_viewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "viewing_session_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the current viewing presence expires"
+    },
+    "signing_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "declined_reason": {
+      "type": "string"
+    },
+    "expired_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "Cryptographically secure signing access token (opaque, not a predictable ID)"
+    },
+    "token_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "token_revoked": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, the access token is invalidated"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "recipient_id",
+    "name",
+    "email",
+    "role",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

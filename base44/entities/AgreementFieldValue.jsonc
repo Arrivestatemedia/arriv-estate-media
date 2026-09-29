@@ -1,0 +1,77 @@
+{
+  "name": "AgreementFieldValue",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "field_id": {
+      "type": "string"
+    },
+    "recipient_id": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string",
+      "description": "Completed field value (text, signature data URI, checkbox state, etc.)"
+    },
+    "value_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "signature_image",
+        "checkbox",
+        "radio",
+        "date",
+        "number",
+        "approval"
+      ],
+      "description": "Type of the stored value"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "AgreementSession ID when this value was submitted"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "submitted_ip": {
+      "type": "string"
+    },
+    "submitted_user_agent": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Prevents duplicate field submissions"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "field_id",
+    "recipient_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "name": "AgreementNotification",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "recipient_id": {
+      "type": "string"
+    },
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "AGREEMENT_READY",
+        "AGREEMENT_REMINDER",
+        "SIGNER_COMPLETED",
+        "AGREEMENT_COMPLETED",
+        "AGREEMENT_DECLINED",
+        "AGREEMENT_VOIDED",
+        "AGREEMENT_EXPIRING_SOON",
+        "SIGNING_SECURITY_ALERT"
+      ]
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email"
+      ],
+      "default": "email"
+    },
+    "recipient_email": {
+      "type": "string"
+    },
+    "recipient_name": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body_html": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "provider_message_id": {
+      "type": "string",
+      "description": "Brevo message ID"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "reminder_number": {
+      "type": "integer",
+      "default": 0,
+      "description": "0 = initial notification, 1+ = reminders"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "notification_type",
+    "recipient_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

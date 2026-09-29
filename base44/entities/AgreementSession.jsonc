@@ -1,0 +1,102 @@
+{
+  "name": "AgreementSession",
+  "type": "object",
+  "properties": {
+    "agreement_id": {
+      "type": "string"
+    },
+    "recipient_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Canonical session ID (unique). Cryptographically random."
+    },
+    "session_token_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the session token (never store the raw token)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "completed",
+        "revoked"
+      ],
+      "default": "active"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "presence_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When viewing presence expires (auto-stale after inactivity)"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_reason": {
+      "type": "string"
+    },
+    "consent_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether electronic consent was accepted in this session"
+    },
+    "consent_accepted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "agreement_id",
+    "recipient_id",
+    "session_id",
+    "session_token_hash",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
