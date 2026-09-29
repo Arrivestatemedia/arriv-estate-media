@@ -43,7 +43,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Module IDs completed (watch + quiz passed). E0\u2013E19 canonical IDs; legacy mod_XX IDs resolved via alias map."
+      "description": "Module IDs completed (watch + quiz passed). E0\u2013E25 canonical IDs; legacy mod_XX IDs resolved via alias map."
     },
     "modules_passed_count": {
       "type": "integer",
@@ -51,8 +51,8 @@
     },
     "modules_total": {
       "type": "integer",
-      "default": 20,
-      "description": "Total modules in the E0\u2013E19 curriculum (20 modules)"
+      "default": 26,
+      "description": "Total modules in the E0\u2013E25 curriculum (26 modules)"
     },
     "quiz_average_score": {
       "type": "number",
@@ -142,6 +142,21 @@
     "teachback_evaluator": {
       "type": "string"
     },
+    "b2b_practical_score": {
+      "type": "number",
+      "description": "B2B practical rubric score (0-100). Passing: 95. Assessed via B2B_PRACTICAL_RUBRIC (E21-E25)."
+    },
+    "b2b_practical_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "b2b_practical_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "b2b_practical_evaluator": {
+      "type": "string"
+    },
     "practicum_score": {
       "type": "number",
       "description": "Legacy practicum score (mapped to system_crm_score for backward compatibility)"
@@ -205,6 +220,15 @@
             "FAILED"
           ],
           "default": "PENDING"
+        },
+        "b2b_organization_sales": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
         }
       }
     },
@@ -242,6 +266,7 @@
               "sales_execution",
               "customer_onboarding",
               "customer_training",
+              "b2b_organization_sales",
               "critical_failure",
               "remediation"
             ]
@@ -338,6 +363,9 @@
         "teachback_passed": {
           "type": "boolean"
         },
+        "b2b_practical_passed": {
+          "type": "boolean"
+        },
         "no_critical_failures": {
           "type": "boolean"
         },
@@ -366,7 +394,8 @@
           "System Operation",
           "Sales Execution",
           "Customer Onboarding",
-          "Customer Training"
+          "Customer Training",
+          "B2B Organization Sales"
         ]
       },
       "description": "Domains certified as part of ARRIV CERTIFIED status."
