@@ -168,10 +168,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleFootageUploaded = async () => {
     setLoading(true);
     try {
-      await base44.entities.Job.update(job.id, { 
-        footage_uploaded: true,
-        status: 'completed'
-      });
+      await base44.functions.invoke('confirmFootageUpload', { jobId: job.id });
       setShowFootageConfirmDialog(false);
       if (onJobUpdate) onJobUpdate();
     } catch (error) {
