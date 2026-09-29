@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { applicationId, deadlineHours, createdBy } = body;
+    const { applicationId, deadlineHours, createdBy, apologyPreamble } = body;
 
     if (!applicationId) {
       return Response.json({ error: "applicationId is required" }, { status: 400 });
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       timeZone: "America/New_York",
     });
 
-    const html = buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay);
+    const html = buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble);
 
     let emailSent = false;
     try {
@@ -108,18 +108,25 @@ Deno.serve(async (req) => {
   }
 });
 
-function buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay) {
+function buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble) {
+  const apologyBlock = apologyPreamble
+    ? `<div style="margin:0 0 24px;padding:18px 20px;background-color:#FFFBF5;border:1px solid rgba(184,149,106,0.3);border-radius:10px;">
+        <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#B8956A;">A quick note before we begin:</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#1A1A1A;">${apologyPreamble}</p>
+      </div>`
+    : "";
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
-        <tr><td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
-          <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
-        </td></tr>
-        <tr><td style="padding:40px 44px;">
-          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You've been selected to complete a first-round interview for the <strong>${positionTitle}</strong> position with Arriv Estate Media.</p>
+  <body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+          <tr><td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td></tr>
+          <tr><td style="padding:40px 44px;">
+            <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
+            ${apologyBlock}
+            <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You've been selected to complete a first-round interview for the <strong>${positionTitle}</strong> position with Arriv Estate Media.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your first-round interview is completed virtually and can be taken at your convenience. Please use the link below to complete your interview within 48 hours.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview takes approximately 15 minutes.</p>
           <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">You'll be able to choose between two interview experiences:</p>
