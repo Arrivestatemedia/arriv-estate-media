@@ -14,34 +14,47 @@ Deno.serve(async (req) => {
 
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
 
-    // Contractor pricing mapping
-    const contractorPackagePricing = {
-      'mls_walkthrough': 60,
-      'photo_essentials': 150,
-      'photo_cinematic': 250,
-      'premium_bundle': 325
-    };
-
-    const contractorAddonPricing = {
-      'drone': 60,
-      '3d_tour': 60,
-      'twilight': 40,
-      'vertical_reel': 25,
-      'ai_staging': 0,
-      'rush_delivery': 0
-    };
-
-    // Calculate contractor pay rate
-    const packageRate = contractorPackagePricing[booking.package] || 0;
-    let addonsTotal = 0;
-    
-    if (booking.add_ons && Array.isArray(booking.add_ons)) {
-      addonsTotal = booking.add_ons.reduce((sum, addon) => {
-        return sum + (contractorAddonPricing[addon] || 0);
-      }, 0);
+    // PAYOUT_V2: Calculate canonical provider payout via the compensation engine
+    // instead of the legacy hardcoded contractor pricing table.
+    let contractorPayRate = 0;
+    let compensationResult = null;
+    let pricingSnapshotId = booking.pricing_snapshot_id || '';
+    let requiredCapabilities = [];
+    try {
+      const fullPricingRes = await base44.asServiceRole.functions.invoke('calculateFullMediaPricing', {
+        package_id: booking.package,
+        property_sqft: booking.property_sqft || null,
+        add_on_ids: booking.add_ons || [],
+        preferred_active: booking.preferred_active || false,
+        approved_discount_amount: booking.approved_discount_amount || 0,
+        referral_tender_amount: booking.referral_tender_amount || 0,
+        contact_email: booking.client_email || '',
+        sales_member_id: booking.sales_member_id || '',
+        payment_timing: booking.request_pay_at_closing ? 'pay_at_closing' : 'pay_up_front',
+        property_address: propertyAddress,
+        create_snapshot: !pricingSnapshotId,
+      });
+      if (fullPricingRes?.data?.status === 'OK') {
+        compensationResult = fullPricingRes.data.compensation;
+        contractorPayRate = (compensationResult?.media_partner_payout || 0) / 100;
+        requiredCapabilities = fullPricingRes.data.required_capabilities || [];
+        if (!pricingSnapshotId) pricingSnapshotId = fullPricingRes.data.pricing_snapshot_id || '';
+      }
+    } catch (e) {
+      console.error('Canonical pricing in postBookingToJobBoard:', e.message);
     }
 
-    const contractorPayRate = packageRate + addonsTotal;
+    // Fallback to legacy hardcoded pricing if compensation engine fails
+    if (contractorPayRate === 0) {
+      const contractorPackagePricing = { 'mls_walkthrough': 60, 'photo_essentials': 150, 'photo_cinematic': 250, 'premium_bundle': 325 };
+      const contractorAddonPricing = { 'drone': 60, '3d_tour': 60, 'twilight': 40, 'vertical_reel': 25, 'ai_staging': 0, 'rush_delivery': 0 };
+      const packageRate = contractorPackagePricing[booking.package] || 0;
+      let addonsTotal = 0;
+      if (booking.add_ons && Array.isArray(booking.add_ons)) {
+        addonsTotal = booking.add_ons.reduce((sum, addon) => sum + (contractorAddonPricing[addon] || 0), 0);
+      }
+      contractorPayRate = packageRate + addonsTotal;
+    }
 
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
@@ -70,10 +83,39 @@ Deno.serve(async (req) => {
         booking_id: bookingId,
         package: booking.package,
         add_ons: booking.add_ons || [],
+        required_capabilities: requiredCapabilities,
+        pricing_snapshot_id: pricingSnapshotId,
         client_name: booking.client_name,
         client_email: booking.client_email,
         client_phone: booking.client_phone
       });
+
+      // PAYOUT_V2: Create immutable ProviderCompensationSnapshot to freeze the payout
+      if (compensationResult && newJob?.id) {
+        try {
+          const compSnapshot = await base44.asServiceRole.entities.ProviderCompensationSnapshot.create({
+            job_id: newJob.id,
+            booking_id: bookingId,
+            provider_id: '',
+            provider_name: '',
+            package_id: booking.package,
+            property_sqft: booking.property_sqft || null,
+            property_pricing_tier: booking.property_pricing_tier || compensationResult.property_pricing_tier || 'TIER_1',
+            pricing_rule_version: compensationResult.compensation_version || '',
+            compensation_rule_version: compensationResult.compensation_version || '',
+            commissionable_service_value_snapshot: compensationResult.commissionable_service_value || 0,
+            sales_commission_snapshot: compensationResult.sales_commission || 0,
+            provider_payout: compensationResult.media_partner_payout || 0,
+            provider_compensation_rule: compensationResult.provider_compensation_rule || '',
+            accepted_at: new Date().toISOString(),
+          });
+          await base44.asServiceRole.entities.Job.update(newJob.id, {
+            provider_compensation_snapshot_id: compSnapshot.id,
+          });
+        } catch (e) {
+          console.error('ProviderCompensationSnapshot creation error (postBookingToJobBoard):', e.message);
+        }
+      }
 
       // ── EDITING QUEUE INTEGRATION ──
       // Create EditingTasks at job creation time (WAITING_FOR_UPLOAD status).

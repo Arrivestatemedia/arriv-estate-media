@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { resolveMarketplaceSalesRep } from '../../shared/payoutV2.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -20,6 +21,14 @@ Deno.serve(async (req) => {
       status: isPastShoot ? 'approved' : 'pending'
     });
 
+    // PAYOUT_V2: Resolve sales rep with Brad fallback for marketplace gigs.
+    // Every eligible marketplace job gets a 15% sales commission. If no other
+    // sales rep is associated, Brad is the default rep.
+    const resolvedRep = await resolveMarketplaceSalesRep(base44, {
+      assignedSalesRepId: booking.sales_member_id || '',
+      clientEmail: booking.client_email || '',
+    });
+
     // Calculate canonical pricing via the authoritative engine and create a PricingSnapshot
     let canonicalPricing = null;
     let commissionableServiceValueCents = 0;
@@ -33,7 +42,7 @@ Deno.serve(async (req) => {
         referral_tender_amount: booking.referral_tender_amount || 0,
         contact_id: booking.contact_id || '',
         contact_email: booking.client_email || '',
-        sales_member_id: booking.sales_member_id || '',
+        sales_member_id: resolvedRep.sales_member_id,
         payment_timing: booking.request_pay_at_closing ? 'pay_at_closing' : 'pay_up_front',
         property_address: propertyAddress,
         create_snapshot: true,
@@ -54,58 +63,65 @@ Deno.serve(async (req) => {
       console.error('Canonical pricing calculation error:', pricingErr.message);
     }
 
-    // If this booking came from a sales-rep invite, create a pending commission
-    // tied to that rep. Uses the canonical commissionable_service_value from the
-    // pricing engine when available; falls back to legacy total_price * 0.15.
-    if (booking.sales_member_id) {
+    // PAYOUT_V2: Always create a pending commission for marketplace gigs.
+    // The sales rep is resolved with Brad fallback — every eligible job has a
+    // 15% sales commission. Uses the canonical commissionable_service_value
+    // from the pricing engine when available; falls back to total_price * 0.15.
+    try {
+      let repData = null;
       try {
-        let repData = null;
-        try {
-          const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: booking.sales_member_id });
-          repData = reps && reps[0] ? reps[0] : null;
-        } catch (e) { /* ignore */ }
+        const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: resolvedRep.sales_member_id });
+        repData = reps && reps[0] ? reps[0] : null;
+      } catch (e) { /* ignore */ }
 
-        let commissionAmount;
-        let commissionDescription;
-        if (commissionableServiceValueCents > 0) {
-          const compData = canonicalPricing?.compensation;
-          commissionAmount = compData ? compData.sales_commission / 100 : 0;
-          commissionDescription = `${compData?.sales_compensation_rule || 'Commission'} on ${booking.package} booking`;
-        } else {
-          const baseAmount = parseFloat(booking.total_price) || 0;
-          commissionAmount = Math.round(baseAmount * 0.15 * 100) / 100;
-          commissionDescription = `15% commission on ${booking.package} booking`;
-        }
-        if (commissionAmount > 0) {
-          await base44.asServiceRole.entities.Commission.create({
-            employee_id: booking.sales_member_id,
-            employee_email: repData?.email || booking.sales_member_email || '',
-            employee_name: repData?.full_name || booking.sales_member_name || '',
-            payroll_employee_id: repData?.payroll_employee_id || '',
-            compensation_type: 'commission',
-            commission_plan_id: 'standard_15',
-            deal_id: createdBooking.id,
-            customer_name: booking.client_name,
-            description: commissionDescription,
-            gross_amount: commissionAmount,
-            earned_date: new Date().toISOString().slice(0, 10),
-            intended_pay_period: new Date().toISOString().slice(0, 7),
-            approval_status: 'pending',
-            payroll_status: 'not_sent',
-            compensation_version: 1,
-          });
-        }
-      } catch (commissionErr) {
-        console.error('Commission creation error:', commissionErr.message);
+      let commissionAmount;
+      let commissionDescription;
+      if (commissionableServiceValueCents > 0) {
+        const compData = canonicalPricing?.compensation;
+        commissionAmount = compData ? compData.sales_commission / 100 : 0;
+        commissionDescription = `${compData?.sales_compensation_rule || 'Commission'} on ${booking.package} booking`;
+      } else {
+        const baseAmount = parseFloat(booking.total_price) || 0;
+        commissionAmount = Math.round(baseAmount * 0.15 * 100) / 100;
+        commissionDescription = `15% commission on ${booking.package} booking`;
       }
+      if (commissionAmount > 0) {
+        await base44.asServiceRole.entities.Commission.create({
+          employee_id: resolvedRep.sales_member_id,
+          employee_email: repData?.email || resolvedRep.sales_member_email || '',
+          employee_name: repData?.full_name || resolvedRep.sales_member_name || '',
+          payroll_employee_id: repData?.payroll_employee_id || '',
+          compensation_type: 'commission',
+          commission_plan_id: 'standard_15',
+          deal_id: createdBooking.id,
+          customer_name: booking.client_name,
+          description: commissionDescription,
+          gross_amount: commissionAmount,
+          earned_date: new Date().toISOString().slice(0, 10),
+          intended_pay_period: new Date().toISOString().slice(0, 7),
+          approval_status: 'pending',
+          payroll_status: 'not_sent',
+          compensation_version: 1,
+        });
+      }
+    } catch (commissionErr) {
+      console.error('Commission creation error:', commissionErr.message);
     }
 
     // For past shoots: create a Job assigned to admin (Bradley) and skip all client/admin notifications
     if (isPastShoot) {
-      const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
-      const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
-      const addOnsTotal = (booking.add_ons || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
-      const payRate = (packagePrices[booking.package] || 0) + addOnsTotal;
+      // PAYOUT_V2: Use canonical media partner payout from the compensation engine
+      let payRate = 0;
+      const compData = canonicalPricing?.compensation;
+      if (compData?.media_partner_payout) {
+        payRate = compData.media_partner_payout / 100;
+      } else {
+        // Fallback to legacy pricing if compensation engine failed
+        const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
+        const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+        const addOnsTotal = (booking.add_ons || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
+        payRate = (packagePrices[booking.package] || 0) + addOnsTotal;
+      }
 
       try {
         const now = new Date().toISOString();
@@ -117,6 +133,7 @@ Deno.serve(async (req) => {
           start_time: booking.preferred_time,
           pay_rate: payRate,
           client_price: parseFloat(booking.total_price),
+          pricing_snapshot_id: canonicalPricing?.pricing_snapshot_id || '',
           status: 'completed',
           production_status: 'no_editing_required',
           capture_status: 'captured',
