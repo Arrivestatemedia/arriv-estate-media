@@ -16,17 +16,32 @@ export function buildFirstGigOnboarding(opts: {
   firstName: string;
   listingAddress?: string;
   folderUrl?: string | null;
+  accessProvider?: string;
+  accessGuideUrl?: string;
 }): { sms: string; emailSubject: string; emailHtml: string } {
   const firstName = opts.firstName || 'there';
   const listing = opts.listingAddress || 'your listing';
+
+  // Resolve the property-access app label for this job's region.
+  const accessAppLabel =
+    opts.accessProvider === 'SENTRILOCK' ? 'SentriLock (SentriConnect)'
+    : opts.accessProvider === 'SUPRA' ? 'Supra eKEY'
+    : 'your region\u2019s property access app (Supra or SentriLock)';
+  const guideUrl = opts.accessGuideUrl || '';
+  const accessLineSms = guideUrl
+    ? `Download ${accessAppLabel} \u2014 ${guideUrl} \u2014 so you can get inside the property.`
+    : `Download ${accessAppLabel} so you can get inside the property.`;
+  const accessLineEmail = guideUrl
+    ? `Download <a href="${guideUrl}" style="color:#B8956A;">${accessAppLabel}</a> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`
+    : `Download <strong>${accessAppLabel}</strong> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`;
 
   const sms =
     `Welcome to your first Arriv shoot, ${firstName}! Here's exactly what to do, step by step:\n\n` +
     `BEFORE THE SHOOT\n` +
     `- Check your calendar invite for the address, date & time.\n` +
-    `- Download the property access app for your region (Supra or SentriLock) so you can get inside.\n\n` +
+    `- ${accessLineSms}\n\n` +
     `DAY OF THE SHOOT (mark each step in the Arriv app)\n` +
-    `1. Tap "I'm on my way" before you leave.\n` +
+    `1. Tap "I'm on my way" before you leave (this button unlocks 1 hour before the shoot).\n` +
     `2. Tap "I'm here" when you reach the property.\n` +
     `3. Capture all photo/video for the package.\n` +
     `4. Tap "I've completed the job" to finish the shoot.\n\n` +
@@ -54,13 +69,13 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">Before the shoot</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time. Download the property access app for your region (Supra or SentriLock) so you can get inside the property.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time. ${accessLineEmail}</p>
       </div>
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">Day of the shoot — mark each step in the Arriv app</h2>
         <ol style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;color:#1A1A1A;">
-          <li>Tap <strong>"I'm on my way"</strong> before you leave for the property.</li>
+          <li>Tap <strong>"I'm on my way"</strong> before you leave for the property <em>(this button unlocks 1 hour before the shoot)</em>.</li>
           <li>Tap <strong>"I'm here"</strong> when you reach the property.</li>
           <li>Capture all the required photo and video for the package.</li>
           <li>Tap <strong>"I've completed the job"</strong> to finish the shoot.</li>

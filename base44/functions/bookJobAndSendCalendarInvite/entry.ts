@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { toE164 } from '../../shared/phoneNumberBlocker.ts';
 import { buildFirstGigOnboarding } from '../../shared/firstGigOnboarding.ts';
+import { getPropertyAccessProvider, getAccessGuideUrl } from '../../shared/propertyAccessProvider.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -242,6 +243,8 @@ Deno.serve(async (req) => {
           firstName: partnerFirstName,
           listingAddress,
           folderUrl,
+          accessProvider: getPropertyAccessProvider(updatedJob),
+          accessGuideUrl: getAccessGuideUrl(getPropertyAccessProvider(updatedJob)),
         });
         const partnerPhone = updatedJob.booked_by_phone || jobData.booked_by_phone;
 
