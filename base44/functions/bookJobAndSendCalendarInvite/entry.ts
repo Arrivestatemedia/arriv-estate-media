@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { toE164 } from '../../shared/phoneNumberBlocker.ts';
+import { buildFirstGigOnboarding } from '../../shared/firstGigOnboarding.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -49,6 +50,18 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       console.error('Capability check failed:', e.message);
+    }
+
+    // Detect first gig: no prior booked/in-progress/completed/archived jobs by this partner
+    let isFirstGig = false;
+    try {
+      const priorJobs = await base44.asServiceRole.entities.Job.filter({ booked_by: mediaPartnerEmail });
+      const priorCount = priorJobs.filter(j =>
+        ['booked', 'in_progress', 'completed', 'archived'].includes(j.status) && j.id !== jobId
+      ).length;
+      isFirstGig = priorCount === 0;
+    } catch (e) {
+      console.error('First gig check failed:', e.message);
     }
 
     // Look up media partner's phone number from User entity if not already set
@@ -217,6 +230,77 @@ Deno.serve(async (req) => {
       }
     } catch (partnerNotifyErr) {
       console.error('Media specialist booking notification failed:', partnerNotifyErr.message);
+    }
+
+    // ── First-gig onboarding message (SMS + branded email) ──
+    // Sent only the very first time a Media Specialist books a job.
+    if (isFirstGig) {
+      try {
+        const partnerFirstName = (updatedJob.booked_by_name || jobData.booked_by_name || '').trim().split(/\s+/)[0] || 'there';
+        const listingAddress = updatedJob.location || jobData.location || 'your listing';
+        const onboarding = buildFirstGigOnboarding({
+          firstName: partnerFirstName,
+          listingAddress,
+          folderUrl,
+        });
+        const partnerPhone = updatedJob.booked_by_phone || jobData.booked_by_phone;
+
+        if (partnerPhone) {
+          const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+          const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+          const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+          try {
+            const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                From: fromPhone,
+                To: toE164(partnerPhone),
+                Body: onboarding.sms,
+              }).toString(),
+            });
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'sms',
+              recipient_type: 'media_partner',
+              recipient_phone: partnerPhone,
+              message_content: onboarding.sms,
+              job_id: jobId,
+              subject: 'first_gig_onboarding',
+              status: smsResponse.ok ? 'success' : 'failed',
+            });
+          } catch (smsErr) {
+            console.error('First gig onboarding SMS failed:', smsErr.message);
+          }
+        }
+
+        if (mediaPartnerEmail) {
+          try {
+            await sendBrevoEmail({
+              to: mediaPartnerEmail,
+              subject: onboarding.emailSubject,
+              htmlContent: onboarding.emailHtml,
+              senderEmail: 'info@arrivestatemedia.com',
+              senderName: 'Arriv Estate Media',
+            });
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'email',
+              recipient_type: 'media_partner',
+              recipient_email: mediaPartnerEmail,
+              message_content: onboarding.sms,
+              subject: onboarding.emailSubject,
+              job_id: jobId,
+              status: 'success',
+            });
+          } catch (emailErr) {
+            console.error('First gig onboarding email failed:', emailErr.message);
+          }
+        }
+      } catch (onboardingErr) {
+        console.error('First gig onboarding send failed:', onboardingErr.message);
+      }
     }
 
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
