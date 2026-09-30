@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Download, Image, Video, FileText, Loader2, ArrowLeft, Check, CheckCheck } from "lucide-react";
+import { Download, ImageIcon, Video, FileText, Loader2, ArrowLeft, Check, CheckCheck, X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { createPageUrl } from "../utils";
 import { useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
@@ -17,6 +17,7 @@ export default function ClientJobGallery() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [downloading, setDownloading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useEffect(() => {
     if (isDemo) {
@@ -39,13 +40,13 @@ export default function ClientJobGallery() {
         date: "2026-09-15",
       });
       setFiles([
-        { id: "d1", name: "exterior_front.jpg", size: 4200000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1564013799929-ab4427c28789?w=400" },
-        { id: "d2", name: "living_room.jpg", size: 3800000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1580587772045-0a8e2c8f3d12?w=400" },
-        { id: "d3", name: "kitchen.jpg", size: 4500000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400" },
-        { id: "d4", name: "bedroom_master.jpg", size: 3900000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe8e?w=400" },
-        { id: "d5", name: "bathroom.jpg", size: 3100000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=400" },
-        { id: "d6", name: "backyard.jpg", size: 4700000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=400" },
-        { id: "d7", name: "dining_room.jpg", size: 3600000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1618221190208-4e8b3c3e0b1e?w=400" },
+        { id: "d1", name: "exterior_front.jpg", size: 4200000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1564013799929-ab4427c28789?w=600" },
+        { id: "d2", name: "living_room.jpg", size: 3800000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1580587772045-0a8e2c8f3d12?w=600" },
+        { id: "d3", name: "kitchen.jpg", size: 4500000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600" },
+        { id: "d4", name: "bedroom_master.jpg", size: 3900000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe8e?w=600" },
+        { id: "d5", name: "bathroom.jpg", size: 3100000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=600" },
+        { id: "d6", name: "backyard.jpg", size: 4700000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=600" },
+        { id: "d7", name: "dining_room.jpg", size: 3600000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1618221190208-4e8b3c3e0b1e?w=600" },
         { id: "d8", name: "home_tour.mp4", size: 85000000, isVideo: true },
         { id: "d9", name: "drone_aerial.mp4", size: 120000000, isVideo: true },
         { id: "d10", name: "floor_plan.pdf", size: 2200000 },
@@ -141,181 +142,341 @@ export default function ClientJobGallery() {
     return `${mb.toFixed(1)} MB`;
   };
 
+  const openLightbox = (index) => {
+    if (files[index]?.isImage) {
+      setLightboxIndex(index);
+    }
+  };
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+
+  const navigateLightbox = useCallback((dir) => {
+    setLightboxIndex((prev) => {
+      if (prev === null) return prev;
+      const imageFiles = files.filter((f) => f.isImage);
+      const currentImage = files[prev];
+      const currentIdx = imageFiles.findIndex((f) => f.id === currentImage.id);
+      if (currentIdx === -1) return prev;
+      const nextIdx = (currentIdx + dir + imageFiles.length) % imageFiles.length;
+      const nextFile = imageFiles[nextIdx];
+      return files.findIndex((f) => f.id === nextFile.id);
+    });
+  }, [files]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") navigateLightbox(-1);
+      if (e.key === "ArrowRight") navigateLightbox(1);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxIndex, closeLightbox, navigateLightbox]);
+
   if (!user) return <div className="p-8 text-center text-[#1A1A1A]/60">Loading...</div>;
 
+  const imageCount = files.filter((f) => f.isImage).length;
+  const videoCount = files.filter((f) => f.isVideo).length;
+  const docCount = files.filter((f) => !f.isImage && !f.isVideo).length;
+
   return (
-    <div className="min-h-screen bg-[#FFFBF5]">
-      {/* Header */}
-      <div className="bg-[#1A1A1A] border-b border-[#B8956A]/20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.history.back()}
-              className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFBF5] to-[#F5F0E8]">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden bg-[#1A1A1A]">
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: "radial-gradient(circle at 20% 50%, #B8956A 0%, transparent 50%), radial-gradient(circle at 80% 80%, #B8956A 0%, transparent 40%)"
+        }} />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-sm text-[#FFFBF5]/60 hover:text-[#FFFBF5] transition-colors mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
           {job && (
-            <>
-              <h1 className="text-3xl font-serif text-[#FFFBF5] mb-1">{job.title || "Your Media"}</h1>
-              <p className="text-[#B8956A]">{job.location}</p>
-              {job.date && (
-                <p className="text-[#FFFBF5]/50 text-sm mt-1">
-                  {new Date(job.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                </p>
-              )}
-            </>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[#B8956A] flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#1A1A1A]" />
+                </div>
+                <span className="text-xs font-semibold tracking-widest uppercase text-[#B8956A]">Your Media Gallery</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-serif text-[#FFFBF5] mb-2 leading-tight">{job.title || "Your Media"}</h1>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <span className="text-[#FFFBF5]/60">{job.location}</span>
+                {job.date && (
+                  <>
+                    <span className="text-[#B8956A]/40">•</span>
+                    <span className="text-[#FFFBF5]/50">
+                      {new Date(job.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                    </span>
+                  </>
+                )}
+              </div>
+            </motion.div>
           )}
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {isDemo && (
-          <div className="mb-6 px-4 py-3 rounded-lg bg-[#B8956A]/10 border border-[#B8956A]/30 flex items-center gap-2">
+          <div className="mb-6 px-4 py-3 rounded-xl bg-[#B8956A]/10 border border-[#B8956A]/30 flex items-center gap-2">
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#B8956A] text-white">DEMO</span>
             <p className="text-sm text-[#1A1A1A]/70">
               This is a preview with sample data. Real galleries show your actual job photos and videos.
             </p>
           </div>
         )}
+
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-[#B8956A] mb-4" />
-            <p className="text-[#1A1A1A]/60">Loading your media...</p>
+            <p className="text-[#1A1A1A]/50">Loading your media...</p>
           </div>
         ) : error ? (
-          <Card className="p-8 text-center border-red-200">
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={loadMedia} variant="outline" className="border-[#B8956A] text-[#B8956A]">
+          <div className="max-w-md mx-auto py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <X className="w-8 h-8 text-red-400" />
+            </div>
+            <p className="text-lg font-medium text-[#1A1A1A] mb-1">Something went wrong</p>
+            <p className="text-sm text-[#1A1A1A]/50 mb-6">{error}</p>
+            <Button onClick={loadMedia} variant="outline" className="border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/5">
               Try Again
             </Button>
-          </Card>
+          </div>
         ) : files.length === 0 ? (
-          <Card className="p-12 text-center border-[#B8956A]/20">
-            <Image className="w-12 h-12 text-[#B8956A]/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-[#1A1A1A] mb-2">No media available yet</p>
-            <p className="text-sm text-[#1A1A1A]/50">
-              Your photos and videos will appear here once they've been uploaded.
-              Please check back soon.
+          <div className="max-w-md mx-auto py-24 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-[#B8956A]/10 flex items-center justify-center mx-auto mb-6">
+              <ImageIcon className="w-10 h-10 text-[#B8956A]/40" />
+            </div>
+            <p className="text-xl font-serif text-[#1A1A1A] mb-2">No media available yet</p>
+            <p className="text-sm text-[#1A1A1A]/50 max-w-xs mx-auto leading-relaxed">
+              Your photos and videos will appear here once they've been uploaded. Please check back soon.
             </p>
-          </Card>
+          </div>
         ) : (
           <>
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={selectAll}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[#B8956A] hover:bg-[#B8956A]/10 transition-colors"
-                >
-                  {selected.size === files.length && files.length > 0 ? (
-                    <CheckCheck className="w-4 h-4" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  {selected.size === files.length && files.length > 0 ? "Deselect All" : "Select All"}
-                </button>
-                <span className="text-sm text-[#1A1A1A]/50">
-                  {files.length} file{files.length !== 1 ? "s" : ""}
-                  {selected.size > 0 && ` · ${selected.size} selected`}
-                </span>
+            {/* Stats bar */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 border border-[#B8956A]/15">
+                <ImageIcon className="w-3.5 h-3.5 text-[#B8956A]" />
+                <span className="text-xs font-medium text-[#1A1A1A]/70">{imageCount} Photos</span>
               </div>
-              {selected.size > 0 && (
-                <Button
-                  onClick={downloadSelected}
-                  disabled={downloading}
-                  className="bg-[#B8956A] hover:bg-[#A68559] text-white"
-                >
-                  {downloading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download {selected.size} file{selected.size !== 1 ? "s" : ""}
-                    </>
-                  )}
-                </Button>
+              {videoCount > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 border border-[#B8956A]/15">
+                  <Video className="w-3.5 h-3.5 text-[#B8956A]" />
+                  <span className="text-xs font-medium text-[#1A1A1A]/70">{videoCount} Videos</span>
+                </div>
+              )}
+              {docCount > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 border border-[#B8956A]/15">
+                  <FileText className="w-3.5 h-3.5 text-[#B8956A]" />
+                  <span className="text-xs font-medium text-[#1A1A1A]/70">{docCount} Files</span>
+                </div>
               )}
             </div>
 
-            {/* Gallery grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {files.map((file) => {
-                const isSelected = selected.has(file.id);
-                return (
-                  <div
-                    key={file.id}
-                    className={`group relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-[#B8956A] ring-2 ring-[#B8956A]/30"
-                        : "border-[#B8956A]/20 hover:border-[#B8956A]/50"
-                    }`}
-                    onClick={() => toggleSelect(file.id)}
+            {/* Sticky toolbar */}
+            <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 mb-6 py-3 bg-[#FFFBF5]/80 backdrop-blur-md border-b border-[#B8956A]/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={selectAll}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-[#B8956A] hover:bg-[#B8956A]/10 transition-colors"
                   >
-                    {/* Preview */}
-                    <div className="aspect-square bg-[#1A1A1A]/5 flex items-center justify-center overflow-hidden">
-                      {file.isImage && file.thumbnailLink ? (
+                    {selected.size === files.length && files.length > 0 ? (
+                      <CheckCheck className="w-4 h-4" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    {selected.size === files.length && files.length > 0 ? "Deselect All" : "Select All"}
+                  </button>
+                  <span className="text-sm text-[#1A1A1A]/40">
+                    {selected.size > 0 ? `${selected.size} selected` : `${files.length} files`}
+                  </span>
+                </div>
+                <AnimatePresence>
+                  {selected.size > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                    >
+                      <Button
+                        onClick={downloadSelected}
+                        disabled={downloading}
+                        className="bg-[#1A1A1A] hover:bg-[#2a3536] text-white rounded-full"
+                        size="sm"
+                      >
+                        {downloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download {selected.size}
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Gallery grid — masonry feel with varied spans */}
+            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
+              {files.map((file, index) => {
+                const isSelected = selected.has(file.id);
+                const isImg = file.isImage;
+                return (
+                  <motion.div
+                    key={file.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
+                    className={`group relative break-inside-avoid rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                      isSelected
+                        ? "ring-2 ring-[#B8956A] ring-offset-2 ring-offset-[#FFFBF5]"
+                        : "ring-1 ring-[#B8956A]/10 hover:ring-[#B8956A]/40 hover:shadow-xl"
+                    }`}
+                    onClick={() => {
+                      if (isImg) openLightbox(index);
+                      else toggleSelect(file.id);
+                    }}
+                  >
+                    {/* Preview area */}
+                    <div className="relative bg-[#1A1A1A]/5 overflow-hidden">
+                      {isImg && file.thumbnailLink ? (
                         <img
                           src={file.thumbnailLink}
                           alt={file.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
-                      ) : file.isImage ? (
-                        <Image className="w-10 h-10 text-[#B8956A]/40" />
+                      ) : isImg ? (
+                        <div className="aspect-square flex items-center justify-center">
+                          <ImageIcon className="w-10 h-10 text-[#B8956A]/40" />
+                        </div>
                       ) : file.isVideo ? (
-                        <div className="relative">
-                          <Video className="w-10 h-10 text-[#B8956A]/60" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-[#B8956A]/80 flex items-center justify-center">
-                              <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[5px] border-y-transparent ml-0.5" />
+                        <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#2a3536] to-[#1A1A1A]">
+                          <div className="relative">
+                            <Video className="w-12 h-12 text-[#B8956A]/50" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-full bg-[#B8956A] flex items-center justify-center shadow-lg">
+                                <div className="w-0 h-0 border-l-[10px] border-l-white border-y-[7px] border-y-transparent ml-1" />
+                              </div>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <FileText className="w-10 h-10 text-[#B8956A]/40" />
+                        <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-[#F5F0E8] to-[#EDE6D9]">
+                          <FileText className="w-10 h-10 text-[#B8956A]/40" />
+                        </div>
                       )}
-                    </div>
 
-                    {/* File info */}
-                    <div className="p-2 bg-white">
-                      <p className="text-xs font-medium text-[#1A1A1A] truncate">{file.name}</p>
-                      {file.size && (
-                        <p className="text-xs text-[#1A1A1A]/40">{formatSize(parseInt(file.size))}</p>
-                      )}
-                    </div>
+                      {/* Gradient overlay on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                    {/* Selection checkmark */}
-                    {isSelected && (
-                      <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#B8956A] flex items-center justify-center shadow-md">
-                        <Check className="w-4 h-4 text-white" />
+                      {/* Type badge */}
+                      <div className="absolute top-2.5 left-2.5">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-black/40 backdrop-blur-sm text-white/90">
+                          {isImg ? "Photo" : file.isVideo ? "Video" : "Doc"}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Download button (individual) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        downloadFile(file);
-                      }}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Download className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
+                      {/* Selection checkmark */}
+                      <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${
+                        isSelected
+                          ? "bg-[#B8956A] scale-100"
+                          : "bg-black/30 backdrop-blur-sm scale-0 group-hover:scale-100"
+                      }`}>
+                        {isSelected && <Check className="w-4 h-4 text-white" />}
+                      </div>
+
+                      {/* Download button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadFile(file);
+                        }}
+                        className="absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                      >
+                        <Download className="w-4 h-4 text-[#1A1A1A]" />
+                      </button>
+
+                      {/* Filename overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <p className="text-xs font-medium text-white truncate">{file.name}</p>
+                        {file.size && (
+                          <p className="text-[10px] text-white/60">{formatSize(parseInt(file.size))}</p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
                 );
               })}
             </div>
           </>
         )}
       </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && files[lightboxIndex]?.isImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateLightbox(-1); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateLightbox(1); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
+            >
+              <ChevronRight className="w-6 h-6 text-white" />
+            </button>
+
+            <motion.img
+              key={files[lightboxIndex].id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              src={files[lightboxIndex].thumbnailLink?.replace("w=600", "w=1600") || files[lightboxIndex].thumbnailLink}
+              alt={files[lightboxIndex].name}
+              className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+              <p className="text-sm text-white/90">{files[lightboxIndex].name}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
