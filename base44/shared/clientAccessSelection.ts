@@ -123,6 +123,27 @@ export function buildAccessConfirmationSms(job: any, selection: string): string 
 }
 
 /**
+ * Build a follow-up access-request SMS (2h after the first ask, or 8pm the
+ * night before the shoot). Shorter than the initial request; re-states the
+ * reply options. Only sent while the client's selection is still pending.
+ */
+export function buildAccessFollowupSms(job: any, formattedDate: string, formattedTime: string): string {
+  const provider = getPropertyAccessProvider(job);
+  const label = providerLabel(provider);
+  const firstName = (job.client_name || '').split(' ')[0] || 'there';
+  const lockboxPhrase = provider === PROVIDER_UNKNOWN
+    ? 'Grant lockbox access'
+    : `Grant ${label} lockbox access`;
+
+  return (
+    `Hi ${firstName}, quick reminder — we still need to know how your Media Specialist will access ${job.location} for tomorrow's ${formattedTime} shoot.\n\n` +
+    `Reply:\n1 = I'll be on site\n2 = ${lockboxPhrase}\n\n` +
+    `Or text "support: your message" to reach our team.\n` +
+    `Choose here: ${appUrl()}\n\nArriv Estate Media`
+  );
+}
+
+/**
  * Parse an inbound SMS body into a selection or a support request.
  * Returns one of:
  *   { kind: 'selection', selection: 'on_site' | 'lockbox' }

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, zonedTimeToUtc, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
-import { parse as parseDate, format } from 'npm:date-fns@3.6.0';
+import { parse as parseDate, format, subDays } from 'npm:date-fns@3.6.0';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import {
   PROVIDER_SENTRILOCK,
@@ -8,7 +8,7 @@ import {
   getPropertyAccessProvider,
   getAccessGuideUrl,
 } from '../../shared/propertyAccessProvider.ts';
-import { buildAccessRequestSms } from '../../shared/clientAccessSelection.ts';
+import { buildAccessRequestSms, buildAccessFollowupSms } from '../../shared/clientAccessSelection.ts';
 
 function convertTo12HourFormat(time24) {
   const [hour, minute] = time24.split(':').map(Number);
@@ -115,6 +115,28 @@ Deno.serve(async (req) => {
               {
                 type: '1_hour_before',
                 shouldSend: () => timeDiffMinutes > 50 && timeDiffMinutes <= 75 // 50-75 min window
+              },
+              {
+                // 2 hours after the first access request, if still unanswered.
+                type: 'access_followup_2h',
+                shouldSend: () => {
+                  if (!job.client_access_request_sent_at) return false;
+                  if (job.client_access_selection && job.client_access_selection !== 'pending') return false;
+                  if (timeDiffMinutes <= 0) return false;
+                  const sentAt = new Date(job.client_access_request_sent_at).getTime();
+                  return (now.getTime() - sentAt) >= 2 * 60 * 60 * 1000;
+                }
+              },
+              {
+                // 8pm ET the night before the job, if still unanswered.
+                type: 'access_followup_8pm',
+                shouldSend: () => {
+                  if (!job.client_access_request_sent_at) return false;
+                  if (job.client_access_selection && job.client_access_selection !== 'pending') return false;
+                  const nightBeforeStr = format(subDays(parseDate(job.date, 'yyyy-MM-dd', new Date()), 1), 'yyyy-MM-dd');
+                  return format(nowNY, 'yyyy-MM-dd') === nightBeforeStr
+                    && nowNY.getHours() === 20 && nowNY.getMinutes() < 15;
+                }
               }
             ];
 
@@ -425,10 +447,62 @@ Deno.serve(async (req) => {
              reminder_type: reminder.type,
              status: 'success'
            });
-         }
-        }
+           }
+           } else if (reminder.type === 'access_followup_2h' || reminder.type === 'access_followup_8pm') {
+           // Follow-up access-selection nudge (2h after first ask, or 8pm night before).
+           // Only fires while the client's selection is still pending.
+           const jobDateObj = parseDate(job.date, 'yyyy-MM-dd', new Date());
+           const formattedDate = format(jobDateObj, 'MMMM d, yyyy');
+           const formattedTime12 = convertTo12HourFormat(jobTime);
+           const followUpSms = buildAccessFollowupSms(job, formattedDate, formattedTime12);
+           const followUpSubject = 'Reminder: How will your Media Specialist access the property?';
+           const followUpBody = followUpSms;
 
-        // Record that reminder was sent
+           if (job.client_phone) {
+             try {
+               await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+                 phone: job.client_phone,
+                 message: followUpSms,
+                 recipientType: 'client',
+                 jobId: job.id
+               });
+               await base44.asServiceRole.entities.MessageLog.create({
+                 message_type: 'sms',
+                 recipient_type: 'client',
+                 recipient_phone: job.client_phone,
+                 message_content: followUpSms,
+                 job_id: job.id,
+                 reminder_type: reminder.type,
+                 status: 'success'
+               });
+             } catch (e) {
+               console.log('Access follow-up SMS send skipped:', e.message);
+             }
+           }
+           if (job.client_email) {
+             try {
+               if (gmailAccessToken) {
+                 await sendEmailViaGmail(gmailAccessToken, job.client_email, followUpSubject, followUpBody);
+               } else {
+                 await sendBrevoEmail({ to: job.client_email, subject: followUpSubject, textContent: followUpBody });
+               }
+             } catch (e) {
+               console.log('Access follow-up email send skipped:', e.message);
+             }
+             await base44.asServiceRole.entities.MessageLog.create({
+               message_type: 'email',
+               recipient_type: 'client',
+               recipient_email: job.client_email,
+               message_content: followUpBody,
+               subject: followUpSubject,
+               job_id: job.id,
+               reminder_type: reminder.type,
+               status: 'success'
+             });
+           }
+           }
+
+           // Record that reminder was sent
         await base44.asServiceRole.entities.JobReminder.create({
           job_id: job.id,
           reminder_type: reminder.type,
