@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get("jobId");
+  const isDemo = searchParams.get("demo") === "1";
   const [user, setUser] = useState(null);
   const [files, setFiles] = useState([]);
   const [job, setJob] = useState(null);
@@ -18,18 +19,43 @@ export default function ClientJobGallery() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
+    if (isDemo) {
+      setUser({ email: "demo@example.com" });
+      return;
+    }
     const userEmail = localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
     if (!userEmail) {
       window.location.replace(createPageUrl("SignIn"));
       return;
     }
     setUser({ email: userEmail });
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
+    if (isDemo) {
+      setJob({
+        title: "123 Maple Street — Photo + Video Tour",
+        location: "Bethesda, MD",
+        date: "2026-09-15",
+      });
+      setFiles([
+        { id: "d1", name: "exterior_front.jpg", size: 4200000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1564013799929-ab4427c28789?w=400" },
+        { id: "d2", name: "living_room.jpg", size: 3800000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1580587772045-0a8e2c8f3d12?w=400" },
+        { id: "d3", name: "kitchen.jpg", size: 4500000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400" },
+        { id: "d4", name: "bedroom_master.jpg", size: 3900000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe8e?w=400" },
+        { id: "d5", name: "bathroom.jpg", size: 3100000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=400" },
+        { id: "d6", name: "backyard.jpg", size: 4700000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=400" },
+        { id: "d7", name: "dining_room.jpg", size: 3600000, isImage: true, thumbnailLink: "https://images.unsplash.com/photo-1618221190208-4e8b3c3e0b1e?w=400" },
+        { id: "d8", name: "home_tour.mp4", size: 85000000, isVideo: true },
+        { id: "d9", name: "drone_aerial.mp4", size: 120000000, isVideo: true },
+        { id: "d10", name: "floor_plan.pdf", size: 2200000 },
+      ]);
+      setLoading(false);
+      return;
+    }
     if (!user?.email || !jobId) return;
     loadMedia();
-  }, [user?.email, jobId]);
+  }, [user?.email, jobId, isDemo]);
 
   const loadMedia = async () => {
     setLoading(true);
@@ -68,6 +94,10 @@ export default function ClientJobGallery() {
   };
 
   const downloadFile = async (file) => {
+    if (isDemo) {
+      alert("Demo mode — downloads are disabled in this preview.");
+      return;
+    }
     try {
       const res = await base44.functions.fetch("/downloadJobMedia", {
         method: "POST",
@@ -144,6 +174,14 @@ export default function ClientJobGallery() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {isDemo && (
+          <div className="mb-6 px-4 py-3 rounded-lg bg-[#B8956A]/10 border border-[#B8956A]/30 flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#B8956A] text-white">DEMO</span>
+            <p className="text-sm text-[#1A1A1A]/70">
+              This is a preview with sample data. Real galleries show your actual job photos and videos.
+            </p>
+          </div>
+        )}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-[#B8956A] mb-4" />
