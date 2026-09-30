@@ -50,7 +50,7 @@ export function buildFirstGigOnboarding(opts: {
     `2. Upload ALL your files right there in the Arriv app.\n` +
     `3. When every file is uploaded, tap "Yes, that's all my files."\n\n` +
     `RULES\n` +
-    `- To reach your client, text or call the 855 number shown in the app — it relays straight to them.\n` +
+    `- To reach your client, text or call this number.\n` +
     `- Upload within 24 hours of the shoot.\n\n` +
     `Questions? Text "support: your message" anytime. Welcome to the team!\n— Arriv Estate Media`;
 
@@ -93,7 +93,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="background:#2a3536;border-radius:8px;padding:18px 20px;margin:24px 0;">
         <h2 style="font-size:14px;color:#B8956A;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">The rules</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call the 855 number shown in the app — it relays straight to them. Upload all footage within 24 hours of the shoot.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call this number. Upload all footage within 24 hours of the shoot.</p>
       </div>
 
       <p style="font-size:14px;line-height:1.6;color:#1A1A1A;margin:24px 0 0;">Questions? Text <strong>"support: your message"</strong> to this number anytime. We've got your back.</p>
