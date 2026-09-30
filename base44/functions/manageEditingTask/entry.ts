@@ -66,7 +66,30 @@ Deno.serve(async (req) => {
         if (!actor) actor = member.id;
         if (!actorEmail) actorEmail = member.email;
       } else {
-        return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+        // Not a sales admin — check if this user has an EditorProfile.
+        // Editors need to perform queue actions (release, assign, edit, QC, etc.)
+        // to do their jobs, so they're authorized via their EditorProfile.
+        const emailsToTry = [salesEmail, platformEmail].filter(Boolean);
+        let editorProfile = null;
+        if (emailsToTry.length > 0 || salesMemberId) {
+          const allProfiles = await base44.asServiceRole.entities.EditorProfile.list('-created_date', 500);
+          const lowerEmails = emailsToTry.map((e) => e.toLowerCase());
+          if (salesMemberId) {
+            editorProfile = allProfiles.find((p) => p.employee_id === salesMemberId);
+          }
+          if (!editorProfile && lowerEmails.length > 0) {
+            editorProfile = allProfiles.find((p) =>
+              p.employee_email && lowerEmails.includes(p.employee_email.toLowerCase())
+            );
+          }
+        }
+        if (editorProfile) {
+          // authorized via EditorProfile
+          if (!actor) actor = member?.id || editorProfile.employee_id || editorProfile.id;
+          if (!actorEmail) actorEmail = member?.email || editorProfile.employee_email;
+        } else {
+          return Response.json({ error: 'Unauthorized — admin or editor access required' }, { status: 403 });
+        }
       }
     }
 
