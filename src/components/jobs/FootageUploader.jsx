@@ -43,6 +43,7 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
     setUploading(true);
     setError(null);
     const successfullyUploaded = [];
+    const failedFiles = [];
 
     for (const file of files) {
       try {
@@ -50,12 +51,25 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
         successfullyUploaded.push({ ...result.file, localName: file.name });
       } catch (err) {
         console.error(`Failed to upload ${file.name}:`, err);
+        failedFiles.push(file);
         setError(`Failed to upload ${file.name}: ${err.message || "Unknown error"}`);
       }
     }
 
     setUploadedFiles((prev) => [...prev, ...successfullyUploaded]);
-    setFiles([]);
+    // Keep failed files in the list so the partner can retry them
+    setFiles(failedFiles);
+
+    // Files landed in the job's Drive folder: auto-confirm the upload (no manual button).
+    // Only when every file in the batch succeeded, so partial uploads are never marked complete.
+    if (successfullyUploaded.length > 0 && failedFiles.length === 0 && !job.footage_uploaded) {
+      try {
+        await base44.functions.invoke("confirmFootageUpload", { jobId: job.id });
+      } catch (err) {
+        console.error("Auto-confirm footage upload failed:", err);
+        setError("Files uploaded, but we could not finalize the upload. Please try again.");
+      }
+    }
     setUploading(false);
 
     if (successfullyUploaded.length > 0 && onAllUploaded) {

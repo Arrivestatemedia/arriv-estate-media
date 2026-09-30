@@ -15,7 +15,6 @@ import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import JobCompletionDialog from "./JobCompletionDialog";
-import FootageUploadConfirmDialog from "./FootageUploadConfirmDialog";
 import AttireVerificationDialog from "./AttireVerificationDialog";
 import FootageUploader from "./FootageUploader";
 
@@ -44,7 +43,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [loading, setLoading] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(Date.now());
   const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
-  const [showFootageConfirmDialog, setShowFootageConfirmDialog] = React.useState(false);
   const [showAttireDialog, setShowAttireDialog] = React.useState(false);
   const [isFirstTwoShoots, setIsFirstTwoShoots] = React.useState(false);
 
@@ -172,19 +170,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     if (onJobUpdate) onJobUpdate();
   };
 
-  const handleFootageUploaded = async () => {
-    setLoading(true);
-    try {
-      await base44.functions.invoke('confirmFootageUpload', { jobId: job.id });
-      setShowFootageConfirmDialog(false);
-      if (onJobUpdate) onJobUpdate();
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to confirm footage upload');
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
 
@@ -194,12 +179,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         open={showCompletionDialog}
         onOpenChange={handleCloseCompletionDialog}
         googleDriveFolderUrl={job.google_drive_folder_url}
-      />
-      <FootageUploadConfirmDialog
-        open={showFootageConfirmDialog}
-        onOpenChange={setShowFootageConfirmDialog}
-        googleDriveFolderUrl={job.google_drive_folder_url}
-        onConfirm={handleFootageUploaded}
       />
       <AttireVerificationDialog
         open={showAttireDialog}
@@ -325,13 +304,9 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                   currentUserEmail={currentUserEmail}
                   onAllUploaded={() => { if (onJobUpdate) onJobUpdate(); }}
                 />
-                <Button
-                  onClick={() => isFirstTwoShoots ? handleFootageUploaded() : setShowFootageConfirmDialog(true)}
-                  disabled={loading}
-                  className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
-                >
-                  {loading ? 'Processing...' : "I've uploaded all my footage"}
-                </Button>
+                <p className="text-xs text-[#1A1A1A]/50 text-center">
+                  Your upload is confirmed automatically once your files finish uploading.
+                </p>
               </div>
             ) : isBookedByMe && job.media_partner_status === 'job_completed' && job.footage_uploaded ? (
               <Button
