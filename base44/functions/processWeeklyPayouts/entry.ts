@@ -2,6 +2,35 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import Stripe from 'npm:stripe@17.5.0';
 import { findPartnerRecord, getPayPeriodStartUTC, clientPaymentCleared } from '../../shared/stripeConnect.ts';
 
+// Sends an immediate SMS to the admin/owner when the weekly payout run
+// hits any error or issue, so it can be investigated before partners miss
+// their Friday pay.
+async function notifyAdminOfPayoutIssue(summary) {
+  try {
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+    const toPhone = Deno.env.get('ADMIN_PHONE') || Deno.env.get('OWNER_PHONE_NUMBER');
+    if (!accountSid || !authToken || !fromPhone || !toPhone) return;
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Basic ' + btoa(`${accountSid}:${authToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ From: fromPhone, To: toPhone, Body: summary }),
+      }
+    );
+    return response.ok;
+  } catch (e) {
+    console.warn('notifyAdminOfPayoutIssue: SMS failed:', e.message);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -105,6 +134,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Immediate admin SMS if any partner payout failed.
+    if (errors.length > 0) {
+      const errorList = errors.map(e => `${e.email}: ${e.reason}`).join(' | ');
+      await notifyAdminOfPayoutIssue(
+        `⚠️ WEEKLY PAYOUT ISSUE\n${errors.length} payout(s) failed:\n${errorList}`.slice(0, 1500)
+      );
+    }
+
     return Response.json({
       success: true,
       paidPartners,
@@ -114,6 +151,10 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('processWeeklyPayouts error:', error);
+    // Immediate admin SMS on a total run failure.
+    await notifyAdminOfPayoutIssue(
+      `🚨 WEEKLY PAYOUT FAILED\nThe Friday payout run crashed: ${error.message}`.slice(0, 1500)
+    );
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
