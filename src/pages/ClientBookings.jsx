@@ -10,6 +10,7 @@ import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera } from "lucide-react
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
+import AccessSelectionCard from "@/components/client/AccessSelectionCard";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -58,6 +59,19 @@ export default function ClientBookings() {
     enabled: !!user?.email
   });
 
+  const { data: accessJobs = [], refetch: refetchAccessJobs } = useQuery({
+    queryKey: ['accessSelectionJobs', user?.email],
+    queryFn: () => {
+      if (!user?.email) return [];
+      return base44.entities.Job.filter({ client_email: user.email, status: 'booked' }, '-date');
+    },
+    enabled: !!user?.email
+  });
+
+  const pendingAccessJobs = (accessJobs || []).filter(
+    (j) => j.client_access_request_sent_at && (!j.client_access_selection || j.client_access_selection === 'pending')
+  );
+
   useEffect(() => {
     if (!user?.email) return;
     
@@ -94,6 +108,19 @@ export default function ClientBookings() {
           <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-8">Your Booking Requests</h1>
 
           <B2BClientDashboard email={user.email} />
+
+          {pendingAccessJobs.length > 0 && (
+            <div className="space-y-4 mb-8">
+              {pendingAccessJobs.map((job) => (
+                <AccessSelectionCard
+                  key={job.id}
+                  job={job}
+                  clientEmail={user.email}
+                  onSubmitted={refetchAccessJobs}
+                />
+              ))}
+            </div>
+          )}
 
         {isLoading ? (
           <p className="text-[var(--text-secondary)]">Loading your bookings...</p>

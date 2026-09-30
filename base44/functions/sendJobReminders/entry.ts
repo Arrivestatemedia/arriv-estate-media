@@ -8,6 +8,7 @@ import {
   getPropertyAccessProvider,
   getAccessGuideUrl,
 } from '../../shared/propertyAccessProvider.ts';
+import { buildAccessRequestSms } from '../../shared/clientAccessSelection.ts';
 
 function convertTo12HourFormat(time24) {
   const [hour, minute] = time24.split(':').map(Number);
@@ -267,9 +268,23 @@ Deno.serve(async (req) => {
            const accessMethod = provider === PROVIDER_SENTRILOCK ? 'SENTRICONNECT' :
              provider === PROVIDER_SUPRA ? 'SUPRA_EKEY' : null;
 
-           let clientSms;
-           let clientEmailSubject;
-           let clientEmailBody;
+           let clientSms = null;
+           let clientEmailSubject = null;
+           let clientEmailBody = null;
+
+           // Only ask if the client hasn't already chosen an access method.
+           if (!job.client_access_selection || job.client_access_selection === 'pending') {
+             clientSms = buildAccessRequestSms(job, formattedDate, formattedTime12);
+             clientEmailSubject = 'Action needed: How will your Media Specialist access the property?';
+             clientEmailBody = clientSms;
+             try {
+               await base44.asServiceRole.entities.Job.update(job.id, {
+                 client_access_request_sent_at: new Date().toISOString(),
+               });
+             } catch (e) {
+               console.log('client_access_request_sent_at update skipped:', e.message);
+             }
+           }
 
            if (provider === PROVIDER_SENTRILOCK) {
              clientSms =
@@ -319,7 +334,7 @@ Deno.serve(async (req) => {
            }
 
            // Send SMS to client
-           if (job.client_phone) {
+           if (clientSms && job.client_phone) {
              try {
                await base44.asServiceRole.functions.invoke('sendReminderSMS', {
                  phone: job.client_phone,
@@ -344,7 +359,7 @@ Deno.serve(async (req) => {
            }
 
            // Send email to client
-           if (job.client_email) {
+           if (clientEmailBody && job.client_email) {
              try {
                if (gmailAccessToken) {
                  await sendEmailViaGmail(gmailAccessToken, job.client_email, clientEmailSubject, clientEmailBody);

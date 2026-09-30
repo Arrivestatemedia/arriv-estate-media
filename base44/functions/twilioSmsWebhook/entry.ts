@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { auditLog } from '../../shared/securityAudit.ts';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { containsPersonalPhoneNumber } from '../../shared/phoneNumberBlocker.ts';
+import { parseAccessSms, applyClientAccessSelection } from '../../shared/clientAccessSelection.ts';
 
 const norm = (n) => {
   if (!n) return '';
@@ -198,6 +199,61 @@ Deno.serve(async (req) => {
           };
 
           if (isClient) {
+            // ── Property access selection (24h flow) ──
+            // If this job has a pending access request, interpret the inbound
+            // message as an access selection or support request before the
+            // normal routing-preference logic. Once the client selects, the
+            // request is no longer pending and normal SMS routing resumes.
+            if (relayJob.client_access_request_sent_at && (!relayJob.client_access_selection || relayJob.client_access_selection === 'pending')) {
+              const parsed = parseAccessSms(messageBody);
+              if (parsed.kind === 'selection') {
+                try {
+                  await applyClientAccessSelection(base44, relayJob, parsed.selection, 'sms');
+                } catch (e) {
+                  console.error('Access selection apply failed:', e.message);
+                }
+                return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                  headers: { 'Content-Type': 'text/xml' },
+                });
+              }
+              if (parsed.kind === 'support') {
+                const clientName = (relayJob.client_name || '').trim();
+                const toSupport = clientName
+                  ? `[Client: ${clientName}] ${parsed.message || messageBody}`
+                  : (parsed.message || messageBody);
+                if (adminPhone) {
+                  try {
+                    const sent = await sendTwilioSms(adminPhone, toSupport);
+                    await recordOutbound(adminPhone, toSupport, sent?.sid);
+                  } catch (e) {
+                    console.error('Support SMS send failed:', e.message);
+                  }
+                }
+                const ack = "Got it — your message is on its way to our team. We'll be in touch shortly.";
+                try {
+                  const sent = await sendTwilioSms(clientE164, ack);
+                  await recordOutbound(clientE164, ack, sent?.sid);
+                } catch (e) {
+                  console.error('Support ack SMS send failed:', e.message);
+                }
+                return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                  headers: { 'Content-Type': 'text/xml' },
+                });
+              }
+              // Unknown — re-prompt with instructions
+              const rePrompt =
+                "Please reply with:\n1 = I'll be on site\n2 = Grant lockbox access\nOr text 'support: your message' to reach our team.";
+              try {
+                const sent = await sendTwilioSms(clientE164, rePrompt);
+                await recordOutbound(clientE164, rePrompt, sent?.sid);
+              } catch (e) {
+                console.error('Access re-prompt SMS send failed:', e.message);
+              }
+              return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                headers: { 'Content-Type': 'text/xml' },
+              });
+            }
+
             const lower = (messageBody || '').toLowerCase().trim();
             const isSupportKeyword = lower === 'support';
             const isPartnerKeyword =

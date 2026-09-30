@@ -137,6 +137,30 @@
       "default": "awaiting_arrival",
       "description": "Media partner's current status"
     },
+    "client_access_selection": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "on_site",
+        "lockbox"
+      ],
+      "default": "pending",
+      "description": "Client's choice for how the media specialist will access the property. 'lockbox' resolves to Supra or Sentri by territory at display time."
+    },
+    "client_access_selection_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the client selected their property access method"
+    },
+    "client_access_selection_source": {
+      "type": "string",
+      "description": "How the client made their access selection: 'sms' or 'web'"
+    },
+    "client_access_request_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 24-hour property-access selection request was sent to the client"
+    },
     "booked_by": {
       "type": "string",
       "description": "Email of the contractor who booked"
