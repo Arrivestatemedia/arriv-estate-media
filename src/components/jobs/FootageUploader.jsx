@@ -1,8 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Upload, CheckCircle2, FileText, Image, Video, X, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB — streamed to Drive in chunks
 
 export default function FootageUploader({ job, currentUserEmail, onAllUploaded }) {
   const [files, setFiles] = useState([]);
@@ -12,6 +13,7 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
   const [error, setError] = useState(null);
   const [showMoreFilesPrompt, setShowMoreFilesPrompt] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [progress, setProgress] = useState({}); // { [fileName]: percent }
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (selectedFiles) => {
@@ -30,14 +32,60 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("jobId", job.id);
-    formData.append("mediaPartnerEmail", currentUserEmail);
+  const initiateSession = async (file) => {
+    const res = await base44.functions.invoke("initiateFootageUpload", {
+      jobId: job.id,
+      mediaPartnerEmail: currentUserEmail,
+      fileName: file.name,
+      mimeType: file.type || "application/octet-stream",
+      fileSize: file.size,
+    });
+    const data = res.data || res;
+    if (!data.sessionUri) throw new Error("No upload session returned");
+    return data.sessionUri;
+  };
 
-    const res = await base44.functions.invoke("uploadFootageToJobDrive", formData);
-    return res.data || res;
+  const uploadFileResumable = async (file) => {
+    if (file.size === 0) throw new Error("File is empty");
+    const sessionUri = await initiateSession(file);
+    const total = file.size;
+    let start = 0;
+
+    while (start < total) {
+      const end = Math.min(start + CHUNK_SIZE, total);
+      const chunk = file.slice(start, end);
+      const putRes = await fetch(sessionUri, {
+        method: "PUT",
+        headers: {
+          "Content-Range": `bytes ${start}-${end - 1}/${total}`,
+          "Content-Length": String(end - start),
+        },
+        body: chunk,
+      });
+
+      if (putRes.status === 308) {
+        start = end;
+        setProgress((prev) => ({ ...prev, [file.name]: Math.round((end / total) * 100) }));
+      } else if (putRes.status === 200 || putRes.status === 201) {
+        const fileData = await putRes.json();
+        setProgress((prev) => ({ ...prev, [file.name]: 100 }));
+        return {
+          id: fileData.id,
+          name: fileData.name,
+          mimeType: fileData.mimeType,
+          size: fileData.size,
+          thumbnailLink: fileData.thumbnailLink,
+          hasThumbnail: fileData.hasThumbnail,
+          modifiedTime: fileData.modifiedTime,
+          localName: file.name,
+        };
+      } else {
+        const errText = await putRes.text().catch(() => "");
+        throw new Error(`Upload failed (${putRes.status})`);
+      }
+    }
+
+    throw new Error("Upload did not complete");
   };
 
   const handleUpload = async () => {
@@ -49,8 +97,8 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
 
     for (const file of files) {
       try {
-        const result = await uploadFile(file);
-        successfullyUploaded.push({ ...result.file, localName: file.name });
+        const result = await uploadFileResumable(file);
+        successfullyUploaded.push(result);
       } catch (err) {
         console.error(`Failed to upload ${file.name}:`, err);
         failedFiles.push(file);
@@ -59,8 +107,8 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
     }
 
     setUploadedFiles((prev) => [...prev, ...successfullyUploaded]);
-    // Keep failed files in the list so the partner can retry them
     setFiles(failedFiles);
+    setProgress({});
 
     setUploading(false);
 
@@ -69,8 +117,6 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
     }
 
     // After a fully-successful batch, ask whether more files are coming.
-    // Only confirm the upload (mark footage uploaded + release editing tasks)
-    // once the partner says they are done.
     if (successfullyUploaded.length > 0 && failedFiles.length === 0 && !job.footage_uploaded) {
       setShowMoreFilesPrompt(true);
     }
@@ -128,28 +174,43 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
           Click to select or drag & drop your photos and videos
         </p>
         <p className="text-xs text-[#1A1A1A]/50 mt-1">
-          Your files will be uploaded directly to the job folder
+          Large videos stream in chunks — no size limit
         </p>
       </div>
 
       {/* Pending files */}
       {files.length > 0 && (
         <div className="space-y-2">
-          {files.map((file, index) => (
-            <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-[#B8956A]/5 border border-[#B8956A]/20">
-              {getFileIcon(file)}
-              <span className="flex-1 text-sm text-[#1A1A1A] truncate">{file.name}</span>
-              <span className="text-xs text-[#1A1A1A]/40">
-                {(file.size / (1024 * 1024)).toFixed(1)} MB
-              </span>
-              <button
-                onClick={() => removeFile(index)}
-                className="text-[#1A1A1A]/40 hover:text-red-500"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          {files.map((file, index) => {
+            const pct = progress[file.name] ?? (uploading ? 0 : null);
+            return (
+              <div key={index} className="p-2 rounded-lg bg-[#B8956A]/5 border border-[#B8956A]/20">
+                <div className="flex items-center gap-3">
+                  {getFileIcon(file)}
+                  <span className="flex-1 text-sm text-[#1A1A1A] truncate">{file.name}</span>
+                  <span className="text-xs text-[#1A1A1A]/40">
+                    {(file.size / (1024 * 1024)).toFixed(1)} MB
+                  </span>
+                  {pct === null && (
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="text-[#1A1A1A]/40 hover:text-red-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {pct !== null && (
+                  <div className="mt-2 w-full h-1.5 rounded-full bg-[#B8956A]/15 overflow-hidden">
+                    <div
+                      className="h-full bg-[#B8956A] transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <Button
             onClick={handleUpload}
             disabled={uploading}
