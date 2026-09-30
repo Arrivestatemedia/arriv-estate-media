@@ -22,7 +22,7 @@ export function buildFirstGigOnboarding(opts: {
 }): { sms: string; emailSubject: string; emailHtml: string } {
   const firstName = opts.firstName || 'there';
   const listing = opts.listingAddress || 'your listing';
-  const relayNumber = opts.relayNumber || '';
+  const relayNumber = opts.relayNumber || '1-855-765-4306';
 
   // Resolve the property-access app label for this job's region.
   // Specialists use SentriConnect (the specialist-facing app) in DMV markets.
