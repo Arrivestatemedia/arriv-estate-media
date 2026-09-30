@@ -1,0 +1,81 @@
+{
+  "name": "SupportSession",
+  "type": "object",
+  "properties": {
+    "target_phone": {
+      "type": "string",
+      "description": "Phone number (10-digit) of the client or media specialist in the support session"
+    },
+    "target_name": {
+      "type": "string",
+      "description": "Display name of the target (first name or client name)"
+    },
+    "target_role": {
+      "type": "string",
+      "enum": [
+        "client",
+        "media_specialist"
+      ],
+      "description": "Role of the target participant"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Associated Job ID (when available)"
+    },
+    "company_number": {
+      "type": "string",
+      "description": "The relay/company number (E.164) the admin replies to"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "ended"
+      ],
+      "default": "active",
+      "description": "Whether this support session is still accepting admin replies"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session auto-expires (15 minutes after creation/refresh)"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session was ended"
+    },
+    "ended_reason": {
+      "type": "string",
+      "description": "Why the session ended: admin_new_message, expired, superseded"
+    }
+  },
+  "required": [
+    "target_phone",
+    "company_number",
+    "status",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

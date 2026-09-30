@@ -33,7 +33,51 @@ async function sendTwilioSms(to, body) {
   return res.json();
 }
 
+// Parse a "support: <message>" prefix (or bare "support") from an SMS body.
+function parseSupportPrefix(body: string): { isSupport: boolean; message: string } {
+  const raw = (body || '').trim();
+  const m = raw.match(/^support\s*:\s*(.*)$/i);
+  if (m) return { isSupport: true, message: m[1].trim() };
+  if (raw.toLowerCase().trim() === 'support') return { isSupport: true, message: '' };
+  return { isSupport: false, message: '' };
+}
 
+// Open (or refresh) a 15-minute support session so admin replies route back
+// to this participant. Ends any prior active session for the same target.
+async function openSupportSession(
+  base44: any,
+  opts: { targetPhone: string; targetName: string; targetRole: string; jobId?: string; companyNumber: string },
+) {
+  const now = new Date();
+  try {
+    const existing = await base44.asServiceRole.entities.SupportSession.filter({
+      status: 'active',
+      target_phone: opts.targetPhone,
+      company_number: opts.companyNumber,
+    });
+    for (const s of (existing || [])) {
+      if (new Date(s.expires_at) > now) {
+        await base44.asServiceRole.entities.SupportSession.update(s.id, {
+          status: 'ended',
+          ended_at: now.toISOString(),
+          ended_reason: 'superseded',
+        });
+      }
+    }
+  } catch (e) {
+    console.error('End prior support session failed:', e.message);
+  }
+  const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+  await base44.asServiceRole.entities.SupportSession.create({
+    target_phone: opts.targetPhone,
+    target_name: opts.targetName,
+    target_role: opts.targetRole,
+    job_id: opts.jobId,
+    company_number: opts.companyNumber,
+    status: 'active',
+    expires_at: expiresAt,
+  });
+}
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -99,8 +143,56 @@ Deno.serve(async (req) => {
     const messageBody = params.get('Body');
     const twilioSid = params.get('MessageSid');
 
-    // --- Media-specialist relay ---
     const senderNorm = norm(from);
+
+    // ── Admin sender: route support replies back to the specialist/client ──
+    const adminPhoneEnv = Deno.env.get('ADMIN_PHONE');
+    const adminNorm = adminPhoneEnv ? norm(adminPhoneEnv) : '';
+    if (adminNorm && senderNorm === adminNorm) {
+      const companyE164 = e164(to);
+      const lower = (messageBody || '').toLowerCase().trim();
+      const now = new Date();
+
+      // "New message" → end the most recent active session
+      if (lower === 'new message') {
+        try {
+          const active = await base44.asServiceRole.entities.SupportSession.filter({ status: 'active', company_number: companyE164 });
+          active.sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
+          const session = active[0];
+          if (session) {
+            await base44.asServiceRole.entities.SupportSession.update(session.id, {
+              status: 'ended', ended_at: now.toISOString(), ended_reason: 'admin_new_message',
+            });
+            try { await sendTwilioSms(e164(session.target_phone), "Your support session has ended. Text 'support: your message' to start a new one. - Arriv"); } catch (e) { console.error('End-session notify failed:', e.message); }
+            const remaining = active.length - 1;
+            try { await sendTwilioSms(e164(from), remaining > 0 ? `Session ended. ${remaining} more active session(s).` : 'Session ended. No active sessions.'); } catch (e) { console.error('Admin confirm failed:', e.message); }
+          } else {
+            try { await sendTwilioSms(e164(from), 'No active support session to end.'); } catch (e) {}
+          }
+        } catch (e) { console.error('New message handling failed:', e.message); }
+        return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { 'Content-Type': 'text/xml' } });
+      }
+
+      // Route reply to most recent active, non-expired session
+      try {
+        const active = await base44.asServiceRole.entities.SupportSession.filter({ status: 'active', company_number: companyE164 });
+        active.sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
+        const valid = [];
+        for (const s of active) {
+          if (new Date(s.expires_at) > now) valid.push(s);
+          else { await base44.asServiceRole.entities.SupportSession.update(s.id, { status: 'ended', ended_at: now.toISOString(), ended_reason: 'expired' }); }
+        }
+        const session = valid[0];
+        if (session) {
+          try { await sendTwilioSms(e164(session.target_phone), messageBody); } catch (e) { console.error('Admin reply relay failed:', e.message); }
+        } else {
+          try { await sendTwilioSms(e164(from), 'No active support session to reply to. Sessions expire after 15 minutes.'); } catch (e) {}
+        }
+      } catch (e) { console.error('Admin reply routing failed:', e.message); }
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { 'Content-Type': 'text/xml' } });
+    }
+
+    // --- Media-specialist relay ---
     if (senderNorm) {
       try {
         const booked = await base44.asServiceRole.entities.Job.filter({ status: 'booked' });
@@ -229,6 +321,12 @@ Deno.serve(async (req) => {
                     console.error('Support SMS send failed:', e.message);
                   }
                 }
+                try {
+                  await openSupportSession(base44, {
+                    targetPhone: senderNorm, targetName: clientName, targetRole: 'client',
+                    jobId: relayJob.id, companyNumber: companyE164,
+                  });
+                } catch (e) { console.error('Open support session failed:', e.message); }
                 const ack = "Got it — your message is on its way to our team. We'll be in touch shortly.";
                 try {
                   const sent = await sendTwilioSms(clientE164, ack);
@@ -255,7 +353,8 @@ Deno.serve(async (req) => {
             }
 
             const lower = (messageBody || '').toLowerCase().trim();
-            const isSupportKeyword = lower === 'support';
+            const supportParsed = parseSupportPrefix(messageBody);
+            const isSupportKeyword = supportParsed.isSupport;
             const isPartnerKeyword =
               lower === 'media partner' || lower === 'media' || lower === 'partner';
             let preference = conversation.routing_preference || 'unset';
@@ -276,6 +375,23 @@ Deno.serve(async (req) => {
                 await recordOutbound(clientE164, confirm, sent?.sid);
               } catch (e) {
                 console.error('Confirm SMS send failed:', e.message);
+              }
+              // "support: <message>" → forward now and open a reply session
+              if (isSupportKeyword && supportParsed.message) {
+                const clientName = (relayJob.client_name || '').trim();
+                const toSupport = clientName ? `[Client: ${clientName}] ${supportParsed.message}` : supportParsed.message;
+                if (adminPhone) {
+                  try {
+                    const sent = await sendTwilioSms(adminPhone, toSupport);
+                    await recordOutbound(adminPhone, toSupport, sent?.sid);
+                  } catch (e) { console.error('Support SMS send failed:', e.message); }
+                }
+                try {
+                  await openSupportSession(base44, {
+                    targetPhone: senderNorm, targetName: clientName, targetRole: 'client',
+                    jobId: relayJob.id, companyNumber: companyE164,
+                  });
+                } catch (e) { console.error('Open support session failed:', e.message); }
               }
               return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
                 headers: { 'Content-Type': 'text/xml' },
@@ -318,6 +434,12 @@ Deno.serve(async (req) => {
                   console.error('Support SMS send failed:', e.message);
                 }
               }
+              try {
+                await openSupportSession(base44, {
+                  targetPhone: senderNorm, targetName: clientName, targetRole: 'client',
+                  jobId: relayJob.id, companyNumber: companyE164,
+                });
+              } catch (e) { console.error('Open support session failed:', e.message); }
             }
           } else {
             // ── Media-specialist routing preference ──
@@ -329,7 +451,8 @@ Deno.serve(async (req) => {
             let partnerPref = conversation.media_partner_routing_preference || 'unset';
 
             const lower = (messageBody || '').toLowerCase().trim();
-            const isSupportKeyword = lower === 'support';
+            const supportParsed = parseSupportPrefix(messageBody);
+            const isSupportKeyword = supportParsed.isSupport;
             const isClientKeyword = lower === 'client';
 
             if (isSupportKeyword) partnerPref = 'support';
@@ -347,6 +470,24 @@ Deno.serve(async (req) => {
                 await recordOutbound(senderE164, confirm, sent?.sid);
               } catch (e) {
                 console.error('Confirm SMS send failed:', e.message);
+              }
+              // "support: <message>" → forward the message now and open a reply session
+              if (isSupportKeyword && supportParsed.message) {
+                const toSupport = specialistFirst
+                  ? `[Media Specialist: ${specialistFirst}] ${supportParsed.message}`
+                  : supportParsed.message;
+                if (adminPhone) {
+                  try {
+                    const sent = await sendTwilioSms(adminPhone, toSupport);
+                    await recordOutbound(adminPhone, toSupport, sent?.sid);
+                  } catch (e) { console.error('Support SMS send failed:', e.message); }
+                }
+                try {
+                  await openSupportSession(base44, {
+                    targetPhone: senderNorm, targetName: specialistFirst, targetRole: 'media_specialist',
+                    jobId: relayJob.id, companyNumber: companyE164,
+                  });
+                } catch (e) { console.error('Open support session failed:', e.message); }
               }
               return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
                 headers: { 'Content-Type': 'text/xml' },
@@ -378,6 +519,12 @@ Deno.serve(async (req) => {
                   console.error('Support SMS send failed:', e.message);
                 }
               }
+              try {
+                await openSupportSession(base44, {
+                  targetPhone: senderNorm, targetName: specialistFirst, targetRole: 'media_specialist',
+                  jobId: relayJob.id, companyNumber: companyE164,
+                });
+              } catch (e) { console.error('Open support session failed:', e.message); }
             } else {
               const forwardedBody = specialistFirst
                 ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
