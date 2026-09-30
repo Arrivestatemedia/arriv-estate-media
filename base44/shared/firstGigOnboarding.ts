@@ -27,13 +27,8 @@ export function buildFirstGigOnboarding(opts: {
     opts.accessProvider === 'SENTRILOCK' ? 'SentriLock (SentriConnect)'
     : opts.accessProvider === 'SUPRA' ? 'Supra eKEY'
     : 'your region\u2019s property access app (Supra or SentriLock)';
-  const guideUrl = opts.accessGuideUrl || '';
-  const accessLineSms = guideUrl
-    ? `Download ${accessAppLabel} \u2014 ${guideUrl} \u2014 so you can get inside the property.`
-    : `Download ${accessAppLabel} so you can get inside the property.`;
-  const accessLineEmail = guideUrl
-    ? `Download <a href="${guideUrl}" style="color:#B8956A;">${accessAppLabel}</a> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`
-    : `Download <strong>${accessAppLabel}</strong> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`;
+  const accessLineSms = `Download ${accessAppLabel} so you can get inside the property.`;
+  const accessLineEmail = `Download <strong>${accessAppLabel}</strong> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`;
 
   const sms =
     `Welcome to your first Arriv shoot, ${firstName}! Here's exactly what to do, step by step:\n\n` +
@@ -93,7 +88,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="background:#2a3536;border-radius:8px;padding:18px 20px;margin:24px 0;">
         <h2 style="font-size:14px;color:#B8956A;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">The rules</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call the 855 number shown in the app — it relays straight to them. Upload all footage within 24 hours of the shoot.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call this number. Upload all footage within 24 hours of the shoot.</p>
       </div>
 
       <p style="font-size:14px;line-height:1.6;color:#1A1A1A;margin:24px 0 0;">Questions? Text <strong>"support: your message"</strong> to this number anytime. We've got your back.</p>
