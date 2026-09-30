@@ -20,8 +20,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    if (!jobId || !driveLink) {
-      return Response.json({ error: 'jobId and driveLink are required' }, { status: 400 });
+    if (!jobId) {
+      return Response.json({ error: 'jobId is required' }, { status: 400 });
     }
 
     const job = await base44.asServiceRole.entities.Job.get(jobId);
@@ -34,14 +34,16 @@ Deno.serve(async (req) => {
       // Use the edited message from the frontend
       messageBody = customMessageBody;
     } else {
-      // Fallback: build default message
+      // Fallback: build default message with gallery link
       const hour = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
       const h = parseInt(hour);
       const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
       const firstName = job.client_name?.split(' ')[0] || job.client_name;
       const address = job.location;
+      const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arrivestatemedia.base44.app';
+      const galleryLink = `${appDomain}/ClientJobGallery?jobId=${jobId}`;
       const youtubeLine = youtubeLink ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing` : '';
-      messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+      messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${galleryLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
     }
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');

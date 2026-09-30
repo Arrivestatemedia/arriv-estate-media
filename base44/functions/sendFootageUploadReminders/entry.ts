@@ -70,14 +70,12 @@ Deno.serve(async (req) => {
 });
 
 async function sendReminder(base44, job, now) {
-  const folderLink = job.google_drive_folder_url || '';
-
   // --- SMS via Twilio ---
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
 
-  const smsMessage = `Hi ${job.booked_by_name}! Reminder to upload your footage from your shoot at ${job.location}.${folderLink ? ` Upload here: ${folderLink}` : ''} Then return to the Arriv app to confirm.`;
+  const smsMessage = `Hi ${job.booked_by_name}! Reminder to upload your footage from your shoot at ${job.location}. Open the Arriv app, find your completed job, and use the upload tool to submit your photos and videos directly. Then tap "I've uploaded all my footage" to confirm.`;
 
   const formattedPhone = job.booked_by_phone.startsWith('+') ? job.booked_by_phone : `+1${job.booked_by_phone}`;
 
@@ -101,8 +99,8 @@ async function sendReminder(base44, job, now) {
   const emailBody = `Hi ${job.booked_by_name}!
 
 This is a reminder to upload your footage from your shoot at ${job.location}.
-${folderLink ? `\nUpload your files here: ${folderLink}\n` : ''}
-After uploading, please return to the Arriv app to confirm.
+
+Please open the Arriv app, find your completed job card, and use the upload tool to submit your photos and videos directly within the app. After uploading, tap "I've uploaded all my footage" to confirm.
 
 Thank you!`;
 

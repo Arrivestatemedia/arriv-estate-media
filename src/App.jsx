@@ -64,6 +64,7 @@ import B2BOrganization360 from './pages/B2BOrganization360';
 import ArrivAgreementsCenter from './pages/ArrivAgreementsCenter';
 import AgreementSigning from './pages/AgreementSigning';
 import FinancialOverview from './pages/FinancialOverview';
+import ClientJobGallery from './pages/ClientJobGallery';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -537,6 +538,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route path="/ClientJobGallery" element={<ClientJobGallery />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

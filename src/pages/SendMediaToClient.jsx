@@ -71,6 +71,15 @@ export default function SendMediaToClient() {
     ? { client_name: tmplClientName, location: tmplCustomAddress }
     : jobs.find((j) => j.id === tmplJobId);
 
+  // Auto-generate the client gallery link from the selected job
+  useEffect(() => {
+    if (selectedJobId) {
+      setDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${selectedJobId}`);
+    } else {
+      setDriveLink("");
+    }
+  }, [selectedJobId]);
+
   const buildTmplDefaultMessage = () => {
     const location = tmplJob?.location || tmplCustomAddress;
     const clientName = tmplClientName || tmplJob?.client_name || "";
@@ -84,7 +93,7 @@ export default function SendMediaToClient() {
     const youtubeLine = yl
       ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${yl}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
       : "";
-    return `Good ${timeOfDay} ${firstName} -\nyour media for ${location} is ready.\n\nHere's the download link:\n\n${dl}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    return `Good ${timeOfDay} ${firstName} -\nyour media for ${location} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${dl}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
   const buildDefaultMessage = () => {
@@ -96,7 +105,7 @@ export default function SendMediaToClient() {
     const youtubeLine = youtubeLink
       ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
       : "";
-    return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
   const buildTemplateMessage = (templateId) => {
@@ -216,8 +225,8 @@ export default function SendMediaToClient() {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Google Drive Link <span className="text-red-500">*</span></Label>
-                  <Input placeholder="https://drive.google.com/..." value={driveLink} onChange={(e) => setDriveLink(e.target.value)} />
+                  <Label>Client Gallery Link <span className="text-[#1A1A1A]/40 text-xs">(auto-generated)</span></Label>
+                  <Input readOnly value={driveLink} className="bg-[#B8956A]/5 border-[#B8956A]/20 text-[#1A1A1A]/60 cursor-not-allowed" />
                 </div>
 
                 <div className="space-y-2">
@@ -288,6 +297,7 @@ export default function SendMediaToClient() {
                         setTmplClientEmail(job.client_email || "");
                         setTmplClientPhone(job.client_phone || "");
                         setTmplCustomAddress(job.location || "");
+                        setTmplDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${job.id}`);
                       }
                     }}
                   >
@@ -353,8 +363,8 @@ export default function SendMediaToClient() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Google Drive Link <span className="text-red-500">*</span></Label>
-                  <Input placeholder="https://drive.google.com/..." value={tmplDriveLink} onChange={(e) => { setTmplDriveLink(e.target.value); setSaveResult(null); }} />
+                  <Label>Client Gallery Link <span className="text-[#1A1A1A]/40 text-xs">(auto-generated from job)</span></Label>
+                  <Input readOnly value={tmplDriveLink} className="bg-[#B8956A]/5 border-[#B8956A]/20 text-[#1A1A1A]/60 cursor-not-allowed" />
                 </div>
 
                 <div className="space-y-2">

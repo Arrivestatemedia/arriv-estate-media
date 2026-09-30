@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, DollarSign, Edit2 } from "lucide-react";
+import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera } from "lucide-react";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
@@ -45,6 +45,15 @@ export default function ClientBookings() {
     queryFn: () => {
       if (!user?.email) return [];
       return base44.entities.Booking.filter({ client_email: user.email }, '-created_date');
+    },
+    enabled: !!user?.email
+  });
+
+  const { data: completedJobs = [] } = useQuery({
+    queryKey: ['completedJobsWithMedia', user?.email],
+    queryFn: () => {
+      if (!user?.email) return [];
+      return base44.entities.Job.filter({ client_email: user.email, footage_uploaded: true }, '-date');
     },
     enabled: !!user?.email
   });
@@ -170,6 +179,37 @@ export default function ClientBookings() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {completedJobs.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Your Media</h2>
+            <div className="space-y-3">
+              {completedJobs.map((job) => (
+                <Card key={job.id} className="border-2 border-[var(--border-color)] hover:shadow-lg transition-shadow bg-[var(--card-bg)]">
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[var(--accent-color)]/10 flex items-center justify-center flex-shrink-0">
+                        <Camera className="w-5 h-5 text-[var(--accent-color)]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[var(--text-primary)] truncate">{job.title || job.location}</p>
+                        <p className="text-sm text-[var(--text-secondary)] truncate">{job.location}</p>
+                      </div>
+                    </div>
+                    <Link to={createPageUrl('ClientJobGallery') + '?jobId=' + job.id}>
+                      <Button
+                        size="sm"
+                        className="bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
+                      >
+                        View Photos
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
         </div>
