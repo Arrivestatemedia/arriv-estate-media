@@ -44,12 +44,12 @@ export function buildFirstGigOnboarding(opts: {
     `BEFORE THE SHOOT\n` +
     `- Check your calendar invite for the address, date & time.\n` +
     `- ${accessLineSms}\n\n` +
-    `DAY OF THE SHOOT (mark each step in the Arriv app)\n` +
+    `DAY OF THE SHOOT (mark each step in the Arriv app — these buttons are on the same job card you tapped to book the job)\n` +
     `1. Tap "I'm on my way" before you leave (this button unlocks 1 hour before the shoot).\n` +
     `2. Tap "I'm here" when you reach the property.\n` +
     `3. Capture all photo/video for the package.\n` +
     `4. Tap "I've completed the job" to finish the shoot.\n\n` +
-    `AFTER THE SHOOT (upload footage)\n` +
+    `AFTER THE SHOOT (upload footage — also from that same job card)\n` +
     `1. Tap "Upload Footage" in the job.\n` +
     `2. Upload ALL your files right there in the Arriv app.\n` +
     `3. When every file is uploaded, tap "Yes, that's all my files."\n\n` +
@@ -78,6 +78,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">Day of the shoot — mark each step in the Arriv app</h2>
+        <p style="font-size:13px;color:#1A1A1A;opacity:0.7;margin:0 0 12px;font-style:italic;">These buttons are on the same job card you tapped to book the job.</p>
         <ol style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;color:#1A1A1A;">
           <li>Tap <strong>"I'm on my way"</strong> before you leave for the property <em>(this button unlocks 1 hour before the shoot)</em>.</li>
           <li>Tap <strong>"I'm here"</strong> when you reach the property.</li>
@@ -88,6 +89,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">After the shoot — upload your footage</h2>
+        <p style="font-size:13px;color:#1A1A1A;opacity:0.7;margin:0 0 12px;font-style:italic;">Also from that same job card.</p>
         <ol style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;color:#1A1A1A;">
           <li>Open the job in the Arriv app and tap <strong>"Upload Footage."</strong></li>
           <li>Upload ALL your files right there in the Arriv app.</li>
