@@ -11,10 +11,10 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { jobId, clientEmail } = body;
+    const { jobId, clientEmail, adminPreview } = body;
 
-    if (!jobId || !clientEmail) {
-      return Response.json({ error: 'jobId and clientEmail are required' }, { status: 400 });
+    if (!jobId) {
+      return Response.json({ error: 'jobId is required' }, { status: 400 });
     }
 
     // Look up the job (asServiceRole bypasses RLS)
@@ -23,9 +23,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Verify the client owns this job
-    if (job.client_email !== clientEmail) {
-      return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
+    // Authorization: either the client owns this job, or an admin is previewing
+    if (adminPreview) {
+      try {
+        const me = await base44.auth.me();
+        if (!me || me.role !== 'admin') {
+          return Response.json({ error: 'Unauthorized: admin access required for preview' }, { status: 403 });
+        }
+      } catch {
+        return Response.json({ error: 'Unauthorized: admin access required for preview' }, { status: 403 });
+      }
+    } else {
+      if (!clientEmail) {
+        return Response.json({ error: 'clientEmail is required' }, { status: 400 });
+      }
+      // Verify the client owns this job
+      if (job.client_email !== clientEmail) {
+        return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
+      }
     }
 
     // Resolve the Drive folder ID

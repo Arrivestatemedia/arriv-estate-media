@@ -65,6 +65,7 @@ import ArrivAgreementsCenter from './pages/ArrivAgreementsCenter';
 import AgreementSigning from './pages/AgreementSigning';
 import FinancialOverview from './pages/FinancialOverview';
 import ClientJobGallery from './pages/ClientJobGallery';
+import AdminClientGalleryPreview from './pages/AdminClientGalleryPreview';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -539,6 +540,7 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/ClientJobGallery" element={<ClientJobGallery />} />
+      <Route path="/AdminClientGalleryPreview" element={<AdminClientGalleryPreview />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

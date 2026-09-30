@@ -10,6 +10,7 @@ export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get("jobId");
   const isDemo = searchParams.get("demo") === "1";
+  const adminPreview = searchParams.get("adminPreview") === "1";
   const [user, setUser] = useState(null);
   const [files, setFiles] = useState([]);
   const [job, setJob] = useState(null);
@@ -24,13 +25,17 @@ export default function ClientJobGallery() {
       setUser({ email: "demo@example.com" });
       return;
     }
+    if (adminPreview) {
+      setUser({ email: "admin-preview", isAdmin: true });
+      return;
+    }
     const userEmail = localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
     if (!userEmail) {
       window.location.replace(createPageUrl("SignIn"));
       return;
     }
     setUser({ email: userEmail });
-  }, [isDemo]);
+  }, [isDemo, adminPreview]);
 
   useEffect(() => {
     if (isDemo) {
@@ -56,16 +61,16 @@ export default function ClientJobGallery() {
     }
     if (!user?.email || !jobId) return;
     loadMedia();
-  }, [user?.email, jobId, isDemo]);
+  }, [user?.email, jobId, isDemo, adminPreview]);
 
   const loadMedia = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke("getJobMediaForClient", {
-        jobId,
-        clientEmail: user.email,
-      });
+      const payload = adminPreview
+        ? { jobId, adminPreview: true }
+        : { jobId, clientEmail: user.email };
+      const res = await base44.functions.invoke("getJobMediaForClient", payload);
       const data = res.data || res;
       setFiles(data.files || []);
       setJob(data.job || null);
@@ -97,6 +102,10 @@ export default function ClientJobGallery() {
   const downloadFile = async (file) => {
     if (isDemo) {
       alert("Demo mode — downloads are disabled in this preview.");
+      return;
+    }
+    if (adminPreview) {
+      alert("Admin preview — downloads are disabled. Open the client gallery link to download.");
       return;
     }
     try {
@@ -349,6 +358,15 @@ export default function ClientJobGallery() {
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#B8956A] text-[#0a0b0f]">DEMO</span>
             <p className="text-sm text-white/70">
               This is a preview with sample data. Real galleries show your actual job photos and videos.
+            </p>
+          </div>
+        )}
+
+        {adminPreview && (
+          <div className="mb-6 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500 text-white">ADMIN PREVIEW</span>
+            <p className="text-sm text-white/70">
+              You're viewing this gallery exactly as the client sees it. Downloads are disabled in preview mode.
             </p>
           </div>
         )}
