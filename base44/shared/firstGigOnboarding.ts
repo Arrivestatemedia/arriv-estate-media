@@ -9,7 +9,7 @@
  */
 
 function appUrl(): string {
-  return (Deno.env.get('BASE44_APP_DOMAIN') || 'https://arrivestatemedia.base44.app').replace(/\/+$/, '');
+  return (Deno.env.get('BASE44_APP_DOMAIN') || 'https://app.arrivestatemedia.com').replace(/\/+$/, '');
 }
 
 export function buildFirstGigOnboarding(opts: {
@@ -18,17 +18,26 @@ export function buildFirstGigOnboarding(opts: {
   folderUrl?: string | null;
   accessProvider?: string;
   accessGuideUrl?: string;
+  relayNumber?: string;
 }): { sms: string; emailSubject: string; emailHtml: string } {
   const firstName = opts.firstName || 'there';
   const listing = opts.listingAddress || 'your listing';
+  const relayNumber = opts.relayNumber || '';
 
   // Resolve the property-access app label for this job's region.
+  // Specialists use SentriConnect (the specialist-facing app) in DMV markets.
   const accessAppLabel =
-    opts.accessProvider === 'SENTRILOCK' ? 'SentriLock (SentriConnect)'
+    opts.accessProvider === 'SENTRILOCK' ? 'SentriConnect'
     : opts.accessProvider === 'SUPRA' ? 'Supra eKEY'
-    : 'your region\u2019s property access app (Supra or SentriLock)';
+    : 'your region\u2019s property access app (Supra or SentriConnect)';
   const accessLineSms = `Download ${accessAppLabel} so you can get inside the property.`;
   const accessLineEmail = `Download <strong>${accessAppLabel}</strong> \u2014 it\u2019s the property access app for this region, and you\u2019ll need it to get inside.`;
+  const relayLineSms = relayNumber
+    ? `To reach your client, text or call ${relayNumber} \u2014 it relays straight to them.`
+    : `To reach your client, text or call the relay number shown in the app \u2014 it relays straight to them.`;
+  const relayLineEmail = relayNumber
+    ? `To reach your client, text or call <strong>${relayNumber}</strong> \u2014 it relays straight to them.`
+    : `To reach your client, text or call the relay number shown in the app \u2014 it relays straight to them.`;
 
   const sms =
     `Welcome to your first Arriv shoot, ${firstName}! Here's exactly what to do, step by step:\n\n` +
@@ -45,9 +54,9 @@ export function buildFirstGigOnboarding(opts: {
     `2. Upload ALL your files right there in the Arriv app.\n` +
     `3. When every file is uploaded, tap "Yes, that's all my files."\n\n` +
     `RULES\n` +
-    `- To reach your client, text or call the 855 number shown in the app — it relays straight to them.\n` +
+    `- ${relayLineSms}\n` +
     `- Upload within 24 hours of the shoot.\n\n` +
-    `Questions? Text "support: your message" anytime. Welcome to the team!\n— Arriv Estate Media`;
+    `Questions? Text "support: your message" to ${relayNumber || 'the relay number'} anytime. Welcome to the team!\n— Arriv Estate Media`;
 
   const emailSubject = `Your first Arriv shoot — a quick guide to getting it right`;
 
@@ -88,10 +97,10 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="background:#2a3536;border-radius:8px;padding:18px 20px;margin:24px 0;">
         <h2 style="font-size:14px;color:#B8956A;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">The rules</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call this number. Upload all footage within 24 hours of the shoot.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">${relayLineEmail} Upload all footage within 24 hours of the shoot.</p>
       </div>
 
-      <p style="font-size:14px;line-height:1.6;color:#1A1A1A;margin:24px 0 0;">Questions? Text <strong>"support: your message"</strong> to this number anytime. We've got your back.</p>
+      <p style="font-size:14px;line-height:1.6;color:#1A1A1A;margin:24px 0 0;">Questions? Text <strong>"support: your message"</strong> to ${relayNumber || 'the relay number'} anytime. We've got your back.</p>
       <p style="font-size:14px;color:#B8956A;margin:20px 0 0;font-weight:600;">Welcome to the team,<br/>Arriv Estate Media</p>
       <p style="font-size:12px;color:#1A1A1A;opacity:0.5;margin:16px 0 0;"><a href="${appUrl()}" style="color:#B8956A;">${appUrl()}</a></p>
     </div>

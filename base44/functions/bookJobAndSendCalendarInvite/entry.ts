@@ -245,6 +245,7 @@ Deno.serve(async (req) => {
           folderUrl,
           accessProvider: getPropertyAccessProvider(updatedJob),
           accessGuideUrl: getAccessGuideUrl(getPropertyAccessProvider(updatedJob)),
+          relayNumber: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || '',
         });
         const partnerPhone = updatedJob.booked_by_phone || jobData.booked_by_phone;
 
