@@ -10,6 +10,8 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState(null);
+  const [showMoreFilesPrompt, setShowMoreFilesPrompt] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (selectedFiles) => {
@@ -60,20 +62,36 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
     // Keep failed files in the list so the partner can retry them
     setFiles(failedFiles);
 
-    // Files landed in the job's Drive folder: auto-confirm the upload (no manual button).
-    // Only when every file in the batch succeeded, so partial uploads are never marked complete.
-    if (successfullyUploaded.length > 0 && failedFiles.length === 0 && !job.footage_uploaded) {
-      try {
-        await base44.functions.invoke("confirmFootageUpload", { jobId: job.id });
-      } catch (err) {
-        console.error("Auto-confirm footage upload failed:", err);
-        setError("Files uploaded, but we could not finalize the upload. Please try again.");
-      }
-    }
     setUploading(false);
 
     if (successfullyUploaded.length > 0 && onAllUploaded) {
       onAllUploaded(successfullyUploaded);
+    }
+
+    // After a fully-successful batch, ask whether more files are coming.
+    // Only confirm the upload (mark footage uploaded + release editing tasks)
+    // once the partner says they are done.
+    if (successfullyUploaded.length > 0 && failedFiles.length === 0 && !job.footage_uploaded) {
+      setShowMoreFilesPrompt(true);
+    }
+  };
+
+  const handleHaveMoreFiles = () => {
+    setShowMoreFilesPrompt(false);
+  };
+
+  const handleDoneUploading = async () => {
+    setConfirming(true);
+    setError(null);
+    try {
+      await base44.functions.invoke("confirmFootageUpload", { jobId: job.id });
+      setShowMoreFilesPrompt(false);
+      if (onAllUploaded) onAllUploaded();
+    } catch (err) {
+      console.error("Confirm footage upload failed:", err);
+      setError("Could not finalize the upload. Please try again.");
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -164,6 +182,38 @@ export default function FootageUploader({ job, currentUserEmail, onAllUploaded }
               <span className="flex-1 text-sm text-[#1A1A1A] truncate">{file.name || file.localName}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* More files prompt — shown after a fully-successful batch */}
+      {showMoreFilesPrompt && (
+        <div className="space-y-3 p-4 rounded-lg border-2 border-[#B8956A]/30 bg-[#B8956A]/5">
+          <p className="text-sm font-medium text-[#1A1A1A] text-center">
+            Do you have more files to upload?
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleHaveMoreFiles}
+              variant="outline"
+              className="flex-1 text-sm"
+            >
+              Yes, add more
+            </Button>
+            <Button
+              onClick={handleDoneUploading}
+              disabled={confirming}
+              className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+            >
+              {confirming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Finalizing...
+                </>
+              ) : (
+                "No, I'm done"
+              )}
+            </Button>
+          </div>
         </div>
       )}
 

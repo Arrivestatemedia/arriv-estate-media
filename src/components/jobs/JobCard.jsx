@@ -305,7 +305,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                   onAllUploaded={() => { if (onJobUpdate) onJobUpdate(); }}
                 />
                 <p className="text-xs text-[#1A1A1A]/50 text-center">
-                  Your upload is confirmed automatically once your files finish uploading.
+                  After your files upload, we'll ask if you have more before finalizing.
                 </p>
               </div>
             ) : isBookedByMe && job.media_partner_status === 'job_completed' && job.footage_uploaded ? (
