@@ -590,6 +590,68 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'text/xml' },
           });
         }
+
+        // ── No active job: route known specialists/clients to admin ──
+        // If the sender has job history but no currently active job, their
+        // message goes straight to admin — no "who are you trying to reach?"
+        // prompt. "support: {message}" extracts just the message portion.
+        {
+          const recentJobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
+          const senderJobs = recentJobs.filter(j =>
+            (j.booked_by_phone && norm(j.booked_by_phone) === senderNorm) ||
+            (j.client_phone && norm(j.client_phone) === senderNorm)
+          );
+          if (senderJobs.length > 0) {
+            const companyE164 = e164(to);
+            const adminPhone = Deno.env.get('ADMIN_PHONE') ? e164(Deno.env.get('ADMIN_PHONE')) : '';
+            const isSpecialist = senderJobs.some(j => j.booked_by_phone && norm(j.booked_by_phone) === senderNorm);
+            const job = senderJobs[0];
+            const name = isSpecialist
+              ? ((job.booked_by_name || '').trim().split(/\s+/)[0]) || ''
+              : (job.client_name || '').trim();
+            const role = isSpecialist ? 'media_specialist' : 'client';
+            const supportParsed = parseSupportPrefix(messageBody);
+            const bodyToSend = supportParsed.isSupport ? (supportParsed.message || messageBody) : messageBody;
+            const prefix = isSpecialist
+              ? `[Media Specialist: ${name}] `
+              : name ? `[Client: ${name}] ` : '';
+            const toAdmin = `${prefix}${bodyToSend}`;
+            if (adminPhone) {
+              try {
+                const sent = await sendTwilioSms(adminPhone, toAdmin);
+                await base44.asServiceRole.entities.SmsMessage.create({
+                  from_number: companyE164, to_number: adminPhone, body: toAdmin,
+                  direction: 'outbound', twilio_sid: sent?.sid || '',
+                });
+              } catch (e) { console.error('No-job support SMS send failed:', e.message); }
+            }
+            try {
+              await openSupportSession(base44, {
+                targetPhone: senderNorm, targetName: name, targetRole: role,
+                companyNumber: companyE164,
+              });
+            } catch (e) { console.error('Open support session failed:', e.message); }
+            try {
+              await base44.asServiceRole.entities.SmsMessage.create({
+                from_number: from, to_number: to, body: messageBody,
+                direction: 'inbound', twilio_sid: twilioSid || '',
+              });
+            } catch (e) { console.error('Record inbound failed:', e.message); }
+            if (supportParsed.isSupport && supportParsed.message) {
+              const ack = "Got it — your message is on its way to our team. We'll be in touch shortly.";
+              try {
+                const sent = await sendTwilioSms(e164(from), ack);
+                await base44.asServiceRole.entities.SmsMessage.create({
+                  from_number: companyE164, to_number: e164(from), body: ack,
+                  direction: 'outbound', twilio_sid: sent?.sid || '',
+                });
+              } catch (e) { console.error('Ack SMS send failed:', e.message); }
+            }
+            return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+              headers: { 'Content-Type': 'text/xml' },
+            });
+          }
+        }
       } catch (e) {
         console.error('Media-specialist SMS relay failed:', e.message);
       }
