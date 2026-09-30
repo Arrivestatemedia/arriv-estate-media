@@ -88,9 +88,9 @@ export const TASK_TYPE_REQUIRED_CAPABILITY: Record<string, string> = {
  */
 export const PACKAGE_EDITING_TASKS: Record<string, string[]> = {
   mls_walkthrough: ["mls_walkthrough_edit"],
-  photo_essentials: ["photo_editing", "vertical_reel_edit"],
-  photo_cinematic: ["photo_editing", "cinematic_video_edit", "vertical_reel_edit", "vertical_reel_edit"],
-  premium_bundle: ["photo_editing", "cinematic_video_edit", "vertical_reel_edit", "vertical_reel_edit", "3d_post_processing"],
+  photo_essentials: ["photo_editing"],
+  photo_cinematic: ["photo_editing", "cinematic_video_edit"],
+  premium_bundle: ["photo_editing", "cinematic_video_edit", "3d_post_processing"],
 };
 
 /**
