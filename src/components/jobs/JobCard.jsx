@@ -46,9 +46,32 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
   const [showFootageConfirmDialog, setShowFootageConfirmDialog] = React.useState(false);
   const [showAttireDialog, setShowAttireDialog] = React.useState(false);
-  
+  const [isFirstTwoShoots, setIsFirstTwoShoots] = React.useState(false);
+
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
+
+  // Determine if this is one of the contractor first 2 jobs in the system.
+  // The Arriv-branded gates (attire verification + footage upload confirmation)
+  // are bypassed for the first 2 jobs — new contractors may not have received
+  // branded clothing yet, and the process should be frictionless early on.
+  React.useEffect(() => {
+    const checkShootCount = async () => {
+      if (!currentUserEmail) return;
+      try {
+        const allJobs = await base44.entities.Job.filter(
+          { booked_by: currentUserEmail }, '-created_date', 500
+        );
+        // Count all non-cancelled jobs the contractor has ever booked
+        const validJobs = allJobs.filter(j => j.status !== 'cancelled');
+        setIsFirstTwoShoots(validJobs.length <= 2);
+      } catch (e) {
+        console.error('Failed to check shoot count:', e);
+        setIsFirstTwoShoots(false);
+      }
+    };
+    checkShootCount();
+  }, [currentUserEmail]);
 
   // Update time every minute to check if start time is reached
   React.useEffect(() => {
@@ -92,17 +115,9 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleOnMyWay = async () => {
     // Bypass attire verification for first and second shoots
     // (new contractors may not have received branded clothing yet)
-    try {
-      const allJobs = await base44.entities.Job.filter({ booked_by: currentUserEmail });
-      const activeShoots = allJobs.filter(j =>
-        ['booked', 'in_progress', 'completed'].includes(j.status)
-      );
-      if (activeShoots.length <= 2) {
-        await handleAttireVerified();
-        return;
-      }
-    } catch (e) {
-      console.error('Failed to check shoot count, defaulting to attire check:', e);
+    if (isFirstTwoShoots) {
+      await handleAttireVerified();
+      return;
     }
     setShowAttireDialog(true);
   };
@@ -311,7 +326,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                   onAllUploaded={() => { if (onJobUpdate) onJobUpdate(); }}
                 />
                 <Button
-                  onClick={() => setShowFootageConfirmDialog(true)}
+                  onClick={() => isFirstTwoShoots ? handleFootageUploaded() : setShowFootageConfirmDialog(true)}
                   disabled={loading}
                   className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
                 >
