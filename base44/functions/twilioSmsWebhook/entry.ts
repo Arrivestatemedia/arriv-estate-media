@@ -173,20 +173,59 @@ Deno.serve(async (req) => {
         return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { 'Content-Type': 'text/xml' } });
       }
 
+      // ── Fallback 1: "to +<number>" prefix → route directly to that number ──
+      // The admin can explicitly address a reply to a specific person, even
+      // if no support session is active. iMessage sometimes auto-prepends this
+      // when replying to a forwarded message.
+      const toMatch = (messageBody || '').match(/^to\s*\+?(\d{10,11})\s*\n?[\s\n]*/i);
+      let explicitTarget = '';
+      let cleanBody = messageBody || '';
+      if (toMatch) {
+        explicitTarget = norm(toMatch[1]);
+        cleanBody = (messageBody || '').replace(toMatch[0], '').trim();
+      }
+
       // Route reply to most recent active, non-expired session
       try {
-        const active = await base44.asServiceRole.entities.SupportSession.filter({ status: 'active', company_number: companyE164 });
-        active.sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
-        const valid = [];
-        for (const s of active) {
-          if (new Date(s.expires_at) > now) valid.push(s);
-          else { await base44.asServiceRole.entities.SupportSession.update(s.id, { status: 'ended', ended_at: now.toISOString(), ended_reason: 'expired' }); }
+        let session;
+        if (explicitTarget) {
+          // Try to find an active session for the explicitly addressed target
+          const targetSessions = await base44.asServiceRole.entities.SupportSession.filter({ status: 'active', target_phone: explicitTarget, company_number: companyE164 });
+          session = targetSessions && targetSessions[0];
         }
-        const session = valid[0];
+        if (!session) {
+          const active = await base44.asServiceRole.entities.SupportSession.filter({ status: 'active', company_number: companyE164 });
+          active.sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
+          const valid = [];
+          for (const s of active) {
+            if (new Date(s.expires_at) > now) valid.push(s);
+            else { await base44.asServiceRole.entities.SupportSession.update(s.id, { status: 'ended', ended_at: now.toISOString(), ended_reason: 'expired' }); }
+          }
+          session = valid[0];
+        }
         if (session) {
-          try { await sendTwilioSms(e164(session.target_phone), messageBody); } catch (e) { console.error('Admin reply relay failed:', e.message); }
+          try { await sendTwilioSms(e164(session.target_phone), cleanBody); } catch (e) { console.error('Admin reply relay failed:', e.message); }
+        } else if (explicitTarget) {
+          // No session but admin specified a target — route directly
+          try { await sendTwilioSms(e164(explicitTarget), cleanBody); } catch (e) { console.error('Admin explicit-target relay failed:', e.message); }
         } else {
-          try { await sendTwilioSms(e164(from), 'No active support session to reply to. Sessions expire after 15 minutes.'); } catch (e) {}
+          // ── Fallback 2: no session, no explicit target — find the most
+          // recent person who texted support to this relay number ──
+          const recentInbound = await base44.asServiceRole.entities.SmsMessage.filter({
+            to_number: e164(to),
+            direction: 'inbound',
+          });
+          recentInbound.sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
+          const cutoff = new Date(now.getTime() - 30 * 60 * 1000);
+          const recentSender = recentInbound.find((m) => {
+            const senderNorm = norm(m.from_number);
+            return senderNorm && senderNorm !== adminNorm && new Date(m.created_date) > cutoff;
+          });
+          if (recentSender) {
+            try { await sendTwilioSms(e164(norm(recentSender.from_number)), cleanBody); } catch (e) { console.error('Admin fallback relay failed:', e.message); }
+          } else {
+            try { await sendTwilioSms(e164(from), 'No active support session to reply to. Sessions expire after 15 minutes. To reply to a specific person, start your message with "to +<number>".'); } catch (e) {}
+          }
         }
       } catch (e) { console.error('Admin reply routing failed:', e.message); }
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { 'Content-Type': 'text/xml' } });
