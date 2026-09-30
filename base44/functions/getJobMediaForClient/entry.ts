@@ -43,6 +43,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Gate: only show media to clients when editing is complete.
+    // Admins can always preview (bypass this gate).
+    if (!adminPreview) {
+      const editingCompleteStatuses = ['delivered', 'ready_for_delivery', 'no_editing_required'];
+      if (!editingCompleteStatuses.includes(job.production_status)) {
+        return Response.json({
+          files: [],
+          job: { title: job.title, location: job.location, date: job.date, type: job.type },
+          editing_in_progress: true,
+        });
+      }
+    }
+
     // Resolve the Drive folder ID
     let folderId = job.source_storage_folder_id;
     if (!folderId && job.google_drive_folder_url) {

@@ -225,6 +225,20 @@
       "type": "string",
       "description": "Google Drive folder ID extracted from google_drive_folder_url"
     },
+    "source_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether source media has been archived to a separate folder"
+    },
+    "source_archived_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When source media was archived to the archive folder"
+    },
+    "source_archive_folder_id": {
+      "type": "string",
+      "description": "Google Drive folder ID for the archived source media ({address} - Archive)"
+    },
     "final_edits_folder_id": {
       "type": "string",
       "description": "Google Drive folder ID for the 'Final Edits' subfolder"

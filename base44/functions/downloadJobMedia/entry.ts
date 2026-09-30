@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { verifyAdmin } from '../../shared/adminAuth.ts';
 
 /**
  * downloadJobMedia
@@ -7,6 +8,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
  *
  * Auth: Clients authenticate via PendingSignup (localStorage), NOT Base44 auth.
  * Ownership is verified by checking job.client_email === clientEmail.
+ * Admins can download via adminAccess flag (verifies admin role).
  *
  * Called via base44.functions.fetch() (not invoke) so the raw Response is
  * available for blob conversion in the frontend.
@@ -15,10 +17,10 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { jobId, clientEmail, fileId } = body;
+    const { jobId, clientEmail, fileId, adminAccess } = body;
 
-    if (!jobId || !clientEmail || !fileId) {
-      return Response.json({ error: 'jobId, clientEmail, and fileId are required' }, { status: 400 });
+    if (!jobId || !fileId) {
+      return Response.json({ error: 'jobId and fileId are required' }, { status: 400 });
     }
 
     // Look up the job (asServiceRole bypasses RLS)
@@ -27,9 +29,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Verify the client owns this job
-    if (job.client_email !== clientEmail) {
-      return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
+    // Authorization: either admin access, or the client owns this job
+    if (adminAccess) {
+      const auth = await verifyAdmin(base44, body, new URL(req.url));
+      if (!auth.authorized) {
+        return Response.json({ error: auth.error }, { status: 403 });
+      }
+    } else {
+      if (!clientEmail) {
+        return Response.json({ error: 'clientEmail is required' }, { status: 400 });
+      }
+      // Verify the client owns this job
+      if (job.client_email !== clientEmail) {
+        return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
+      }
     }
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');

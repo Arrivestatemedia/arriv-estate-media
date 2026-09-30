@@ -1,10 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { releaseEditingTasksForJob } from '../../shared/editingQueueEngine.ts';
 
 /**
  * confirmFootageUpload
  * Called by media partners to confirm they've uploaded their footage to Google Drive.
  * Uses asServiceRole to bypass RLS (Job updates are admin-only, but media partners
  * need to confirm their own uploads).
+ *
+ * Also auto-releases editing tasks from WAITING_FOR_UPLOAD to READY_FOR_EDITING
+ * so they never get stuck.
  */
 Deno.serve(async (req) => {
   try {
@@ -25,6 +29,18 @@ Deno.serve(async (req) => {
       status: 'completed',
       source_upload_status: 'complete'
     });
+
+    // Auto-release editing tasks from WAITING_FOR_UPLOAD to READY_FOR_EDITING
+    try {
+      await releaseEditingTasksForJob(
+        base44,
+        jobId,
+        job.google_drive_folder_url || undefined,
+        'media_partner'
+      );
+    } catch (e) {
+      console.error('Failed to release editing tasks:', e);
+    }
 
     return Response.json({
       success: true,
