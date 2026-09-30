@@ -23,7 +23,8 @@ export function buildFirstGigOnboarding(opts: {
   const sms =
     `Welcome to your first Arriv shoot, ${firstName}! Here's exactly what to do, step by step:\n\n` +
     `BEFORE THE SHOOT\n` +
-    `- Check your calendar invite for the address, date & time.\n\n` +
+    `- Check your calendar invite for the address, date & time.\n` +
+    `- Download the property access app for your region (Supra or SentriLock) so you can get inside.\n\n` +
     `DAY OF THE SHOOT (mark each step in the Arriv app)\n` +
     `1. Tap "I'm on my way" before you leave.\n` +
     `2. Tap "I'm here" when you reach the property.\n` +
@@ -31,10 +32,10 @@ export function buildFirstGigOnboarding(opts: {
     `4. Tap "I've completed the job" to finish the shoot.\n\n` +
     `AFTER THE SHOOT (upload footage)\n` +
     `1. Tap "Upload Footage" in the job.\n` +
-    `2. Upload ALL your files right there in the Arriv app — no Drive link needed.\n` +
+    `2. Upload ALL your files right there in the Arriv app.\n` +
     `3. When every file is uploaded, tap "Yes, that's all my files."\n\n` +
     `RULES\n` +
-    `- To reach your client, text or call the 855 number shown in the app — it relays straight to them. You won't see their personal number, and they won't see yours.\n` +
+    `- To reach your client, text or call the 855 number shown in the app — it relays straight to them.\n` +
     `- Upload within 24 hours of the shoot.\n\n` +
     `Questions? Text "support: your message" anytime. Welcome to the team!\n— Arriv Estate Media`;
 
@@ -53,7 +54,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">Before the shoot</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time. Download the property access app for your region (Supra or SentriLock) so you can get inside the property.</p>
       </div>
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
@@ -70,14 +71,14 @@ export function buildFirstGigOnboarding(opts: {
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">After the shoot — upload your footage</h2>
         <ol style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;color:#1A1A1A;">
           <li>Open the job in the Arriv app and tap <strong>"Upload Footage."</strong></li>
-          <li>Upload ALL your files right there in the Arriv app — no Drive link needed.</li>
+          <li>Upload ALL your files right there in the Arriv app.</li>
           <li>When every file is uploaded, tap <strong>"Yes, that's all my files."</strong></li>
         </ol>
       </div>
 
       <div style="background:#2a3536;border-radius:8px;padding:18px 20px;margin:24px 0;">
         <h2 style="font-size:14px;color:#B8956A;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">The rules</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call the 855 number shown in the app — it relays straight to them. You won't see their personal number, and they won't see yours. Upload all footage within 24 hours of the shoot.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#FFFBF5;">To reach your client, text or call the 855 number shown in the app — it relays straight to them. Upload all footage within 24 hours of the shoot.</p>
       </div>
 
       <p style="font-size:14px;line-height:1.6;color:#1A1A1A;margin:24px 0 0;">Questions? Text <strong>"support: your message"</strong> to this number anytime. We've got your back.</p>
