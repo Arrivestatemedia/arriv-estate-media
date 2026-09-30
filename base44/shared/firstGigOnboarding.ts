@@ -19,15 +19,11 @@ export function buildFirstGigOnboarding(opts: {
 }): { sms: string; emailSubject: string; emailHtml: string } {
   const firstName = opts.firstName || 'there';
   const listing = opts.listingAddress || 'your listing';
-  const folderLine = opts.folderUrl
-    ? `Upload ALL files to this folder:\n${opts.folderUrl}`
-    : `Upload ALL files to the Google Drive folder linked in your calendar invite.`;
 
   const sms =
     `Welcome to your first Arriv shoot, ${firstName}! Here's exactly what to do, step by step:\n\n` +
     `BEFORE THE SHOOT\n` +
-    `- Check your calendar invite for the address, date & time.\n` +
-    `- Wear your Arriv shirt & jacket.\n\n` +
+    `- Check your calendar invite for the address, date & time.\n\n` +
     `DAY OF THE SHOOT (mark each step in the Arriv app)\n` +
     `1. Tap "I'm on my way" before you leave.\n` +
     `2. Tap "I'm here" when you reach the property.\n` +
@@ -35,7 +31,7 @@ export function buildFirstGigOnboarding(opts: {
     `4. Tap "I've completed the job" to finish the shoot.\n\n` +
     `AFTER THE SHOOT (upload footage)\n` +
     `1. Tap "Upload Footage" in the job.\n` +
-    `2. ${folderLine}\n` +
+    `2. Upload ALL your files right there in the Arriv app — no Drive link needed.\n` +
     `3. When every file is uploaded, tap "Yes, that's all my files."\n\n` +
     `RULES\n` +
     `- To reach your client, text or call the 855 number shown in the app — it relays straight to them. You won't see their personal number, and they won't see yours.\n` +
@@ -57,7 +53,7 @@ export function buildFirstGigOnboarding(opts: {
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">Before the shoot</h2>
-        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time. Wear your Arriv shirt &amp; jacket.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;color:#1A1A1A;">Check your calendar invite for the address, date, and time.</p>
       </div>
 
       <div style="border-left:3px solid #B8956A;padding-left:16px;margin:24px 0;">
@@ -74,7 +70,7 @@ export function buildFirstGigOnboarding(opts: {
         <h2 style="font-size:16px;color:#2a3536;margin:0 0 8px;">After the shoot — upload your footage</h2>
         <ol style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;color:#1A1A1A;">
           <li>Open the job in the Arriv app and tap <strong>"Upload Footage."</strong></li>
-          <li>${opts.folderUrl ? `Upload ALL files to <a href="${opts.folderUrl}" style="color:#B8956A;">this Google Drive folder</a>.` : 'Upload ALL files to the Google Drive folder linked in your calendar invite.'}</li>
+          <li>Upload ALL your files right there in the Arriv app — no Drive link needed.</li>
           <li>When every file is uploaded, tap <strong>"Yes, that's all my files."</strong></li>
         </ol>
       </div>
