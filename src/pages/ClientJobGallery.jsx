@@ -176,9 +176,113 @@ export default function ClientJobGallery() {
 
   if (!user) return <div className="p-8 text-center text-white/60">Loading...</div>;
 
-  const imageCount = files.filter((f) => f.isImage).length;
-  const videoCount = files.filter((f) => f.isVideo).length;
-  const docCount = files.filter((f) => !f.isImage && !f.isVideo).length;
+  const photoFiles = files.filter((f) => f.isImage);
+  const videoFiles = files.filter((f) => f.isVideo);
+  const docFiles = files.filter((f) => !f.isImage && !f.isVideo);
+
+  const renderCard = (file, index) => {
+    const isSelected = selected.has(file.id);
+    const isImg = file.isImage;
+    return (
+      <motion.div
+        key={file.id}
+        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
+        className={`group relative break-inside-avoid rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
+          isSelected
+            ? "ring-2 ring-[#B8956A] shadow-lg shadow-[#B8956A]/30"
+            : "ring-1 ring-white/10 hover:ring-[#B8956A]/40"
+        }`}
+        onClick={() => {
+          if (isImg) openLightbox(files.indexOf(file));
+          else toggleSelect(file.id);
+        }}
+      >
+        <div className="relative bg-white/5 overflow-hidden">
+          {isImg && file.thumbnailLink ? (
+            <img
+              src={file.thumbnailLink}
+              alt={file.name}
+              className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
+              loading="lazy"
+            />
+          ) : isImg ? (
+            <div className="aspect-square flex items-center justify-center">
+              <ImageIcon className="w-10 h-10 text-[#B8956A]/40" />
+            </div>
+          ) : file.isVideo ? (
+            <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full bg-[#B8956A]/20 flex items-center justify-center backdrop-blur-sm border border-[#B8956A]/30 group-hover:bg-[#B8956A]/30 transition-colors">
+                  <div className="w-0 h-0 border-l-[12px] border-l-[#B8956A] border-y-[8px] border-y-transparent ml-1" />
+                </div>
+                <div className="absolute inset-0 rounded-full bg-[#B8956A]/20 blur-xl -z-10 group-hover:bg-[#B8956A]/30 transition-colors" />
+              </div>
+            </div>
+          ) : (
+            <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
+              <FileText className="w-10 h-10 text-[#B8956A]/40" />
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+
+          <div className="absolute top-3 left-3">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-black/50 backdrop-blur-md text-white/90 border border-white/10">
+              {isImg ? "Photo" : file.isVideo ? "Video" : "Doc"}
+            </span>
+          </div>
+
+          <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 border ${
+            isSelected
+              ? "bg-[#B8956A] border-[#B8956A] scale-100"
+              : "bg-black/40 backdrop-blur-md border-white/20 scale-0 group-hover:scale-100"
+          }`}>
+            {isSelected && <Check className="w-4 h-4 text-[#0a0b0f]" />}
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadFile(file);
+            }}
+            className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-[#B8956A] hover:border-[#B8956A] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+          >
+            <Download className="w-4 h-4 text-white group-hover:text-[#0a0b0f] transition-colors" />
+          </button>
+
+          <div className="absolute bottom-0 left-0 right-0 p-3 pr-12">
+            <p className="text-xs font-medium text-white truncate">{file.name}</p>
+            {file.size && (
+              <p className="text-[10px] text-white/40">{formatSize(parseInt(file.size))}</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderSection = (title, Icon, sectionFiles) => {
+    if (sectionFiles.length === 0) return null;
+    return (
+      <div className="mb-12">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-[#B8956A]/10 border border-[#B8956A]/20 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-[#B8956A]" />
+          </div>
+          <h2 className="text-base font-semibold tracking-wide text-white/90">{title}</h2>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium text-white/50 bg-white/5 border border-white/10">
+            {sectionFiles.length}
+          </span>
+          <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-2" />
+        </div>
+        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 space-y-3">
+          {sectionFiles.map((file, i) => renderCard(file, i))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0b0f] relative overflow-hidden">
@@ -217,7 +321,7 @@ export default function ClientJobGallery() {
                 <div className="absolute inset-0 rounded-xl bg-[#B8956A]/40 blur-md -z-10" />
               </div>
               <div>
-                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#B8956A] block leading-none">Arriv Media</span>
+                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#B8956A] block leading-none">Arriv Estate Media</span>
                 <span className="text-[10px] tracking-[0.15em] uppercase text-white/30 block leading-none mt-1">Delivery Gallery</span>
               </div>
             </div>
@@ -285,18 +389,18 @@ export default function ClientJobGallery() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
                   <ImageIcon className="w-3.5 h-3.5 text-[#B8956A]" />
-                  <span className="text-xs font-medium text-white/70">{imageCount} Photos</span>
+                  <span className="text-xs font-medium text-white/70">{photoFiles.length} Photos</span>
                 </div>
-                {videoCount > 0 && (
+                {videoFiles.length > 0 && (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
                     <Video className="w-3.5 h-3.5 text-[#B8956A]" />
-                    <span className="text-xs font-medium text-white/70">{videoCount} Videos</span>
+                    <span className="text-xs font-medium text-white/70">{videoFiles.length} Videos</span>
                   </div>
                 )}
-                {docCount > 0 && (
+                {docFiles.length > 0 && (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
                     <FileText className="w-3.5 h-3.5 text-[#B8956A]" />
-                    <span className="text-xs font-medium text-white/70">{docCount} Files</span>
+                    <span className="text-xs font-medium text-white/70">{docFiles.length} Files</span>
                   </div>
                 )}
               </div>
@@ -347,97 +451,10 @@ export default function ClientJobGallery() {
               </div>
             </div>
 
-            {/* Gallery grid */}
-            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 space-y-3">
-              {files.map((file, index) => {
-                const isSelected = selected.has(file.id);
-                const isImg = file.isImage;
-                return (
-                  <motion.div
-                    key={file.id}
-                    initial={{ opacity: 0, y: 20, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
-                    className={`group relative break-inside-avoid rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
-                      isSelected
-                        ? "ring-2 ring-[#B8956A] shadow-lg shadow-[#B8956A]/30"
-                        : "ring-1 ring-white/10 hover:ring-[#B8956A]/40"
-                    }`}
-                    onClick={() => {
-                      if (isImg) openLightbox(index);
-                      else toggleSelect(file.id);
-                    }}
-                  >
-                    {/* Preview area */}
-                    <div className="relative bg-white/5 overflow-hidden">
-                      {isImg && file.thumbnailLink ? (
-                        <img
-                          src={file.thumbnailLink}
-                          alt={file.name}
-                          className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                      ) : isImg ? (
-                        <div className="aspect-square flex items-center justify-center">
-                          <ImageIcon className="w-10 h-10 text-[#B8956A]/40" />
-                        </div>
-                      ) : file.isVideo ? (
-                        <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
-                          <div className="relative">
-                            <div className="w-14 h-14 rounded-full bg-[#B8956A]/20 flex items-center justify-center backdrop-blur-sm border border-[#B8956A]/30 group-hover:bg-[#B8956A]/30 transition-colors">
-                              <div className="w-0 h-0 border-l-[12px] border-l-[#B8956A] border-y-[8px] border-y-transparent ml-1" />
-                            </div>
-                            <div className="absolute inset-0 rounded-full bg-[#B8956A]/20 blur-xl -z-10 group-hover:bg-[#B8956A]/30 transition-colors" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
-                          <FileText className="w-10 h-10 text-[#B8956A]/40" />
-                        </div>
-                      )}
-
-                      {/* Dark gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
-
-                      {/* Type badge */}
-                      <div className="absolute top-3 left-3">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-black/50 backdrop-blur-md text-white/90 border border-white/10">
-                          {isImg ? "Photo" : file.isVideo ? "Video" : "Doc"}
-                        </span>
-                      </div>
-
-                      {/* Selection indicator */}
-                      <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 border ${
-                        isSelected
-                          ? "bg-[#B8956A] border-[#B8956A] scale-100"
-                          : "bg-black/40 backdrop-blur-md border-white/20 scale-0 group-hover:scale-100"
-                      }`}>
-                        {isSelected && <Check className="w-4 h-4 text-[#0a0b0f]" />}
-                      </div>
-
-                      {/* Download button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadFile(file);
-                        }}
-                        className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-[#B8956A] hover:border-[#B8956A] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-                      >
-                        <Download className="w-4 h-4 text-white group-hover:text-[#0a0b0f] transition-colors" />
-                      </button>
-
-                      {/* Filename */}
-                      <div className="absolute bottom-0 left-0 right-0 p-3 pr-12">
-                        <p className="text-xs font-medium text-white truncate">{file.name}</p>
-                        {file.size && (
-                          <p className="text-[10px] text-white/40">{formatSize(parseInt(file.size))}</p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+            {/* Sections by media type */}
+            {renderSection("Photos", ImageIcon, photoFiles)}
+            {renderSection("Videos", Video, videoFiles)}
+            {renderSection("Documents", FileText, docFiles)}
 
             {/* Footer hint */}
             <div className="mt-12 text-center">
