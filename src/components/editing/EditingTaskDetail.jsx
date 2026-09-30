@@ -180,6 +180,13 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
           {/* Actions based on status — hidden for read-only (sales rep) viewers */}
           {!readOnly && (
           <div className="border-t pt-4 space-y-3">
+            {/* RELEASE: admin override for stuck waiting_for_upload tasks */}
+            {task.status === "waiting_for_upload" && (
+              <Button onClick={() => callAction("release")} disabled={loading} className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white">
+                <ArrowUpRight className="w-4 h-4 mr-2" /> Release to Editing
+              </Button>
+            )}
+
             {/* ASSIGN: ready_for_editing or revision_required (reassign) */}
             {(task.status === "ready_for_editing" || task.status === "revision_required" || task.status === "assigned") && (
               <div className="space-y-2">
@@ -225,8 +232,8 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
               </div>
             )}
 
-            {/* SUBMIT FOR QC */}
-            {(task.status === "editing" || task.status === "revision_required") && (
+            {/* SUBMIT FOR QC — available for ready_for_editing, assigned, editing, revision_required */}
+            {["ready_for_editing", "assigned", "editing", "revision_required"].includes(task.status) && (
               <div className="space-y-2">
                 <Label>Final Deliverable Upload</Label>
                 <Button

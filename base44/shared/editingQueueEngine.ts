@@ -262,6 +262,54 @@ export async function releaseEditingTasksForCategory(
   return releaseEditingTasksForJob(base44, jobId, sourceMediaLocation, actor, [category, "all"]);
 }
 
+/**
+ * Release a single editing task from WAITING_FOR_UPLOAD to READY_FOR_EDITING.
+ * Admin override — bypasses the footage_uploaded check for stuck tasks
+ * (e.g. tasks created after footage was already uploaded).
+ */
+export async function releaseEditingTask(
+  base44: any,
+  taskId: string,
+  actor: string,
+  actorEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  const task = await base44.asServiceRole.entities.EditingTask.get(taskId);
+  if (!task) return { success: false, error: "Task not found" };
+
+  if (task.status !== "waiting_for_upload") {
+    return { success: false, error: `Task is not waiting for upload (current: ${task.status})` };
+  }
+
+  const now = new Date().toISOString();
+  const deliveryDeadline = calculateDeliveryDeadline(task.task_type, task.priority === "rush");
+  const editingDeadline = calculateEditingDeadline(task.task_type, task.priority === "rush");
+
+  const job = await base44.asServiceRole.entities.Job.get(task.job_id);
+  const folderUrl = job?.google_drive_folder_url || task.source_media_location || null;
+  const folderId = extractDriveFolderId(folderUrl);
+
+  await base44.asServiceRole.entities.EditingTask.update(taskId, {
+    status: "ready_for_editing",
+    source_media_verified_at: now,
+    editing_ready_at: now,
+    upload_status: "complete",
+    upload_completed_at: now,
+    storage_folder_id: folderId || task.storage_folder_id,
+    storage_folder_url: folderUrl || task.storage_folder_url,
+    source_media_location: folderUrl || task.source_media_location,
+    delivery_deadline: deliveryDeadline.toISOString(),
+    editing_deadline: editingDeadline.toISOString(),
+    sla_status: calculateSlaStatus(deliveryDeadline),
+    updated_at: now,
+  });
+
+  await writeAudit(base44, taskId, "status_changed", actor, actorEmail, "waiting_for_upload", "ready_for_editing", "Manual release by admin");
+
+  await updateJobProductionStatus(base44, task.job_id);
+
+  return { success: true };
+}
+
 // ── JOB PRODUCTION STATUS DERIVATION ─────────────────────────────────────────
 
 /**
@@ -592,7 +640,7 @@ export async function submitForQc(
   const task = await base44.asServiceRole.entities.EditingTask.get(taskId);
   if (!task) return { success: false, error: "Task not found" };
 
-  if (task.status !== "editing" && task.status !== "revision_required") {
+  if (!["editing", "revision_required", "ready_for_editing", "assigned"].includes(task.status)) {
     return { success: false, error: `Cannot submit for QC from status: ${task.status}` };
   }
 
@@ -622,6 +670,7 @@ export async function submitForQc(
   await base44.asServiceRole.entities.EditingTask.update(taskId, {
     status: "submitted_for_qc",
     editing_completed_at: now.toISOString(),
+    editing_started_at: task.editing_started_at || now.toISOString(),
     active_editing_minutes: newActiveMinutes,
     final_media_location: finalMediaLocation || task.final_media_location,
     submitted_for_qc_at: now.toISOString(),

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Film, Clock, AlertTriangle, CheckCircle2, Users, BarChart3, Settings, RefreshCw, Upload } from "lucide-react";
+import { Loader2, Film, Clock, AlertTriangle, CheckCircle2, Users, BarChart3, Settings, RefreshCw, Upload, Archive } from "lucide-react";
 import EditingTaskCard from "@/components/editing/EditingTaskCard";
 import EditingTaskDetail from "@/components/editing/EditingTaskDetail";
 import EditorManager from "@/components/editing/EditorManager";
@@ -33,6 +33,11 @@ const STATUS_COLORS = {
   delivered: "bg-gray-100 text-gray-800",
   cancelled: "bg-red-100 text-red-800",
 };
+
+const ARCHIVED_STATUSES = ["cancelled", "delivered"];
+const ACTIVE_STATUS_LABELS = Object.fromEntries(
+  Object.entries(STATUS_LABELS).filter(([key]) => !ARCHIVED_STATUSES.includes(key))
+);
 
 export default function EditingQueuePage() {
   const [loading, setLoading] = useState(true);
@@ -93,7 +98,9 @@ export default function EditingQueuePage() {
   const tasks = queueData?.tasks || [];
   const byStatus = queueData?.by_status || {};
 
-  const filteredTasks = filterStatus === "all" ? tasks : (byStatus[filterStatus] || []);
+  const activeTasks = tasks.filter((t) => !ARCHIVED_STATUSES.includes(t.status));
+  const archivedTasks = tasks.filter((t) => ARCHIVED_STATUSES.includes(t.status));
+  const filteredTasks = filterStatus === "all" ? activeTasks : ((byStatus[filterStatus] || []).filter((t) => !ARCHIVED_STATUSES.includes(t.status)));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -114,8 +121,9 @@ export default function EditingQueuePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={`grid w-full max-w-md ${isReadOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
+        <TabsList className={`grid w-full max-w-md ${isReadOnly ? 'grid-cols-4' : 'grid-cols-5'}`}>
           <TabsTrigger value="queue">Queue</TabsTrigger>
+          <TabsTrigger value="archive">Archive</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           {!isReadOnly && <TabsTrigger value="editors">Editors</TabsTrigger>}
           <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
@@ -135,7 +143,7 @@ export default function EditingQueuePage() {
           {/* Filter chips */}
           <div className="flex flex-wrap gap-2">
             <FilterChip label="All Active" value="all" current={filterStatus} onClick={setFilterStatus} count={counts.total_active} />
-            {Object.entries(STATUS_LABELS).map(([key, label]) => (
+            {Object.entries(ACTIVE_STATUS_LABELS).map(([key, label]) => (
               <FilterChip
                 key={key}
                 label={label}
@@ -165,6 +173,33 @@ export default function EditingQueuePage() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        {/* ARCHIVE TAB — cancelled and delivered tasks */}
+        <TabsContent value="archive" className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Archive className="w-5 h-5 text-[#1A1A1A]/50" />
+            <p className="text-sm text-[#1A1A1A]/60">
+              Archived tasks ({archivedTasks.length}) — cancelled and completed jobs kept here for reference.
+            </p>
+          </div>
+          {archivedTasks.length === 0 ? (
+            <Card className="p-8 text-center text-[#1A1A1A]/50">
+              No archived tasks.
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {archivedTasks.map((task) => (
+                <EditingTaskCard
+                  key={task.id}
+                  task={task}
+                  onClick={() => setSelectedTask(task)}
+                  editors={queueData?.editors || []}
+                  onActionComplete={refresh}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* ANALYTICS TAB */}

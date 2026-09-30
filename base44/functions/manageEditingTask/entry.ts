@@ -10,6 +10,7 @@ import {
   cancelEditingTask,
   correctTimeRecord,
   writeAudit,
+  releaseEditingTask,
 } from '../../shared/editingQueueEngine.ts';
 
 Deno.serve(async (req) => {
@@ -94,6 +95,9 @@ Deno.serve(async (req) => {
         break;
       case 'deliver':
         result = await deliverTask(base44, task_id, actor, actorEmail);
+        break;
+      case 'release':
+        result = await releaseEditingTask(base44, task_id, actor, actorEmail);
         break;
       case 'cancel':
         result = await cancelEditingTask(base44, task_id, actor, actorEmail, reason);
