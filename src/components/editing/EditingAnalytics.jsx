@@ -13,7 +13,16 @@ export default function EditingAnalytics({ refreshKey }) {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await base44.functions.invoke("getEditingAnalytics");
+        const salesEmail =
+          localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
+        const salesMemberId =
+          localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+        const params = new URLSearchParams();
+        if (salesEmail) params.set("email", salesEmail);
+        if (salesMemberId) params.set("sales_member_id", salesMemberId);
+        const qs = params.toString();
+        const fnName = qs ? `getEditingAnalytics?${qs}` : "getEditingAnalytics";
+        const res = await base44.functions.invoke(fnName, { email: salesEmail, sales_member_id: salesMemberId });
         const resData = res?.data || res;
         setAnalytics(resData?.analytics);
       } catch (err) {
