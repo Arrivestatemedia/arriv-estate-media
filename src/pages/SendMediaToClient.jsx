@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,20 @@ import { Send, CheckCircle2, AlertCircle, Plus, Trash2, BookMarked } from "lucid
 
 export default function SendMediaToClient() {
   const queryClient = useQueryClient();
+
+  // ── Sales rep / admin detection ─────────────────────────────────────────
+  const [salesMemberId, setSalesMemberId] = useState(() =>
+    localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id') || ''
+  );
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const role = localStorage.getItem('user_role') || sessionStorage.getItem('user_role');
+    if (role === 'admin') { setIsAdmin(true); return; }
+    base44.auth.me().then(u => { if (u?.role === 'admin') setIsAdmin(true); }).catch(() => {});
+  }, []);
+
+  const isSalesRep = !!salesMemberId && !isAdmin;
 
   // ── Send tab state ──────────────────────────────────────────────────────
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -35,10 +49,35 @@ export default function SendMediaToClient() {
   const [tmplMessage, setTmplMessage] = useState("");
   const [saveResult, setSaveResult] = useState(null);
 
-  const { data: jobs = [] } = useQuery({
+  const { data: allJobs = [] } = useQuery({
     queryKey: ["completedJobs"],
     queryFn: () => base44.entities.Job.filter({ from_booking: true }, "-date"),
   });
+
+  // Sales reps: fetch their scheduled bookings to find which booking IDs belong to them
+  const { data: repScheduledBookings = [] } = useQuery({
+    queryKey: ["repScheduledBookings", salesMemberId],
+    queryFn: () => base44.entities.ScheduledBooking.filter({ sales_member_id: salesMemberId }, "-created_date", 100),
+    enabled: isSalesRep,
+  });
+
+  // Also fetch bookings to match by sales_member_id (covers regular client bookings)
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ["allBookingsForRepFilter"],
+    queryFn: () => base44.entities.Booking.list("-created_date", 200),
+    enabled: isSalesRep,
+  });
+
+  // For sales reps, only show jobs whose booking_id belongs to them
+  const jobs = useMemo(() => {
+    if (!isSalesRep) return allJobs;
+    const repBookingIds = new Set();
+    // From scheduled bookings
+    repScheduledBookings.forEach(sb => { if (sb.submitted_booking_id) repBookingIds.add(sb.submitted_booking_id); });
+    // From regular bookings (sales_member_id stored via spread)
+    allBookings.forEach(b => { if (b.sales_member_id === salesMemberId) repBookingIds.add(b.id); });
+    return allJobs.filter(j => j.booking_id && repBookingIds.has(j.booking_id));
+  }, [isSalesRep, allJobs, repScheduledBookings, allBookings, salesMemberId]);
 
   const { data: savedMessages = [] } = useQuery({
     queryKey: ["scheduledMediaMessages"],

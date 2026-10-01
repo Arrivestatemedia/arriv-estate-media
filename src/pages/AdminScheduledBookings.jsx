@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Check, Search } from "lucide-react";
 import { format, isWeekend } from "date-fns";
+import { determinePricingTier, getTierLabel, getPackagePriceForTier } from "@/lib/services";
 
 const defaultPackages = [
   { id: "mls_walkthrough", name: "MLS Walkthrough", price: 100, features: [
@@ -160,6 +161,12 @@ export default function AdminScheduledBookings() {
   });
   const [packageFeatures, setPackageFeatures] = useState({});
   const [customPackagePrices, setCustomPackagePrices] = useState({});
+  const [propertySqft, setPropertySqft] = useState(null);
+  const [sqftSource, setSqftSource] = useState(null);
+  const [sqftLookingUp, setSqftLookingUp] = useState(false);
+  const [sqftLookupError, setSqftLookupError] = useState(null);
+  const [showManualSqft, setShowManualSqft] = useState(false);
+  const [manualSqftInput, setManualSqftInput] = useState("");
 
   // Verify admin or sales rep
   const [isAdmin, setIsAdmin] = useState(false);
@@ -233,6 +240,12 @@ export default function AdminScheduledBookings() {
     setScheduleDate(null);
     setScheduleTime("");
     setSelectedCustomer("");
+    setPropertySqft(null);
+    setSqftSource(null);
+    setSqftLookingUp(false);
+    setSqftLookupError(null);
+    setShowManualSqft(false);
+    setManualSqftInput("");
   };
 
   const handleCustomerSelect = (email) => {
@@ -259,6 +272,64 @@ export default function AdminScheduledBookings() {
   const handleScheduleDateSelect = (date) => {
     setScheduleDate(date);
   };
+
+  // Auto-fill package prices based on sqft tier
+  const applyTierPricing = (sqft) => {
+    const tier = determinePricingTier(sqft);
+    if (!tier || tier === "CUSTOM") return;
+    const newPrices = {};
+    defaultPackages.forEach(pkg => {
+      const tierPrice = getPackagePriceForTier(pkg.id, tier);
+      if (tierPrice != null) newPrices[pkg.id] = tierPrice;
+    });
+    setCustomPackagePrices(newPrices);
+  };
+
+  const handleLookupSqft = async () => {
+    const fullAddress = [form.street_address, form.city, form.state].filter(Boolean).join(", ");
+    if (!fullAddress.trim()) return;
+    setSqftLookingUp(true);
+    setSqftLookupError(null);
+    try {
+      const res = await base44.functions.invoke('lookupPropertySqft', { address: fullAddress, lookup_by: 'admin_scheduled_booking' });
+      const result = res?.data?.property || res?.property;
+      if (result?.property_sqft) {
+        setPropertySqft(result.property_sqft);
+        setSqftSource(result.property_sqft_source || 'provider');
+        setShowManualSqft(false);
+        applyTierPricing(result.property_sqft);
+      } else {
+        setShowManualSqft(true);
+        setSqftSource(null);
+      }
+    } catch (err) {
+      setSqftLookupError('Could not look up property. Enter sq ft manually.');
+      setShowManualSqft(true);
+    } finally {
+      setSqftLookingUp(false);
+    }
+  };
+
+  const handleManualSqftSet = () => {
+    const val = parseInt(manualSqftInput, 10);
+    if (val > 0) {
+      setPropertySqft(val);
+      setSqftSource('manual_admin');
+      applyTierPricing(val);
+    }
+  };
+
+  const handleResetSqft = () => {
+    setPropertySqft(null);
+    setManualSqftInput("");
+    setShowManualSqft(false);
+    setSqftSource(null);
+    setSqftLookupError(null);
+  };
+
+  const pricingTier = determinePricingTier(propertySqft);
+  const tierLabel = getTierLabel(pricingTier);
+  const isCustomQuote = pricingTier === "CUSTOM";
 
   const toggleAddOn = (id) => {
     setForm(prev => ({
@@ -601,6 +672,59 @@ export default function AdminScheduledBookings() {
                 <label className="text-sm font-medium text-[#1A1A1A] mb-1 block">State *</label>
                 <Input required maxLength="2" value={form.state} onChange={e => setForm(p=>({...p,state:e.target.value.toUpperCase()}))} className="border-[#B8956A]/30" placeholder="GA" />
               </div>
+            </div>
+
+            {/* Sqft-based pricing lookup */}
+            <div className="bg-[#B8956A]/5 rounded-lg p-4 border border-[#B8956A]/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[#1A1A1A]">Property Sq Ft Pricing</p>
+                {propertySqft && (
+                  <button type="button" onClick={handleResetSqft} className="text-xs text-[#B8956A] hover:underline">Reset</button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleLookupSqft}
+                  disabled={!form.street_address || !form.city || !form.state || sqftLookingUp}
+                  size="sm"
+                  className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+                >
+                  {sqftLookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  <span className="ml-1.5">Look Up Sq Ft</span>
+                </Button>
+              </div>
+              {propertySqft && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] text-xs font-medium">
+                    {isCustomQuote ? "Custom Quote Required" : `Tier: ${tierLabel}`}
+                  </span>
+                  <span className="text-xs text-[#1A1A1A]/60">
+                    {propertySqft.toLocaleString()} sq ft
+                    {sqftSource === 'manual_admin' && ' (manual)'}
+                  </span>
+                </div>
+              )}
+              {sqftLookupError && <p className="text-xs text-red-600">{sqftLookupError}</p>}
+              {showManualSqft && !propertySqft && (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    value={manualSqftInput}
+                    onChange={e => setManualSqftInput(e.target.value)}
+                    className="w-40 px-3 py-2 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A] text-sm"
+                    placeholder="Square footage"
+                  />
+                  <Button type="button" onClick={handleManualSqftSet} disabled={!manualSqftInput || parseInt(manualSqftInput, 10) <= 0} size="sm" className="bg-[#B8956A] hover:bg-[#A68559] text-white">Set</Button>
+                </div>
+              )}
+              {propertySqft && !isCustomQuote && (
+                <p className="text-xs text-[#1A1A1A]/50">Package prices auto-updated for this tier. You can still edit any price below.</p>
+              )}
+              {isCustomQuote && (
+                <p className="text-xs text-[#1A1A1A]/60 italic">Properties over 10,000 sq ft require a custom quote.</p>
+              )}
             </div>
 
             {/* Auto-send media on payment */}
