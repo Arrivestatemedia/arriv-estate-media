@@ -524,7 +524,7 @@ export default function ClientJobGallery() {
               transition={{ duration: 0.3 }}
               src={files[lightboxIndex].thumbnailLink?.replace("w=600", "w=1600") || files[lightboxIndex].thumbnailLink}
               alt={files[lightboxIndex].name}
-              className="max-w-[90vw] max-h-[82vh] object-contain rounded-lg shadow-2xl"
+              className="w-full h-full max-w-[95vw] max-h-[92vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
 
