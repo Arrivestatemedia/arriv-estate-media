@@ -942,12 +942,24 @@ export async function computeEditingAnalytics(base44: any, daysBack: number = 30
   const monthAgo = new Date();
   monthAgo.setDate(monthAgo.getDate() - 30);
 
-  const completedThisWeek = activeTasks.filter(
-    (t: any) => t.status === "delivered" && t.delivered_at && new Date(t.delivered_at) >= weekAgo
-  );
-  const completedThisMonth = activeTasks.filter(
-    (t: any) => t.status === "delivered" && t.delivered_at && new Date(t.delivered_at) >= monthAgo
-  );
+  // "Completed" = editing work done (approved by QC OR delivered to customer).
+  // Use delivered_at for delivered tasks, qc_completed_at (fallback updated_at) for approved.
+  const getCompletionDate = (t: any): Date | null => {
+    if (t.status === "delivered" && t.delivered_at) return new Date(t.delivered_at);
+    if (t.status === "approved" && (t.qc_completed_at || t.updated_at)) {
+      return new Date(t.qc_completed_at || t.updated_at);
+    }
+    return null;
+  };
+
+  const completedThisWeek = activeTasks.filter((t: any) => {
+    const d = getCompletionDate(t);
+    return d && d >= weekAgo;
+  });
+  const completedThisMonth = activeTasks.filter((t: any) => {
+    const d = getCompletionDate(t);
+    return d && d >= monthAgo;
+  });
 
   // Editing hours
   const totalMinutesThisWeek = completedThisWeek.reduce((sum: number, t: any) => sum + (t.active_editing_minutes || 0), 0);
