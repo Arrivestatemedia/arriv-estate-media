@@ -122,10 +122,11 @@ export default function SendMediaToClient() {
     const youtubeLine = youtubeLink
       ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
       : "";
+    const gallerySteps = `\n\nOnce you log in, you'll land right on your gallery for this property. From there you can:\n• View all your photos and videos in full resolution\n• Download individual files or download the entire gallery at once\n• Book all your future shoots right from the app — no calls or emails needed`;
     if (hasAccount === false) {
-      return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready!\n\nTo view and download your photos and videos, create your Arriv account (it only takes a minute — your info is pre-filled):\n${driveLink}\n\nOnce you create your account and log in, your gallery will be ready to view.${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+      return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready!\n\nTo view and download your photos and videos, create your Arriv account (it only takes a minute — your info is pre-filled):\n${driveLink}${gallerySteps}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
     }
-    return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${driveLink}${gallerySteps}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
   const buildTemplateMessage = (templateId) => {

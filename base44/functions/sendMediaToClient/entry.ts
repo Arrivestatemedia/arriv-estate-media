@@ -46,9 +46,10 @@ Deno.serve(async (req) => {
 
       const clientHasAccount = await checkClientHasAccount(base44, job.client_email || '');
 
+      const gallerySteps = `\n\nOnce you log in, you'll land right on your gallery for this property. From there you can:\n• View all your photos and videos in full resolution\n• Download individual files or download the entire gallery at once\n• Book all your future shoots right from the app — no calls or emails needed`;
       if (clientHasAccount) {
         const galleryLink = `${appDomain}/ClientJobGallery?jobId=${jobId}`;
-        messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${galleryLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+        messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${galleryLink}${gallerySteps}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
       } else {
         // No account yet — send a pre-filled signup link.
         // After signup + login the client is redirected to the gallery.
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
           jobId,
         });
         const signupLink = `${appDomain}/ClientSignup?${params.toString()}`;
-        messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready!\n\nTo view and download your photos and videos, create your Arriv account (it only takes a minute — your info is pre-filled):\n${signupLink}\n\nOnce you create your account and log in, your gallery will be ready to view.${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+        messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready!\n\nTo view and download your photos and videos, create your Arriv account (it only takes a minute — your info is pre-filled):\n${signupLink}${gallerySteps}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
       }
     }
 
