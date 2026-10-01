@@ -17,6 +17,8 @@ import AdminNotificationPanel from "@/components/sales/AdminNotificationPanel";
 import SupportProvider from "@/components/support/SupportProvider";
 import SupportBubble from "@/components/support/SupportBubble";
 import SupportPanel from "@/components/support/SupportPanel";
+import { FinalEditsUploadProvider } from "@/components/editing/FinalEditsUploadContext";
+import FinalEditsUploadStatusBanner from "@/components/editing/FinalEditsUploadStatusBanner";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
@@ -574,13 +576,16 @@ function LayoutContent({ children, currentPageName }) {
 export default function Layout({ children, currentPageName }) {
   return (
     <CallStatusProvider>
+      <FinalEditsUploadProvider>
       <SupportProvider>
         <LayoutContent currentPageName={currentPageName}>
           {children}
         </LayoutContent>
         <SupportBubble />
         <SupportPanel />
+        <FinalEditsUploadStatusBanner />
       </SupportProvider>
+      </FinalEditsUploadProvider>
     </CallStatusProvider>
   );
 }

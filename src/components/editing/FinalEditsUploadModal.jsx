@@ -1,17 +1,17 @@
 import React, { useState, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { useFinalEditsUpload } from "@/components/editing/FinalEditsUploadContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, X, CheckCircle2, ImageIcon, Video, AlertCircle, Sparkles } from "lucide-react";
 
 export default function FinalEditsUploadModal({ task, open, onClose, onComplete }) {
+  const { uploads, startUpload, clearUpload } = useFinalEditsUpload();
+  const upload = uploads[task.id] || null;
+  const status = upload?.status || "idle";
+
   const [files, setFiles] = useState([]);
-  const [status, setStatus] = useState("idle"); // idle | preparing | uploading | done | error
-  const [results, setResults] = useState([]);
-  const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (e) => {
@@ -33,54 +33,31 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
 
   const handleUpload = async () => {
     if (files.length === 0) return;
-    setStatus("preparing");
-    setError(null);
-    setResults([]);
-    setUploadProgress({ done: 0, total: files.length });
+    const selected = files;
+    setFiles([]);
     try {
-      // 1. Upload each file to public storage (parallel, with progress)
-      const uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
-          const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
-          if (!file_url) throw new Error(`Failed to upload ${file.name} to storage`);
-          setUploadProgress((p) => ({ ...p, done: p.done + 1 }));
-          return {
-            file_url,
-            file_name: file.name,
-            content_type: file.type || "application/octet-stream",
-          };
-        })
-      );
-
-      // 2. Call the batch upload + AI rename backend
-      setStatus("uploading");
-      const res = await base44.functions.invoke("uploadFinalEditsBatch", {
-        task_id: task.id,
-        files: uploadedFiles,
-      });
-      const resData = res?.data || res;
-      if (!resData?.success) throw new Error(resData?.error || "Batch upload failed");
-
-      setResults(resData.results || []);
-      setStatus("done");
-      if (onComplete) onComplete(resData.folder_url);
-    } catch (err) {
-      setError(err.message || err.error || "Upload failed");
-      setStatus("error");
+      await startUpload(task, selected, onComplete);
+    } catch {
+      // error state is reflected in context
     }
   };
 
   const handleClose = () => {
-    if (status === "preparing" || status === "uploading") return;
+    // Allow closing at any time — the upload continues in the background
+    // and its status stays visible via the floating banner.
     setFiles([]);
-    setResults([]);
-    setStatus("idle");
-    setError(null);
     onClose();
   };
 
+  const handleDismissDone = () => {
+    clearUpload(task.id);
+    setFiles([]);
+    onClose();
+  };
+
+  const results = upload?.results || [];
   const renamedCount = results.filter((r) => r.original_name !== r.new_name).length;
+  const progress = upload?.progress || { done: 0, total: 0 };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -192,12 +169,12 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
             {status === "preparing" && (
               <div className="flex items-center gap-2 text-sm text-[#B8956A]">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading to storage... {uploadProgress.done}/{uploadProgress.total}
-                {uploadProgress.total > 0 && (
+                Uploading to storage... {progress.done}/{progress.total}
+                {progress.total > 0 && (
                   <span className="flex-1 h-1.5 bg-[#B8956A]/15 rounded-full overflow-hidden ml-2">
                     <span
                       className="block h-full bg-[#B8956A] transition-all duration-200"
-                      style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                      style={{ width: `${(progress.done / progress.total) * 100}%` }}
                     />
                   </span>
                 )}
@@ -220,10 +197,10 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
                 </p>
               </div>
             )}
-            {error && (
+            {status === "error" && (
               <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2.5 rounded-lg">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+                <span>{upload?.error}</span>
               </div>
             )}
           </>
@@ -231,20 +208,24 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
 
         <DialogFooter>
           {status === "done" ? (
-            <Button onClick={handleClose}>Done</Button>
-          ) : (
+            <Button onClick={handleDismissDone}>Done</Button>
+          ) : status === "idle" ? (
             <>
-              <Button variant="outline" onClick={handleClose} disabled={status !== "idle"}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button
                 onClick={handleUpload}
-                disabled={files.length === 0 || status !== "idle"}
+                disabled={files.length === 0}
               >
                 <Upload className="w-4 h-4 mr-1" />
                 Upload {files.length > 0 ? `(${files.length})` : ""}
               </Button>
             </>
+          ) : (
+            <Button variant="outline" onClick={handleClose}>
+              Close — upload continues in background
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>
