@@ -204,12 +204,20 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
               </div>
             )}
             {status === "uploading" && (
-              <div className="flex items-center gap-2 text-sm text-[#B8956A]">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  AI is classifying images and uploading to Google Drive...
-                </span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-[#B8956A]">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI is classifying images and uploading to Google Drive...
+                  </span>
+                </div>
+                <div className="h-1.5 bg-[#B8956A]/15 rounded-full overflow-hidden">
+                  <span className="block h-full w-1/3 bg-[#B8956A] rounded-full animate-[indeterminate_1.4s_ease-in-out_infinite]" />
+                </div>
+                <p className="text-xs text-[#1A1A1A]/40">
+                  Classifying scenes in batches of 10, then uploading each file to Drive. This can take a minute for large batches.
+                </p>
               </div>
             )}
             {error && (
