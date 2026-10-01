@@ -11,6 +11,7 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (e) => {
@@ -35,13 +36,15 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
     setStatus("preparing");
     setError(null);
     setResults([]);
+    setUploadProgress({ done: 0, total: files.length });
     try {
-      // 1. Upload each file to public storage (parallel)
+      // 1. Upload each file to public storage (parallel, with progress)
       const uploadedFiles = await Promise.all(
         files.map(async (file) => {
           const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
           const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
           if (!file_url) throw new Error(`Failed to upload ${file.name} to storage`);
+          setUploadProgress((p) => ({ ...p, done: p.done + 1 }));
           return {
             file_url,
             file_name: file.name,
@@ -188,7 +191,16 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
 
             {status === "preparing" && (
               <div className="flex items-center gap-2 text-sm text-[#B8956A]">
-                <Loader2 className="w-4 h-4 animate-spin" /> Preparing files for upload...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading to storage... {uploadProgress.done}/{uploadProgress.total}
+                {uploadProgress.total > 0 && (
+                  <span className="flex-1 h-1.5 bg-[#B8956A]/15 rounded-full overflow-hidden ml-2">
+                    <span
+                      className="block h-full bg-[#B8956A] transition-all duration-200"
+                      style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                    />
+                  </span>
+                )}
               </div>
             )}
             {status === "uploading" && (
