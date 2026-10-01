@@ -41,31 +41,43 @@ export default function ClientBookings() {
     }).catch(() => window.location.replace(createPageUrl('SignIn')));
   }, []);
 
+  // Fetch broader sets and filter client-side by case-insensitive email match.
+  // Job/Booking client_email may be stored with mixed case (entered by sales rep),
+  // while the user's signup email is always lowercased — exact-match filters miss those.
   const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ['bookings', user?.email],
     queryFn: () => {
       if (!user?.email) return [];
-      return base44.entities.Booking.filter({ client_email: user.email }, '-created_date');
+      return base44.entities.Booking.list('-created_date', 200);
     },
-    enabled: !!user?.email
+    enabled: !!user?.email,
+    select: (data) => (data || []).filter(
+      (b) => b.client_email?.toLowerCase() === user.email?.toLowerCase()
+    ),
   });
 
   const { data: completedJobs = [] } = useQuery({
     queryKey: ['completedJobsWithMedia', user?.email],
     queryFn: () => {
       if (!user?.email) return [];
-      return base44.entities.Job.filter({ client_email: user.email, footage_uploaded: true }, '-date');
+      return base44.entities.Job.filter({ footage_uploaded: true }, '-date', 200);
     },
-    enabled: !!user?.email
+    enabled: !!user?.email,
+    select: (data) => (data || []).filter(
+      (j) => j.client_email?.toLowerCase() === user.email?.toLowerCase()
+    ),
   });
 
   const { data: accessJobs = [], refetch: refetchAccessJobs } = useQuery({
     queryKey: ['accessSelectionJobs', user?.email],
     queryFn: () => {
       if (!user?.email) return [];
-      return base44.entities.Job.filter({ client_email: user.email, status: 'booked' }, '-date');
+      return base44.entities.Job.filter({ status: 'booked' }, '-date', 200);
     },
-    enabled: !!user?.email
+    enabled: !!user?.email,
+    select: (data) => (data || []).filter(
+      (j) => j.client_email?.toLowerCase() === user.email?.toLowerCase()
+    ),
   });
 
   const pendingAccessJobs = (accessJobs || []).filter(

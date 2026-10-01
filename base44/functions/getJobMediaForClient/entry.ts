@@ -37,8 +37,9 @@ Deno.serve(async (req) => {
       if (!clientEmail) {
         return Response.json({ error: 'clientEmail is required' }, { status: 400 });
       }
-      // Verify the client owns this job
-      if (job.client_email !== clientEmail) {
+      // Verify the client owns this job (case-insensitive — emails may be stored
+      // with mixed case on the job but normalized to lowercase at signup)
+      if (job.client_email?.toLowerCase() !== clientEmail?.toLowerCase()) {
         return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
       }
     }
