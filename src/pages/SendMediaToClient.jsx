@@ -91,9 +91,9 @@ export default function SendMediaToClient() {
         phone_number: selectedJob?.client_phone || "",
         jobId: selectedJobId,
       });
-      setDriveLink(`${window.location.origin}/ClientSignup?${params.toString()}`);
+      setDriveLink(`${'https://app.arrivestatemedia.com'}/ClientSignup?${params.toString()}`);
     } else {
-      setDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${selectedJobId}`);
+      setDriveLink(`${'https://app.arrivestatemedia.com'}/ClientJobGallery?jobId=${selectedJobId}`);
     }
   }, [selectedJobId, hasAccount, selectedJob?.client_name, selectedJob?.client_email, selectedJob?.client_phone]);
 
@@ -331,7 +331,7 @@ export default function SendMediaToClient() {
                         setTmplClientEmail(job.client_email || "");
                         setTmplClientPhone(job.client_phone || "");
                         setTmplCustomAddress(job.location || "");
-                        setTmplDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${job.id}`);
+                        setTmplDriveLink(`${'https://app.arrivestatemedia.com'}/ClientJobGallery?jobId=${job.id}`);
                       }
                     }}
                   >
