@@ -20,8 +20,8 @@ export default function ClientSignup() {
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('clientSignupFormData');
     return saved ? JSON.parse(saved) : {
-      email: "", 
-      full_name: "", 
+      email: urlParams.get('email') || "",
+      full_name: urlParams.get('full_name') || "",
       phone_number: urlParams.get('phone_number') || "",
       password: "",
       password_confirmation: "",
@@ -115,7 +115,13 @@ export default function ClientSignup() {
           const rep = salesReps.find(r => r.id === formData.sales_member_id);
           if (rep) localStorage.setItem('selected_sales_member_name', rep.full_name);
         }
-        window.location.href = createPageUrl('SignIn');
+        // If this signup came from a delivery link (jobId present), redirect
+        // to the gallery after login.
+        const jobId = urlParams.get('jobId');
+        const signInUrl = jobId
+          ? `/SignIn?redirect=ClientJobGallery&jobId=${jobId}`
+          : '/SignIn';
+        window.location.href = signInUrl;
       } else {
         setError(response.data?.error || "Failed to create account");
         setLoading(false);

@@ -9,6 +9,9 @@ import { createPageUrl } from "../utils";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectPage = urlParams.get('redirect');
+  const redirectJobId = urlParams.get('jobId');
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -20,6 +23,11 @@ export default function SignIn() {
     const userType = localStorage.getItem('user_type');
     
     if (userEmail && userType) {
+      // Honor delivery redirect if present and user is a client
+      if (redirectPage && redirectJobId && userType !== "media_partner") {
+        window.location.href = `/${redirectPage}?jobId=${redirectJobId}`;
+        return;
+      }
       // User is logged in, redirect to their dashboard
       if (userType === "media_partner") {
         window.location.href = '/MediaPartnerDashboard';
@@ -88,7 +96,12 @@ export default function SignIn() {
           window.location.href = '/MediaPartnerDashboard';
         }
       } else {
-        window.location.href = '/BookingPage';
+        // Client — honor delivery redirect if present
+        if (redirectPage && redirectJobId) {
+          window.location.href = `/${redirectPage}?jobId=${redirectJobId}`;
+        } else {
+          window.location.href = '/BookingPage';
+        }
       }
     } catch (err) {
       console.error('Login error:', err);

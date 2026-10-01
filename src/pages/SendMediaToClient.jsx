@@ -21,6 +21,7 @@ export default function SendMediaToClient() {
   const [editableMessage, setEditableMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
+  const [hasAccount, setHasAccount] = useState(null);
 
   // ── Saved messages tab state ────────────────────────────────────────────
   const [newMsgName, setNewMsgName] = useState("");
@@ -71,14 +72,30 @@ export default function SendMediaToClient() {
     ? { client_name: tmplClientName, location: tmplCustomAddress }
     : jobs.find((j) => j.id === tmplJobId);
 
-  // Auto-generate the client gallery link from the selected job
+  // Check if the selected client already has an account
   useEffect(() => {
-    if (selectedJobId) {
-      setDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${selectedJobId}`);
+    if (!selectedJob?.client_email) { setHasAccount(null); return; }
+    base44.functions.invoke("checkClientHasAccount", { email: selectedJob.client_email })
+      .then(res => setHasAccount(res?.data?.hasAccount ?? null))
+      .catch(() => setHasAccount(null));
+  }, [selectedJob?.client_email]);
+
+  // Auto-generate the client link from the selected job
+  // — signup link with pre-filled info if no account, gallery link if account exists
+  useEffect(() => {
+    if (!selectedJobId) { setDriveLink(""); return; }
+    if (hasAccount === false) {
+      const params = new URLSearchParams({
+        full_name: selectedJob?.client_name || "",
+        email: selectedJob?.client_email || "",
+        phone_number: selectedJob?.client_phone || "",
+        jobId: selectedJobId,
+      });
+      setDriveLink(`${window.location.origin}/ClientSignup?${params.toString()}`);
     } else {
-      setDriveLink("");
+      setDriveLink(`${window.location.origin}/ClientJobGallery?jobId=${selectedJobId}`);
     }
-  }, [selectedJobId]);
+  }, [selectedJobId, hasAccount, selectedJob?.client_name, selectedJob?.client_email, selectedJob?.client_phone]);
 
   const buildTmplDefaultMessage = () => {
     const location = tmplJob?.location || tmplCustomAddress;
@@ -105,6 +122,9 @@ export default function SendMediaToClient() {
     const youtubeLine = youtubeLink
       ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
       : "";
+    if (hasAccount === false) {
+      return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready!\n\nTo view and download your photos and videos, create your Arriv account (it only takes a minute — your info is pre-filled):\n${driveLink}\n\nOnce you create your account and log in, your gallery will be ready to view.${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    }
     return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nLog in to your Arriv account to view and download your photos and videos:\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
@@ -135,7 +155,7 @@ export default function SendMediaToClient() {
     } else {
       setEditableMessage(buildDefaultMessage());
     }
-  }, [selectedJobId, driveLink, youtubeLink, selectedTemplateId]);
+  }, [selectedJobId, driveLink, youtubeLink, selectedTemplateId, hasAccount]);
 
   useEffect(() => {
     setTmplMessage(buildTmplDefaultMessage());
@@ -225,8 +245,21 @@ export default function SendMediaToClient() {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Client Gallery Link <span className="text-[#1A1A1A]/40 text-xs">(auto-generated)</span></Label>
+                  <Label>
+                    {hasAccount === false ? "Account Setup Link" : "Client Gallery Link"}
+                    <span className="text-[#1A1A1A]/40 text-xs"> (auto-generated)</span>
+                  </Label>
                   <Input readOnly value={driveLink} className="bg-[#B8956A]/5 border-[#B8956A]/20 text-[#1A1A1A]/60 cursor-not-allowed" />
+                  {hasAccount === false && (
+                    <p className="text-xs text-[#B8956A] bg-[#B8956A]/10 rounded-md px-3 py-2 border border-[#B8956A]/20">
+                      This client doesn't have an account yet. The link above lets them create one with their info pre-filled — after signup and login they'll land right on their gallery.
+                    </p>
+                  )}
+                  {hasAccount === true && (
+                    <p className="text-xs text-[#1A1A1A]/50">
+                      This client has an account — the link goes straight to their gallery.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
