@@ -522,7 +522,7 @@ export default function ClientJobGallery() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.3 }}
-              src={files[lightboxIndex].thumbnailLink?.replace("w=600", "w=1600") || files[lightboxIndex].thumbnailLink}
+              src={(files[lightboxIndex].thumbnailLink || '').replace(/=s\d+.*/, '=s0').replace(/w=600/, 'w=1920') || files[lightboxIndex].thumbnailLink}
               alt={files[lightboxIndex].name}
               className="w-full h-full max-w-[95vw] max-h-[92vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
