@@ -327,6 +327,16 @@ export default function AdminScheduledBookings() {
     setSqftLookupError(null);
   };
 
+  // Auto-lookup sqft when the full address is entered (same mechanism as the client BookingPage)
+  useEffect(() => {
+    if (propertySqft) return; // already resolved
+    if (!form.street_address?.trim() || !form.city?.trim() || !form.state?.trim()) return;
+    if (sqftLookingUp) return;
+    const timer = setTimeout(() => { handleLookupSqft(); }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.street_address, form.city, form.state, propertySqft]);
+
   const pricingTier = determinePricingTier(propertySqft);
   const tierLabel = getTierLabel(pricingTier);
   const isCustomQuote = pricingTier === "CUSTOM";
@@ -677,7 +687,7 @@ export default function AdminScheduledBookings() {
             {/* Sqft-based pricing lookup */}
             <div className="bg-[#B8956A]/5 rounded-lg p-4 border border-[#B8956A]/20 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[#1A1A1A]">Property Sq Ft Pricing</p>
+                <p className="text-sm font-medium text-[#1A1A1A]">Property Sq Ft Pricing <span className="text-xs text-[#1A1A1A]/40 font-normal">(auto-looks up when address is complete)</span></p>
                 {propertySqft && (
                   <button type="button" onClick={handleResetSqft} className="text-xs text-[#B8956A] hover:underline">Reset</button>
                 )}
