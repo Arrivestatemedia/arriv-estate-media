@@ -22,6 +22,8 @@ export default function EditorWorkspace() {
 
   const salesEmail =
     localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
+  const salesMemberId =
+    localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -59,7 +61,13 @@ export default function EditorWorkspace() {
   const callAction = async (action, taskId, extra = {}) => {
     setActionLoading(true);
     try {
-      await base44.functions.invoke("manageEditingTask", { action, task_id: taskId, ...extra });
+      await base44.functions.invoke("manageEditingTask", {
+        action,
+        task_id: taskId,
+        email: salesEmail,
+        sales_member_id: salesMemberId,
+        ...extra,
+      });
       refresh();
     } catch (err) {
       alert(err.message || err.error || "Action failed");
