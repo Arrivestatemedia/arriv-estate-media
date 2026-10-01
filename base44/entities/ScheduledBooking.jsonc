@@ -80,6 +80,14 @@
     "notes": {
       "type": "string"
     },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who created this scheduled booking"
+    },
+    "sales_member_name": {
+      "type": "string",
+      "description": "Name of the sales rep who created this scheduled booking"
+    },
     "submitted_booking_id": {
       "type": "string",
       "description": "ID of the resulting Booking record after submission"

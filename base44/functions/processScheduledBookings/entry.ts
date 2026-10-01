@@ -44,6 +44,8 @@ Deno.serve(async (req) => {
           request_pay_at_closing: sb.request_pay_at_closing || false,
           total_price: totalPrice,
           status: isPastShoot ? 'approved' : 'pending',
+          sales_member_id: sb.sales_member_id || '',
+          sales_member_name: sb.sales_member_name || '',
         });
 
         // For past shoots: create a completed Job assigned to admin and skip all notifications

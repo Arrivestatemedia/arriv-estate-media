@@ -161,30 +161,44 @@ export default function AdminScheduledBookings() {
   const [packageFeatures, setPackageFeatures] = useState({});
   const [customPackagePrices, setCustomPackagePrices] = useState({});
 
-  // Verify admin
+  // Verify admin or sales rep
   const [isAdmin, setIsAdmin] = useState(false);
+  const [salesMemberId, setSalesMemberId] = useState(() =>
+    localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id') || ''
+  );
+  const [salesMemberName, setSalesMemberName] = useState(() =>
+    localStorage.getItem('sales_member_name') || sessionStorage.getItem('sales_member_name') || ''
+  );
+  const isSalesRep = !!salesMemberId;
+  const canAccess = isAdmin || isSalesRep;
+
   useEffect(() => {
     const role = localStorage.getItem('user_role') || sessionStorage.getItem('user_role');
-    if (role === 'admin') setIsAdmin(true);
-    else base44.auth.me().then(u => { if (u?.role === 'admin') setIsAdmin(true); }).catch(() => {});
+    if (role === 'admin') { setIsAdmin(true); return; }
+    base44.auth.me().then(u => { if (u?.role === 'admin') setIsAdmin(true); }).catch(() => {});
   }, []);
 
-  const { data: scheduledBookings = [], isLoading } = useQuery({
+  const { data: allScheduledBookings = [], isLoading } = useQuery({
     queryKey: ['scheduledBookings'],
     queryFn: () => base44.entities.ScheduledBooking.list('-created_date', 50),
-    enabled: isAdmin,
+    enabled: canAccess,
   });
+
+  // Sales reps only see their own; admins see all
+  const scheduledBookings = isSalesRep && !isAdmin
+    ? allScheduledBookings.filter(sb => sb.sales_member_id === salesMemberId)
+    : allScheduledBookings;
 
   const { data: pastBookings = [] } = useQuery({
     queryKey: ['pastBookingsForDropdown'],
     queryFn: () => base44.entities.Booking.list('-created_date', 200),
-    enabled: isAdmin && showForm,
+    enabled: canAccess && showForm,
   });
 
   const { data: savedMessages = [] } = useQuery({
     queryKey: ['scheduledMediaMessages'],
     queryFn: () => base44.entities.ScheduledMediaMessage.list('-created_date', 50),
-    enabled: isAdmin && showForm,
+    enabled: canAccess && showForm,
   });
 
   // Deduplicate by email, keeping most recent
@@ -291,6 +305,8 @@ export default function AdminScheduledBookings() {
       package_features: activeFeatures,
       total_price: totalPrice,
       custom_package_price: pkgPrice,
+      sales_member_id: salesMemberId || null,
+      sales_member_name: salesMemberName || null,
       scheduled_media_message_id: form.scheduled_media_message_id || null,
       scheduled_media_drive_link: form.scheduled_media_drive_link || null,
       scheduled_media_youtube_link: form.scheduled_media_youtube_link || null,
@@ -304,9 +320,9 @@ export default function AdminScheduledBookings() {
       })()
     : [];
 
-  if (!isAdmin) return (
+  if (!canAccess) return (
     <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center">
-      <p className="text-[#1A1A1A]/60">Admin access required.</p>
+      <p className="text-[#1A1A1A]/60">Access required.</p>
     </div>
   );
 
@@ -319,7 +335,11 @@ export default function AdminScheduledBookings() {
               <CalendarClock className="w-8 h-8 text-[#B8956A]" />
               Scheduled Bookings
             </h1>
-            <p className="text-[#1A1A1A]/60 mt-1">Pre-schedule booking submissions for a specific date and time.</p>
+            <p className="text-[#1A1A1A]/60 mt-1">
+              {isSalesRep && !isAdmin
+                ? "Submit a booking for your client — no signup required."
+                : "Pre-schedule booking submissions for a specific date and time."}
+            </p>
           </div>
           <Button
             onClick={() => setShowForm(true)}
@@ -364,6 +384,9 @@ export default function AdminScheduledBookings() {
                           )}
                           {sb.status === 'failed' && sb.error_message && (
                             <p className="text-red-600 flex items-center gap-1"><XCircle className="w-3 h-3" /> {sb.error_message}</p>
+                          )}
+                          {isAdmin && sb.sales_member_name && (
+                            <p><strong>Rep:</strong> {sb.sales_member_name}</p>
                           )}
                         </div>
                       </div>
