@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import Stripe from 'npm:stripe@17.5.0';
 import { findPartnerRecord, getPayPeriodStartUTC, clientPaymentCleared } from '../../shared/stripeConnect.ts';
+import { syncEarningRecord, buildEarningParamsFromJob } from '../../shared/mediaSpecialistEarningSync.ts';
 
 // Sends an immediate SMS to the admin/owner when the weekly payout run
 // hits any error or issue, so it can be investigated before partners miss
@@ -126,9 +127,23 @@ Deno.serve(async (req) => {
           base44.asServiceRole.entities.Job.update(j.id, { paid_out_at: new Date().toISOString() })
         ));
 
+        // Sync each earning record to Arriv Payroll (document/tax only).
+        // Best-effort: a sync failure must NOT block or fail the payout.
+        const payoutDate = new Date().toISOString().slice(0, 10);
+        const syncResults = [];
+        for (const j of jobs) {
+          try {
+            const params = buildEarningParamsFromJob(j, rec, { transferId: transfer.id, payoutDate });
+            const r = await syncEarningRecord(base44, params);
+            syncResults.push({ job_id: j.id, synced: r.success, error: r.error || "" });
+          } catch (e) {
+            syncResults.push({ job_id: j.id, synced: false, error: e.message });
+          }
+        }
+
         paidPartners++;
         totalTransferred += amount;
-        results.push({ email, amount, transfer_id: transfer.id, jobs: jobs.length });
+        results.push({ email, amount, transfer_id: transfer.id, jobs: jobs.length, sync: syncResults });
       } catch (err) {
         errors.push({ email, reason: err.message });
       }

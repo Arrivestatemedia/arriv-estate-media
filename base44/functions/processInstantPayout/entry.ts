@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import Stripe from 'npm:stripe@17.5.0';
 import { findPartnerRecord, getPayPeriodStartUTC, clientPaymentCleared } from '../../shared/stripeConnect.ts';
+import { syncEarningRecord, buildEarningParamsFromJob } from '../../shared/mediaSpecialistEarningSync.ts';
 
 // Stripe instant payout fee: 1.5% with a $0.50 minimum.
 const INSTANT_PAYOUT_FEE_RATE = 0.015;
@@ -138,6 +139,24 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.Job.update(j.id, { paid_out_at: new Date().toISOString() })
     ));
 
+    // Sync each earning record to Arriv Payroll (document/tax only).
+    // Best-effort: a sync failure must NOT block or fail the payout.
+    const payoutDate = new Date().toISOString().slice(0, 10);
+    const syncResults = [];
+    for (const j of eligible) {
+      try {
+        const params = buildEarningParamsFromJob(j, rec, {
+          transferId: transfer.id,
+          fees: fee,
+          payoutDate,
+        });
+        const r = await syncEarningRecord(base44, params);
+        syncResults.push({ job_id: j.id, synced: r.success, error: r.error || "" });
+      } catch (e) {
+        syncResults.push({ job_id: j.id, synced: false, error: e.message });
+      }
+    }
+
     return Response.json({
       success: true,
       grossAmount,
@@ -145,7 +164,8 @@ Deno.serve(async (req) => {
       netAmount,
       transfer_id: transfer.id,
       payout_id: payout.id,
-      jobsPaid: eligible.length
+      jobsPaid: eligible.length,
+      sync: syncResults,
     });
   } catch (error) {
     console.error('processInstantPayout error:', error);
