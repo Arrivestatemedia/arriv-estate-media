@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { verifySignature, isTimestampFresh } from '../../shared/payrollCrypto.ts';
+import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 import { READINESS_EVENT_MAP, recomputeOrientation, writeOrientationAudit, sanitizeReadinessPayload } from '../../shared/orientationEngine.ts';
 
 Deno.serve(async (req) => {
@@ -8,10 +8,12 @@ Deno.serve(async (req) => {
     const secret = Deno.env.get('ARRIV_PAYROLL_WEBHOOK_SECRET');
     const signature = req.headers.get('X-Arriv-Signature') || '';
     const timestamp = req.headers.get('X-Arriv-Timestamp') || '';
+    const requestId = req.headers.get('X-Arriv-Request-Id') || '';
+    const sourceAppId = req.headers.get('X-Arriv-Source-App') || 'arriv_payroll';
     const raw = await req.text();
     if (!secret) return Response.json({ error: 'Webhook secret not configured' }, { status: 500 });
     if (!isTimestampFresh(timestamp)) return Response.json({ error: 'Stale or missing timestamp' }, { status: 401 });
-    const ok = await verifySignature(secret, raw, signature);
+    const ok = await verifyCanonicalRequest(secret, { body: raw, timestamp, requestId, sourceAppId, signature });
     if (!ok) return Response.json({ error: 'Invalid signature' }, { status: 401 });
 
     let body;

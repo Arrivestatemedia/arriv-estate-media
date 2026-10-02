@@ -39,6 +39,21 @@ export async function signRequest(secret, { body, timestamp, requestId, sourceAp
   return signPayload(secret, canonical);
 }
 
+// Verify a signed inbound request using the 4-field canonical string
+// (body\ntimestamp\nrequestId\nsourceAppId) — matches the format used by
+// payrollSigning.ts for outbound requests. Used by inbound Payroll webhooks.
+export async function verifyCanonicalRequest(secret, { body, timestamp, requestId, sourceAppId, signature }) {
+  if (!signature) return false;
+  const canonical = [body || "", timestamp || "", requestId || "", sourceAppId || ""].join("\n");
+  const expected = await signPayload(secret, canonical);
+  if (expected.length !== signature.length) return false;
+  let res = 0;
+  for (let i = 0; i < expected.length; i++) {
+    res |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  }
+  return res === 0;
+}
+
 export async function verifySignedRequest(secret, { body, timestamp, requestId, sourceAppId, employeeVersion, signature }) {
   if (!signature) return false;
   if (!isTimestampFresh(timestamp)) return false;

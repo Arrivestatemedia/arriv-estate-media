@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { verifySignature, isTimestampFresh } from "../../shared/payrollCrypto.ts";
+import { verifyCanonicalRequest, isTimestampFresh } from "../../shared/payrollCrypto.ts";
 import { isReplay, markProcessed } from "../../shared/payrollReplay.ts";
 import { reconcilePeriod } from "../../shared/payrollReconciliationEngine.ts";
 import { writeAuditLog } from "../../shared/payrollAudit.ts";
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     if (!webhookSecret) return Response.json({ error: "Webhook secret not configured" }, { status: 500 });
     if (!isTimestampFresh(tsHeader)) return Response.json({ error: "Stale or missing timestamp" }, { status: 401 });
-    const valid = await verifySignature(webhookSecret, rawBody, signature);
+    const valid = await verifyCanonicalRequest(webhookSecret, { body: rawBody, timestamp: tsHeader, requestId, sourceAppId, signature });
     if (!valid) return Response.json({ error: "Invalid signature" }, { status: 401 });
 
     const replay = await isReplay(base44, requestId, sourceAppId, "receivePayrollReconciliation");
