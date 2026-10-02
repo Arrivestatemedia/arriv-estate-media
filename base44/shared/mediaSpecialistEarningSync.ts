@@ -83,6 +83,8 @@ export async function pushEarningToPayroll(base44, rec) {
     idempotency_key: idempotencyKey,
     tenant_id: rec.tenant_id,
     media_specialist_id: rec.media_specialist_id,
+    media_specialist_name: rec.media_specialist_name || "",
+    media_specialist_email: rec.media_specialist_email || "",
     shared_person_id: rec.shared_person_id,
     earning_id: rec.earning_id,
     job_id: rec.job_id,
