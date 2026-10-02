@@ -3,26 +3,36 @@
 // receivePayrollContractorDocument, and getPayoutRecords.
 
 import { buildSignedHeaders } from "./payrollSigning.ts";
+import { secrets } from "base44:runtime";
 
 // ─── Payroll config (single-tenant: app-level secrets) ─────────────────────
 export function getPayrollConfig() {
-  const endpoint = Deno.env.get("ARRIV_PAYROLL_ENDPOINT") || Deno.env.get("ARRIV_PAYROLL_API_ENDPOINT") || "";
-  const apiSecret = Deno.env.get("ARRIV_PAYROLL_API_SECRET") || "";
-  const webhookSecret = Deno.env.get("ARRIV_PAYROLL_WEBHOOK_SECRET") || "";
-  const companyId = Deno.env.get("ARRIV_PAYROLL_COMPANY_ID") || "";
+  const endpoint = secrets.get("ARRIV_PAYROLL_ENDPOINT") || secrets.get("ARRIV_PAYROLL_API_ENDPOINT") || "";
+  const apiSecret = secrets.get("ARRIV_PAYROLL_API_SECRET") || "";
+  const webhookSecret = secrets.get("ARRIV_PAYROLL_WEBHOOK_SECRET") || "";
+  const companyId = secrets.get("ARRIV_PAYROLL_COMPANY_ID") || "";
   const enabled = !!companyId && !!apiSecret && !!endpoint;
   return { endpoint, companyId, enabled, apiSecret, webhookSecret };
 }
 
 // ─── Arriv Payroll API proxy ───────────────────────────────────────────────
+// The endpoint stored in config (env var or AppSetting) already includes the
+// full function path (e.g. .../functions/receiveCompensation). The action is
+// passed in the request body, NOT as part of the URL — mirroring how
+// manageTimeOff and manageBenefits call the payroll API.
 export async function callPayrollApi(config, action, payload) {
   const body = { ...payload, action, company_id: config.companyId };
   const bodyStr = JSON.stringify(body);
   const sourceAppId = "arriv-estate-media";
   const headers = await buildSignedHeaders(config.apiSecret, bodyStr, sourceAppId);
 
-  const base = config.endpoint.replace(/\/functions\/.*$/i, "").replace(/\/$/, "");
-  const url = base + "/functions/" + action;
+  // If the endpoint already includes a function path, use it as-is.
+  // Otherwise default to /functions/receiveCompensation (the payroll
+  // app's compensation receiver function).
+  let url = config.endpoint.replace(/\/$/, "");
+  if (!/\/functions\//i.test(url)) {
+    url += "/functions/receiveCompensation";
+  }
 
   const resp = await fetch(url, {
     method: "POST",
