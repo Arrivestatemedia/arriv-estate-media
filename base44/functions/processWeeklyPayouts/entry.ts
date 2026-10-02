@@ -134,6 +134,37 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Safety net: detect fulfilled, unpaid booking jobs whose client payment
+    // has cleared but were NOT included in this cycle's eligible set. These are
+    // jobs that SHOULD have been paid but were silently skipped — typically
+    // because completed_at fell outside the pay-period window or is missing.
+    // Without this check, a fulfillment-status bug or pay-period edge case
+    // causes a partner to miss their Friday pay with zero admin visibility.
+    const paidJobIds = new Set(eligible.map(j => j.id));
+    const skippedUnpaid = completedJobs.filter(j =>
+      j.from_booking === true &&
+      j.booked_by &&
+      !j.paid_out_at &&
+      clientPaymentCleared(j) &&
+      !paidJobIds.has(j.id)
+    );
+    if (skippedUnpaid.length > 0) {
+      const skippedList = skippedUnpaid.slice(0, 10).map(j => {
+        const reason = !j.completed_at
+          ? 'missing completed_at'
+          : new Date(j.completed_at) < periodStart
+            ? 'completed before pay-period window'
+            : 'unknown';
+        return `${j.title || j.id} (${j.booked_by}, $${j.pay_rate || 0}): ${reason}`;
+      }).join(' | ');
+      await notifyAdminOfPayoutIssue(
+        `⚠️ WEEKLY PAYOUT WARNING\n${skippedUnpaid.length} fulfilled job(s) were NOT paid this cycle:\n${skippedList}`.slice(0, 1500)
+      );
+      for (const s of skippedUnpaid) {
+        errors.push({ email: s.booked_by, reason: `Fulfilled but not paid: ${!s.completed_at ? 'missing completed_at' : 'outside pay-period window'}` });
+      }
+    }
+
     // Immediate admin SMS if any partner payout failed.
     if (errors.length > 0) {
       const errorList = errors.map(e => `${e.email}: ${e.reason}`).join(' | ');
