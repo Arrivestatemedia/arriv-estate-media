@@ -62,7 +62,10 @@ export function clientPaymentCleared(job, now = new Date()) {
 export function getPayPeriodStartUTC() {
   const now = new Date();
   const day = now.getUTCDay(); // 0 = Sun ... 5 = Fri
-  const daysSinceFriday = (day + 2) % 7;
+  // On Friday itself, (day+2)%7 == 0 — which would make the pay-period start
+  // TODAY at 4am (a 45-minute window). We want LAST Friday (7 days ago) so the
+  // weekly run covers the full prior week. Convert 0 → 7.
+  const daysSinceFriday = ((day + 2) % 7) || 7;
   return new Date(Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),
