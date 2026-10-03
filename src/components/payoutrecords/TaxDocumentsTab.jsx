@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileCheck, Download, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { forceDownload, buildDocFilename } from "@/lib/forceDownload";
 
 export default function TaxDocumentsTab() {
   const [docs, setDocs] = useState([]);
@@ -35,7 +36,7 @@ export default function TaxDocumentsTab() {
     try {
       const res = await base44.functions.invoke("getPayoutRecords", { action: "download_document", document_id: doc.id });
       if (res.data?.download_url) {
-        window.open(res.data.download_url, "_blank");
+        await forceDownload(res.data.download_url, buildDocFilename(doc.title, "tax_document.pdf"));
       } else {
         alert(res.data?.error || "Could not download document.");
       }

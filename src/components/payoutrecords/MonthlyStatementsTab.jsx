@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Download, Loader2, Calendar } from "lucide-react";
+import { forceDownload, buildDocFilename } from "@/lib/forceDownload";
 
 export default function MonthlyStatementsTab() {
   const [docs, setDocs] = useState([]);
@@ -34,7 +35,7 @@ export default function MonthlyStatementsTab() {
     try {
       const res = await base44.functions.invoke("getPayoutRecords", { action: "download_document", document_id: doc.id });
       if (res.data?.download_url) {
-        window.open(res.data.download_url, "_blank");
+        await forceDownload(res.data.download_url, buildDocFilename(doc.title, "monthly_statement.pdf"));
       } else {
         alert(res.data?.error || "Could not download document.");
       }
