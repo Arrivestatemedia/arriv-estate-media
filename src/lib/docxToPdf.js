@@ -95,17 +95,19 @@ function collectItems(container) {
       const rects = range.getClientRects();
       if (rects.length === 0) continue;
       const rect = rects[0];
+      // Position relative to container border-box (already includes padding offset)
       const x = rect.left - containerRect.left;
       const y = rect.top - containerRect.top;
-      const page = Math.floor(y / CONTENT_HEIGHT_PX);
-      const yInPage = y - page * CONTENT_HEIGHT_PX;
+      // Page breaks every PAGE_HEIGHT_PX; yInPage is position from top of that page
+      const page = Math.floor(y / PAGE_HEIGHT_PX);
+      const yInPage = y - page * PAGE_HEIGHT_PX;
 
       items.push({
         kind: "text",
         page,
         text: word,
-        x: x + MARGIN_X_PX,
-        y: yInPage + MARGIN_Y_PX,
+        x,
+        y: yInPage,
         fontPx: fontSizePx,
         font: fontFamily,
         variant,
@@ -123,15 +125,15 @@ function collectItems(container) {
     if (rect.width === 0 || rect.height === 0) return;
     const x = rect.left - containerRect.left;
     const y = rect.top - containerRect.top;
-    const page = Math.floor(y / CONTENT_HEIGHT_PX);
-    const yInPage = y - page * CONTENT_HEIGHT_PX;
+    const page = Math.floor(y / PAGE_HEIGHT_PX);
+    const yInPage = y - page * PAGE_HEIGHT_PX;
     items.push({
       kind: "image",
       page,
       src: img.src,
       format: detectImageFormat(img.src),
-      x: x + MARGIN_X_PX,
-      y: yInPage + MARGIN_Y_PX,
+      x,
+      y: yInPage,
       w: rect.width,
       h: rect.height,
     });
@@ -189,17 +191,22 @@ export async function convertDocxToPdfBlob(docxFile) {
     });
 
     const maxPage = items.reduce((mx, it) => Math.max(mx, it.page), 0);
+    // jsPDF starts with 1 page; add the rest
     for (let p = 1; p <= maxPage; p++) {
-      if (p > 1) pdf.addPage();
+      pdf.addPage();
     }
 
     for (const item of items) {
+      // Switch to the correct page (1-indexed)
+      pdf.setPage(item.page + 1);
+
+      const xPt = item.x * PX_TO_PT;
+      const yPt = item.y * PX_TO_PT;
+
       if (item.kind === "text") {
         pdf.setFont(item.font, item.variant);
         pdf.setFontSize(item.fontPx * PX_TO_PT);
         pdf.setTextColor(item.color[0], item.color[1], item.color[2]);
-        const xPt = (item.x - MARGIN_X_PX) * PX_TO_PT + MARGIN_X_PX * PX_TO_PT;
-        const yPt = item.y * PX_TO_PT;
         pdf.text(item.text, xPt, yPt);
         if (item.underline) {
           pdf.setDrawColor(item.color[0], item.color[1], item.color[2]);
@@ -212,8 +219,8 @@ export async function convertDocxToPdfBlob(docxFile) {
           pdf.addImage(
             item.src,
             format,
-            (item.x - MARGIN_X_PX) * PX_TO_PT + MARGIN_X_PX * PX_TO_PT,
-            item.y * PX_TO_PT,
+            xPt,
+            yPt,
             item.w * PX_TO_PT,
             item.h * PX_TO_PT
           );
