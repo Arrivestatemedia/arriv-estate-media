@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, FileText, X, FileCheck, Trash2, PenTool, MousePointerClick, Eye, EyeOff } from "lucide-react";
+import { Loader2, Upload, FileText, X, FileCheck, PenTool, MousePointerClick, Eye, EyeOff } from "lucide-react";
 import { convertDocxToPdfBlob } from "@/lib/docxToPdf";
 import PdfFieldPlacer from "@/components/hireiq/PdfFieldPlacer";
 
@@ -109,14 +109,6 @@ const FIELD_TYPES = [
   { type: "text", label: "Text", placeholder: "Custom Text" },
   { type: "initial", label: "Initials", placeholder: "Initials" },
 ];
-
-const FIELD_COLORS = {
-  signature: "border-amber-400 bg-amber-50/80",
-  date: "border-[#B8956A] bg-[#B8956A]/10",
-  name: "border-green-400 bg-green-50/80",
-  text: "border-slate-400 bg-slate-50/80",
-  initial: "border-purple-400 bg-purple-50/80",
-};
 
 export default function SignDocumentEditorModal({ onClose, onSaved, existing, salesMemberId }) {
   const [title, setTitle] = useState(existing?.title || "");
