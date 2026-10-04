@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, FileText, X, FileCheck, Trash2, PenTool, MousePointerClick, Eye, EyeOff } from "lucide-react";
 import { convertDocxToPdfBlob } from "@/lib/docxToPdf";
+import PdfFieldPlacer from "@/components/hireiq/PdfFieldPlacer";
 
 const DOC_TYPES = [
   { value: "offer_letter", label: "Offer Letter" },
@@ -129,12 +130,10 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [pdfFields, setPdfFields] = useState(existing?.signature_fields || []);
-  const [currentPage, setCurrentPage] = useState(1);
   const [pendingFieldType, setPendingFieldType] = useState(null);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef(null);
-  const pdfAreaRef = useRef(null);
 
   // Create a signed URL for existing documents with a body_ref
   useEffect(() => {
@@ -216,32 +215,6 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
     }
   };
 
-  const handlePdfClick = (e) => {
-    if (!pendingFieldType) return;
-    const rect = pdfAreaRef.current.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-    const ft = FIELD_TYPES.find(f => f.type === pendingFieldType);
-    const label = newFieldLabel.trim() || ft?.placeholder || "Field";
-    const fieldId = `${label.replace(/\s+/g, "_").toLowerCase()}_${Date.now().toString(36)}`;
-    setPdfFields((prev) => [...prev, {
-      field_id: fieldId,
-      type: pendingFieldType,
-      label,
-      required: true,
-      x: Math.round(xPct * 10) / 10,
-      y: Math.round(yPct * 10) / 10,
-      page: currentPage,
-      width: pendingFieldType === "signature" || pendingFieldType === "name" ? 35 : 20,
-    }]);
-    setPendingFieldType(null);
-    setNewFieldLabel("");
-  };
-
-  const removePdfField = (idx) => {
-    setPdfFields((prev) => prev.filter((_, i) => i !== idx));
-  };
-
   const handleSave = async () => {
     if (!title.trim()) return setError("Title is required");
     if (sourceType === "upload" && !fileUri) return setError("Please upload a PDF");
@@ -270,8 +243,6 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
       setSaving(false);
     }
   };
-
-  const pdfUrl = pdfSignedUrl ? `${pdfSignedUrl}#page=${currentPage}` : "";
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
@@ -455,23 +426,13 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
                         className={`text-xs px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 border-2 transition-colors ${
                           pendingFieldType === ft.type
                             ? "bg-[#B8956A] text-white border-[#B8956A]"
-                            : `bg-white text-slate-600 border-slate-200 hover:border-[#B8956A]/40 ${FIELD_COLORS[ft.type]}`
+                            : `bg-white text-slate-600 border-slate-200 hover:border-[#B8956A]/40`
                         }`}
                       >
                         {pendingFieldType === ft.type ? <MousePointerClick className="w-3 h-3" /> : <PenTool className="w-3 h-3" />}
                         {ft.label}
                       </button>
                     ))}
-                    <div className="flex items-center gap-1 ml-auto">
-                      <Label className="text-xs text-slate-500">Page:</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={currentPage}
-                        onChange={(e) => setCurrentPage(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 h-8 text-sm"
-                      />
-                    </div>
                   </div>
 
                   {pendingFieldType && (
@@ -485,51 +446,15 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
                     </div>
                   )}
 
-                  <div
-                    ref={pdfAreaRef}
-                    onClick={handlePdfClick}
-                    className={`relative w-full border-2 rounded-lg overflow-hidden ${pendingFieldType ? "cursor-crosshair border-[#B8956A]" : "border-slate-200"}`}
-                    style={{ height: "800px" }}
-                  >
-                    <iframe
-                      src={pdfUrl}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ pointerEvents: pendingFieldType ? "none" : "auto" }}
-                      title="PDF Preview"
+                  <div className="border-2 border-slate-200 rounded-lg p-4 overflow-x-auto bg-slate-50">
+                    <PdfFieldPlacer
+                      pdfUrl={pdfSignedUrl}
+                      fields={pdfFields}
+                      onFieldsChange={setPdfFields}
+                      pendingFieldType={pendingFieldType}
+                      onPendingFieldPlaced={() => { setPendingFieldType(null); setNewFieldLabel(""); }}
+                      newFieldLabel={newFieldLabel}
                     />
-                    {pdfFields.filter(f => f.page === currentPage || (!f.page && currentPage === 1)).map((f) => {
-                      const realIdx = pdfFields.indexOf(f);
-                      return (
-                        <div
-                          key={f.field_id}
-                          className={`absolute border-2 rounded-md shadow-sm ${FIELD_COLORS[f.type] || FIELD_COLORS.text}`}
-                          style={{
-                            left: `${f.x}%`,
-                            top: `${f.y}%`,
-                            width: `${f.width}%`,
-                            minHeight: "40px",
-                            pointerEvents: "auto",
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center justify-between px-1.5 py-0.5">
-                            <span className="text-xs font-medium text-slate-700 capitalize">{f.label}</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removePdfField(realIdx); }}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <div className="text-xs text-slate-400 px-1.5 pb-1 capitalize">{f.type}</div>
-                        </div>
-                      );
-                    })}
-                    {pendingFieldType && (
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[#B8956A] text-white text-xs px-3 py-1 rounded-full shadow-lg">
-                        Click on the PDF to place the {pendingFieldType} field
-                      </div>
-                    )}
                   </div>
 
                   <p className="text-xs text-slate-500 mt-2">
