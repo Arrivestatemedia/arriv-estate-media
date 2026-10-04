@@ -50,7 +50,11 @@
     },
     "body_ref": {
       "type": "string",
-      "description": "For source_type=upload: the private file_uri of the PDF. Frozen at send time."
+      "description": "For source_type=upload: the private file_uri of the original PDF. Frozen at send time."
+    },
+    "cleaned_body_ref": {
+      "type": "string",
+      "description": "Private file_uri of the PDF with placeholder text physically removed from the content stream. Used for both the signing preview and the final signed PDF generation. Empty when no cleaning was needed or for editor docs."
     },
     "signature_fields": {
       "type": "array",
@@ -78,10 +82,12 @@
             "default": true
           },
           "x": {
-            "type": "number"
+            "type": "number",
+            "description": "Horizontal position as a percentage (0-100) of the PDF page width. Frozen from SignDocument at send time."
           },
           "y": {
-            "type": "number"
+            "type": "number",
+            "description": "Vertical position as a percentage (0-100) of the PDF page height."
           },
           "page": {
             "type": "integer",
@@ -90,20 +96,57 @@
           "width": {
             "type": "number",
             "default": 30
+          },
+          "height_pct": {
+            "type": "number",
+            "default": 3,
+            "description": "Field height as a percentage (0-100) of the PDF page height. Frozen from SignDocument at send time."
+          },
+          "assigned_signer": {
+            "type": "string",
+            "description": "Email of the signer assigned to this field. Frozen from SignDocument at send time."
+          },
+          "placeholder_text": {
+            "type": "string",
+            "description": "The original document text at this field's position that was physically removed from the PDF content stream. Frozen from SignDocument at send time."
+          },
+          "static_value": {
+            "type": "string",
+            "description": "For 'text' fields: admin-authored content burned into the document. Frozen from SignDocument at send time. When set, the field is read-only (not signer-fillable) and rendered on the final signed PDF."
           }
         }
       },
       "default": [],
-      "description": "Snapshot of signature field definitions from the SignDocument at send time."
+      "description": "Snapshot of signature field definitions from the SignDocument at send time. Frozen so the signed record matches what the candidate saw."
     },
     "signature_field_values": {
       "type": "object",
-      "description": "Map of field_id to the value the signer entered. Populated on signature submission.",
+      "description": "Map of field_id to the value the signer entered for that field. Populated on signature submission. For drawn signatures, the value is a file_uri (not a data URL).",
       "default": {}
     },
     "application_id": {
       "type": "string",
-      "description": "JobApplication ID this request was sent to. Empty for standalone recipients."
+      "description": "JobApplication ID this request was sent to. Empty for standalone recipients (free-form email)."
+    },
+    "sign_group_id": {
+      "type": "string",
+      "description": "Links multiple SignRequests that are part of the same multi-signer document."
+    },
+    "signing_order": {
+      "type": "integer",
+      "description": "1-based position of this signer in the signing succession. Signer 1 can sign immediately; signer N (N>1) cannot sign until all signers 1..N-1 in the same sign_group_id have signed. 0 or 1 = no ordering constraint."
+    },
+    "sign_group_total": {
+      "type": "integer",
+      "description": "Total number of signers in this sign_group_id."
+    },
+    "signer_email": {
+      "type": "string",
+      "description": "The specific signer this request was sent to (for multi-signer documents). Falls back to candidate_email for single-signer documents."
+    },
+    "signer_name": {
+      "type": "string",
+      "description": "The specific signer's display name. Falls back to candidate_name for single-signer documents."
     },
     "candidate_name": {
       "type": "string",
@@ -115,7 +158,7 @@
     },
     "sign_token": {
       "type": "string",
-      "description": "Opaque token used to access the standalone signing page without login. Cryptographically random."
+      "description": "Opaque token used to access the standalone signing page (/sign/:token) without login. Cryptographically random."
     },
     "status": {
       "type": "string",
@@ -128,7 +171,7 @@
         "expired"
       ],
       "default": "sent",
-      "description": "Current lifecycle status"
+      "description": "Current lifecycle status of this sign request"
     },
     "signing_location": {
       "type": "string",
@@ -141,7 +184,7 @@
     },
     "signature_value": {
       "type": "string",
-      "description": "The typed name, or '[Drawn Signature]' if drawn."
+      "description": "The typed name the candidate entered, or '[Drawn Signature]' if they drew it."
     },
     "signature_method": {
       "type": "string",
@@ -155,19 +198,19 @@
     },
     "ip_address": {
       "type": "string",
-      "description": "IP address of the signer (audit trail)"
+      "description": "IP address of the signer at the moment of signature (audit trail)"
     },
     "user_agent": {
       "type": "string",
-      "description": "User-Agent of the signer (audit trail)"
-    },
-    "orientation_document_id": {
-      "type": "string",
-      "description": "ID of the OrientationDocument audit-trail record created when signed."
+      "description": "User-Agent header of the signer at the moment of signature (audit trail)"
     },
     "signed_pdf_uri": {
       "type": "string",
-      "description": "Private file_uri of the generated signed PDF. Created by submitSignature on signing."
+      "description": "Private file_uri of the final signed PDF generated after signature."
+    },
+    "orientation_document_id": {
+      "type": "string",
+      "description": "ID of the OrientationDocument audit-trail record created when this request was signed."
     },
     "sent_by_name": {
       "type": "string",

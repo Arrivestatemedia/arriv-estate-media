@@ -60,7 +60,7 @@
         "properties": {
           "field_id": {
             "type": "string",
-            "description": "Stable field identifier."
+            "description": "Stable field identifier. For editor docs, derived from the placeholder label. For upload docs, auto-generated."
           },
           "type": {
             "type": "string",
@@ -71,33 +71,52 @@
               "text",
               "initial"
             ],
-            "default": "signature"
+            "default": "signature",
+            "description": "Field type."
           },
           "label": {
             "type": "string",
-            "description": "Display label shown to the signer"
+            "description": "Display label shown to the signer next to the field"
           },
           "required": {
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "Whether the signer must fill this field before submitting"
           },
           "x": {
             "type": "number",
-            "description": "Horizontal position as percentage (0-100) of PDF page width. For upload docs."
+            "description": "Horizontal position as a percentage (0-100) of the PDF page width. Used for upload/PDF documents. Empty for editor documents."
           },
           "y": {
             "type": "number",
-            "description": "Vertical position as percentage (0-100) of PDF page height. For upload docs."
+            "description": "Vertical position as a percentage (0-100) of the PDF page height. Used for upload/PDF documents."
           },
           "page": {
             "type": "integer",
             "default": 1,
-            "description": "PDF page number (1-indexed)."
+            "description": "PDF page number this field is placed on (1-indexed)."
           },
           "width": {
             "type": "number",
             "default": 30,
-            "description": "Field width as percentage (0-100) of PDF page width."
+            "description": "Field width as a percentage (0-100) of the PDF page width."
+          },
+          "height_pct": {
+            "type": "number",
+            "default": 3,
+            "description": "Field height as a percentage (0-100) of the PDF page height. Set by the admin when placing fields."
+          },
+          "assigned_signer": {
+            "type": "string",
+            "description": "Email address of the signer assigned to this field. When set, only that signer sees and fills this field. Empty = assigned to the primary recipient."
+          },
+          "placeholder_text": {
+            "type": "string",
+            "description": "The original document text at this field's position that will be physically removed from the PDF content stream when the document is sent for signing."
+          },
+          "static_value": {
+            "type": "string",
+            "description": "For 'text' fields: admin-authored content burned into the document. When set, the field is NOT signer-fillable \u2014 it renders as read-only text. Empty = the signer fills in this field."
           }
         },
         "required": [
@@ -107,12 +126,12 @@
         ]
       },
       "default": [],
-      "description": "Signature field definitions."
+      "description": "Signature field definitions. For editor docs, fields are placed inline via placeholders. For upload docs, fields are overlaid on the PDF at their x/y/page positions."
     },
     "version": {
       "type": "string",
       "default": "1.0",
-      "description": "Document version label."
+      "description": "Document version label. Incrementing this triggers re-sign for new requests; existing signed requests retain their snapshot."
     },
     "active": {
       "type": "boolean",

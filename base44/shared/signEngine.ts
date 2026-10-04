@@ -117,8 +117,11 @@ export async function recordSignAudit(base44, opts) {
 }
 
 // Shared function to create a SignRequest record. Returns { signRequest, signToken }.
+// Supports multi-signer documents via signGroupId, signingOrder, signGroupTotal,
+// and field-level signer assignment via assignedFields.
 export async function createSignRequest(base44, opts) {
-  const { doc, recipient, config, admin, signingLocation, expiresAt } = opts;
+  const { doc, recipient, config, admin, signingLocation, expiresAt,
+          assignedFields, signGroupId, signingOrder, signGroupTotal } = opts;
 
   let candidateName = recipient.name || "";
   let candidateEmail = recipient.email || "";
@@ -168,8 +171,13 @@ export async function createSignRequest(base44, opts) {
     source_type: doc.source_type,
     merged_body_html: mergedBodyHtml,
     body_ref: bodyRef,
-    signature_fields: doc.signature_fields || [],
+    signature_fields: assignedFields || doc.signature_fields || [],
     application_id: applicationId,
+    sign_group_id: signGroupId || "",
+    signing_order: signingOrder || 0,
+    sign_group_total: signGroupTotal || 0,
+    signer_email: candidateEmail,
+    signer_name: candidateName,
     candidate_name: candidateName,
     candidate_email: candidateEmail,
     sign_token: signToken,

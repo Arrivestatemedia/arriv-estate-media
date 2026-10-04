@@ -17,6 +17,10 @@ interface SignatureField {
   y?: number;
   page?: number;
   width?: number;
+  height_pct?: number;
+  assigned_signer?: string;
+  placeholder_text?: string;
+  static_value?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -227,7 +231,8 @@ export async function buildSignedPdfFromUpload(opts: {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   for (const field of opts.signatureFields) {
-    const value = opts.fieldValues[field.field_id] || "";
+    // Static value fields: render as read-only text (admin-authored content)
+    const value = field.static_value || opts.fieldValues[field.field_id] || "";
     if (!value) continue;
 
     const pageNum = (field.page || 1) - 1;
@@ -238,6 +243,11 @@ export async function buildSignedPdfFromUpload(opts: {
     const x = ((field.x || 0) / 100) * pageW;
     const yTop = ((field.y || 0) / 100) * pageH;
     const y = pageH - yTop; // PDF y is from bottom
+    const fieldWidth = ((field.width || 30) / 100) * pageW;
+    const fieldHeight = ((field.height_pct || 3) / 100) * pageH;
+    const yBottom = y - fieldHeight;
+    const textSize = Math.max(6, Math.min(18, fieldHeight / 1.15));
+    const textBaseline = yBottom + fieldHeight * 0.2;
 
     if ((field.type === "signature" || field.type === "initial") && value.startsWith("data:image/")) {
       // Drawn signature — embed as image
@@ -249,30 +259,30 @@ export async function buildSignedPdfFromUpload(opts: {
         } catch {
           img = await pdfDoc.embedJpg(imgBytes);
         }
-        const fieldWidth = ((field.width || 30) / 100) * pageW;
-        const imgHeight = fieldWidth * (img.height / img.width);
+        const scale = Math.min(fieldWidth / img.width, fieldHeight / img.height);
+        const w = img.width * scale, h = img.height * scale;
         page.drawImage(img, {
           x,
-          y: y - imgHeight,
-          width: fieldWidth,
-          height: imgHeight,
+          y: yBottom + (fieldHeight - h) / 2,
+          width: w,
+          height: h,
         });
       } catch {
         // Fall back to text
         page.drawText("[Drawn Signature]", {
           x,
-          y: y - 14,
-          size: 12,
+          y: textBaseline,
+          size: textSize,
           font,
           color: rgb(0, 0, 0),
         });
       }
     } else {
-      // Text value
+      // Text value (including static_value)
       page.drawText(value, {
         x,
-        y: y - 14,
-        size: 12,
+        y: textBaseline,
+        size: textSize,
         font,
         color: rgb(0, 0, 0),
       });

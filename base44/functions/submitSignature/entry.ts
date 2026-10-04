@@ -4,6 +4,8 @@ import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { buildSignedPdfFromHtml, buildSignedPdfFromUpload, uint8ArrayToBase64 } from '../../shared/signedDocumentPdf.ts';
 
 // Public endpoint — no auth required. The sign_token identifies the request.
+// Supports multi-signer signing succession, drawn signature upload to private
+// storage, and static_value fields (admin-authored, not signer-fillable).
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,6 +32,23 @@ export default async function(req) {
       return Response.json({ error: `This document has already been ${signRequest.status}` }, { status: 409 });
     }
 
+    // Signing succession enforcement for multi-signer documents
+    if (signRequest.signing_order && signRequest.signing_order > 1 && signRequest.sign_group_id) {
+      const groupReqs = await base44.asServiceRole.entities.SignRequest.filter(
+        { sign_group_id: signRequest.sign_group_id }, '-sent_at', 50
+      );
+      const all = (Array.isArray(groupReqs) ? groupReqs : (groupReqs?.data || [])) || [];
+      const pending = all.filter(
+        r => (r.signing_order || 0) > 0 && (r.signing_order || 0) < signRequest.signing_order && r.status !== 'signed'
+      );
+      if (pending.length > 0) {
+        const next = pending.sort((a, b) => (a.signing_order || 0) - (b.signing_order || 0))[0];
+        return Response.json({
+          error: `You cannot sign yet. ${next.signer_name || next.candidate_name || 'A previous signer'} must sign first.`,
+        }, { status: 409 });
+      }
+    }
+
     const now = new Date().toISOString();
 
     // DECLINE
@@ -43,22 +62,56 @@ export default async function(req) {
       return Response.json({ success: true, status: 'declined' });
     }
 
-    // SIGN — validate required fields
+    // SIGN — validate required fields (skip static_value fields — they're admin-authored)
     const fields = signRequest.signature_fields || [];
-    const missingRequired = fields.filter(f => f.required && !(fieldValues[f.field_id] || '').trim());
+    const missingRequired = fields.filter(
+      f => f.required && !f.static_value && !(fieldValues[f.field_id] || '').trim()
+    );
     if (missingRequired.length > 0) {
-      return Response.json({ error: `Please fill in all required fields: ${missingRequired.map(f => f.label).join(', ')}` }, { status: 400 });
+      return Response.json({
+        error: `Please fill in all required fields: ${missingRequired.map(f => f.label).join(', ')}`,
+      }, { status: 400 });
+    }
+
+    // Merge static_value into field values (admin-authored content burned into the doc)
+    const mergedValues = { ...fieldValues };
+    for (const f of fields) {
+      if (f.static_value && !mergedValues[f.field_id]) {
+        mergedValues[f.field_id] = f.static_value;
+      }
+    }
+
+    // Upload drawn signatures to private storage, store file_uri (not data URL)
+    const storedValues = { ...mergedValues };
+    let drawnDataUrl = '';
+    for (const f of fields) {
+      const val = mergedValues[f.field_id] || '';
+      if ((f.type === 'signature' || f.type === 'initial') && val.startsWith('data:image/')) {
+        if (!drawnDataUrl) drawnDataUrl = val; // keep first drawn sig for audit
+        try {
+          const base64 = val.split(',')[1];
+          const byteChars = atob(base64);
+          const byteArray = new Uint8Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+          const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
+            file: new File([byteArray], `sig-${f.field_id}.png`, { type: 'image/png' }),
+          });
+          if (uploadRes?.file_uri) storedValues[f.field_id] = uploadRes.file_uri;
+        } catch (e) {
+          console.error('Failed to upload drawn signature:', e.message);
+        }
+      }
     }
 
     const sigField = fields.find(f => f.type === 'signature');
     const rawSigValue = (sigField ? fieldValues[sigField.field_id] : '') || fieldValues['signature'] || signRequest.candidate_name || '';
-
     const isDrawn = rawSigValue.startsWith('data:image/');
     const signatureMethod = isDrawn ? 'drawn' : 'typed';
     const signatureValue = isDrawn ? '[Drawn Signature]' : rawSigValue;
-    const drawnDataUrl = isDrawn ? rawSigValue : '';
 
-    if (!rawSigValue.trim()) return Response.json({ error: 'Please type your full name or draw your signature to sign' }, { status: 400 });
+    if (!rawSigValue.trim()) {
+      return Response.json({ error: 'Please type your full name or draw your signature to sign' }, { status: 400 });
+    }
 
     // Create the OrientationDocument audit-trail record
     const orientationDocId = await recordSignAudit(base44, {
@@ -83,7 +136,7 @@ export default async function(req) {
       signed_at: now,
       signature_value: signatureValue,
       signature_method: signatureMethod,
-      signature_field_values: fieldValues,
+      signature_field_values: storedValues,
       ip_address: ipAddress,
       user_agent: userAgent,
       orientation_document_id: orientationDocId,
@@ -107,20 +160,18 @@ export default async function(req) {
       let pdfBytes = null;
 
       if (signRequest.source_type === 'editor') {
-        // Editor doc: render HTML + signature values into a new PDF
         pdfBytes = await buildSignedPdfFromHtml({
           html: signRequest.merged_body_html || '',
           signatureFields: signRequest.signature_fields || [],
-          fieldValues: fieldValues,
+          fieldValues: mergedValues,
           documentTitle: signRequest.document_title || '',
           candidateName: signRequest.candidate_name || '',
           signedAt: now,
         });
-      } else if (signRequest.source_type === 'upload' && signRequest.body_ref) {
-        // Upload doc: fetch the original PDF and overlay signatures
+      } else if (signRequest.source_type === 'upload' && (signRequest.cleaned_body_ref || signRequest.body_ref)) {
         try {
           const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-            file_uri: signRequest.body_ref,
+            file_uri: signRequest.cleaned_body_ref || signRequest.body_ref,
             expires_in: 300,
           });
           if (signed?.signed_url) {
@@ -129,7 +180,7 @@ export default async function(req) {
             pdfBytes = await buildSignedPdfFromUpload({
               pdfBytes: originalBytes,
               signatureFields: signRequest.signature_fields || [],
-              fieldValues: fieldValues,
+              fieldValues: mergedValues,
             });
           }
         } catch (e) {
@@ -160,7 +211,6 @@ export default async function(req) {
       const fileName = `${(signRequest.document_title || 'document').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       const attachments = pdfBase64 ? [{ content: pdfBase64, name: fileName }] : [];
 
-      // 1. Candidate confirmation email
       const candidateHtml = buildSignConfirmationEmailHtml(firstName, signRequest.document_title, signatureValue, signatureMethod, signedAtStr);
       await sendBrevoEmail({
         to: signRequest.candidate_email,
@@ -169,7 +219,6 @@ export default async function(req) {
         attachments,
       });
 
-      // 2. Admin notification email (if we have the sender's email)
       if (signRequest.sent_by_email) {
         const adminHtml = buildSignAdminNotificationEmailHtml(
           signRequest.candidate_name,

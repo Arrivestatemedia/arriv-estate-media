@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, X, Send, Search, User, Mail } from "lucide-react";
+import { Loader2, X, Send, Search, User, Mail, Users, Plus, Trash2 } from "lucide-react";
 
 export default function SendSignRequestModal({ onClose, onSent, salesMemberId, preselectedDocumentId }) {
   const [documents, setDocuments] = useState([]);
@@ -16,6 +16,8 @@ export default function SendSignRequestModal({ onClose, onSent, salesMemberId, p
   const [selectedApp, setSelectedApp] = useState(null);
   const [manualName, setManualName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
+  const [multiRecipients, setMultiRecipients] = useState([{ name: "", email: "" }]);
+  const [requireOrder, setRequireOrder] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -82,10 +84,15 @@ export default function SendSignRequestModal({ onClose, onSent, salesMemberId, p
       if (recipientMode === "applicant") {
         if (!selectedApp) return setError("Please select an applicant");
         payload.application_id = selectedApp.id;
-      } else {
+      } else if (recipientMode === "manual") {
         if (!manualEmail.trim()) return setError("Please enter a recipient email");
         payload.recipient_email = manualEmail.trim();
         payload.recipient_name = manualName.trim();
+      } else if (recipientMode === "multi") {
+        const valid = multiRecipients.filter(r => r.email.trim());
+        if (valid.length < 2) return setError("Add at least 2 recipients for multi-signer");
+        payload.recipients = valid.map(r => ({ email: r.email.trim(), name: r.name.trim() }));
+        payload.require_signing_order = requireOrder;
       }
       const res = await base44.functions.invoke("sendSignRequest", payload);
       const data = res?.data ?? res;
@@ -153,6 +160,16 @@ export default function SendSignRequestModal({ onClose, onSent, salesMemberId, p
               >
                 <Mail className="w-4 h-4" /> Manual Entry
               </button>
+              <button
+                onClick={() => setRecipientMode("multi")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
+                  recipientMode === "multi"
+                    ? "bg-[#B8956A] text-white border-[#B8956A]"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-[#B8956A]/40"
+                }`}
+              >
+                <Users className="w-4 h-4" /> Multi-Signer
+              </button>
             </div>
           </div>
 
@@ -196,7 +213,7 @@ export default function SendSignRequestModal({ onClose, onSent, salesMemberId, p
                 </div>
               )}
             </div>
-          ) : (
+          ) : recipientMode === "manual" ? (
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-medium text-slate-700">Recipient Name</Label>
@@ -217,6 +234,60 @@ export default function SendSignRequestModal({ onClose, onSent, salesMemberId, p
                   className="mt-1.5"
                 />
               </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">Add multiple recipients. Each will receive their own signing link. Fields with an assigned signer will only be visible to that signer.</p>
+              {multiRecipients.map((r, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      value={r.name}
+                      onChange={(e) => {
+                        const next = [...multiRecipients];
+                        next[idx] = { ...next[idx], name: e.target.value };
+                        setMultiRecipients(next);
+                      }}
+                      placeholder={`Signer ${idx + 1} name`}
+                      className="text-sm"
+                    />
+                    <Input
+                      type="email"
+                      value={r.email}
+                      onChange={(e) => {
+                        const next = [...multiRecipients];
+                        next[idx] = { ...next[idx], email: e.target.value };
+                        setMultiRecipients(next);
+                      }}
+                      placeholder="email@example.com"
+                      className="text-sm"
+                    />
+                  </div>
+                  {multiRecipients.length > 2 && (
+                    <button
+                      onClick={() => setMultiRecipients(multiRecipients.filter((_, i) => i !== idx))}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg mt-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={() => setMultiRecipients([...multiRecipients, { name: "", email: "" }])}
+                className="text-sm text-[#B8956A] hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Add another signer
+              </button>
+              <label className="flex items-center gap-2 text-sm text-slate-600 pt-2">
+                <input
+                  type="checkbox"
+                  checked={requireOrder}
+                  onChange={(e) => setRequireOrder(e.target.checked)}
+                  className="w-4 h-4 accent-[#B8956A]"
+                />
+                Require signing order (signers sign one at a time, in order)
+              </label>
             </div>
           )}
 

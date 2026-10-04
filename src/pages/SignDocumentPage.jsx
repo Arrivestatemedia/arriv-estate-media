@@ -49,6 +49,7 @@ export default function SignDocumentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null); // "signed" | "declined" | null
   const [submitError, setSubmitError] = useState("");
+  const [waiting, setWaiting] = useState(null);
 
   const loadDoc = useCallback(async () => {
     setLoading(true);
@@ -56,6 +57,11 @@ export default function SignDocumentPage() {
     try {
       const res = await base44.functions.invoke("getSignRequest", { token });
       const data = res?.data ?? res;
+      if (data?.waiting) {
+        setWaiting(data);
+        setDocData(null);
+        return;
+      }
       if (data?.error) {
         setError(data.error);
         setDocData(null);
@@ -172,6 +178,22 @@ export default function SignDocumentPage() {
     );
   }
 
+  // Waiting state (multi-signer succession)
+  if (waiting) {
+    return (
+      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-[#B8956A]/25 p-8 text-center shadow-lg">
+          <Loader2 className="w-12 h-12 text-[#B8956A] mx-auto mb-4 animate-spin" />
+          <h1 className="text-xl font-bold text-[#1A1A1A] mb-2">Waiting for Previous Signer</h1>
+          <p className="text-sm text-slate-500 mb-2"><strong>{waiting.document_title}</strong></p>
+          <p className="text-sm text-slate-500">You are signer {waiting.your_order} of {waiting.sign_group_total}. {waiting.waiting_for} must sign before you can sign this document.</p>
+          <p className="text-xs text-slate-400 mt-4 mb-4">Check back once they've signed.</p>
+          <Button variant="outline" onClick={() => loadDoc()} className="border-[#B8956A]/30 text-[#B8956A] hover:bg-[#B8956A]/5">Check Again</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Error state (invalid/expired token)
   if (error && !docData) {
     return (
@@ -196,7 +218,7 @@ export default function SignDocumentPage() {
   const allFields = docData.source_type === "editor"
     ? segments.filter(s => s.type === "field")
     : uploadFields;
-  const requiredFields = allFields.filter(f => f.required !== false);
+  const requiredFields = allFields.filter(f => f.required !== false && !f.static_value);
   const allRequiredFilled = requiredFields.every(f => (fieldValues[f.field_id] || fieldValues[f.fieldId] || "").trim());
 
   return (
@@ -283,21 +305,24 @@ export default function SignDocumentPage() {
                   title="Document PDF"
                 />
                 {uploadFields.map((f, idx) => {
-                  const value = fieldValues[f.field_id] || "";
-                  const borderColor = FIELD_BORDER_COLORS[f.type] || "border-slate-400";
+                  const isStatic = !!f.static_value;
+                  const value = isStatic ? f.static_value : (fieldValues[f.field_id] || "");
+                  const borderColor = isStatic ? "border-slate-300" : (FIELD_BORDER_COLORS[f.type] || "border-slate-400");
                   return (
                     <div
                       key={f.field_id || idx}
-                      className={`absolute border-2 ${borderColor} rounded-md bg-white/90 shadow-sm`}
+                      className={`absolute border-2 ${borderColor} rounded-md ${isStatic ? "bg-slate-50" : "bg-white/90"} shadow-sm`}
                       style={{
                         left: `${f.x}%`,
                         top: `${f.y}%`,
                         width: `${f.width}%`,
-                        minHeight: "50px",
+                        minHeight: "40px",
                       }}
                     >
-                      <div className="text-xs text-slate-400 px-1.5 pt-0.5">{f.label} *</div>
-                      {f.type === "signature" || f.type === "initial" ? (
+                      <div className="text-xs text-slate-400 px-1.5 pt-0.5">{f.label}{f.required !== false && !isStatic && " *"}</div>
+                      {isStatic ? (
+                        <div className="px-1.5 pb-1.5 text-sm text-slate-600">{value}</div>
+                      ) : f.type === "signature" || f.type === "initial" ? (
                         <div className="px-1.5 pb-1.5">
                           {value && value.startsWith("data:image/") ? (
                             <img src={value} alt="Signature" className="h-10 max-w-full" />
@@ -339,7 +364,7 @@ export default function SignDocumentPage() {
             <PenTool className="w-4 h-4 text-[#B8956A]" /> Complete Your Signature
           </h3>
 
-          {(docData.source_type === "editor" ? segments.filter(s => s.type === "field") : uploadFields).length === 0 ? (
+          {(docData.source_type === "editor" ? segments.filter(s => s.type === "field") : uploadFields.filter(f => !f.static_value)).length === 0 ? (
             /* No fields defined — show a default signature pad */
             <div>
               <Label className="text-sm text-slate-600 mb-1 block">Your Full Name (Signature)</Label>
@@ -353,7 +378,7 @@ export default function SignDocumentPage() {
             <div className="space-y-4">
               {(docData.source_type === "editor"
                 ? segments.filter(s => s.type === "field")
-                : uploadFields
+                : uploadFields.filter(f => !f.static_value)
               ).map((f, idx) => {
                 const fieldId = f.field_id || f.fieldId;
                 const value = fieldValues[fieldId] || "";
