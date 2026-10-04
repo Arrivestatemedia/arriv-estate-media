@@ -110,6 +110,15 @@ const FIELD_TYPES = [
   { type: "initial", label: "Initials", placeholder: "Initials" },
 ];
 
+// Fetches a private file as a blob and returns a local object URL for preview.
+const createPreviewFromUri = async (uri) => {
+  const res = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 });
+  const signedUrl = (res?.data || res)?.signed_url;
+  if (!signedUrl) throw new Error("Could not open the stored document");
+  const blob = await (await fetch(signedUrl)).blob();
+  return URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+};
+
 export default function SignDocumentEditorModal({ onClose, onSaved, existing, salesMemberId }) {
   const [title, setTitle] = useState(existing?.title || "");
   const [docType, setDocType] = useState(existing?.document_type || "offer_letter");
@@ -127,17 +136,19 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef(null);
 
-  // Create a signed URL for existing documents with a body_ref
+  // Load the stored PDF as a local blob URL (strips the download-forcing
+  // Content-Disposition header the private signed URL carries).
   useEffect(() => {
-    if (existing?.body_ref && !pdfSignedUrl) {
-      base44.integrations.Core.CreateFileSignedUrl({ file_uri: existing.body_ref, expires_in: 3600 })
-        .then((res) => {
-          const data = res?.data || res;
-          if (data?.signed_url) setPdfSignedUrl(data.signed_url);
-        })
-        .catch(() => {});
-    }
+    if (!existing?.body_ref || pdfSignedUrl) return;
+    createPreviewFromUri(existing.body_ref)
+      .then(setPdfSignedUrl)
+      .catch((e) => setError(e.message || "Could not load the document preview"));
   }, [existing?.body_ref]);
+
+  // Release blob URLs when replaced or when the modal closes.
+  useEffect(() => () => {
+    if (pdfSignedUrl.startsWith("blob:")) URL.revokeObjectURL(pdfSignedUrl);
+  }, [pdfSignedUrl]);
 
   const handleUpload = async (file) => {
     if (!file) return;
@@ -165,10 +176,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
       if (!uri) throw new Error("Upload failed — no file URI returned");
       setFileUri(uri);
       setFileName(displayName);
-      // Create a signed URL so the iframe can actually display the private PDF
-      const signedRes = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 });
-      const signedData = signedRes?.data || signedRes;
-      setPdfSignedUrl(signedData?.signed_url || "");
+      setPdfSignedUrl(URL.createObjectURL(pdfFile));
     } catch (e) {
       setError(e.message || "Upload failed");
     } finally {

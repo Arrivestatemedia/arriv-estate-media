@@ -1,30 +1,21 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { PenTool, Keyboard, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import React, { useRef, useState, useEffect } from "react";
 
-// Reusable signature drawing pad with a "type instead" fallback.
-// Calls onChange(value) where value is either a data URL (drawn) or typed text.
-export default function SignaturePad({ value, onChange, placeholder, className }) {
+const INK = "#0F172A";
+const isDataUrl = (v) => typeof v === "string" && v.startsWith("data:image/");
+
+// Signature drawing pad with a "type instead" fallback. Fills its parent.
+// onChange receives a PNG data URL (drawn) or plain text (typed).
+export default function SignaturePad({ value, onChange, placeholder = "Draw your signature" }) {
   const canvasRef = useRef(null);
-  const ctxRef = useRef(null);
   const drawingRef = useRef(false);
-  const lastPointRef = useRef(null);
-  const [mode, setMode] = useState("draw");
-  const [typedValue, setTypedValue] = useState("");
-  const [hasDrawn, setHasDrawn] = useState(false);
+  const lastRef = useRef(null);
+  const drawnRef = useRef(isDataUrl(value));
+  const [mode, setMode] = useState(value && !isDataUrl(value) ? "type" : "draw");
+  const [hasDrawn, setHasDrawn] = useState(isDataUrl(value));
+  const [typed, setTyped] = useState(value && !isDataUrl(value) ? value : "");
 
   useEffect(() => {
-    if (!value) return;
-    if (value.startsWith("data:image/")) {
-      setMode("draw");
-      setHasDrawn(true);
-    } else {
-      setMode("type");
-      setTypedValue(value);
-    }
-  }, []);
-
-  useEffect(() => {
+    if (mode !== "draw") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -34,117 +25,97 @@ export default function SignaturePad({ value, onChange, placeholder, className }
     ctx.scale(2, 2);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#1A1A1A";
+    ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
-    ctxRef.current = ctx;
-  }, [mode]);
-
-  const getPos = useCallback((e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  }, []);
-
-  const startDraw = useCallback((e) => {
-    e.preventDefault();
-    drawingRef.current = true;
-    lastPointRef.current = getPos(e);
-  }, [getPos]);
-
-  const draw = useCallback((e) => {
-    if (!drawingRef.current || !ctxRef.current) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    const last = lastPointRef.current;
-    const ctx = ctxRef.current;
-    ctx.beginPath();
-    ctx.moveTo(last.x, last.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    lastPointRef.current = pos;
-    if (!hasDrawn) setHasDrawn(true);
-  }, [getPos, hasDrawn]);
-
-  const endDraw = useCallback(() => {
-    if (!drawingRef.current) return;
-    drawingRef.current = false;
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const dataUrl = canvas.toDataURL("image/png");
-      onChange?.(dataUrl);
+    // Re-show a previously drawn signature when the pad is reopened.
+    if (isDataUrl(value)) {
+      const img = new Image();
+      img.onload = () => {
+        const s = Math.min(rect.width / img.width, rect.height / img.height);
+        const w = img.width * s;
+        const h = img.height * s;
+        ctx.drawImage(img, (rect.width - w) / 2, (rect.height - h) / 2, w, h);
+      };
+      img.src = value;
     }
-  }, [onChange]);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const clear = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasDrawn(false);
-    onChange?.("");
-  }, [onChange]);
-
-  const handleTypeChange = (e) => {
-    setTypedValue(e.target.value);
-    onChange?.(e.target.value);
+  const pos = (e) => {
+    const r = canvasRef.current.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  if (mode === "type") {
-    return (
-      <div className={className}>
-        <Input
-          value={typedValue}
-          onChange={handleTypeChange}
-          placeholder={placeholder || "Type your full name"}
-          className="h-9 text-sm"
-        />
-        <button
-          onClick={() => { setMode("draw"); onChange?.(""); }}
-          className="text-xs text-[#B8956A] hover:underline mt-1 flex items-center gap-1"
-        >
-          <PenTool className="w-3 h-3" /> Draw instead
-        </button>
-      </div>
-    );
-  }
+  const down = (e) => {
+    e.preventDefault();
+    canvasRef.current.setPointerCapture?.(e.pointerId);
+    drawingRef.current = true;
+    lastRef.current = pos(e);
+  };
+
+  const move = (e) => {
+    if (!drawingRef.current) return;
+    const p = pos(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(lastRef.current.x, lastRef.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastRef.current = p;
+    if (!drawnRef.current) { drawnRef.current = true; setHasDrawn(true); }
+  };
+
+  const up = () => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    if (drawnRef.current) onChange?.(canvasRef.current.toDataURL("image/png"));
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    canvas?.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    drawnRef.current = false;
+    setHasDrawn(false);
+    onChange?.("");
+  };
+
+  const toggle = () => {
+    if (mode === "draw") { setMode("type"); onChange?.(typed); }
+    else { setMode("draw"); drawnRef.current = false; setHasDrawn(false); onChange?.(""); }
+  };
 
   return (
-    <div className={className}>
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={endDraw}
-          onMouseLeave={endDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={endDraw}
-          className="w-full h-24 border-2 border-dashed border-[#B8956A]/40 rounded-lg cursor-crosshair touch-none bg-white"
+    <div className="relative w-full h-full min-h-[64px] bg-white" style={{ colorScheme: "light" }}>
+      {mode === "draw" ? (
+        <>
+          <canvas
+            ref={canvasRef}
+            onPointerDown={down}
+            onPointerMove={move}
+            onPointerUp={up}
+            onPointerCancel={up}
+            className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
+          />
+          {!hasDrawn && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-sm text-slate-400">{placeholder}</div>
+          )}
+        </>
+      ) : (
+        <input
+          autoFocus
+          value={typed}
+          onChange={(e) => { setTyped(e.target.value); onChange?.(e.target.value); }}
+          placeholder="Type your full name"
+          className="absolute inset-0 w-full h-full px-3 bg-transparent outline-none text-xl italic font-serif text-center"
+          style={{ color: INK }}
         />
-        {!hasDrawn && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-xs text-[#1A1A1A]/40 flex items-center gap-1">
-              <PenTool className="w-3 h-3" /> Draw your signature here
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center justify-between mt-1">
-        <button
-          onClick={() => { setMode("type"); setHasDrawn(false); onChange?.(typedValue); }}
-          className="text-xs text-[#B8956A] hover:underline flex items-center gap-1"
-        >
-          <Keyboard className="w-3 h-3" /> Type instead
+      )}
+      <div className="absolute bottom-1 right-1 flex gap-1">
+        <button type="button" onClick={toggle} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200">
+          {mode === "draw" ? "Type" : "Draw"}
         </button>
-        {hasDrawn && (
-          <button
-            onClick={clear}
-            className="text-xs text-red-500 hover:underline flex items-center gap-1"
-          >
-            <Trash2 className="w-3 h-3" /> Clear
+        {mode === "draw" && hasDrawn && (
+          <button type="button" onClick={clear} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-red-600 hover:bg-slate-200">
+            Clear
           </button>
         )}
       </div>
