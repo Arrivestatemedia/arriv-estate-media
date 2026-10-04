@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus, FileText, Send, Trash2, Edit, Eye, Ban, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import SignDocumentEditorModal from "./SignDocumentEditorModal";
 import SendSignRequestModal from "./SendSignRequestModal";
+import SignedDocumentViewer from "./SignedDocumentViewer";
 
 const STATUS_CONFIG = {
   sent: { label: "Sent", icon: Send, color: "text-slate-600 bg-slate-100" },
@@ -22,6 +23,7 @@ export default function SignDocumentsPanel({ salesMemberId }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [viewingSigned, setViewingSigned] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -186,6 +188,14 @@ export default function SignDocumentsPanel({ salesMemberId }) {
                         {req.declined_at && ` · Declined ${formatDate(req.declined_at)}`}
                       </p>
                     </div>
+                    {req.status === "signed" && (
+                      <button
+                        onClick={() => setViewingSigned(req)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg font-medium bg-[#B8956A]/10 text-[#B8956A] hover:bg-[#B8956A]/20 flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" /> View
+                      </button>
+                    )}
                     {!["signed", "voided", "declined", "expired"].includes(req.status) && (
                       <button onClick={() => handleVoidRequest(req)} className="p-2 rounded-lg hover:bg-red-50 text-red-500" title="Void">
                         <Ban className="w-4 h-4" />
@@ -212,6 +222,13 @@ export default function SignDocumentsPanel({ salesMemberId }) {
           salesMemberId={salesMemberId}
           onClose={() => setSendModalOpen(false)}
           onSent={() => { setSendModalOpen(false); loadData(); }}
+        />
+      )}
+      {viewingSigned && (
+        <SignedDocumentViewer
+          open={!!viewingSigned}
+          onOpenChange={(v) => { if (!v) setViewingSigned(null); }}
+          signRequest={viewingSigned}
         />
       )}
     </div>

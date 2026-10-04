@@ -176,6 +176,7 @@ export async function createSignRequest(base44, opts) {
     status: "sent",
     signing_location: signingLocation || "link",
     sent_by_name: admin.actorName,
+    sent_by_email: admin.actorEmail || "",
     sent_at: now,
     expires_at: expiresAt || null,
   });
@@ -190,10 +191,10 @@ export async function resolveSignAdmin(base44, body) {
     const me = await base44.auth.me();
     if (me) {
       if (me.role === "admin") {
-        return { ok: true, tenantId: me.data?.tenant_id || "tnt_estate_media", actorName: me.full_name || me.email, isPlatformAdmin: true };
+        return { ok: true, tenantId: me.data?.tenant_id || "tnt_estate_media", actorName: me.full_name || me.email, actorEmail: me.email || "", isPlatformAdmin: true };
       }
       if (me.data?.tenant_id) {
-        return { ok: true, tenantId: me.data.tenant_id, actorName: me.full_name || me.email, isPlatformAdmin: false };
+        return { ok: true, tenantId: me.data.tenant_id, actorName: me.full_name || me.email, actorEmail: me.email || "", isPlatformAdmin: false };
       }
     }
   } catch (_) { /* not logged in via platform auth */ }
@@ -207,6 +208,7 @@ export async function resolveSignAdmin(base44, body) {
       ok: true,
       tenantId: member.tenant_id || body?.acting_tenant_id || "tnt_estate_media",
       actorName: member.full_name || member.email,
+      actorEmail: member.email || "",
       isPlatformAdmin: false,
     };
   } catch (_) {
@@ -273,6 +275,37 @@ export function buildSignConfirmationEmailHtml(firstName, docTitle, signatureVal
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Document Signed</strong></p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your signature on <strong>${docTitle}</strong> has been recorded. A copy of the signed document is attached to your records.</p>
           <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#666;">Signed on ${signedAt}<br/>Signature: ${signatureValue}<br/>Method: Electronic signature (${methodLabel})</p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">&copy; Arriv Estate Media, LLC &middot; careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Build the admin notification email HTML when a document is signed.
+export function buildSignAdminNotificationEmailHtml(candidateName, docTitle, signatureValue, method, signedAt) {
+  const methodLabel = method === "drawn" ? "Drawn signature" : "Typed name";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="${COMPANY_LOGO}" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Document Signed</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>${candidateName}</strong> has signed <strong>${docTitle}</strong>.</p>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#666;">Signed on ${signedAt}<br/>Signature: ${signatureValue}<br/>Method: Electronic signature (${methodLabel})</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The signed document is attached to this email. You can also view it anytime in the E-Signatures tab.</p>
         </td></tr>
         <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
           <p style="margin:0;font-size:12px;color:#9a8560;">&copy; Arriv Estate Media, LLC &middot; careers@arrivestatemedia.com</p>

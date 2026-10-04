@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { recordSignAudit, buildSignConfirmationEmailHtml } from '../../shared/signEngine.ts';
+import { recordSignAudit, buildSignConfirmationEmailHtml, buildSignAdminNotificationEmailHtml } from '../../shared/signEngine.ts';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { buildSignedPdfFromHtml, buildSignedPdfFromUpload, uint8ArrayToBase64 } from '../../shared/signedDocumentPdf.ts';
 
 // Public endpoint — no auth required. The sign_token identifies the request.
 export default async function(req) {
@@ -100,16 +101,90 @@ export default async function(req) {
       }
     }
 
-    // Send a confirmation email to the candidate
+    // ─── Generate the signed PDF ───────────────────────────────────────────
+    let pdfBase64 = '';
+    try {
+      let pdfBytes = null;
+
+      if (signRequest.source_type === 'editor') {
+        // Editor doc: render HTML + signature values into a new PDF
+        pdfBytes = await buildSignedPdfFromHtml({
+          html: signRequest.merged_body_html || '',
+          signatureFields: signRequest.signature_fields || [],
+          fieldValues: fieldValues,
+          documentTitle: signRequest.document_title || '',
+          candidateName: signRequest.candidate_name || '',
+          signedAt: now,
+        });
+      } else if (signRequest.source_type === 'upload' && signRequest.body_ref) {
+        // Upload doc: fetch the original PDF and overlay signatures
+        try {
+          const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+            file_uri: signRequest.body_ref,
+            expires_in: 300,
+          });
+          if (signed?.signed_url) {
+            const pdfRes = await fetch(signed.signed_url);
+            const originalBytes = new Uint8Array(await pdfRes.arrayBuffer());
+            pdfBytes = await buildSignedPdfFromUpload({
+              pdfBytes: originalBytes,
+              signatureFields: signRequest.signature_fields || [],
+              fieldValues: fieldValues,
+            });
+          }
+        } catch (e) {
+          console.error('Failed to fetch/overlay original PDF:', e.message);
+        }
+      }
+
+      if (pdfBytes) {
+        pdfBase64 = uint8ArrayToBase64(pdfBytes);
+        const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
+          file: new File([pdfBytes], `signed-${signRequest.request_id}.pdf`, { type: 'application/pdf' }),
+        });
+        const signedPdfUri = uploadRes?.file_uri || '';
+        if (signedPdfUri) {
+          await base44.asServiceRole.entities.SignRequest.update(signRequest.id, {
+            signed_pdf_uri: signedPdfUri,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Signed PDF generation failed:', e.message);
+    }
+
+    // ─── Email both parties with the signed PDF attached ──────────────────
     try {
       const firstName = (signRequest.candidate_name || '').split(' ')[0] || 'there';
       const signedAtStr = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
-      const html = buildSignConfirmationEmailHtml(firstName, signRequest.document_title, signatureValue, signatureMethod, signedAtStr);
+      const fileName = `${(signRequest.document_title || 'document').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      const attachments = pdfBase64 ? [{ content: pdfBase64, name: fileName }] : [];
+
+      // 1. Candidate confirmation email
+      const candidateHtml = buildSignConfirmationEmailHtml(firstName, signRequest.document_title, signatureValue, signatureMethod, signedAtStr);
       await sendBrevoEmail({
         to: signRequest.candidate_email,
         subject: `Signed: ${signRequest.document_title}`,
-        htmlContent: html,
+        htmlContent: candidateHtml,
+        attachments,
       });
+
+      // 2. Admin notification email (if we have the sender's email)
+      if (signRequest.sent_by_email) {
+        const adminHtml = buildSignAdminNotificationEmailHtml(
+          signRequest.candidate_name,
+          signRequest.document_title,
+          signatureValue,
+          signatureMethod,
+          signedAtStr
+        );
+        await sendBrevoEmail({
+          to: signRequest.sent_by_email,
+          subject: `Document Signed: ${signRequest.document_title} — ${signRequest.candidate_name}`,
+          htmlContent: adminHtml,
+          attachments,
+        });
+      }
     } catch (e) {
       console.error('Sign confirmation email failed:', e.message);
     }

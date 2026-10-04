@@ -165,9 +165,17 @@
       "type": "string",
       "description": "ID of the OrientationDocument audit-trail record created when signed."
     },
+    "signed_pdf_uri": {
+      "type": "string",
+      "description": "Private file_uri of the generated signed PDF. Created by submitSignature on signing."
+    },
     "sent_by_name": {
       "type": "string",
       "description": "Name of the admin who sent the request"
+    },
+    "sent_by_email": {
+      "type": "string",
+      "description": "Email of the admin who sent the request. Used to notify the admin when the document is signed."
     },
     "sent_at": {
       "type": "string",
