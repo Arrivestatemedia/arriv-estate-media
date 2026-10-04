@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, FileText, X, FileCheck, Trash2, PenTool, MousePointerClick, Eye, EyeOff } from "lucide-react";
+import { convertDocxToPdfBlob } from "@/lib/docxToPdf";
 
 const DOC_TYPES = [
   { value: "offer_letter", label: "Offer Letter" },
@@ -150,19 +151,29 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const handleUpload = async (file) => {
     if (!file) return;
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      setError("Please upload a PDF file. If you have a .docx, convert it to PDF first, or use the Rich-Text Editor.");
+    const isDocx = file.name.toLowerCase().endsWith(".docx") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (!isPdf && !isDocx) {
+      setError("Please upload a PDF or .docx file. .docx files are converted to PDF automatically.");
       return;
     }
     setUploading(true);
     setError("");
     try {
-      const res = await base44.integrations.Core.UploadPrivateFile({ file });
+      let pdfFile = file;
+      let displayName = file.name;
+
+      if (isDocx) {
+        const pdfBlob = await convertDocxToPdfBlob(file);
+        displayName = file.name.replace(/\.docx$/i, "") + ".pdf";
+        pdfFile = new File([pdfBlob], displayName, { type: "application/pdf" });
+      }
+
+      const res = await base44.integrations.Core.UploadPrivateFile({ file: pdfFile });
       const data = res?.data || res;
       const uri = data?.file_uri;
       if (!uri) throw new Error("Upload failed — no file URI returned");
       setFileUri(uri);
-      setFileName(file.name);
+      setFileName(displayName);
       // Create a signed URL so the iframe can actually display the private PDF
       const signedRes = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 });
       const signedData = signedRes?.data || signedRes;
@@ -319,7 +330,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
                     : "bg-white text-slate-600 border-slate-200 hover:border-[#B8956A]/40"
                 }`}
               >
-                <Upload className="w-4 h-4" /> Upload PDF
+                <Upload className="w-4 h-4" /> Upload PDF / DOCX
               </button>
             </div>
           </div>
@@ -401,7 +412,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
           ) : (
             <>
               <div>
-                <Label className="text-sm font-medium text-slate-700">Upload PDF</Label>
+                <Label className="text-sm font-medium text-slate-700">Upload PDF or DOCX</Label>
                 <div className="mt-1.5 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center relative overflow-hidden">
                   {fileUri ? (
                     <div className="flex items-center justify-center gap-3 text-green-600">
@@ -414,12 +425,12 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
                   ) : (
                     <div className="text-slate-400">
                       <Upload className="w-8 h-8 mx-auto mb-2" />
-                      <p className="text-sm">Click to upload a PDF</p>
+                      <p className="text-sm">Click to upload a PDF or DOCX</p>
                     </div>
                   )}
                   <input
                     type="file"
-                    accept="application/pdf"
+                    accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={(e) => handleUpload(e.target.files?.[0])}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
