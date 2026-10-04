@@ -438,7 +438,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
                     </div>
                   )}
 
-                  <div className="border-2 border-slate-200 rounded-lg p-4 overflow-x-auto bg-slate-50">
+                  <div className="border-2 border-slate-200 rounded-lg overflow-hidden bg-slate-50">
                     <PdfFieldPlacer
                       pdfUrl={pdfSignedUrl}
                       fields={pdfFields}

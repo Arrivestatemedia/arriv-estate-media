@@ -21,10 +21,9 @@ const FIELD_COLORS = {
   initial: { border: "#8B5CF6", bg: "rgba(139,92,246,0.10)", text: "#7C3AED" },
 };
 
-const RENDER_WIDTH = 680;
 const SNAP_DIST_PX = 32;
 
-function PdfPageCanvas({ pdf, pageNum, onReady }) {
+function PdfPageCanvas({ pdf, pageNum, renderWidth, onReady }) {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +33,7 @@ function PdfPageCanvas({ pdf, pageNum, onReady }) {
       try {
         const page = await pdf.getPage(pageNum);
         const baseVp = page.getViewport({ scale: 1 });
-        const scale = RENDER_WIDTH / baseVp.width;
+        const scale = renderWidth / baseVp.width;
         const viewport = page.getViewport({ scale });
 
         const canvas = canvasRef.current;
@@ -98,6 +97,26 @@ export default function PdfFieldPlacer({
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(680);
+
+  // Measure container width for responsive rendering
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width;
+      if (w && w > 0) setContainerWidth(w);
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Re-render pages when container width changes
+  useEffect(() => {
+    if (pdf && numPages > 0) {
+      setPageInfo({});
+    }
+  }, [containerWidth, pdf, numPages]);
 
   // Load PDF document
   useEffect(() => {
@@ -292,20 +311,20 @@ export default function PdfFieldPlacer({
   if (!pdf) return null;
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6 w-full">
       {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => {
         const info = pageInfo[pageNum];
-        const pageWidth = info?.width || RENDER_WIDTH;
+        const pageWidth = info?.width || containerWidth;
         const pageHeight = info?.height || 800;
         const pageFields = fields.filter((f) => f.page === pageNum);
         return (
-          <div key={pageNum} className="relative inline-block">
+          <div key={pageNum} className="relative w-full">
             <div
               onClick={(e) => handlePageClick(e, pageNum)}
-              className={`relative ${pendingFieldType ? "cursor-crosshair" : ""}`}
+              className={`relative w-full ${pendingFieldType ? "cursor-crosshair" : ""}`}
               style={{ width: pageWidth, minHeight: pageHeight }}
             >
-              <PdfPageCanvas pdf={pdf} pageNum={pageNum} onReady={handlePageReady} />
+              <PdfPageCanvas pdf={pdf} pageNum={pageNum} renderWidth={containerWidth} onReady={handlePageReady} />
 
               {pageFields.map((f) => {
                 const realIdx = fields.indexOf(f);
