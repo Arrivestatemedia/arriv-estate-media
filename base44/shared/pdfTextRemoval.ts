@@ -267,12 +267,37 @@ function cleanPageContent(content: string, boxes: Box[], fonts: PDFDict | undefi
   const nextLine = (tx: number, ty: number) => { tlm = mul(translate(tx, ty), tlm); tm = tlm; };
   const spacing = (gap: number) => fmt(-(gap / (gs.size * gs.th)) * 1000);
 
+  // Bracket-aware continuation: when a placeholder like "[DATE]" or
+  // "{{name}}" wraps to the next line, the part below the field box would
+  // otherwise survive. Once we remove an opening "[" or "{{" that never
+  // closes inside the box, keep stripping glyphs on the following line(s)
+  // until the matching "]" / "}}" is found.
+  let cont: { close: number[]; buf: number[] } | null = null;
+  const endsWith = (buf: number[], close: number[]) => {
+    if (buf.length < close.length) return false;
+    for (let i = 0; i < close.length; i++) if (buf[buf.length - close.length + i] !== close[i]) return false;
+    return true;
+  };
+  const checkUnclosed = (codes: number[]) => {
+    if (cont || !codes.length) return;
+    const lo = codes.lastIndexOf(0x5b); // [
+    const lc = codes.lastIndexOf(0x5d); // ]
+    if (lo > lc) { cont = { close: [0x5d], buf: codes.slice(lo) }; return; }
+    let lo2 = -1, lc2 = -1;
+    for (let i = 0; i < codes.length - 1; i++) {
+      if (codes[i] === 0x7b && codes[i + 1] === 0x7b && i > lo2) lo2 = i;
+      if (codes[i] === 0x7d && codes[i + 1] === 0x7d && i > lc2) lc2 = i;
+    }
+    if (lo2 > lc2) cont = { close: [0x7d, 0x7d], buf: codes.slice(lo2) };
+  };
+
   // Shows one string, returning TJ items (kept bytes + spacing for removed glyphs).
   const show = (bytes: number[]) => {
     const items: string[] = [];
     let kept: number[] = [];
     let gap = 0;
     let removed = false;
+    const removedCodes: number[] = [];
     const step = gs.font.twoByte ? 2 : 1;
     const canRemove = gs.size > 0 && gs.th > 0;
     for (let k = 0; k < bytes.length; k += step) {
@@ -280,8 +305,17 @@ function cleanPageContent(content: string, boxes: Box[], fonts: PDFDict | undefi
       const code = codeBytes.length === 2 ? (codeBytes[0] << 8) | codeBytes[1] : codeBytes[0];
       const tx = ((gs.font.width(code) / 1000) * gs.size + gs.tc + (step === 1 && code === 32 ? gs.tw : 0)) * gs.th;
       const [cx, cy] = applyPt(mul(tm, gs.ctm), tx / 2, gs.rise + gs.size * 0.3);
-      if (canRemove && inBox(cx, cy)) {
+      let removeThis = false;
+      if (cont) {
+        removeThis = true;
+        cont.buf.push(code);
+        if (endsWith(cont.buf, cont.close)) cont = null;
+      } else if (canRemove && inBox(cx, cy)) {
+        removeThis = true;
+      }
+      if (removeThis) {
         removed = true;
+        removedCodes.push(code);
         if (kept.length) { items.push(toHex(kept)); kept = []; }
         gap += tx;
       } else {
@@ -292,7 +326,7 @@ function cleanPageContent(content: string, boxes: Box[], fonts: PDFDict | undefi
     }
     if (kept.length) items.push(toHex(kept));
     if (gap) items.push(spacing(gap));
-    return { items, removed };
+    return { items, removed, removedCodes };
   };
 
   while (true) {
@@ -331,6 +365,7 @@ function cleanPageContent(content: string, boxes: Box[], fonts: PDFDict | undefi
         if (last?.kind !== "str") break;
         const r = show(last.bytes);
         if (r.removed) {
+          checkUnclosed(r.removedCodes);
           const prefix = op === "\"" ? `${fmt(gs.tw)} Tw ${fmt(gs.tc)} Tc T* ` : op === "'" ? "T* " : "";
           edits.push({ start: operands[0].start, end: o.end, text: `${prefix}[${r.items.join(" ")}] TJ` });
         }
@@ -345,6 +380,7 @@ function cleanPageContent(content: string, boxes: Box[], fonts: PDFDict | undefi
             const r = show(it.bytes);
             out.push(...r.items);
             removed = removed || r.removed;
+            if (r.removed) checkUnclosed(r.removedCodes);
           } else if (it.kind === "num") {
             tm = mul(translate((-it.value / 1000) * gs.size * gs.th, 0), tm);
             out.push(fmt(it.value));
