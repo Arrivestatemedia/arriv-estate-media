@@ -486,7 +486,7 @@ const SIGN_STATUS_CONFIG = {
   expired: { label: "Expired", color: "bg-amber-50 text-amber-600", icon: Clock },
 };
 
-const OFFER_STATUSES = ["offer", "hired", "declined"];
+const OFFER_STATUSES = ["offer"];
 
 export function OffersView({ onSelectCandidate }) {
   const [candidates, setCandidates] = useState([]);
