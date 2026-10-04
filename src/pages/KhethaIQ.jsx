@@ -6,7 +6,7 @@ import {
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
   GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
-  Activity, CheckSquare, CalendarClock, Copy, Share2, Trash2,
+  Activity, CheckSquare, CalendarClock, Copy, Share2, Trash2, PenLine,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -44,7 +44,7 @@ const ICON_MAP = {
   Video, FileText, SquareCheckBig, Brain, BarChart3: BarChart3,
   Radar, Users2, Target, TrendingUp, MessageSquare, Award,
   HelpCircle, Plus, Globe, Mail,
-  Activity, CheckSquare, CalendarClock,
+  Activity, CheckSquare, CalendarClock, PenLine,
 };
 
 // Estate Media color palette (kept per user request)
@@ -586,7 +586,7 @@ export default function KhethaIQ() {
     { id: "async_interviews", label: "Async Interviews", icon: "CalendarClock" },
     { id: "reminders", label: "Reminders", icon: "Mail" },
     { id: "offers", label: "Offers", icon: "FileText" },
-    { id: "sign_documents", label: "E-Signatures", icon: "FileText" },
+    { id: "sign_documents", label: "Documents & Sign", icon: "PenLine" },
     { id: "tasks", label: "Tasks", icon: "CheckSquare" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
@@ -785,7 +785,7 @@ export default function KhethaIQ() {
               ) : activeView === "sign_documents" ? (
                 <div className="space-y-5">
                   <div>
-                    <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>E-Signatures</h1>
+                    <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Documents & Sign</h1>
                     <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Document templates & signature requests</p>
                   </div>
                   <SignDocumentsPanel salesMemberId={localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')} />
