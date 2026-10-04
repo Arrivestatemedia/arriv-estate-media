@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play, FileAudio, CalendarClock } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play, FileAudio, CalendarClock, Send, Eye, CheckCircle2, XCircle, Ban, Clock, X, User, FileSignature } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 import ConvertToHumanButton from "@/components/interviews/ConvertToHumanButton";
 import RescheduleInterviewModal from "@/components/interviews/RescheduleInterviewModal";
-import OfferLettersPanel from "@/components/hireiq/OfferLettersPanel";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -467,51 +468,253 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   );
 }
 
-// ─── Offers View ─── (exact replica of central app)
+// ─── Offers View ─── (offer-tracking dashboard)
+// Refactored: no longer creates offer letters here — that moved to Documents & Sign.
+// Now tracks candidates with offer statuses and their e-signature workflow status.
+const OFFER_STATUS_CONFIG = {
+  offer: { label: "Offer Extended", color: "bg-[#B8956A]/15 text-[#B8956A]", icon: Send },
+  hired: { label: "Hired", color: "bg-[#B8956A]/20 text-[#A68559]", icon: CheckCircle2 },
+  declined: { label: "Declined", color: "bg-red-50 text-red-600", icon: XCircle },
+};
+
+const SIGN_STATUS_CONFIG = {
+  sent: { label: "Sent", color: "bg-slate-100 text-slate-600", icon: Send },
+  viewed: { label: "Viewed", color: "bg-blue-50 text-blue-600", icon: Eye },
+  signed: { label: "Signed", color: "bg-[#B8956A]/15 text-[#B8956A]", icon: CheckCircle2 },
+  declined: { label: "Declined", color: "bg-red-50 text-red-600", icon: XCircle },
+  voided: { label: "Voided", color: "bg-slate-100 text-slate-500", icon: Ban },
+  expired: { label: "Expired", color: "bg-amber-50 text-amber-600", icon: Clock },
+};
+
+const OFFER_STATUSES = ["offer", "hired", "declined"];
+
 export function OffersView({ onSelectCandidate }) {
   const [candidates, setCandidates] = useState([]);
+  const [signRequests, setSignRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showSend, setShowSend] = useState(false);
+  const [sendCandidate, setSendCandidate] = useState(null);
+
+  const salesMemberId = typeof window !== "undefined"
+    ? (localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id") || "")
+    : "";
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await base44.entities.HireCandidate.filter({ status: "offer" }, "-created_date", 100);
-        setCandidates(res?.data ?? res ?? []);
+        const [candRes, reqsRes] = await Promise.all([
+          base44.entities.HireCandidate.filter({ status: { $in: OFFER_STATUSES } }, "-created_date", 200),
+          base44.functions.invoke("manageSignDocuments", { action: "list_requests", sales_member_id: salesMemberId }),
+        ]);
+        setCandidates(candRes?.data ?? candRes ?? []);
+        const reqsData = reqsRes?.data ?? reqsRes;
+        setSignRequests(reqsData?.requests || []);
       } catch { setCandidates([]); }
       finally { setLoading(false); }
     })();
-  }, []);
+  }, [salesMemberId]);
+
+  const getSignStatus = (candidate) => {
+    const match = signRequests.find(r =>
+      (r.candidate_email || "").toLowerCase() === (candidate.email || "").toLowerCase()
+    );
+    if (!match) return null;
+    return { config: SIGN_STATUS_CONFIG[match.status] || SIGN_STATUS_CONFIG.sent, request: match };
+  };
+
+  const handleSendOffer = (candidate) => {
+    setSendCandidate(candidate);
+    setShowSend(true);
+  };
+
+  const refreshRequests = async () => {
+    try {
+      const reqsRes = await base44.functions.invoke("manageSignDocuments", { action: "list_requests", sales_member_id: salesMemberId });
+      const reqsData = reqsRes?.data ?? reqsRes;
+      setSignRequests(reqsData?.requests || []);
+    } catch { /* ignore */ }
+  };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Offers</h1>
-        <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Candidates with pending offers and offer letter templates</p>
+        <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Track candidates who have received a job offer and manage offer letters and e-signature workflows.</p>
       </div>
 
       {candidates.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="w-10 h-10 mx-auto mb-2" style={{ color: "rgba(184,149,106,0.3)" }} />
-          <p style={{ color: MUTED_DARK }}>No pending offers.</p>
+        <div className="text-center py-16">
+          <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
+          <p style={{ color: MUTED_DARK }}>No candidates with offers yet.</p>
+          <p className="text-sm mt-1" style={{ color: MUTED_DARK_40 }}>Extend an offer from a candidate's profile to see them here.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {candidates.map(c => (
-            <div key={c.id} onClick={() => onSelectCandidate?.(c)} className="p-4 cursor-pointer" style={whiteCard}>
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold" style={{ ...SERIF, color: TEXT_DARK }}>{c.name || "—"}</h3>
-                <span className="text-xs px-2 py-0.5 rounded" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>Offer Extended</span>
+          {candidates.map(c => {
+            const offerStatus = OFFER_STATUS_CONFIG[c.status] || OFFER_STATUS_CONFIG.offer;
+            const OfferIcon = offerStatus.icon;
+            const signInfo = getSignStatus(c);
+            const SignIcon = signInfo?.config?.icon;
+            return (
+              <div key={c.id} className="p-4" style={whiteCard}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="min-w-0 flex-1">
+                    <button
+                      onClick={() => onSelectCandidate?.(c)}
+                      className="font-semibold text-left flex items-center gap-1.5 transition-colors hover:opacity-70"
+                      style={{ ...SERIF, color: TEXT_DARK }}
+                    >
+                      <User className="w-4 h-4 shrink-0" style={{ color: "rgba(184,149,106,0.6)" }} />
+                      {c.name}
+                    </button>
+                    {c.target_role && (
+                      <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: MUTED_DARK }}>
+                        <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                        {c.target_role.replace(/_/g, " ")}
+                      </p>
+                    )}
+                    {c.email && <p className="text-sm mt-1.5" style={{ color: MUTED_DARK_70 }}>{c.email}</p>}
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0 ${offerStatus.color}`}>
+                    <OfferIcon className="w-3 h-3" /> {offerStatus.label}
+                  </span>
+                </div>
+
+                {signInfo && (
+                  <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
+                    <FileSignature className="w-4 h-4" style={{ color: "rgba(184,149,106,0.5)" }} />
+                    <span className="text-xs" style={{ color: MUTED_DARK_40 }}>E-Sign:</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${signInfo.config.color}`}>
+                      {SignIcon && <SignIcon className="w-3 h-3" />}
+                      {signInfo.config.label}
+                    </span>
+                    {signInfo.request.signed_at && (
+                      <span className="text-xs" style={{ color: MUTED_DARK_40 }}>
+                        {new Date(signInfo.request.signed_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mt-3">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSendOffer(c)}
+                    className="bg-[#B8956A] hover:bg-[#A68559] text-white gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    {signInfo ? "Resend Offer Letter" : "Send Offer Letter"}
+                  </Button>
+                  {onSelectCandidate && (
+                    <Button size="sm" variant="outline" onClick={() => onSelectCandidate(c)}
+                      className="border-[#B8956A]/30 text-[#B8956A] hover:bg-[#B8956A]/5 gap-1.5">
+                      <User className="w-3.5 h-3.5" /> View Candidate
+                    </Button>
+                  )}
+                </div>
               </div>
-              <p className="text-sm" style={{ color: MUTED_DARK }}>{c.target_role ? c.target_role.replace(/_/g, " ") : "—"}</p>
-              {c.email && <p className="text-sm mt-2" style={{ color: MUTED_DARK_70 }}>{c.email}</p>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      <OfferLettersPanel />
+      {showSend && sendCandidate && (
+        <SendOfferModal
+          candidate={sendCandidate}
+          salesMemberId={salesMemberId}
+          onClose={() => setShowSend(false)}
+          onSent={() => { setShowSend(false); refreshRequests(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal to send an offer letter document for e-signature to a specific candidate.
+// Filters document templates to offer_letter type.
+function SendOfferModal({ candidate, salesMemberId, onClose, onSent }) {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDocId, setSelectedDocId] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await base44.functions.invoke("manageSignDocuments", { action: "list", sales_member_id: salesMemberId });
+        const data = res?.data ?? res;
+        const offerDocs = (data?.documents || []).filter(d => d.document_type === "offer_letter" && d.active);
+        setDocuments(offerDocs);
+        if (offerDocs.length > 0) setSelectedDocId(offerDocs[0].document_id);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [salesMemberId]);
+
+  const handleSend = async () => {
+    if (!selectedDocId) { setError("Please select an offer letter document"); return; }
+    setSending(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("sendSignRequest", {
+        document_id: selectedDocId,
+        recipient_email: candidate.email,
+        recipient_name: candidate.name,
+      });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      onSent?.();
+    } catch (e) {
+      setError(e.message || "Failed to send");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-[#1A1A1A]">Send Offer Letter</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+            <p className="text-sm font-medium text-[#1A1A1A]">{candidate.name}</p>
+            <p className="text-xs text-slate-500">{candidate.email}</p>
+            {candidate.target_role && <p className="text-xs text-slate-500 mt-1 capitalize">{candidate.target_role.replace(/_/g, " ")}</p>}
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-slate-700">Offer Letter Document</Label>
+            {loading ? (
+              <div className="flex items-center gap-2 mt-2 text-sm text-slate-500"><Loader2 className="w-4 h-4 animate-spin" /> Loading templates...</div>
+            ) : documents.length === 0 ? (
+              <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <p className="text-sm text-amber-700">No active offer letter documents found.</p>
+                <p className="text-xs text-amber-600 mt-1">Create one in the Documents & Sign tab first.</p>
+              </div>
+            ) : (
+              <select value={selectedDocId} onChange={(e) => setSelectedDocId(e.target.value)}
+                className="mt-1.5 w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm">
+                {documents.map((d) => <option key={d.document_id} value={d.document_id}>{d.title}</option>)}
+              </select>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSend} disabled={sending || loading || documents.length === 0}
+            className="bg-[#B8956A] hover:bg-[#A68559] text-white">
+            {sending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</> : <><Send className="w-4 h-4 mr-2" /> Send for Signature</>}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

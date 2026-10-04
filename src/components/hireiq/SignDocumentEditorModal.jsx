@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, FileText, X, FileCheck, Trash2, PenTool, MousePointerClick } from "lucide-react";
+import { Loader2, Upload, FileText, X, FileCheck, Trash2, PenTool, MousePointerClick, Eye, EyeOff } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "offer_letter", label: "Offer Letter" },
@@ -15,6 +15,85 @@ const DOC_TYPES = [
   { value: "ica", label: "ICA" },
   { value: "custom", label: "Custom Document" },
 ];
+
+// Default example templates per document type — pre-filled when creating new.
+// Editable before saving so the user can tweak before creating.
+const DEFAULT_TEMPLATES = {
+  offer_letter: `<h1>Offer of Employment</h1>
+<p>Hi {{candidate_name}},</p>
+<p>Congratulations!</p>
+<p>We're excited to offer you the position of {{job_title}} with {{company_name}}.</p>
+<p>After reviewing your application and speaking with you during the interview process, we believe you'll be a great addition to our team. We're looking forward to having you help us grow {{company_name}} as we continue expanding across new markets.</p>
+<h2>Your Offer</h2>
+<p>As a {{job_title}}, you'll play an important role in introducing {{company_name}} to new clients and helping us build lasting relationships.</p>
+<p><strong>Position:</strong> {{job_title}}<br><strong>Employment Type:</strong> Commission-Based W-2<br><strong>Compensation:</strong> Commission-based, plus a $500 training bonus after successfully completing your first two weeks of training and meeting the program requirements.</p>
+<h2>Next Steps</h2>
+<p>Please review and respond to your offer within 7 days. If you need additional time or have any questions before making your decision, simply reply to your offer email — we're happy to help.</p>
+<p>We're excited about the possibility of working together and can't wait to see the impact you'll make as part of the team.</p>
+<p>Welcome to {{company_name}}!</p>
+<p>Best regards,<br>{{signature_name}}<br>{{signature_title}}<br>{{company_name}}</p>
+<hr>
+<p><em>Sign below to accept this offer:</em></p>
+<p>Candidate Signature: {{sig:Signature}} &nbsp; Date: {{date:Date}}</p>`,
+  employment_agreement: `<h1>Employment Agreement</h1>
+<p>This Employment Agreement ("Agreement") is entered into between {{company_name}} ("Company") and {{candidate_name}} ("Employee") as of {{today_date}}.</p>
+<h2>1. Position</h2>
+<p>The Company employs the Employee as {{job_title}}.</p>
+<h2>2. Duties</h2>
+<p>The Employee shall perform the duties customary to the {{job_title}} role and such other duties as may be assigned.</p>
+<h2>3. Compensation</h2>
+<p>The Employee's compensation shall be as described in the offer letter accompanying this Agreement.</p>
+<h2>4. Signatures</h2>
+<p>Company: {{sig:Company Signature}} &nbsp; Date: {{date:Date}}</p>
+<p>Employee: {{sig:Signature}} &nbsp; Date: {{date:Date}}</p>`,
+  nda: `<h1>Non-Disclosure Agreement</h1>
+<p>This Non-Disclosure Agreement is entered into between {{company_name}} and {{candidate_name}} on {{today_date}}.</p>
+<h2>Confidential Information</h2>
+<p>The parties agree to keep confidential all proprietary information disclosed during the course of their relationship.</p>
+<h2>Signatures</h2>
+<p>{{sig:Signature}} &nbsp; {{date:Date}}</p>`,
+  addendum: `<h1>Addendum</h1>
+<p>This Addendum is entered into between {{company_name}} and {{candidate_name}} on {{today_date}}.</p>
+<p>Terms of the addendum go here.</p>
+<p>{{sig:Signature}} &nbsp; {{date:Date}}</p>`,
+  w9: `<h1>W-9 Tax Form</h1>
+<p>Name: {{name:Full Name}}</p>
+<p>Business Name: {{text:Business Name}}</p>
+<p>Date: {{date:Date}}</p>
+<p>Signature: {{sig:Signature}}</p>`,
+  ica: `<h1>Independent Contractor Agreement</h1>
+<p>This Agreement is between {{company_name}} and {{candidate_name}}, effective {{today_date}}.</p>
+<p>The Contractor shall provide services as {{job_title}}.</p>
+<p>Contractor Signature: {{sig:Signature}} &nbsp; Date: {{date:Date}}</p>
+<p>Company Signature: {{sig:Company Signature}} &nbsp; Date: {{date:Date}}</p>`,
+  custom: `<h1>Document Title</h1>
+<p>Write your document here. Use merge fields like {{candidate_name}} and signature fields like {{sig:Signature}}.</p>
+<p>{{sig:Signature}} &nbsp; {{date:Date}}</p>`,
+};
+
+// Preview helper — substitutes merge fields with sample data and renders
+// signature/date/name fields as styled dashed-underline placeholders.
+const previewSubstitute = (html) => {
+  if (!html) return "";
+  const fieldStyle = "border-bottom:1.5px dashed #B8956A;min-width:120px;display:inline-block;padding:0 4px;color:#B8956A;font-weight:600;";
+  const samples = {
+    candidate_name: "Jane Smith",
+    candidate_email: "jane@example.com",
+    job_title: "Sales Growth Advisor",
+    company_name: "Arriv Estate Media",
+    signature_name: "Bradley Arriv",
+    signature_title: "Hiring Manager",
+    today_date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+  };
+  let out = html;
+  Object.entries(samples).forEach(([k, v]) => {
+    out = out.split(`{{${k}}}`).join(v);
+  });
+  out = out.replace(/\{\{(sig|date|name|text|initial):([^}]+)\}\}/g, (_m, _type, label) =>
+    `<span style="${fieldStyle}">${label}</span>`
+  );
+  return out;
+};
 
 const MERGE_HINTS = [
   "{{candidate_name}}", "{{candidate_email}}", "{{job_title}}",
@@ -41,7 +120,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const [title, setTitle] = useState(existing?.title || "");
   const [docType, setDocType] = useState(existing?.document_type || "offer_letter");
   const [sourceType, setSourceType] = useState(existing?.source_type || "editor");
-  const [bodyHtml, setBodyHtml] = useState(existing?.body_html || "");
+  const [bodyHtml, setBodyHtml] = useState(existing?.body_html || DEFAULT_TEMPLATES[existing?.document_type] || DEFAULT_TEMPLATES.offer_letter);
   const [fileUri, setFileUri] = useState(existing?.body_ref || "");
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -51,6 +130,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const [currentPage, setCurrentPage] = useState(1);
   const [pendingFieldType, setPendingFieldType] = useState(null);
   const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef(null);
   const pdfAreaRef = useRef(null);
 
@@ -91,6 +171,16 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const insertSigField = (type, label) => {
     const cleanLabel = label || FIELD_TYPES.find(f => f.type === type)?.placeholder || "Field";
     insertAtCursor(`{{${type === "signature" ? "sig" : type}:${cleanLabel}}}`);
+  };
+
+  const handleDocTypeChange = (val) => {
+    setDocType(val);
+    // Only auto-fill the default template when creating a NEW document (not editing existing)
+    // AND the body is empty or still matches a default template.
+    if (!existing) {
+      const isDefault = Object.values(DEFAULT_TEMPLATES).includes(bodyHtml);
+      if (isDefault) setBodyHtml(DEFAULT_TEMPLATES[val] || DEFAULT_TEMPLATES.custom);
+    }
   };
 
   const handlePdfClick = (e) => {
@@ -177,7 +267,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
             <Label className="text-sm font-medium text-slate-700">Document Type</Label>
             <select
               value={docType}
-              onChange={(e) => setDocType(e.target.value)}
+              onChange={(e) => handleDocTypeChange(e.target.value)}
               className="mt-1.5 w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
             >
               {DOC_TYPES.map((t) => (
@@ -249,14 +339,41 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
               </div>
 
               <div>
-                <Label className="text-sm font-medium text-slate-700">Document Body (HTML)</Label>
-                <Textarea
-                  ref={textareaRef}
-                  value={bodyHtml}
-                  onChange={(e) => setBodyHtml(e.target.value)}
-                  placeholder="<h1>Offer of Employment</h1><p>Dear {{candidate_name}}, ...</p><p>Signed: {{sig:Signature}} on {{date:Date}}</p>"
-                  className="min-h-[300px] font-mono text-sm"
-                />
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-slate-700">Document Body (HTML)</Label>
+                  <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)} className="gap-1.5 text-xs">
+                    {showPreview ? <><EyeOff className="w-3.5 h-3.5" /> Edit Only</> : <><Eye className="w-3.5 h-3.5" /> Split Preview</>}
+                  </Button>
+                </div>
+                {showPreview ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-1.5">Editor</p>
+                      <Textarea
+                        ref={textareaRef}
+                        value={bodyHtml}
+                        onChange={(e) => setBodyHtml(e.target.value)}
+                        placeholder="<h1>Offer of Employment</h1><p>Dear {{candidate_name}}, ...</p>"
+                        className="min-h-[400px] font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-1.5">Preview (sample data)</p>
+                      <div
+                        className="border rounded-lg p-4 bg-slate-50 min-h-[400px] prose prose-sm max-w-none text-slate-900 overflow-y-auto"
+                        dangerouslySetInnerHTML={{ __html: previewSubstitute(bodyHtml) }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Textarea
+                    ref={textareaRef}
+                    value={bodyHtml}
+                    onChange={(e) => setBodyHtml(e.target.value)}
+                    placeholder="<h1>Offer of Employment</h1><p>Dear {{candidate_name}}, ...</p><p>Signed: {{sig:Signature}} on {{date:Date}}</p>"
+                    className="min-h-[300px] font-mono text-sm"
+                  />
+                )}
               </div>
             </>
           ) : (
