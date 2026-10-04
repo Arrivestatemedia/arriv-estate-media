@@ -60,7 +60,7 @@ export default function PdfFieldPlacer({ pdfUrl, fields, onFieldsChange, pending
       static_value: "",
     };
     onFieldsChange([...fields, field]);
-    setActiveIdx(pendingFieldType === "text" ? fields.length : null);
+    setActiveIdx(fields.length);
     onPendingFieldPlaced();
   };
 

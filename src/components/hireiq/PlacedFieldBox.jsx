@@ -54,7 +54,7 @@ export default function PlacedFieldBox({ field, active, onStartMove, onStartResi
         className="absolute top-full left-0 mt-1 w-36 text-[9px] px-1 py-0.5 rounded border border-slate-200 bg-white shadow-sm outline-none focus:border-blue-400"
       />
 
-      {active && field.type === "text" && (
+      {active && (
         <div onMouseDown={stop} className="absolute bottom-full left-0 mb-4 z-20 flex items-center gap-1 bg-white border border-slate-200 shadow-lg rounded-lg p-1.5">
           <input
             autoFocus
