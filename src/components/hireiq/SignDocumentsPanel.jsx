@@ -23,6 +23,7 @@ export default function SignDocumentsPanel({ salesMemberId }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [sendDocId, setSendDocId] = useState(null);
   const [viewingSigned, setViewingSigned] = useState(null);
 
   const loadData = useCallback(async () => {
@@ -120,34 +121,52 @@ export default function SignDocumentsPanel({ salesMemberId }) {
               <p className="text-sm">No document templates yet. Create one to start sending for signature.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {documents.map(doc => (
-                <div key={doc.id} className="border border-slate-200 rounded-lg p-4 flex items-center justify-between hover:border-[#B8956A]/30 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-[#1A1A1A] truncate">{doc.title}</p>
-                      {!doc.active && <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Inactive</span>}
+            <div className="space-y-3">
+              {documents.map(doc => {
+                const fieldCount = (doc.signature_fields || []).length;
+                return (
+                  <div key={doc.id} className="border border-slate-200 rounded-lg p-4 hover:border-[#B8956A]/30 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-base font-semibold text-[#1A1A1A] truncate">{doc.title}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${doc.active ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                            {doc.active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 capitalize">
+                          {doc.document_type?.replace(/_/g, " ")} · {doc.source_type === "upload" ? "PDF Upload" : "Rich-Text Editor"} · v{doc.version}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">{fieldCount} signature field{fieldCount !== 1 ? "s" : ""}</p>
+                      </div>
+                      <button onClick={() => handleDeleteDoc(doc)} className="p-2 rounded-lg hover:bg-red-50 text-red-500 shrink-0" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      <span className="capitalize">{doc.document_type?.replace(/_/g, " ")}</span>
-                      {" · "}
-                      {doc.source_type === "upload" ? "PDF Upload" : "Rich-Text Editor"}
-                      {" · v"}{doc.version}
-                    </p>
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => { setSendDocId(doc.document_id); setSendModalOpen(true); }}
+                        disabled={!doc.active}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Send
+                      </button>
+                      <button
+                        onClick={() => { setEditingDoc(doc); setEditorOpen(true); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(doc)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+                      >
+                        {doc.active ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => handleToggleActive(doc)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500" title={doc.active ? "Deactivate" : "Activate"}>
-                      <CheckCircle2 className={`w-4 h-4 ${doc.active ? "text-green-600" : "text-slate-300"}`} />
-                    </button>
-                    <button onClick={() => { setEditingDoc(doc); setEditorOpen(true); }} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500" title="Edit">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeleteDoc(doc)} className="p-2 rounded-lg hover:bg-red-50 text-red-500" title="Delete">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -220,8 +239,9 @@ export default function SignDocumentsPanel({ salesMemberId }) {
       {sendModalOpen && (
         <SendSignRequestModal
           salesMemberId={salesMemberId}
-          onClose={() => setSendModalOpen(false)}
-          onSent={() => { setSendModalOpen(false); loadData(); }}
+          preselectedDocumentId={sendDocId}
+          onClose={() => { setSendModalOpen(false); setSendDocId(null); }}
+          onSent={() => { setSendModalOpen(false); setSendDocId(null); loadData(); }}
         />
       )}
       {viewingSigned && (
