@@ -1,0 +1,226 @@
+{
+  "name": "SignRequest",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant this sign request belongs to",
+      "default": "tnt_estate_media"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Stable request identifier (e.g. sigreq_xxx)"
+    },
+    "document_id": {
+      "type": "string",
+      "description": "SignDocument.document_id this request was created from"
+    },
+    "document_title": {
+      "type": "string",
+      "description": "Snapshot of the document title at send time"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "offer_letter",
+        "employment_agreement",
+        "nda",
+        "addendum",
+        "w9",
+        "ica",
+        "custom"
+      ],
+      "description": "Snapshot of the document type at send time"
+    },
+    "document_version": {
+      "type": "string",
+      "description": "Snapshot of the document version at send time"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "upload",
+        "editor"
+      ],
+      "description": "Snapshot of the document source type"
+    },
+    "merged_body_html": {
+      "type": "string",
+      "description": "For source_type=editor: the rendered HTML with merge fields filled in. Frozen at send time."
+    },
+    "body_ref": {
+      "type": "string",
+      "description": "For source_type=upload: the private file_uri of the PDF. Frozen at send time."
+    },
+    "signature_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "signature",
+              "date",
+              "name",
+              "text",
+              "initial"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "width": {
+            "type": "number",
+            "default": 30
+          }
+        }
+      },
+      "default": [],
+      "description": "Snapshot of signature field definitions from the SignDocument at send time."
+    },
+    "signature_field_values": {
+      "type": "object",
+      "description": "Map of field_id to the value the signer entered. Populated on signature submission.",
+      "default": {}
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication ID this request was sent to. Empty for standalone recipients."
+    },
+    "candidate_name": {
+      "type": "string",
+      "description": "Denormalized candidate full name"
+    },
+    "candidate_email": {
+      "type": "string",
+      "description": "Denormalized candidate email"
+    },
+    "sign_token": {
+      "type": "string",
+      "description": "Opaque token used to access the standalone signing page without login. Cryptographically random."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "viewed",
+        "signed",
+        "declined",
+        "voided",
+        "expired"
+      ],
+      "default": "sent",
+      "description": "Current lifecycle status"
+    },
+    "signing_location": {
+      "type": "string",
+      "enum": [
+        "portal",
+        "link"
+      ],
+      "default": "link",
+      "description": "Where the candidate signs."
+    },
+    "signature_value": {
+      "type": "string",
+      "description": "The typed name, or '[Drawn Signature]' if drawn."
+    },
+    "signature_method": {
+      "type": "string",
+      "enum": [
+        "typed",
+        "drawn",
+        "clickwrap"
+      ],
+      "default": "typed",
+      "description": "How the candidate signed."
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address of the signer (audit trail)"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent of the signer (audit trail)"
+    },
+    "orientation_document_id": {
+      "type": "string",
+      "description": "ID of the OrientationDocument audit-trail record created when signed."
+    },
+    "sent_by_name": {
+      "type": "string",
+      "description": "Name of the admin who sent the request"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "viewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "voided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the request expires (optional)."
+    }
+  },
+  "required": [
+    "tenant_id",
+    "request_id",
+    "document_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

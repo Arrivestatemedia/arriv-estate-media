@@ -1,0 +1,166 @@
+{
+  "name": "SignDocument",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant this document template belongs to",
+      "default": "tnt_estate_media"
+    },
+    "document_id": {
+      "type": "string",
+      "description": "Stable document identifier (e.g. offer_letter_default). Unique within tenant."
+    },
+    "title": {
+      "type": "string",
+      "description": "Document display title shown to admins and candidates"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "offer_letter",
+        "employment_agreement",
+        "nda",
+        "addendum",
+        "w9",
+        "ica",
+        "custom"
+      ],
+      "default": "custom",
+      "description": "Category of document. Drives special handling (e.g. offer_letter updates JobApplication status on signature)."
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "upload",
+        "editor"
+      ],
+      "description": "How the document was created. 'upload' = admin uploaded a finished PDF; 'editor' = admin wrote rich-text in the built-in editor with merge fields."
+    },
+    "body_ref": {
+      "type": "string",
+      "description": "For source_type=upload: the private file_uri of the uploaded PDF. For source_type=editor: empty."
+    },
+    "body_html": {
+      "type": "string",
+      "description": "For source_type=editor: the rich-text HTML body with merge field placeholders and signature field placeholders. For source_type=upload: empty."
+    },
+    "merge_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of merge field keys available in this document's body."
+    },
+    "signature_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_id": {
+            "type": "string",
+            "description": "Stable field identifier."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "signature",
+              "date",
+              "name",
+              "text",
+              "initial"
+            ],
+            "default": "signature"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display label shown to the signer"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "x": {
+            "type": "number",
+            "description": "Horizontal position as percentage (0-100) of PDF page width. For upload docs."
+          },
+          "y": {
+            "type": "number",
+            "description": "Vertical position as percentage (0-100) of PDF page height. For upload docs."
+          },
+          "page": {
+            "type": "integer",
+            "default": 1,
+            "description": "PDF page number (1-indexed)."
+          },
+          "width": {
+            "type": "number",
+            "default": 30,
+            "description": "Field width as percentage (0-100) of PDF page width."
+          }
+        },
+        "required": [
+          "field_id",
+          "type",
+          "label"
+        ]
+      },
+      "default": [],
+      "description": "Signature field definitions."
+    },
+    "version": {
+      "type": "string",
+      "default": "1.0",
+      "description": "Document version label."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this template is available for sending new sign requests"
+    },
+    "change_summary": {
+      "type": "string",
+      "description": "What changed in this version (optional)"
+    },
+    "created_by_name": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "document_id",
+    "title",
+    "source_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -26,6 +26,7 @@ import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
 import RecruitingChat from "@/components/recruiting/RecruitingChat";
 import GlobalSearch from "@/components/khethaiq/GlobalSearch";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
+import SignDocumentsPanel from "@/components/hireiq/SignDocumentsPanel";
 import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 import AsyncInterviewManagerContent from "@/components/interviews/AsyncInterviewManagerContent";
 import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
@@ -585,6 +586,7 @@ export default function KhethaIQ() {
     { id: "async_interviews", label: "Async Interviews", icon: "CalendarClock" },
     { id: "reminders", label: "Reminders", icon: "Mail" },
     { id: "offers", label: "Offers", icon: "FileText" },
+    { id: "sign_documents", label: "E-Signatures", icon: "FileText" },
     { id: "tasks", label: "Tasks", icon: "CheckSquare" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
@@ -608,6 +610,7 @@ export default function KhethaIQ() {
     async_interviews: "async_interviews",
     reminders: "reminders",
     offers: "offers",
+    sign_documents: "sign_documents",
     tasks: "tasks",
     applications: "applications",
     portal: "portal",
@@ -779,6 +782,14 @@ export default function KhethaIQ() {
                 <ReminderQueueView />
               ) : activeView === "offers" ? (
                 <OffersView onSelectCandidate={handleSelectCandidate} />
+              ) : activeView === "sign_documents" ? (
+                <div className="space-y-5">
+                  <div>
+                    <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>E-Signatures</h1>
+                    <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Document templates & signature requests</p>
+                  </div>
+                  <SignDocumentsPanel salesMemberId={localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')} />
+                </div>
               ) : activeView === "applications" ? (
                 <ApplicationsPanel pendingAction={pendingAppAction} onPendingActionConsumed={() => setPendingAppAction(null)} />
               ) : activeView === "portal" ? (

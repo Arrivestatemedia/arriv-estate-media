@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
+import { createSignRequest, getAppBaseUrl, buildSignRequestEmailHtml } from "../../shared/signEngine.ts";
 
 function buildPortalLink(app) {
   let appDomain = Deno.env.get("BASE44_APP_DOMAIN") || "app.arrivestatemedia.com";
@@ -109,7 +110,45 @@ Deno.serve(async (req) => {
       htmlContent: html,
     });
 
-    return Response.json({ success: true, sentTo: app.email });
+    // Auto-tie into e-signature: find an active offer_letter SignDocument
+    // and send it for signature automatically.
+    let signRequestCreated = false;
+    try {
+      const docs = await base44.asServiceRole.entities.SignDocument.filter(
+        { tenant_id: app.tenant_id || "tnt_estate_media", document_type: "offer_letter", active: true },
+        "-updated_date",
+        5
+      );
+      const offerDoc = (Array.isArray(docs) ? docs : (docs?.data || []))[0];
+      if (offerDoc) {
+        const { signRequest, signToken } = await createSignRequest(base44, {
+          doc: offerDoc,
+          recipient: {
+            application_id: applicationId,
+            tenant_id: app.tenant_id || "tnt_estate_media",
+          },
+          config: { company_name: "Arriv Estate Media" },
+          admin: { actorName: "System" },
+          signingLocation: "link",
+        });
+
+        const baseUrl = getAppBaseUrl();
+        const signUrl = `${baseUrl}/sign/${signToken}`;
+        const offerFirstName = deriveFirstName(app.full_name);
+        const signHtml = buildSignRequestEmailHtml(offerFirstName, offerDoc.title, signUrl, true);
+
+        await sendBusinessEmailOrQueue(base44, {
+          to: app.email,
+          subject: `Your Offer from Arriv Estate Media — Please Review & Sign`,
+          htmlContent: signHtml,
+        });
+        signRequestCreated = true;
+      }
+    } catch (e) {
+      console.error("Auto offer letter sign request failed:", e.message);
+    }
+
+    return Response.json({ success: true, sentTo: app.email, signRequestCreated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
