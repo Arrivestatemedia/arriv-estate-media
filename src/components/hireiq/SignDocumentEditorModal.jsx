@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +123,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const [bodyHtml, setBodyHtml] = useState(existing?.body_html || DEFAULT_TEMPLATES[existing?.document_type] || DEFAULT_TEMPLATES.offer_letter);
   const [fileUri, setFileUri] = useState(existing?.body_ref || "");
   const [fileName, setFileName] = useState("");
+  const [pdfSignedUrl, setPdfSignedUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -134,8 +135,25 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
   const textareaRef = useRef(null);
   const pdfAreaRef = useRef(null);
 
+  // Create a signed URL for existing documents with a body_ref
+  useEffect(() => {
+    if (existing?.body_ref && !pdfSignedUrl) {
+      base44.integrations.Core.CreateFileSignedUrl({ file_uri: existing.body_ref, expires_in: 3600 })
+        .then((res) => {
+          const data = res?.data || res;
+          if (data?.signed_url) setPdfSignedUrl(data.signed_url);
+        })
+        .catch(() => {});
+    }
+  }, [existing?.body_ref]);
+
   const handleUpload = async (file) => {
     if (!file) return;
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      setError("Please upload a PDF file. If you have a .docx, convert it to PDF first, or use the Rich-Text Editor.");
+      return;
+    }
     setUploading(true);
     setError("");
     try {
@@ -145,6 +163,10 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
       if (!uri) throw new Error("Upload failed — no file URI returned");
       setFileUri(uri);
       setFileName(file.name);
+      // Create a signed URL so the iframe can actually display the private PDF
+      const signedRes = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 });
+      const signedData = signedRes?.data || signedRes;
+      setPdfSignedUrl(signedData?.signed_url || "");
     } catch (e) {
       setError(e.message || "Upload failed");
     } finally {
@@ -238,7 +260,7 @@ export default function SignDocumentEditorModal({ onClose, onSaved, existing, sa
     }
   };
 
-  const pdfUrl = fileUri ? `${fileUri}#page=${currentPage}` : "";
+  const pdfUrl = pdfSignedUrl ? `${pdfSignedUrl}#page=${currentPage}` : "";
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
