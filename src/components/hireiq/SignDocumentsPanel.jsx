@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, FileText, Send, Trash2, Edit, Eye, Ban, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Loader2, Plus, FileText, Send, Trash2, Edit, Eye, Ban, CheckCircle2, Clock, XCircle, AlertCircle, Search } from "lucide-react";
 import SignDocumentEditorModal from "./SignDocumentEditorModal";
 import SendSignRequestModal from "./SendSignRequestModal";
 import SignedDocumentViewer from "./SignedDocumentViewer";
@@ -18,6 +18,7 @@ const STATUS_CONFIG = {
 export default function SignDocumentsPanel({ salesMemberId }) {
   const [tab, setTab] = useState("templates");
   const [showArchived, setShowArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [documents, setDocuments] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,15 @@ export default function SignDocumentsPanel({ salesMemberId }) {
   const [sendDocId, setSendDocId] = useState(null);
   const [viewingSigned, setViewingSigned] = useState(null);
 
-  const activeRequests = showArchived ? requests : requests.filter(r => r.status !== "voided");
+  const activeRequests = (showArchived ? requests : requests.filter(r => r.status !== "voided")).filter(r => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (r.candidate_name || "").toLowerCase().includes(q) ||
+      (r.candidate_email || "").toLowerCase().includes(q) ||
+      (r.document_title || "").toLowerCase().includes(q)
+    );
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -175,9 +184,18 @@ export default function SignDocumentsPanel({ salesMemberId }) {
         </div>
       ) : (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-500">{activeRequests.length} sign request{activeRequests.length !== 1 ? "s" : ""}</p>
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by candidate or document..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white text-[#1A1A1A] placeholder:text-slate-400 focus:outline-none focus:border-[#B8956A] focus:ring-1 focus:ring-[#B8956A]/40"
+              />
+            </div>
+            <div className="flex items-center gap-4 sm:ml-auto">
               <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -192,6 +210,7 @@ export default function SignDocumentsPanel({ salesMemberId }) {
               </Button>
             </div>
           </div>
+          <p className="text-sm text-slate-500 mb-3">{activeRequests.length} sign request{activeRequests.length !== 1 ? "s" : ""}</p>
 
           {activeRequests.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
