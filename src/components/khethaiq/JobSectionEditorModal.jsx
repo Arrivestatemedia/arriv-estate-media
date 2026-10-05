@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { X, Loader2, Save } from "lucide-react";
+import { DEFAULT_TRUST_BADGES } from "@/lib/jobTrustBadges";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -28,6 +29,9 @@ const labelStyle = {
 
 // Maps a section key to the editable job fields it owns.
 const SECTION_FIELDS = {
+  trust: [
+    { key: "trust_badges", label: "Trust badges (one per line)", type: "list", rows: 5, spec: true, hint: "Leave empty to hide the badge row." },
+  ],
   hero: [
     { key: "title", label: "Job title", type: "input" },
     { key: "hero_badge", label: "Hero badge (e.g. Now Hiring)", type: "input" },
@@ -91,7 +95,8 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
   useEffect(() => {
     const init = {};
     fields.forEach((f) => {
-      const v = job?.[f.key];
+      let v = f.spec ? job?.design_spec?.[f.key] : job?.[f.key];
+      if (f.key === "trust_badges" && !(Array.isArray(v) && v.length)) v = DEFAULT_TRUST_BADGES;
       init[f.key] = Array.isArray(v) ? v.join("\n") : (v ?? "");
     });
     setValues(init);
@@ -104,17 +109,18 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
     setErr(null);
     try {
       const payload = {};
+      const specPatch = {};
       fields.forEach((f) => {
         const raw = values[f.key] ?? "";
-        if (f.type === "list") {
-          payload[f.key] = String(raw).split("\n").map((s) => s.trim()).filter(Boolean);
-        } else {
-          payload[f.key] = raw;
-        }
+        const val = f.type === "list"
+          ? String(raw).split("\n").map((s) => s.trim()).filter(Boolean)
+          : raw;
+        if (f.spec) specPatch[f.key] = val;
+        else payload[f.key] = val;
       });
-      // Preserve existing design_spec — the update action merges by replacing,
-      // so pass the current one through.
-      const designSpec = job?.design_spec || null;
+      // Preserve existing design_spec — the update action replaces it wholesale,
+      // so pass the current one through (merged with any spec-stored fields).
+      const designSpec = { ...(job?.design_spec || {}), ...specPatch };
       const res = await base44.functions.invoke("createJobPage", {
         action: "update",
         job_opening_id: jobId,
@@ -125,7 +131,7 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
       });
       const d = res?.data ?? res;
       if (d?.success) {
-        onSaved?.(d.job_opening || { ...job, ...payload });
+        onSaved?.({ ...(d.job_opening || { ...job, ...payload }), design_spec: designSpec });
       } else {
         setErr(d?.error || "Failed to save changes");
       }
@@ -148,7 +154,7 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
       >
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
           <h3 className="text-base font-bold" style={{ color: TEXT_DARK }}>
-            {sectionKey === "hero" ? "Edit header" : "Edit section"}
+            {sectionKey === "hero" ? "Edit header" : sectionKey === "trust" ? "Edit trust badges" : "Edit section"}
           </h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5">
             <X className="w-4 h-4" style={{ color: MUTED }} />

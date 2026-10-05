@@ -10,6 +10,8 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import BackToMainSiteButton from "@/components/BackToMainSiteButton";
 import JobSectionEditorModal from "@/components/khethaiq/JobSectionEditorModal";
+import TrustBadgesRow from "@/components/khethaiq/TrustBadgesRow";
+import { DEFAULT_TRUST_BADGES } from "@/lib/jobTrustBadges";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -33,12 +35,7 @@ const SECTION_LABELS = {
   benefits: "Why Join Arriv",
 };
 
-const DEFAULT_TRUST = [
-  "Independent Contractor",
-  "Flexible Schedule",
-  "No Monthly Fees",
-  "Keep Your Existing Clients",
-];
+
 
 
 
@@ -195,6 +192,7 @@ export default function PublicJobPage() {
   const title = job.title || "Untitled";
   const subtitle = job.page_description || job.description_text || "";
   const heroBadgeText = job.hero_badge || "Now Hiring";
+  const trustBadges = Array.isArray(job.design_spec?.trust_badges) ? job.design_spec.trust_badges : DEFAULT_TRUST_BADGES;
   const preferredItems = job.preferred_qualifications || [];
   const skillsItems = job.skills || [];
   const faqs = (job.faqs || []).map(f => ({ q: f.question || f.q, a: f.answer || f.a }));
@@ -340,13 +338,15 @@ export default function PublicJobPage() {
     ),
   };
 
-  const saveSectionOrder = async (newOrder) => {
+  const saveSectionOrder = (newOrder) => saveDesignSpec({ section_order: newOrder });
+
+  const saveDesignSpec = async (patch) => {
     setSavingOrder(true);
     try {
       const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id') || "";
       const salesEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "";
       const existingSpec = data?.job?.design_spec || {};
-      const mergedSpec = { ...existingSpec, section_order: newOrder };
+      const mergedSpec = { ...existingSpec, ...patch };
       const res = await base44.functions.invoke("createJobPage", {
         action: "update",
         job_opening_id: data.job.id,
@@ -359,7 +359,7 @@ export default function PublicJobPage() {
         setData((prev) => ({ ...prev, job: { ...prev.job, design_spec: mergedSpec } }));
       }
     } catch (err) {
-      alert("Failed to save layout: " + (err.message || "unknown error"));
+      alert("Failed to save changes: " + (err.message || "unknown error"));
     } finally {
       setSavingOrder(false);
     }
@@ -480,18 +480,13 @@ export default function PublicJobPage() {
       </header>
 
       {/* Trust badges */}
-      <div style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 pb-10 -mt-2">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            {DEFAULT_TRUST.map((t) => (
-              <div key={t} className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" style={{ color: GOLD }} />
-                <span className="text-sm font-medium" style={{ color: "rgba(255,251,245,0.9)" }}>{t}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <TrustBadgesRow
+        badges={trustBadges}
+        editMode={editMode}
+        onEdit={() => setEditingSection("trust")}
+        onDeleteRow={() => saveDesignSpec({ trust_badges: [] })}
+        onRemoveBadge={(i) => saveDesignSpec({ trust_badges: trustBadges.filter((_, idx) => idx !== i) })}
+      />
 
       {/* Content sections */}
       {editMode ? (
