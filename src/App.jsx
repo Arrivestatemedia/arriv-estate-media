@@ -67,6 +67,7 @@ import FinancialOverview from './pages/FinancialOverview';
 import ClientJobGallery from './pages/ClientJobGallery';
 import AdminClientGalleryPreview from './pages/AdminClientGalleryPreview';
 import SignDocumentPage from './pages/SignDocumentPage';
+import RegionalJobRouter from './pages/RegionalJobRouter';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -543,6 +544,7 @@ const AuthenticatedApp = () => {
       <Route path="/ClientJobGallery" element={<ClientJobGallery />} />
       <Route path="/AdminClientGalleryPreview" element={<AdminClientGalleryPreview />} />
       <Route path="/sign/:token" element={<SignDocumentPage />} />
+      <Route path="/join" element={<RegionalJobRouter />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
