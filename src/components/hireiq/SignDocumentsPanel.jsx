@@ -26,6 +26,8 @@ export default function SignDocumentsPanel({ salesMemberId }) {
   const [sendDocId, setSendDocId] = useState(null);
   const [viewingSigned, setViewingSigned] = useState(null);
 
+  const activeRequests = requests.filter(r => r.status !== "voided");
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,11 +102,54 @@ export default function SignDocumentsPanel({ salesMemberId }) {
         >
           Sent Requests
         </button>
+        <button
+          onClick={() => setTab("archived")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "archived" ? "border-[#B8956A] text-[#B8956A]" : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Archived
+        </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-[#B8956A]" />
+        </div>
+      ) : tab === "archived" ? (
+        <div>
+          <p className="text-sm text-slate-500 mb-3">{requests.filter(r => r.status === "voided").length} archived request{requests.filter(r => r.status === "voided").length !== 1 ? "s" : ""}</p>
+          {requests.filter(r => r.status === "voided").length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <Ban className="w-10 h-10 mx-auto mb-2" />
+              <p className="text-sm">No archived requests. Voided requests appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {requests.filter(r => r.status === "voided").map(req => {
+                const sc = STATUS_CONFIG[req.status] || STATUS_CONFIG.voided;
+                const SIcon = sc.icon;
+                return (
+                  <div key={req.id} className="border border-slate-200 rounded-lg p-4 flex items-center justify-between opacity-75">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-[#1A1A1A] truncate line-through">{req.document_title}</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${sc.color}`}>
+                          <SIcon className="w-3 h-3" /> {sc.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {req.candidate_name} · {req.candidate_email}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Sent {formatDate(req.sent_at)} · Voided {formatDate(req.voided_at)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : tab === "templates" ? (
         <div>
@@ -173,20 +218,20 @@ export default function SignDocumentsPanel({ salesMemberId }) {
       ) : (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-500">{requests.length} sign request{requests.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-slate-500">{activeRequests.length} sign request{activeRequests.length !== 1 ? "s" : ""}</p>
             <Button onClick={() => setSendModalOpen(true)} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
               <Send className="w-4 h-4 mr-2" /> Send New Request
             </Button>
           </div>
 
-          {requests.length === 0 ? (
+          {activeRequests.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <Send className="w-10 h-10 mx-auto mb-2" />
               <p className="text-sm">No sign requests sent yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {requests.map(req => {
+              {activeRequests.map(req => {
                 const sc = STATUS_CONFIG[req.status] || STATUS_CONFIG.sent;
                 const SIcon = sc.icon;
                 return (
