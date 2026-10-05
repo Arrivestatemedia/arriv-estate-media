@@ -428,7 +428,21 @@ export default function PublicJobPage() {
       )}
 
       {/* Hero — dark with gold accents, matching SalesGrowthAdvisor */}
-      <header className="px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20" style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
+      <header className="relative px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20" style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
+        {editMode && (
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+            <span className="bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded shadow">
+              Header
+            </span>
+            <button
+              onClick={() => setEditingSection("hero")}
+              className="flex items-center justify-center w-8 h-8 rounded-md bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 shadow"
+              title="Edit header"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="max-w-5xl mx-auto">
           <BackToMainSiteButton />
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6" style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}>

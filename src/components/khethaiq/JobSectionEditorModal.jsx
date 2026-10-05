@@ -28,6 +28,22 @@ const labelStyle = {
 
 // Maps a section key to the editable job fields it owns.
 const SECTION_FIELDS = {
+  hero: [
+    { key: "title", label: "Job title", type: "input" },
+    { key: "hero_badge", label: "Hero badge (e.g. Now Hiring)", type: "input" },
+    { key: "page_description", label: "Hero subtitle / intro paragraph", type: "textarea", rows: 5 },
+    { key: "location", label: "Location", type: "input" },
+    { key: "employment_type", label: "Employment type", type: "select", options: [
+      { value: "full_time", label: "Full Time" },
+      { value: "part_time", label: "Part Time" },
+      { value: "contract", label: "Contract" },
+      { value: "temporary", label: "Temporary" },
+      { value: "internship", label: "Internship" },
+    ] },
+    { key: "work_arrangement", label: "Work arrangement (e.g. remote, onsite)", type: "input" },
+    { key: "compensation", label: "Compensation summary", type: "input" },
+    { key: "work_schedule", label: "Work schedule", type: "input" },
+  ],
   about: [
     { key: "description_text", label: "About the role (main paragraph)", type: "textarea", rows: 6, hint: "The primary description shown in the About section." },
     { key: "page_description", label: "Secondary highlight (optional)", type: "textarea", rows: 4, hint: "Shown as a highlighted callout when different from the main paragraph." },
@@ -131,7 +147,9 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
-          <h3 className="text-base font-bold" style={{ color: TEXT_DARK }}>Edit section</h3>
+          <h3 className="text-base font-bold" style={{ color: TEXT_DARK }}>
+            {sectionKey === "hero" ? "Edit header" : "Edit section"}
+          </h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5">
             <X className="w-4 h-4" style={{ color: MUTED }} />
           </button>
