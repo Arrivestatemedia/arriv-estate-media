@@ -4,11 +4,12 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import {
   ArrowRight, Star, MapPin, Clock, Wallet, Briefcase, GripVertical, X,
-  Loader2, CheckCircle2, Target, ChevronDown, Heart,
+  Loader2, CheckCircle2, Target, ChevronDown, Heart, Pencil, Trash2, RotateCcw,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import BackToMainSiteButton from "@/components/BackToMainSiteButton";
+import JobSectionEditorModal from "@/components/khethaiq/JobSectionEditorModal";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -108,6 +109,8 @@ export default function PublicJobPage() {
   const [editMode, setEditMode] = useState(false);
   const [sectionOrderState, setSectionOrderState] = useState(null);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [editingSection, setEditingSection] = useState(null);
+  const [removedSections, setRemovedSections] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -371,6 +374,19 @@ export default function PublicJobPage() {
     saveSectionOrder(reordered);
   };
 
+  const handleDeleteSection = (key) => {
+    const current = sectionOrderState || DEFAULT_SECTION_ORDER;
+    const next = current.filter((k) => k !== key);
+    setSectionOrderState(next);
+    setRemovedSections((prev) => [...prev, key]);
+    saveSectionOrder(next);
+  };
+
+  const handleSectionSaved = (updatedJob) => {
+    setData((prev) => ({ ...prev, job: { ...prev.job, ...updatedJob } }));
+    setEditingSection(null);
+  };
+
   const visibleSections = (sectionOrderState || DEFAULT_SECTION_ORDER).filter((key) => sections[key]);
 
   return (
@@ -384,6 +400,22 @@ export default function PublicJobPage() {
           </div>
           <div className="flex items-center gap-2">
             {savingOrder && <Loader2 className="w-4 h-4 animate-spin text-white/60" />}
+            {editMode && removedSections.length > 0 && (
+              <button
+                onClick={() => {
+                  const restored = [...removedSections, ...(sectionOrderState || [])];
+                  setSectionOrderState(restored);
+                  setRemovedSections([]);
+                  saveSectionOrder(restored);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{ backgroundColor: "rgba(255,255,255,0.12)" }}
+                title={`Restore ${removedSections.length} removed section${removedSections.length > 1 ? "s" : ""}`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Restore ({removedSections.length})
+              </button>
+            )}
             <button
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -470,6 +502,22 @@ export default function PublicJobPage() {
                         <div className="absolute top-3 left-12 z-10 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                           {SECTION_LABELS[key] || key}
                         </div>
+                        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setEditingSection(key)}
+                            className="flex items-center justify-center w-7 h-7 rounded-md bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 shadow-sm"
+                            title="Edit section"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSection(key)}
+                            className="flex items-center justify-center w-7 h-7 rounded-md bg-white text-red-600 border border-red-200 hover:bg-red-50 shadow-sm"
+                            title="Remove section"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         {sections[key]}
                       </div>
                     )}
@@ -513,6 +561,18 @@ export default function PublicJobPage() {
           </div>
         </div>
       </section>
+
+      {editingSection && (
+        <JobSectionEditorModal
+          sectionKey={editingSection}
+          job={job}
+          jobId={data.job.id}
+          salesEmail={localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || ""}
+          salesMemberId={localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id') || ""}
+          onClose={() => setEditingSection(null)}
+          onSaved={handleSectionSaved}
+        />
+      )}
     </div>
   );
 }
