@@ -263,7 +263,7 @@ export default async function (req) {
       const email = envelope.payload?.email || "";
       const allowedDomains = ["arrivestatemedia.com", "arrivonehq.com"];
       if (email && !allowedDomains.includes(email.toLowerCase().split("@").pop())) {
-        console.warn(`[SYNC_COMPANY_GUARD] Rejected SalesTeamMember sync: email="${email}" does not belong to ${allowedDomain}`);
+        console.warn(`[SYNC_COMPANY_GUARD] Rejected SalesTeamMember sync: email="${email}" does not belong to ${allowedDomains.join(", ")}`);
         return Response.json(
           {
             accepted: false,
