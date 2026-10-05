@@ -332,6 +332,75 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── B-06: Commission reversal on refund / chargeback ──────────────────
+    // Auditable adjustment: NEVER mutate a historical CommissionSourceRecord's
+    // amounts. On a refund or chargeback for a payment that already generated a
+    // commission source record, mark the original's refund/chargeback status
+    // (status only) and create a SEPARATE reversal source record with negative
+    // amounts referencing the same invoice/payment. Idempotent on stripe_payment_id.
+    if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+      try {
+        const charge = event.data.object;
+        const paymentIntentId = charge.payment_intent || charge.payment_intent_id;
+        if (paymentIntentId) {
+          const sources = await base44.asServiceRole.entities.CommissionSourceRecord.filter({
+            stripe_payment_id: paymentIntentId,
+          });
+          const isChargeback = event.type === 'charge.dispute.created';
+          for (const src of (sources || [])) {
+            const alreadyReversed = src.refund_status === 'refunded' || src.chargeback_status === 'disputed' || src.adjustment_status === 'reversed';
+            if (alreadyReversed) continue;
+            // Status-only update on the original (no amount mutation)
+            await base44.asServiceRole.entities.CommissionSourceRecord.update(src.id, {
+              refund_status: isChargeback ? (src.refund_status || 'none') : 'refunded',
+              chargeback_status: isChargeback ? 'disputed' : (src.chargeback_status || 'none'),
+              payroll_inclusion_status: 'not_included',
+              adjustment_status: 'reversed',
+              modified_timestamp: new Date().toISOString(),
+            });
+            // Idempotency: skip if a reversal already exists for this payment
+            const existingReversal = await base44.asServiceRole.entities.CommissionSourceRecord.filter({
+              stripe_payment_id: paymentIntentId,
+              adjustment_status: 'reversal',
+            });
+            if (existingReversal && existingReversal.length > 0) continue;
+            // Create the reversal record (negative amounts, same plan version)
+            await base44.asServiceRole.entities.CommissionSourceRecord.create({
+              source_record_id: `csr_rev_${crypto.randomUUID()}`,
+              arriv_employee_id: src.arriv_employee_id || '',
+              client_id: src.client_id || '',
+              client_account_id: src.source_record_id || '',
+              customer_invoice_id: src.customer_invoice_id || '',
+              stripe_payment_id: src.stripe_payment_id || '',
+              sale_id: src.sale_id || '',
+              service_or_product: src.service_or_product || '',
+              contract_value: -Math.abs(src.contract_value || 0),
+              amount_collected: -Math.abs(src.amount_collected || 0),
+              commissionable_amount: -Math.abs(src.commissionable_amount || 0),
+              commission_plan_id: src.commission_plan_id || '',
+              commission_plan_version: src.commission_plan_version || 1,
+              commission_rate: src.commission_rate || 0,
+              commission_calculation_method: src.commission_calculation_method || 'flat_rate',
+              calculated_commission_amount: -Math.abs(src.calculated_commission_amount || 0),
+              eligibility_date: new Date().toISOString().slice(0, 10),
+              payment_cleared_date: new Date().toISOString().slice(0, 10),
+              refund_status: isChargeback ? 'none' : 'refunded',
+              chargeback_status: isChargeback ? 'disputed' : 'none',
+              cancellation_status: 'none',
+              adjustment_status: 'reversal',
+              previous_payroll_inclusion_status: src.payroll_inclusion_status || 'not_included',
+              payroll_inclusion_status: 'eligible',
+              record_version: 1,
+              created_timestamp: new Date().toISOString(),
+              modified_timestamp: new Date().toISOString(),
+            });
+          }
+        }
+      } catch (e) {
+        console.warn(`${event.type}: commission reversal failed:`, e.message);
+      }
+    }
+
     return Response.json({ received: true });
 
   } catch (error) {

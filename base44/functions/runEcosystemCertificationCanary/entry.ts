@@ -466,25 +466,38 @@ async function canaryVideoAuthorityEstateMediaArrivOneWorkflow(base44, canaryId,
     return buildCertificationResult({ success: true, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: "arriv_assist", destination_application: appId, execution_type: "LIVE_LOCAL_RUNTIME", result: "PASS", evidence: { phase: "cleanup" }, started_at: startedAt, completed_at: new Date().toISOString() });
   }
   try {
-    // Verify Estate Media uses Arriv One workflow for video, not its own
+    // Honest certification: inspect the ACTUAL cross-product video authority
+    // rather than hardcoding "delegatesToArrivOne = true". Estate Media's
+    // cross-tenant caller-token path (initiateCrossTenantVideoCall) currently
+    // mints Twilio AccessTokens locally from Estate Media's own credentials
+    // instead of delegating to Arriv One's canonical video service. Until that
+    // path delegates to ARRIV_ONE_VIDEO_SERVICE_URL, this canary must FAIL.
+    const arrivOneVideoServiceUrl = Deno.env.get("ARRIV_ONE_VIDEO_SERVICE_URL") || "";
+    const crossProductDelegationConfigured = !!arrivOneVideoServiceUrl;
+    // The receiver (receiveArrivOneVideoCall) correctly delegates (no recipient
+    // token stored), but the sender side still mints locally. This is the gap.
+    const senderDelegatesToArrivOne = false; // actual current behavior
+    const delegated = crossProductDelegationConfigured && senderDelegatesToArrivOne;
     return buildCertificationResult({
-      success: true,
+      success: delegated,
       canary_id: canaryId,
       synthetic_run_id: runId,
       application_id: appId,
       source_application: "arriv_assist",
       destination_application: appId,
-      execution_type: "LIVE_LOCAL_RUNTIME",
-      result: "PASS",
+      execution_type: "CODE_TRACE",
+      result: delegated ? "PASS" : "FAIL",
       evidence: {
-        workflow: "ARRIV_ONE_DELEGATED",
-        description: "Estate Media video for Arriv One workflow uses Arriv One's video authority. Estate Media does not mint tokens for this workflow.",
+        arriv_one_video_service_url_configured: crossProductDelegationConfigured,
+        cross_product_caller_token_authority: senderDelegatesToArrivOne ? "DELEGATED_TO_ARRIV_ONE" : "LOCAL_MINT_NOT_DELEGATED",
+        receiver_delegates: true,
+        blocker: senderDelegatesToArrivOne ? null : "initiateCrossTenantVideoCall mints caller tokens locally; must delegate to Arriv One video service for cross-product authority",
       },
       started_at: startedAt,
       completed_at: new Date().toISOString(),
     });
   } catch (e) {
-    return buildCertificationResult({ success: false, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: "arriv_assist", destination_application: appId, execution_type: "LIVE_LOCAL_RUNTIME", result: "FAIL", evidence: { reason: "VIDEO_WORKFLOW_CHECK_ERROR", error: e.message }, started_at: startedAt, completed_at: new Date().toISOString() });
+    return buildCertificationResult({ success: false, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: "arriv_assist", destination_application: appId, execution_type: "CODE_TRACE", result: "FAIL", evidence: { reason: "VIDEO_WORKFLOW_CHECK_ERROR", error: e.message }, started_at: startedAt, completed_at: new Date().toISOString() });
   }
 }
 

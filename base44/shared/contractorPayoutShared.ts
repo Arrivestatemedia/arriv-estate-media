@@ -112,11 +112,8 @@ export async function resolveMediaSpecialist(base44) {
     // fall through
   }
 
-  // Fallback: return a minimal identity from the auth user so the caller can
-  // still filter by email.
-  return {
-    id: user.id,
-    email: user.email,
-    full_name: user.full_name || "",
-  };
+  // No fallback: a W-2 employee (or any non-media-partner) must NEVER receive
+  // contractor payout authority merely because base44.auth.me() succeeded.
+  // Deterministic contractor authorization requires user_type === "media_partner".
+  return null;
 }

@@ -111,9 +111,19 @@ export async function linkRoleToPerson(
     person = await findPersonBySharedId(base44, existingSharedPersonId);
   }
 
-  // 2. Try to find by email
+  // 2. Try to find by email — but ONLY if there is exactly one match.
+  //    Email is a SEARCH key, not an authoritative cross-role key. Multiple
+  //    Persons with the same email = ambiguous identity; do not guess and do
+  //    not silently pick the first. Throw an explicit unresolved state so the
+  //    caller can surface a SyncConflict / stage for review.
   if (!person) {
-    person = await findPersonByEmail(base44, normalized);
+    const matches = await base44.entities.Person.filter({ email: normalized });
+    if (matches && matches.length > 1) {
+      throw new Error(
+        `AMBIGUOUS_PERSON_MATCH: ${matches.length} Persons match email "${normalized}" — resolve the duplicate before linking role "${roleType}".`
+      );
+    }
+    person = matches && matches[0] ? matches[0] : null;
   }
 
   // 3. Create if not found

@@ -100,23 +100,33 @@ export async function naturalKeyMatch(base44, entityType, payload) {
   if (localType === "Contact") {
     const email = normalizeEmail(payload.email);
     const phone = digitsOnly(payload.phone);
-    if (!email && !phone) return null;
-    const all = await base44.asServiceRole.entities.Contact.list("-created_date", 5000);
     if (email) {
-      const byEmail = all.find((c) => normalizeEmail(c.email) === email);
-      if (byEmail) return byEmail;
+      // Indexed lookup (case-sensitive in this DB — try raw then lowercased).
+      let byEmail = await base44.asServiceRole.entities.Contact.filter({ email });
+      let match = (byEmail || []).find((c) => normalizeEmail(c.email) === email);
+      if (!match) {
+        byEmail = await base44.asServiceRole.entities.Contact.filter({ email: email.toLowerCase() });
+        match = (byEmail || []).find((c) => normalizeEmail(c.email) === email);
+      }
+      if (match) return match;
     }
     if (phone.length >= 10) {
-      const byPhone = all.find((c) => digitsOnly(c.phone) === phone);
-      if (byPhone) return byPhone;
+      const byPhone = await base44.asServiceRole.entities.Contact.filter({ phone: payload.phone });
+      const match = (byPhone || []).find((c) => digitsOnly(c.phone) === phone);
+      if (match) return match;
     }
     return null;
   }
   if (localType === "SalesTeamMember") {
     const email = normalizeEmail(payload.email);
     if (!email) return null;
-    const all = await base44.asServiceRole.entities.SalesTeamMember.list("-created_date", 500);
-    return all.find((m) => normalizeEmail(m.email) === email) || null;
+    let byEmail = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
+    let match = (byEmail || []).find((m) => normalizeEmail(m.email) === email);
+    if (!match) {
+      byEmail = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: email.toLowerCase() });
+      match = (byEmail || []).find((m) => normalizeEmail(m.email) === email);
+    }
+    return match || null;
   }
   return null;
 }
@@ -131,10 +141,15 @@ export async function isAmbiguousMatch(base44, entityType, payload) {
   if (localType === "Contact") {
     const email = normalizeEmail(payload.email);
     const phone = digitsOnly(payload.phone);
-    const all = await base44.asServiceRole.entities.Contact.list("-created_date", 5000);
     let count = 0;
-    if (email) count += all.filter((c) => normalizeEmail(c.email) === email).length;
-    if (phone.length >= 10) count += all.filter((c) => digitsOnly(c.phone) === phone).length;
+    if (email) {
+      const byEmail = await base44.asServiceRole.entities.Contact.filter({ email });
+      count += (byEmail || []).filter((c) => normalizeEmail(c.email) === email).length;
+    }
+    if (phone.length >= 10) {
+      const byPhone = await base44.asServiceRole.entities.Contact.filter({ phone: payload.phone });
+      count += (byPhone || []).filter((c) => digitsOnly(c.phone) === phone).length;
+    }
     return count > 1;
   }
   return false;
