@@ -499,23 +499,23 @@ export default function PublicJobPage() {
                         >
                           <GripVertical className="w-4 h-4" />
                         </div>
-                        <div className="absolute top-3 left-12 z-10 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-3 left-12 z-10 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded shadow">
                           {SECTION_LABELS[key] || key}
                         </div>
-                        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
                           <button
                             onClick={() => setEditingSection(key)}
-                            className="flex items-center justify-center w-7 h-7 rounded-md bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 shadow-sm"
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 shadow"
                             title="Edit section"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteSection(key)}
-                            className="flex items-center justify-center w-7 h-7 rounded-md bg-white text-red-600 border border-red-200 hover:bg-red-50 shadow-sm"
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-white text-red-600 border border-red-200 hover:bg-red-50 shadow"
                             title="Remove section"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                         {sections[key]}

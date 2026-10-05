@@ -15,7 +15,7 @@ export default async function(req: Request): Promise<Response> {
       source_url,
       file_url,
       // reviewed fields (for "create" action)
-      title, department, hero_badge, description, responsibilities, required_qualifications,
+      title, department, hero_badge, description, description_text, responsibilities, required_qualifications,
       preferred_qualifications, skills, experience_requirements,
       performance_expectations, compensation, work_schedule,
       employment_type, work_arrangement, location, travel_requirements,
@@ -151,7 +151,7 @@ export default async function(req: Request): Promise<Response> {
         title: title || existingData.title || "",
         department: department || existingData.department || "",
         hero_badge: hero_badge || existingData.hero_badge || "",
-        description_text: description || existingData.description_text || "",
+        description_text: description_text || description || existingData.description_text || "",
         responsibilities: responsibilities || existingData.responsibilities || [],
         required_qualifications: required_qualifications || existingData.required_qualifications || [],
         preferred_qualifications: preferred_qualifications || existingData.preferred_qualifications || [],
