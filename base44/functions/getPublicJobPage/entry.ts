@@ -76,6 +76,7 @@ export default async function(req: Request): Promise<Response> {
 
     return Response.json({
       job: {
+        id: job.id,
         job_id: job.job_id,
         public_slug: job.public_slug,
         title: job.title,

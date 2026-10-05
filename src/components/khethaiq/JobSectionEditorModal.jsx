@@ -44,7 +44,11 @@ const SECTION_FIELDS = {
       { value: "temporary", label: "Temporary" },
       { value: "internship", label: "Internship" },
     ] },
-    { key: "work_arrangement", label: "Work arrangement (e.g. remote, onsite)", type: "input" },
+    { key: "work_arrangement", label: "Work arrangement", type: "select", options: [
+      { value: "remote", label: "Remote" },
+      { value: "hybrid", label: "Hybrid" },
+      { value: "onsite", label: "Onsite" },
+    ] },
     { key: "compensation", label: "Compensation summary", type: "input" },
     { key: "work_schedule", label: "Work schedule", type: "input" },
   ],
@@ -136,7 +140,7 @@ export default function JobSectionEditorModal({ sectionKey, job, jobId, salesEma
         setErr(d?.error || "Failed to save changes");
       }
     } catch (e) {
-      setErr(e.message || "Failed to save changes");
+      setErr(e?.response?.data?.error || e.message || "Failed to save changes");
     } finally {
       setSaving(false);
     }

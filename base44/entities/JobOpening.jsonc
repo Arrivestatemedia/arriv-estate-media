@@ -76,6 +76,13 @@
           },
           "description": "Order of content sections on the public page"
         },
+        "trust_badges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Short trust badges shown under the hero. Empty array hides the row; absent uses the default badges."
+        },
         "layout_density": {
           "type": "string",
           "enum": [
