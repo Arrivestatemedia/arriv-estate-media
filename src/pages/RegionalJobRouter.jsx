@@ -1,14 +1,85 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, TrendingUp } from "lucide-react";
 
-// /join routes visitors to the Sales Growth Advisor careers page.
+// /join routes visitors to the right regional Sales Growth Advisor page:
+//   Georgia (GA)     → /careers/sales-growth-advisor   (Atlanta market)
+//   DMV (DC, MD, VA) → /SalesGrowthAdvisor             (DMV market)
+//   Anywhere else    → /SalesGrowthAdvisor             (default market)
+
+const DMV_STATES = new Set([
+  "dc", "d.c.", "district of columbia", "washington dc", "washington, dc",
+  "md", "maryland",
+  "va", "virginia",
+]);
+
+const GA_STATES = new Set([
+  "ga", "georgia",
+]);
+
+const DEFAULT_ROUTE = "/SalesGrowthAdvisor";
+const ATLANTA_ROUTE = "/careers/sales-growth-advisor";
+
+function normalizeState(s) {
+  return String(s || "").trim().toLowerCase();
+}
+
+function routeForState(state) {
+  const norm = normalizeState(state);
+  if (GA_STATES.has(norm)) return ATLANTA_ROUTE;
+  if (DMV_STATES.has(norm)) return DEFAULT_ROUTE;
+  return DEFAULT_ROUTE;
+}
+
 export default function RegionalJobRouter() {
   const navigate = useNavigate();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => navigate("/SalesGrowthAdvisor", { replace: true }), 400);
-    return () => clearTimeout(t);
+    let mounted = true;
+    (async () => {
+      let route = DEFAULT_ROUTE;
+      let resolved = false;
+
+      // Client-side geolocation: the browser's fetch carries the visitor's
+      // real IP directly to the geolocation API. ipwho.is auto-detects the
+      // caller IP and supports CORS.
+      try {
+        const r = await fetch("https://ipwho.is/");
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.success !== false && (d.region || d.region_code)) {
+            route = routeForState(d.region || d.region_code);
+            resolved = true;
+          }
+        }
+      } catch (_e) {
+        // try fallback provider
+      }
+
+      // Fallback: ipapi.co (also CORS-enabled, auto-detects caller IP).
+      if (!resolved) {
+        try {
+          const r = await fetch("https://ipapi.co/json/");
+          if (r.ok) {
+            const d = await r.json();
+            if (d && !d.error && (d.region || d.region_code)) {
+              route = routeForState(d.region || d.region_code);
+              resolved = true;
+            }
+          }
+        } catch (_e) {
+          // both providers failed — use default route
+        }
+      }
+
+      if (!mounted) return;
+      if (!resolved) setFailed(true);
+      setTimeout(() => navigate(route, { replace: true }), resolved ? 350 : 1200);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   return (
@@ -19,9 +90,13 @@ export default function RegionalJobRouter() {
         </div>
         <Loader2 className="w-5 h-5 animate-spin text-[#B8956A] mb-3" />
         <p className="text-[#1A1A1A] font-medium text-base mb-1">
-          Taking you to the Sales Growth Advisor role…
+          {failed
+            ? "Redirecting you to the Sales Growth Advisor role…"
+            : "Finding the right Sales Growth Advisor role for your area…"}
         </p>
-        <p className="text-[#1A1A1A]/50 text-sm">One moment while we load the page.</p>
+        <p className="text-[#1A1A1A]/50 text-sm">
+          Detecting your region to show nearby opportunities.
+        </p>
       </div>
     </div>
   );
