@@ -179,6 +179,7 @@ function LayoutContent({ children, currentPageName }) {
           { label: "Field Prospecting", page: "FieldProspectingPage", icon: MapPin },
           { label: "Referrals", page: "ReferralProgramPage", icon: Gift },
           { label: "Customer Success", page: "CustomerSuccessPage", icon: CheckCircle2 },
+          { label: "Agreements", page: "ArrivAgreementsCenter", icon: FileText },
           { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
           { label: "Send Media", page: "SendMediaToClient", icon: Send },
           { label: "My Recordings", page: "Recordings", icon: Film },

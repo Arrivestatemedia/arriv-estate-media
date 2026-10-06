@@ -42,7 +42,8 @@ export default function ArrivAgreementsCenter() {
     try {
       const filters = {};
       if (statusFilter) filters.status = statusFilter;
-      const res = await base44.functions.invoke("getAdminAgreementCenter", { filters, limit: 100 });
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+      const res = await base44.functions.invoke("getAdminAgreementCenter", { filters, limit: 100, sales_member_id: salesMemberId });
       const d = res?.data || res;
       setData(d);
     } catch (e) {
@@ -67,7 +68,7 @@ export default function ArrivAgreementsCenter() {
 
   const sendAgreement = async (agreementId) => {
     try {
-      await base44.functions.invoke("manageAgreements", { action: "send", agreement_id: agreementId, actor: "admin" });
+      await base44.functions.invoke("manageSignDocuments", { action: "send_reminder", id: selectedAgreement?.id });
       loadData();
     } catch (e) {
       alert(e.message);
@@ -77,7 +78,8 @@ export default function ArrivAgreementsCenter() {
   const voidAgreement = async (agreementId) => {
     if (!confirm("Void this agreement? This cannot be undone.")) return;
     try {
-      await base44.functions.invoke("manageAgreements", { action: "void", agreement_id: agreementId, reason: "Voided by admin", actor: "admin" });
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+      await base44.functions.invoke("manageSignDocuments", { action: "void_request", id: selectedAgreement?.id, sales_member_id: salesMemberId });
       loadData();
       setSelectedAgreement(null);
     } catch (e) {
@@ -87,7 +89,8 @@ export default function ArrivAgreementsCenter() {
 
   const sendReminder = async (agreementId, recipientId) => {
     try {
-      await base44.functions.invoke("manageAgreements", { action: "send_reminder", agreement_id: agreementId, recipient_id: recipientId, actor: "admin" });
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+      await base44.functions.invoke("manageSignDocuments", { action: "send_reminder", id: selectedAgreement?.id, sales_member_id: salesMemberId });
       if (selectedAgreement) loadDetail(selectedAgreement.id);
     } catch (e) {
       alert(e.message);
@@ -190,6 +193,8 @@ export default function ArrivAgreementsCenter() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={() => { setShowCreate(false); loadData(); }}
+        salesMemberId={localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')}
+        salesRepEmail={localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email')}
       />
     </div>
   );

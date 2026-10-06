@@ -32,7 +32,7 @@ export default async function(req) {
     // CREATE
     if (action === 'create') {
       const tenantId = admin.tenantId || body?.tenant_id || "tnt_estate_media";
-      const { title, document_type, source_type, body_ref, body_html, document_id } = body;
+      const { title, document_type, source_type, body_ref, body_html, document_id, document_category } = body;
       if (!title) return Response.json({ error: 'title is required' }, { status: 400 });
       if (!source_type) return Response.json({ error: 'source_type is required' }, { status: 400 });
       if (source_type === 'upload' && !body_ref) return Response.json({ error: 'body_ref (uploaded file) is required for upload source' }, { status: 400 });
@@ -48,6 +48,7 @@ export default async function(req) {
         document_id: docId,
         title,
         document_type: document_type || 'custom',
+        document_category: document_category || 'regular_document',
         source_type,
         body_ref: source_type === 'upload' ? body_ref : '',
         body_html: source_type === 'editor' ? body_html : '',
@@ -73,6 +74,7 @@ export default async function(req) {
       const update = { updated_at: new Date().toISOString() };
       if (body.title !== undefined) update.title = body.title;
       if (body.document_type !== undefined) update.document_type = body.document_type;
+      if (body.document_category !== undefined) update.document_category = body.document_category;
       if (body.active !== undefined) update.active = body.active;
       if (body.change_summary !== undefined) update.change_summary = body.change_summary;
       if (body.version !== undefined) update.version = String(body.version);
