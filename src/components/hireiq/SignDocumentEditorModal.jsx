@@ -119,10 +119,10 @@ const createPreviewFromUri = async (uri) => {
   return URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
 };
 
-export default function SignDocumentEditorModal({ onClose, onSaved, existing, salesMemberId }) {
+export default function SignDocumentEditorModal({ onClose, onSaved, existing, salesMemberId, initialSourceType }) {
   const [title, setTitle] = useState(existing?.title || "");
   const [docType, setDocType] = useState(existing?.document_type || "offer_letter");
-  const [sourceType, setSourceType] = useState(existing?.source_type || "editor");
+  const [sourceType, setSourceType] = useState(existing?.source_type || initialSourceType || "editor");
   const [bodyHtml, setBodyHtml] = useState(existing?.body_html || DEFAULT_TEMPLATES[existing?.document_type] || DEFAULT_TEMPLATES.offer_letter);
   const [fileUri, setFileUri] = useState(existing?.body_ref || "");
   const [fileName, setFileName] = useState("");

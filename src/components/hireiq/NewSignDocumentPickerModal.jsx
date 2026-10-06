@@ -146,6 +146,9 @@ export default function NewSignDocumentPickerModal({ open, onClose, salesMemberI
                         setSourceType(opt.value);
                         if (opt.value === "blank") {
                           setEditorOpen(true);
+                        } else if (opt.value === "upload") {
+                          setSourceType("upload");
+                          setEditorOpen(true);
                         } else if (opt.value === "template") {
                           loadTemplates();
                           setStep(1);
@@ -297,6 +300,7 @@ export default function NewSignDocumentPickerModal({ open, onClose, salesMemberI
         <SignDocumentEditorModal
           existing={null}
           salesMemberId={salesMemberId}
+          initialSourceType={sourceType === "upload" ? "upload" : "editor"}
           onClose={() => { setEditorOpen(false); onClose?.(); }}
           onSaved={() => { setEditorOpen(false); onCreated?.(); }}
         />
