@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { resolveSignAdmin, detectMergeFields, parseSignatureFields } from '../../shared/signEngine.ts';
+import { resolveSignAdmin, detectMergeFields, parseSignatureFields, getAppBaseUrl, buildSignRequestEmailHtml } from '../../shared/signEngine.ts';
+import { sendBusinessEmailOrQueue } from '../../shared/businessEmailQueue.ts';
+import { logSignEvent } from '../../shared/signEventLog.ts';
 
 export default async function(req) {
   try {
@@ -122,6 +124,53 @@ export default async function(req) {
       await base44.asServiceRole.entities.SignRequest.update(id, {
         status: 'voided',
         voided_at: new Date().toISOString(),
+      });
+      await logSignEvent(base44, {
+        request_id: existing.request_id,
+        sign_group_id: existing.sign_group_id,
+        document_id: existing.document_id,
+        document_title: existing.document_title,
+        document_category: existing.document_category,
+        event_type: 'VOIDED',
+        actor_email: admin.actorEmail,
+        actor_name: admin.actorName,
+        actor_type: admin.isSalesRep ? 'sales_rep' : 'admin',
+        recipient_email: existing.candidate_email,
+        recipient_name: existing.candidate_name,
+      });
+      return Response.json({ success: true });
+    }
+
+    // SEND REMINDER for a sign request
+    if (action === 'send_reminder') {
+      const id = body?.id;
+      if (!id) return Response.json({ error: 'id is required' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.SignRequest.get(id);
+      if (!existing) return Response.json({ error: 'Request not found' }, { status: 404 });
+      if (['signed', 'voided', 'declined', 'expired'].includes(existing.status)) {
+        return Response.json({ error: 'Cannot remind on a terminal request' }, { status: 400 });
+      }
+      const baseUrl = getAppBaseUrl();
+      const signUrl = `${baseUrl}/sign/${existing.sign_token}`;
+      const firstName = (existing.candidate_name || '').split(' ')[0] || 'there';
+      const html = buildSignRequestEmailHtml(firstName, existing.document_title, signUrl, false);
+      await sendBusinessEmailOrQueue(base44, {
+        to: existing.candidate_email,
+        subject: `Reminder: ${existing.document_title} — Action Required`,
+        htmlContent: html,
+      });
+      await logSignEvent(base44, {
+        request_id: existing.request_id,
+        sign_group_id: existing.sign_group_id,
+        document_id: existing.document_id,
+        document_title: existing.document_title,
+        document_category: existing.document_category,
+        event_type: 'REMINDER_SENT',
+        actor_email: admin.actorEmail,
+        actor_name: admin.actorName,
+        actor_type: admin.isSalesRep ? 'sales_rep' : 'admin',
+        recipient_email: existing.candidate_email,
+        recipient_name: existing.candidate_name,
       });
       return Response.json({ success: true });
     }
