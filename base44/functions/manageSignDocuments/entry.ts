@@ -12,7 +12,7 @@ export default async function(req) {
 
     // LIST templates
     if (action === 'list') {
-      const filter = admin.tenantId ? { tenant_id: admin.tenantId } : {};
+      const filter = admin.tenantId ? { tenant_id: admin.tenantId, category: 'hr' } : { category: 'hr' };
       const docs = await base44.asServiceRole.entities.SignDocument.filter(filter, '-updated_date', 200);
       const arr = Array.isArray(docs) ? docs : (docs?.data || []);
       return Response.json({ documents: arr });
@@ -106,7 +106,7 @@ export default async function(req) {
 
     // LIST SIGN REQUESTS (sent instances)
     if (action === 'list_requests') {
-      const filter = admin.tenantId ? { tenant_id: admin.tenantId } : {};
+      const filter = admin.tenantId ? { tenant_id: admin.tenantId, organization_id: '' } : { organization_id: '' };
       const reqs = await base44.asServiceRole.entities.SignRequest.filter(filter, '-sent_at', 200);
       const arr = Array.isArray(reqs) ? reqs : (reqs?.data || []);
       return Response.json({ requests: arr });
