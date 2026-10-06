@@ -178,8 +178,8 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
                             : "border-[#B8956A]/20 hover:border-[#B8956A]/50"
                         }`}
                       >
-                        <p className="font-medium text-[#1A1A1A]">{t.name}</p>
-                        <p className="text-xs text-[#1A1A1A]/50">{t.category.replace(/_/g, ' ')} · v{t.current_version_number}</p>
+                        <p className="font-medium text-[#1A1A1A]">{t.title || t.name}</p>
+                        <p className="text-xs text-[#1A1A1A]/50">{(t.agreement_type || t.category || 'general').replace(/_/g, ' ')} · v{t.version || t.current_version_number || '1.0'}</p>
                       </button>
                     ))}
                     {templates.length === 0 && (
