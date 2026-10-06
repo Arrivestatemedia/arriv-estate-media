@@ -44,6 +44,8 @@ export default async function(req: Request): Promise<Response> {
     // Normalize source server-side
     const normalizedSource = normalizeSource(source || utm_source);
 
+    const application_submitted_at = new Date().toISOString();
+
     // Create the application
     const application = await base44.asServiceRole.entities.JobApplication.create({
       tenant_id: tenantId,
@@ -72,7 +74,7 @@ export default async function(req: Request): Promise<Response> {
       landing_page_url: (landing_page_url || "").substring(0, 500),
       first_touch_at: first_touch_at || "",
       application_started_at: application_started_at || "",
-      application_submitted_at: new Date().toISOString(),
+      application_submitted_at,
       status: "received",
       origin_application: "arriv_estate_media",
     });
