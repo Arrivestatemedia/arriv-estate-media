@@ -86,6 +86,21 @@ export async function retryFailedSync(base44, entityName, pushFn) {
 
 // ─── Resolve the current media specialist from the request context ─────────
 // Returns { id, email, full_name } or null.
+//
+// CANONICAL CONTRACTOR MODEL (production-hardening B-04):
+//   1. PRIMARY — User with user_type === "media_partner" (completed signup).
+//   2. SECONDARY — MediaSpecialistEarningSync record matching the caller's
+//      email. This is the AUTHORITATIVE 1099 contractor classification from
+//      Arriv Payroll: payroll only creates an earning-sync record for a
+//      verified 1099 media specialist. A W-2-only employee (SalesTeamMember
+//      without a media-partner User or earning-sync record) is NEVER matched.
+//
+// This is NOT email-alone authorization. The secondary path requires a
+// payroll-classified contractor earning record to exist — concrete evidence
+// of a legitimate media-specialist assignment, not a guess from an email.
+// A dual-role person (W-2 sales rep who also has 1099 media-specialist
+// earnings) succeeds because they have a legitimate media-specialist
+// assignment via the earning-sync record.
 export async function resolveMediaSpecialist(base44) {
   let user;
   try {
@@ -95,7 +110,7 @@ export async function resolveMediaSpecialist(base44) {
   }
   if (!user || !user.email) return null;
 
-  // Media partners are stored in the User entity with user_type "media_partner".
+  // PRIMARY: completed signup → User with user_type === "media_partner"
   try {
     const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
     if (users && users.length) {
@@ -109,11 +124,28 @@ export async function resolveMediaSpecialist(base44) {
       }
     }
   } catch (_e) {
-    // fall through
+    // fall through to secondary
   }
 
-  // No fallback: a W-2 employee (or any non-media-partner) must NEVER receive
-  // contractor payout authority merely because base44.auth.me() succeeded.
-  // Deterministic contractor authorization requires user_type === "media_partner".
+  // SECONDARY: authoritative 1099 contractor classification via
+  // MediaSpecialistEarningSync. A W-2-only employee has no such record.
+  try {
+    const earnings = await base44.asServiceRole.entities.MediaSpecialistEarningSync.filter({
+      media_specialist_email: user.email,
+    });
+    if (earnings && earnings.length > 0) {
+      const e = earnings[0];
+      return {
+        id: e.media_specialist_id || user.id || user.email,
+        email: user.email,
+        full_name: e.media_specialist_name || user.full_name || "",
+      };
+    }
+  } catch (_e) {
+    // fall through to deny
+  }
+
+  // DENY: no User.media_partner and no payroll-classified earning record.
+  // A W-2-only employee, ordinary customer, or unknown identity is rejected.
   return null;
 }

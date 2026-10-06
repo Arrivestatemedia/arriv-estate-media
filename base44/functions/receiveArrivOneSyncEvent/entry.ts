@@ -5,6 +5,7 @@ import {
   validateEnvelopeShape,
   validateTimestamp,
   validatePayloadSize,
+  checkAndStoreNonce,
 } from "../../shared/syncEnvelope.ts";
 import {
   getTenantConfig,
@@ -105,6 +106,17 @@ export default async function (req) {
     if (!sigValid) {
       return Response.json(
         { accepted: false, processing_status: "rejected", reason: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    // 5b. Nonce replay protection — a reused signed nonce within the security
+    //     window is rejected. Legitimate retries use distinct nonces; the
+    //     event_id/idempotency_key contract handles dedup for legitimate retries.
+    const nonceCheck = await checkAndStoreNonce(base44, envelope.signature_nonce, envelope.source_application);
+    if (!nonceCheck.valid) {
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: nonceCheck.error },
         { status: 401 }
       );
     }

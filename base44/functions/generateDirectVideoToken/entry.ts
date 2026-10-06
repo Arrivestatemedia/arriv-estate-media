@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import twilio from 'npm:twilio@5.3.3';
+import { isCrossProductRoom, mintCrossProductToken } from '../../shared/canonicalVideoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -16,6 +17,22 @@ Deno.serve(async (req) => {
       return Response.json({ 
         error: 'roomName is required' 
       }, { status: 400 });
+    }
+
+    // CROSS-PRODUCT DELEGATION: if this is an arriv-xt- room (cross-product
+    // call from Arriv One), do NOT mint a Twilio token locally. Delegate to
+    // Arriv One's canonicalVideoService — the SOLE token authority for
+    // cross-product video. The token is returned to the caller, NEVER persisted.
+    if (isCrossProductRoom(roomName)) {
+      const result = await mintCrossProductToken(roomName, participantName || '', 'tnt_estate_media');
+      if (!result.success) {
+        return Response.json({ error: result.error || 'canonicalVideoService failed' }, { status: 502 });
+      }
+      return Response.json({
+        token: result.token,
+        identity: participantName || '',
+        roomName,
+      });
     }
 
     if (!accountSid || !apiKey || !apiSecret) {

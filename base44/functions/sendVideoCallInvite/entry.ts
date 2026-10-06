@@ -28,7 +28,10 @@ Deno.serve(async (req) => {
     console.log(`Video call invitation sent: ${caller.full_name} → ${recipient.full_name}`);
     console.log(`Room: ${roomName}, Recipient ID: ${recipient.id}`);
 
-    // Create a pending notification for the recipient (incoming)
+    // Create a pending notification for the recipient (incoming).
+    // SECURITY: recipientToken is NEVER persisted in event_data. The recipient
+    // fetches their own join token at accept time (cross-product: via Arriv
+    // One canonicalVideoService; intra-product: via generateDirectVideoToken).
     const notification = await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
       event_type: 'incoming_video_call',
@@ -37,7 +40,6 @@ Deno.serve(async (req) => {
         callerName: caller.full_name,
         callerExtension: caller.extension,
         roomName: roomName,
-        recipientToken: recipientToken,
         recipientExtension: recipient.extension,
         recipientId: recipient.id
       },

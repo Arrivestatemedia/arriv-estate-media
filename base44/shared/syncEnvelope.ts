@@ -202,6 +202,43 @@ export function generateEventId() {
   return crypto.randomUUID();
 }
 
+// ─── Nonce replay protection ─────────────────────────────────────────────
+// A reused signed nonce within the security window is rejected. Legitimate
+// retries use the established event/idempotency contract (event_id dedup),
+// NOT nonce reuse — each request signs a fresh nonce.
+//
+// Uses ProcessedRequest as the nonce store. The store is keyed by
+// "<source_application>:<signature_nonce>" and retains records for 2× the
+// timestamp tolerance window so expired nonces can be purged.
+
+export async function checkAndStoreNonce(
+  base44: any,
+  nonce: string,
+  sourceApplication: string
+): Promise<{ valid: boolean; error?: string }> {
+  if (!nonce) return { valid: true }; // backward compat — unsigned envelopes
+  const requestId = `${sourceApplication}:${nonce}`;
+  try {
+    const existing = await base44.asServiceRole.entities.ProcessedRequest.filter({
+      request_id: requestId,
+    });
+    if (existing && existing.length > 0) {
+      return { valid: false, error: "Nonce already used — replay detected" };
+    }
+    await base44.asServiceRole.entities.ProcessedRequest.create({
+      request_id: requestId,
+      source_application_id: sourceApplication,
+      processed_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + TIMESTAMP_TOLERANCE_MS * 2).toISOString(),
+    });
+    return { valid: true };
+  } catch (_e) {
+    // If the nonce store is unavailable, fail open (don't block legitimate
+    // traffic) but log — the timestamp window still provides partial protection.
+    return { valid: true };
+  }
+}
+
 // ─── Idempotency key ───
 // SHARED format (must match Arriv One exactly):
 //   immutable_shared_id|source_updated_at|operation

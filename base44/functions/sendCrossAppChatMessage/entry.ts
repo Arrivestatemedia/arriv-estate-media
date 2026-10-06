@@ -2,7 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { signEnvelope, buildCanonicalString, SCHEMA_VERSION, generateEventId, generateNonce } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
-import { generateCrossAppChannelId, isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
+import { generateCrossAppChannelId, resolveCrossAppChannel, isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
@@ -96,7 +96,24 @@ export default async function (req) {
       );
     }
 
-    const channelId = generateCrossAppChannelId(sender_email, recipient_email);
+    // Resolve immutable IDs for the deterministic channel contract.
+    // When BOTH participants have immutable_shared_id, use the immutable
+    // channel as primary and the email channel as alias. Historical messages
+    // written under the email channel remain visible via the alias.
+    let senderImmutableId = null;
+    try {
+      const senderMembersForId = await base44.asServiceRole.entities.SalesTeamMember.filter({
+        email: sender_email,
+      });
+      const sm = (senderMembersForId || []).find(
+        (m) => m.email && m.email.toLowerCase() === sender_email.toLowerCase()
+      );
+      senderImmutableId = sm?.immutable_shared_id || null;
+    } catch (_e) { /* sender may not have a SalesTeamMember record */ }
+    const recipientImmutableId = recipientMember?.immutable_shared_id || null;
+    const { primary: channelId, alias: aliasChannelId } = resolveCrossAppChannel(
+      sender_email, recipient_email, senderImmutableId, recipientImmutableId
+    );
     const timestamp = new Date().toISOString();
     const localMessageId = crypto.randomUUID();
 
@@ -111,7 +128,7 @@ export default async function (req) {
       content,
       timestamp,
       origin_app: "estate_media",
-      cross_app_channel_id: channelId,
+      cross_app_channel_id: aliasChannelId || channelId,
     });
 
     // 2. Deliver to Arriv One. Try the dedicated chat receiver first (derived from
