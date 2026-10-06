@@ -238,18 +238,38 @@ export default function NewSignDocumentPickerModal({ open, onClose, salesMemberI
               )}
               {sourceType === "upload" && (
                 <div>
-                  <Label className="mb-1 block">Upload PDF Document</Label>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                    }}
-                    className="w-full text-sm"
-                  />
-                  {uploading && <p className="text-xs text-[#B8956A] mt-1">Uploading...</p>}
-                  {uploadedFileUri && <p className="text-xs text-green-600 mt-1">File uploaded ✓</p>}
+                  <Label className="mb-1 block">Upload PDF or DOCX</Label>
+                  <label
+                    className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg py-8 px-4 cursor-pointer transition-all ${
+                      uploadedFileUri
+                        ? "border-[#B8956A] bg-[#B8956A]/5"
+                        : "border-[#d1d1d1] hover:border-[#B8956A] hover:bg-[#B8956A]/5"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                    {uploading ? (
+                      <Loader2 className="w-8 h-8 text-[#B8956A] animate-spin" />
+                    ) : uploadedFileUri ? (
+                      <FileText className="w-8 h-8 text-[#B8956A]" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-[#B8956A]" />
+                    )}
+                    <span className="text-sm text-[#1A1A1A]/70">
+                      {uploading
+                        ? "Uploading..."
+                        : uploadedFileUri
+                          ? "File uploaded — click to replace"
+                          : "Click to upload a PDF or DOCX"}
+                    </span>
+                  </label>
                 </div>
               )}
               {sourceType === "duplicate" && selected && (
