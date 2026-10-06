@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, FileText, Upload, Copy, FileCheck } from "lucide-react";
 
-export default function CreateAgreementModal({ open, onClose, organizationId, contractId, quoteId, salesRepEmail, onCreated }) {
+export default function CreateAgreementModal({ open, onClose, organizationId, contractId, quoteId, salesRepEmail, onCreated, context = "b2b" }) {
   const [step, setStep] = useState(1);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    agreement_type: "B2B_SERVICE_AGREEMENT",
+    agreement_type: context === "b2b" ? "B2B_SERVICE_AGREEMENT" : "",
     source_type: "template",
     routing_type: "parallel",
   });
@@ -27,9 +27,13 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("manageAgreementTemplates", { action: "list", status: "active" });
+      const res = await base44.functions.invoke("manageSignDocuments", {
+        action: "list",
+        category: context === "b2b" ? "b2b" : "hr",
+      });
       const data = res?.data || res;
-      setTemplates(data || []);
+      const docs = data?.documents || [];
+      setTemplates(docs.filter(d => d.active !== false));
     } catch (e) {
       console.error(e);
     }
@@ -39,25 +43,50 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const res = await base44.functions.invoke("manageAgreements", {
-        action: "create",
-        name: formData.name,
-        agreement_type: formData.agreement_type,
-        template_id: selectedTemplate?.template_id || "",
-        source_type: formData.source_type,
-        organization_id: organizationId || "",
-        b2b_contract_id: contractId || "",
-        b2b_quote_id: quoteId || "",
-        sales_rep_email: salesRepEmail || "",
-        routing_type: formData.routing_type,
-        actor: salesRepEmail || "admin",
-      });
+      let res;
+      if (formData.source_type === "duplicate" && selectedTemplate) {
+        res = await base44.functions.invoke("manageSignDocuments", {
+          action: "duplicate",
+          source_id: selectedTemplate.id,
+          sales_rep_email: salesRepEmail || "",
+        });
+      } else if (formData.source_type === "b2b_quote") {
+        res = await base44.functions.invoke("manageSignDocuments", {
+          action: "create_from_b2b_quote",
+          quote_id: quoteId || "",
+          contract_id: contractId || "",
+          organization_id: organizationId || "",
+          organization_name: organizationId || "",
+          sales_rep_email: salesRepEmail || "",
+          title: formData.name,
+        });
+      } else {
+        // template or upload — create a SignDocument
+        const createBody = {
+          action: "create",
+          title: formData.name,
+          source_type: formData.source_type === "upload" ? "upload" : "editor",
+          document_type: context === "b2b" ? "custom" : "custom",
+          organization_id: organizationId || "",
+          sales_rep_email: salesRepEmail || "",
+          category: context === "b2b" ? "b2b" : "hr",
+          agreement_type: formData.agreement_type || "",
+        };
+        if (formData.source_type === "template" && selectedTemplate) {
+          // Copy the template content into a new document
+          createBody.body_html = selectedTemplate.body_html || "";
+          createBody.body_ref = selectedTemplate.body_ref || "";
+          createBody.source_type = selectedTemplate.source_type || "editor";
+          createBody.signature_fields = selectedTemplate.signature_fields || [];
+        }
+        res = await base44.functions.invoke("manageSignDocuments", createBody);
+      }
       const data = res?.data || res;
-      if (data?.status === "OK" || data?.agreement_id) {
-        onCreated?.(data.agreement_id);
+      if (data?.success || data?.document?.id) {
+        onCreated?.(data.document?.id || data?.id);
         onClose?.();
       } else {
-        throw new Error(data?.error || "Failed to create agreement");
+        throw new Error(data?.error || "Failed to create document");
       }
     } catch (e) {
       alert(e.message);
@@ -65,12 +94,18 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
     setCreating(false);
   };
 
-  const sourceOptions = [
-    { value: "template", label: "Create from template", icon: FileText },
-    { value: "upload", label: "Upload document", icon: Upload },
-    { value: "duplicate", label: "Duplicate previous", icon: Copy },
-    { value: "b2b_quote", label: "Create from B2B quote/contract", icon: FileCheck },
-  ];
+  const sourceOptions = context === "b2b"
+    ? [
+        { value: "template", label: "Create from template", icon: FileText },
+        { value: "upload", label: "Upload document", icon: Upload },
+        { value: "duplicate", label: "Duplicate previous", icon: Copy },
+        { value: "b2b_quote", label: "Create from B2B quote/contract", icon: FileCheck },
+      ]
+    : [
+        { value: "template", label: "Create from template", icon: FileText },
+        { value: "upload", label: "Upload document", icon: Upload },
+        { value: "duplicate", label: "Duplicate previous", icon: Copy },
+      ];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -166,13 +201,23 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
                 value={formData.agreement_type}
                 onChange={e => setFormData(prev => ({ ...prev, agreement_type: e.target.value }))}
               >
-                <option value="B2B_SERVICE_AGREEMENT">B2B Service Agreement</option>
-                <option value="ORDER_FORM">Order Form</option>
-                <option value="STATEMENT_OF_WORK">Statement of Work</option>
-                <option value="AMENDMENT">Amendment</option>
-                <option value="RENEWAL">Renewal</option>
-                <option value="NDA">NDA</option>
-                <option value="OTHER">Other</option>
+                {context === "b2b" ? (
+                  <>
+                    <option value="B2B_SERVICE_AGREEMENT">B2B Service Agreement</option>
+                    <option value="ORDER_FORM">Order Form</option>
+                    <option value="STATEMENT_OF_WORK">Statement of Work</option>
+                    <option value="AMENDMENT">Amendment</option>
+                    <option value="RENEWAL">Renewal</option>
+                    <option value="NDA">NDA</option>
+                    <option value="OTHER">Other</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="">General Document</option>
+                    <option value="NDA">NDA</option>
+                    <option value="OTHER">Other</option>
+                  </>
+                )}
               </select>
             </div>
             <div>

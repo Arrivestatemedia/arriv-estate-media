@@ -89,7 +89,7 @@
           },
           "y": {
             "type": "number",
-            "description": "Vertical position as a percentage (0-100) of the PDF page height. Used for upload/PDF documents."
+            "description": "Vertical position as a percentage (0-100) of the PDF page height. Used for upload/PDF documents. Empty for editor documents."
           },
           "page": {
             "type": "integer",
@@ -152,6 +152,38 @@
     "updated_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "B2B organization ID this document belongs to (B2B/commercial context). Empty for HR documents."
+    },
+    "agreement_type": {
+      "type": "string",
+      "enum": [
+        "",
+        "B2B_SERVICE_AGREEMENT",
+        "ORDER_FORM",
+        "STATEMENT_OF_WORK",
+        "AMENDMENT",
+        "RENEWAL",
+        "NDA",
+        "OTHER"
+      ],
+      "default": "",
+      "description": "B2B agreement type. Empty for HR documents (which use document_type)."
+    },
+    "sales_rep_email": {
+      "type": "string",
+      "description": "Email of the sales rep who created this document (B2B context)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "hr",
+        "b2b"
+      ],
+      "default": "hr",
+      "description": "Document category: 'hr' for HR/hiring documents, 'b2b' for B2B commercial agreements"
     }
   },
   "required": [

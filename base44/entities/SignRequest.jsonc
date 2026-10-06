@@ -244,6 +244,22 @@
       "type": "string",
       "format": "date-time",
       "description": "When the request expires (optional)."
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "B2B organization ID this request belongs to (B2B/commercial context). Empty for HR requests."
+    },
+    "agreement_type": {
+      "type": "string",
+      "description": "B2B agreement type (B2B_SERVICE_AGREEMENT, ORDER_FORM, etc.). Empty for HR requests."
+    },
+    "sales_rep_email": {
+      "type": "string",
+      "description": "Email of the sales rep who sent this request (B2B context)"
+    },
+    "completion_certificate_uri": {
+      "type": "string",
+      "description": "Private file_uri of the generated completion certificate (after all signers complete)"
     }
   },
   "required": [
