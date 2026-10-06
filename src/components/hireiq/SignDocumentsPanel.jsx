@@ -5,6 +5,7 @@ import { Loader2, Plus, FileText, Send, Trash2, Edit, Eye, Ban, CheckCircle2, Cl
 import SignDocumentEditorModal from "./SignDocumentEditorModal";
 import SendSignRequestModal from "./SendSignRequestModal";
 import SignedDocumentViewer from "./SignedDocumentViewer";
+import NewSignDocumentPickerModal from "./NewSignDocumentPickerModal";
 
 const STATUS_CONFIG = {
   sent: { label: "Sent", icon: Send, color: "text-slate-600 bg-slate-100" },
@@ -27,6 +28,7 @@ export default function SignDocumentsPanel({ salesMemberId }) {
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [sendDocId, setSendDocId] = useState(null);
   const [viewingSigned, setViewingSigned] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const activeRequests = (showArchived ? requests : requests.filter(r => r.status !== "voided")).filter(r => {
     if (!searchQuery.trim()) return true;
@@ -122,7 +124,7 @@ export default function SignDocumentsPanel({ salesMemberId }) {
         <div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm text-slate-500">{documents.length} document template{documents.length !== 1 ? "s" : ""}</p>
-            <Button onClick={() => { setEditingDoc(null); setEditorOpen(true); }} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
+            <Button onClick={() => setPickerOpen(true)} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
               <Plus className="w-4 h-4 mr-2" /> New Document
             </Button>
           </div>
@@ -284,6 +286,14 @@ export default function SignDocumentsPanel({ salesMemberId }) {
           open={!!viewingSigned}
           onOpenChange={(v) => { if (!v) setViewingSigned(null); }}
           signRequest={viewingSigned}
+        />
+      )}
+      {pickerOpen && (
+        <NewSignDocumentPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          salesMemberId={salesMemberId}
+          onCreated={() => loadData()}
         />
       )}
     </div>

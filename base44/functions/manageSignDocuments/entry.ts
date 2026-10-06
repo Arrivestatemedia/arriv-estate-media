@@ -104,6 +104,14 @@ export default async function(req) {
       return Response.json({ success: true });
     }
 
+    // LIST ALL — for duplicate picker (HR + B2B, any category)
+    if (action === 'list_all') {
+      const filter = admin.tenantId ? { tenant_id: admin.tenantId } : {};
+      const docs = await base44.asServiceRole.entities.SignDocument.filter(filter, '-updated_date', 200);
+      const arr = Array.isArray(docs) ? docs : (docs?.data || []);
+      return Response.json({ documents: arr });
+    }
+
     // LIST SIGN REQUESTS (sent instances)
     if (action === 'list_requests') {
       const filter = admin.tenantId ? { tenant_id: admin.tenantId, organization_id: '' } : { organization_id: '' };
@@ -304,10 +312,10 @@ export default async function(req) {
         created_by_name: admin.actorName,
         created_at: now,
         updated_at: now,
-        organization_id: source.organization_id || '',
+        organization_id: body?.category ? '' : (source.organization_id || ''),
         agreement_type: source.agreement_type || '',
         sales_rep_email: source.sales_rep_email || body?.sales_rep_email || '',
-        category: source.category || 'hr',
+        category: body?.category || source.category || 'hr',
       });
       return Response.json({ success: true, document: duplicated });
     }
