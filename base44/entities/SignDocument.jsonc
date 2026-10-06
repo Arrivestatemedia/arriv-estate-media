@@ -29,6 +29,16 @@
       "default": "custom",
       "description": "Category of document. Drives special handling (e.g. offer_letter updates JobApplication status on signature)."
     },
+    "document_category": {
+      "type": "string",
+      "enum": [
+        "agreement",
+        "hr_document",
+        "regular_document"
+      ],
+      "default": "regular_document",
+      "description": "Category label: agreement (B2B contracts via Arriv Agreements), hr_document (HR/hiring docs), regular_document (general). Used to filter views in different admin pages."
+    },
     "source_type": {
       "type": "string",
       "enum": [

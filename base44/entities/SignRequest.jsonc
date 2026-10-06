@@ -32,6 +32,16 @@
       ],
       "description": "Snapshot of the document type at send time"
     },
+    "document_category": {
+      "type": "string",
+      "enum": [
+        "agreement",
+        "hr_document",
+        "regular_document"
+      ],
+      "default": "regular_document",
+      "description": "Category label copied from the SignDocument at send time. Used to filter views and enforce sales-rep visibility."
+    },
     "document_version": {
       "type": "string",
       "description": "Snapshot of the document version at send time"
@@ -214,11 +224,11 @@
     },
     "sent_by_name": {
       "type": "string",
-      "description": "Name of the admin who sent the request"
+      "description": "Name of the admin or sales rep who sent the request"
     },
     "sent_by_email": {
       "type": "string",
-      "description": "Email of the admin who sent the request. Used to notify the admin when the document is signed."
+      "description": "Email of the admin or sales rep who sent the request. Used to notify the sender when the document is signed and to enforce sales-rep visibility (reps only see their own sent docs)."
     },
     "sent_at": {
       "type": "string",
@@ -244,6 +254,15 @@
       "type": "string",
       "format": "date-time",
       "description": "When the request expires (optional)."
+    },
+    "completion_certificate_uri": {
+      "type": "string",
+      "description": "Private file_uri of the generated completion certificate (PDF). Populated when all parties in a multi-signer group have signed."
+    },
+    "completion_certificate_generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the completion certificate was generated."
     }
   },
   "required": [
