@@ -13,6 +13,8 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [uploadedFileUri, setUploadedFileUri] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     agreement_type: context === "b2b" ? "B2B_SERVICE_AGREEMENT" : "",
@@ -38,6 +40,18 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const handleFileUpload = async (file) => {
+    setUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadPrivateFile({ file });
+      const data = res?.data || res;
+      setUploadedFileUri(data?.file_uri || "");
+    } catch (e) {
+      alert("Upload failed: " + e.message);
+    }
+    setUploading(false);
   };
 
   const handleCreate = async () => {
@@ -78,6 +92,10 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
           createBody.body_ref = selectedTemplate.body_ref || "";
           createBody.source_type = selectedTemplate.source_type || "editor";
           createBody.signature_fields = selectedTemplate.signature_fields || [];
+        }
+        if (formData.source_type === "upload" && uploadedFileUri) {
+          createBody.body_ref = uploadedFileUri;
+          createBody.source_type = "upload";
         }
         res = await base44.functions.invoke("manageSignDocuments", createBody);
       }
@@ -126,7 +144,7 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
                       key={opt.value}
                       onClick={() => {
                         setFormData(prev => ({ ...prev, source_type: opt.value }));
-                        if (opt.value === "template") setStep(2);
+                        if (opt.value === "template" || opt.value === "duplicate") setStep(2);
                         else setStep(3);
                       }}
                       className="flex flex-col items-center gap-2 p-4 border border-[#B8956A]/30 rounded-lg hover:border-[#B8956A] hover:bg-[#B8956A]/5 transition-all"
@@ -148,7 +166,7 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
             ) : (
               <>
                 <div>
-                  <Label className="mb-2 block">Select Template</Label>
+                  <Label className="mb-2 block">{formData.source_type === "duplicate" ? "Select Document to Duplicate" : "Select Template"}</Label>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {templates.map(t => (
                       <button
@@ -231,8 +249,24 @@ export default function CreateAgreementModal({ open, onClose, organizationId, co
                 <option value="sequential">Sequential (in order)</option>
               </select>
             </div>
+            {formData.source_type === "upload" && (
+              <div>
+                <Label className="mb-1 block">Upload PDF Document</Label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  className="w-full text-sm"
+                />
+                {uploading && <p className="text-xs text-[#B8956A] mt-1">Uploading...</p>}
+                {uploadedFileUri && <p className="text-xs text-green-600 mt-1">File uploaded ✓</p>}
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={() => setStep(formData.source_type === "template" ? 2 : 1)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(formData.source_type === "template" || formData.source_type === "duplicate" ? 2 : 1)}>Back</Button>
               <Button
                 onClick={handleCreate}
                 disabled={creating || !formData.name}

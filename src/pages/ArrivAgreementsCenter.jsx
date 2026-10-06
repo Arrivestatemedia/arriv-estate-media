@@ -10,6 +10,7 @@ import {
   XCircle, Eye, Download, Send, Ban, RefreshCw, FileCheck, Users,
 } from "lucide-react";
 import CreateAgreementModal from "@/components/agreements/CreateAgreementModal";
+import SendSignRequestModal from "@/components/hireiq/SendSignRequestModal";
 
 const STATUS_COLORS = {
   DRAFT: "bg-gray-100 text-gray-700",
@@ -36,48 +37,48 @@ export default function ArrivAgreementsCenter() {
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [sendDocId, setSendDocId] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const filters = {};
-      if (statusFilter) filters.status = statusFilter;
-      const res = await base44.functions.invoke("getAdminAgreementCenter", { filters, limit: 100 });
+      const res = await base44.functions.invoke("manageSignDocuments", { action: "list_b2b", limit: 100 });
       const d = res?.data || res;
       setData(d);
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const loadDetail = async (agreementId) => {
+  const loadDetail = async (item) => {
     setDetailLoading(true);
     try {
-      const res = await base44.functions.invoke("getAgreementStatus", { agreement_id: agreementId });
-      const d = res?.data || res;
-      setDetailData(d);
+      if (item.status === 'DRAFT') {
+        setDetailData({ agreement: item, recipients: [], events: [] });
+      } else {
+        const res = await base44.functions.invoke("manageSignDocuments", { action: "get_detail", id: item.id });
+        const d = res?.data || res;
+        setDetailData(d);
+      }
     } catch (e) {
       console.error(e);
     }
     setDetailLoading(false);
   };
 
-  const sendAgreement = async (agreementId) => {
-    try {
-      await base44.functions.invoke("manageAgreements", { action: "send", agreement_id: agreementId, actor: "admin" });
-      loadData();
-    } catch (e) {
-      alert(e.message);
-    }
+  const sendAgreement = (item) => {
+    setSendDocId(item.document_id || item.id);
+    setSendModalOpen(true);
   };
 
   const voidAgreement = async (agreementId) => {
     if (!confirm("Void this agreement? This cannot be undone.")) return;
     try {
-      await base44.functions.invoke("manageAgreements", { action: "void", agreement_id: agreementId, reason: "Voided by admin", actor: "admin" });
+      await base44.functions.invoke("manageSignDocuments", { action: "void_request", id: agreementId });
       loadData();
       setSelectedAgreement(null);
     } catch (e) {
@@ -85,19 +86,21 @@ export default function ArrivAgreementsCenter() {
     }
   };
 
-  const sendReminder = async (agreementId, recipientId) => {
+  const sendReminder = async (recipientId) => {
     try {
-      await base44.functions.invoke("manageAgreements", { action: "send_reminder", agreement_id: agreementId, recipient_id: recipientId, actor: "admin" });
-      if (selectedAgreement) loadDetail(selectedAgreement.id);
+      await base44.functions.invoke("manageSignDocuments", { action: "send_reminder", id: recipientId });
+      if (selectedAgreement) loadDetail(selectedAgreement);
     } catch (e) {
       alert(e.message);
     }
   };
 
   const agreements = data?.agreements || [];
+  const draftItems = data?.drafts || [];
   const templates = data?.templates || [];
+  const allItems = [...draftItems, ...agreements];
 
-  const filtered = agreements.filter(a => {
+  const filtered = allItems.filter(a => {
     if (search) {
       const s = search.toLowerCase();
       if (!a.name?.toLowerCase().includes(s) && !a.organization_name?.toLowerCase().includes(s) && !a.sales_rep_email?.toLowerCase().includes(s)) {
@@ -151,16 +154,16 @@ export default function ArrivAgreementsCenter() {
         </TabsList>
 
         <TabsContent value="all">
-          {loading ? <LoadingState /> : <AgreementList agreements={filtered} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a.id); }} />}
+          {loading ? <LoadingState /> : <AgreementList agreements={filtered} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a); }} />}
         </TabsContent>
         <TabsContent value="drafts">
-          <AgreementList agreements={drafts} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a.id); }} />
+          <AgreementList agreements={drafts} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a); }} />
         </TabsContent>
         <TabsContent value="awaiting">
-          <AgreementList agreements={awaiting} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a.id); }} />
+          <AgreementList agreements={awaiting} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a); }} />
         </TabsContent>
         <TabsContent value="completed">
-          <AgreementList agreements={completed} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a.id); }} />
+          <AgreementList agreements={completed} onSelect={(a) => { setSelectedAgreement(a); loadDetail(a); }} />
         </TabsContent>
         <TabsContent value="templates">
           <TemplateList templates={templates} />
@@ -177,9 +180,9 @@ export default function ArrivAgreementsCenter() {
                 agreement={detailData.agreement}
                 recipients={detailData.recipients}
                 events={detailData.events}
-                onSend={() => sendAgreement(selectedAgreement.id)}
+                onSend={() => sendAgreement(selectedAgreement)}
                 onVoid={() => voidAgreement(selectedAgreement.id)}
-                onRemind={(rid) => sendReminder(selectedAgreement.id, rid)}
+                onRemind={(rid) => sendReminder(rid)}
               />
             ) : <p className="text-[#1A1A1A]/40">Failed to load</p>}
           </div>
@@ -190,7 +193,16 @@ export default function ArrivAgreementsCenter() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={() => { setShowCreate(false); loadData(); }}
+        context="b2b"
       />
+
+      {sendModalOpen && (
+        <SendSignRequestModal
+          preselectedDocumentId={sendDocId}
+          onClose={() => { setSendModalOpen(false); setSendDocId(null); }}
+          onSent={() => { setSendModalOpen(false); setSendDocId(null); loadData(); }}
+        />
+      )}
     </div>
   );
 }
