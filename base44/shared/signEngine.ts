@@ -167,7 +167,6 @@ export async function createSignRequest(base44, opts) {
     document_id: doc.document_id,
     document_title: doc.title,
     document_type: doc.document_type,
-    document_category: doc.document_category || "regular_document",
     document_version: doc.version,
     source_type: doc.source_type,
     merged_body_html: mergedBodyHtml,
@@ -212,15 +211,13 @@ export async function resolveSignAdmin(base44, body) {
   if (!salesMemberId) return { ok: false };
   try {
     const member = await base44.asServiceRole.entities.SalesTeamMember.get(salesMemberId);
-    if (!member) return { ok: false };
+    if (!member || member.role !== "admin") return { ok: false };
     return {
       ok: true,
       tenantId: member.tenant_id || body?.acting_tenant_id || "tnt_estate_media",
       actorName: member.full_name || member.email,
       actorEmail: member.email || "",
       isPlatformAdmin: false,
-      isSalesAdmin: member.role === "admin",
-      isSalesRep: member.role !== "admin",
     };
   } catch (_) {
     return { ok: false };

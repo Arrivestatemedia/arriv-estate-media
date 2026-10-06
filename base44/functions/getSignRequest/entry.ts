@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { logSignEvent } from '../../shared/signEventLog.ts';
 
 // Public endpoint — no auth required. The sign_token is the credential.
 // Returns the document for the candidate to review and sign.
@@ -69,19 +68,6 @@ export default async function(req) {
       await base44.asServiceRole.entities.SignRequest.update(signRequest.id, {
         status: 'viewed',
         viewed_at: new Date().toISOString(),
-      });
-      await logSignEvent(base44, {
-        request_id: signRequest.request_id,
-        sign_group_id: signRequest.sign_group_id,
-        document_id: signRequest.document_id,
-        document_title: signRequest.document_title,
-        document_category: signRequest.document_category,
-        event_type: 'VIEWED',
-        actor_email: signRequest.candidate_email,
-        actor_name: signRequest.candidate_name,
-        actor_type: 'signer',
-        recipient_email: signRequest.candidate_email,
-        recipient_name: signRequest.candidate_name,
       });
     }
 

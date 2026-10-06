@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { resolveSignAdmin, detectMergeFields, parseSignatureFields, getAppBaseUrl, buildSignRequestEmailHtml } from '../../shared/signEngine.ts';
-import { sendBusinessEmailOrQueue } from '../../shared/businessEmailQueue.ts';
-import { logSignEvent } from '../../shared/signEventLog.ts';
+import { resolveSignAdmin, detectMergeFields, parseSignatureFields } from '../../shared/signEngine.ts';
 
 export default async function(req) {
   try {
@@ -32,7 +30,7 @@ export default async function(req) {
     // CREATE
     if (action === 'create') {
       const tenantId = admin.tenantId || body?.tenant_id || "tnt_estate_media";
-      const { title, document_type, source_type, body_ref, body_html, document_id, document_category } = body;
+      const { title, document_type, source_type, body_ref, body_html, document_id } = body;
       if (!title) return Response.json({ error: 'title is required' }, { status: 400 });
       if (!source_type) return Response.json({ error: 'source_type is required' }, { status: 400 });
       if (source_type === 'upload' && !body_ref) return Response.json({ error: 'body_ref (uploaded file) is required for upload source' }, { status: 400 });
@@ -48,7 +46,6 @@ export default async function(req) {
         document_id: docId,
         title,
         document_type: document_type || 'custom',
-        document_category: document_category || 'regular_document',
         source_type,
         body_ref: source_type === 'upload' ? body_ref : '',
         body_html: source_type === 'editor' ? body_html : '',
@@ -74,7 +71,6 @@ export default async function(req) {
       const update = { updated_at: new Date().toISOString() };
       if (body.title !== undefined) update.title = body.title;
       if (body.document_type !== undefined) update.document_type = body.document_type;
-      if (body.document_category !== undefined) update.document_category = body.document_category;
       if (body.active !== undefined) update.active = body.active;
       if (body.change_summary !== undefined) update.change_summary = body.change_summary;
       if (body.version !== undefined) update.version = String(body.version);
@@ -126,53 +122,6 @@ export default async function(req) {
       await base44.asServiceRole.entities.SignRequest.update(id, {
         status: 'voided',
         voided_at: new Date().toISOString(),
-      });
-      await logSignEvent(base44, {
-        request_id: existing.request_id,
-        sign_group_id: existing.sign_group_id,
-        document_id: existing.document_id,
-        document_title: existing.document_title,
-        document_category: existing.document_category,
-        event_type: 'VOIDED',
-        actor_email: admin.actorEmail,
-        actor_name: admin.actorName,
-        actor_type: admin.isSalesRep ? 'sales_rep' : 'admin',
-        recipient_email: existing.candidate_email,
-        recipient_name: existing.candidate_name,
-      });
-      return Response.json({ success: true });
-    }
-
-    // SEND REMINDER for a sign request
-    if (action === 'send_reminder') {
-      const id = body?.id;
-      if (!id) return Response.json({ error: 'id is required' }, { status: 400 });
-      const existing = await base44.asServiceRole.entities.SignRequest.get(id);
-      if (!existing) return Response.json({ error: 'Request not found' }, { status: 404 });
-      if (['signed', 'voided', 'declined', 'expired'].includes(existing.status)) {
-        return Response.json({ error: 'Cannot remind on a terminal request' }, { status: 400 });
-      }
-      const baseUrl = getAppBaseUrl();
-      const signUrl = `${baseUrl}/sign/${existing.sign_token}`;
-      const firstName = (existing.candidate_name || '').split(' ')[0] || 'there';
-      const html = buildSignRequestEmailHtml(firstName, existing.document_title, signUrl, false);
-      await sendBusinessEmailOrQueue(base44, {
-        to: existing.candidate_email,
-        subject: `Reminder: ${existing.document_title} — Action Required`,
-        htmlContent: html,
-      });
-      await logSignEvent(base44, {
-        request_id: existing.request_id,
-        sign_group_id: existing.sign_group_id,
-        document_id: existing.document_id,
-        document_title: existing.document_title,
-        document_category: existing.document_category,
-        event_type: 'REMINDER_SENT',
-        actor_email: admin.actorEmail,
-        actor_name: admin.actorName,
-        actor_type: admin.isSalesRep ? 'sales_rep' : 'admin',
-        recipient_email: existing.candidate_email,
-        recipient_name: existing.candidate_name,
       });
       return Response.json({ success: true });
     }

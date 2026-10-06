@@ -2,7 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { resolveSignAdmin, createSignRequest, getAppBaseUrl, buildSignRequestEmailHtml } from '../../shared/signEngine.ts';
 import { sendBusinessEmailOrQueue } from '../../shared/businessEmailQueue.ts';
 import { removeTextFromPdf } from '../../shared/pdfTextRemoval.ts';
-import { logSignEvent } from '../../shared/signEventLog.ts';
 
 export default async function(req) {
   try {
@@ -109,22 +108,6 @@ export default async function(req) {
         subject: emailSubject,
         htmlContent: html,
       });
-
-      // Log the REQUEST_SENT event to the immutable event stream
-      await logSignEvent(base44, {
-        request_id: signRequest.request_id,
-        sign_group_id: signRequest.sign_group_id,
-        document_id: signRequest.document_id,
-        document_title: signRequest.document_title,
-        document_category: signRequest.document_category,
-        event_type: 'REQUEST_SENT',
-        actor_email: admin.actorEmail,
-        actor_name: admin.actorName,
-        actor_type: admin.isSalesRep ? 'sales_rep' : 'admin',
-        recipient_email: signRequest.candidate_email,
-        recipient_name: signRequest.candidate_name,
-      });
-
       results.push({ signRequest, signUrl });
     }
 

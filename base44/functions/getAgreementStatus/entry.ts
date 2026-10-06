@@ -1,84 +1,86 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 
-// Re-pointed to read from the unified Sign system (SignRequest/SignEvent)
-// instead of the deprecated Agreement entities. The `agreement_id` parameter
-// is now a SignRequest.request_id.
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const { agreement_id } = body;
 
-    // Get the SignRequest by request_id
-    const reqs = await base44.asServiceRole.entities.SignRequest.filter({ request_id: agreement_id });
-    const requests = (Array.isArray(reqs) ? reqs : (reqs?.data || [])) || [];
-    if (requests.length === 0) return Response.json({ status: 'ERROR', error: 'Not found' }, { status: 404 });
-    const signRequest = requests[0];
+    const agreements = await base44.asServiceRole.entities.Agreement.filter({ agreement_id });
+    if (agreements.length === 0) return Response.json({ status: 'ERROR', error: 'Agreement not found' }, { status: 404 });
+    const agreement = agreements[0];
 
-    // Get all signers in the group (for multi-signer)
-    let groupReqs: any[] = [signRequest];
-    if (signRequest.sign_group_id) {
-      const groupResults = await base44.asServiceRole.entities.SignRequest.filter(
-        { sign_group_id: signRequest.sign_group_id }, '-sent_at', 50
-      );
-      groupReqs = (Array.isArray(groupResults) ? groupResults : (groupResults?.data || [])) || [signRequest];
+    const recipients = await base44.asServiceRole.entities.AgreementRecipient.filter({ agreement_id: agreement.agreement_id });
+    const fields = await base44.asServiceRole.entities.AgreementField.filter({ agreement_id: agreement.agreement_id });
+    const events = await base44.asServiceRole.entities.AgreementEvent.filter({ agreement_id: agreement.agreement_id }, 'timestamp', 200);
+
+    // Check for stale presence (viewing sessions that have expired)
+    const now = new Date();
+    const refreshedRecipients = [];
+    for (const r of recipients) {
+      if (r.status === 'VIEWING' && r.viewing_session_expires_at && new Date(r.viewing_session_expires_at) < now) {
+        await base44.asServiceRole.entities.AgreementRecipient.update(r.id, { status: 'OPENED' });
+        refreshedRecipients.push({ ...r, status: 'OPENED' });
+      } else {
+        refreshedRecipients.push(r);
+      }
     }
-
-    // Get events from the immutable event stream
-    const eventFilter: any = signRequest.sign_group_id
-      ? { sign_group_id: signRequest.sign_group_id }
-      : { request_id: agreement_id };
-    const events = await base44.asServiceRole.entities.SignEvent.filter(eventFilter, 'timestamp', 200);
-    const eventArr = (Array.isArray(events) ? events : (events?.data || [])) || [];
-
-    const statusMap: Record<string, string> = {
-      sent: 'SENT', viewed: 'OPENED', signed: 'COMPLETED',
-      declined: 'DECLINED', voided: 'VOIDED', expired: 'EXPIRED',
-    };
 
     return Response.json({
       status: 'OK',
       data: {
         agreement: {
-          id: signRequest.id,
-          agreement_id: signRequest.request_id,
-          name: signRequest.document_title || 'Untitled',
-          agreement_type: signRequest.document_type || 'custom',
-          status: statusMap[signRequest.status] || (signRequest.status || '').toUpperCase() || 'SENT',
-          document_type: signRequest.source_type === 'editor' ? 'native' : 'uploaded',
-          created_at: signRequest.sent_at || signRequest.created_date,
-          sent_at: signRequest.sent_at,
-          completed_at: signRequest.signed_at,
-          expires_at: signRequest.expires_at,
-          completion_certificate_uri: signRequest.completion_certificate_uri || '',
+          id: agreement.id,
+          agreement_id: agreement.agreement_id,
+          name: agreement.name,
+          agreement_type: agreement.agreement_type,
+          status: agreement.status,
+          provider: agreement.provider,
+          routing_type: agreement.routing_type,
+          document_type: agreement.document_type,
+          created_at: agreement.created_at,
+          sent_at: agreement.sent_at,
+          completed_at: agreement.completed_at,
+          expires_at: agreement.expires_at,
+          organization_id: agreement.organization_id,
+          b2b_contract_id: agreement.b2b_contract_id,
+          b2b_contract_version_id: agreement.b2b_contract_version_id,
+          b2b_commercial_snapshot_id: agreement.b2b_commercial_snapshot_id,
+          template_id: agreement.template_id,
+          template_version_number: agreement.template_version_number,
+          merge_field_errors: agreement.merge_field_errors,
+          reminders_paused: agreement.reminders_paused,
+          completion_certificate_id: agreement.completion_certificate_id,
         },
-        recipients: groupReqs.map((r: any) => ({
-          recipient_id: r.request_id,
-          name: r.signer_name || r.candidate_name || '',
-          email: r.signer_email || r.candidate_email || '',
-          role: 'SIGNER',
-          status: statusMap[r.status] || (r.status || '').toUpperCase() || 'PENDING',
-          is_required: true,
-          consent_status: 'accepted',
-          notified_at: r.sent_at,
-          opened_at: r.viewed_at,
-          completed_at: r.signed_at,
+        recipients: refreshedRecipients.map(r => ({
+          recipient_id: r.recipient_id,
+          name: r.name,
+          email: r.email,
+          role: r.role,
+          status: r.status,
+          routing_order: r.routing_order,
+          is_required: r.is_required,
+          consent_status: r.consent_status,
+          notified_at: r.notified_at,
+          opened_at: r.opened_at,
+          completed_at: r.completed_at,
           declined_at: r.declined_at,
-          is_viewing_now: r.status === 'viewed',
+          declined_reason: r.declined_reason,
+          viewing_session_expires_at: r.viewing_session_expires_at,
+          is_viewing_now: r.status === 'VIEWING' && r.viewing_session_expires_at && new Date(r.viewing_session_expires_at) > new Date(),
         })),
-        fields: (signRequest.signature_fields || []).map((f: any) => ({
+        fields: fields.map(f => ({
           field_id: f.field_id,
-          recipient_id: f.assigned_signer || '',
-          field_type: (f.type || 'signature').toUpperCase(),
-          label: f.label || '',
-          required: f.required !== false,
+          recipient_id: f.recipient_id,
+          field_type: f.field_type,
+          label: f.label,
+          required: f.required,
         })),
-        events: eventArr.map((e: any) => ({
+        events: events.map(e => ({
           event_type: e.event_type,
           timestamp: e.timestamp,
-          recipient_id: e.recipient_email || '',
-          actor: e.actor_email || e.actor_name || '',
+          recipient_id: e.recipient_id,
+          actor: e.actor,
         })),
       },
     });

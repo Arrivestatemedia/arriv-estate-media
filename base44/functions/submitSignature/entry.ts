@@ -2,7 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { recordSignAudit, buildSignConfirmationEmailHtml, buildSignAdminNotificationEmailHtml } from '../../shared/signEngine.ts';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { buildSignedPdfFromHtml, buildSignedPdfFromUpload, uint8ArrayToBase64 } from '../../shared/signedDocumentPdf.ts';
-import { logSignEvent, checkSignGroupCompletion } from '../../shared/signEventLog.ts';
 
 // Public endpoint — no auth required. The sign_token identifies the request.
 // Supports multi-signer signing succession, drawn signature upload to private
@@ -57,21 +56,6 @@ export default async function(req) {
       await base44.asServiceRole.entities.SignRequest.update(signRequest.id, {
         status: 'declined',
         declined_at: now,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-      });
-      await logSignEvent(base44, {
-        request_id: signRequest.request_id,
-        sign_group_id: signRequest.sign_group_id,
-        document_id: signRequest.document_id,
-        document_title: signRequest.document_title,
-        document_category: signRequest.document_category,
-        event_type: 'DECLINED',
-        actor_email: signRequest.candidate_email,
-        actor_name: signRequest.candidate_name,
-        actor_type: 'signer',
-        recipient_email: signRequest.candidate_email,
-        recipient_name: signRequest.candidate_name,
         ip_address: ipAddress,
         user_agent: userAgent,
       });
@@ -156,24 +140,6 @@ export default async function(req) {
       ip_address: ipAddress,
       user_agent: userAgent,
       orientation_document_id: orientationDocId,
-    });
-
-    // Log the SIGNED event to the immutable event stream
-    await logSignEvent(base44, {
-      request_id: signRequest.request_id,
-      sign_group_id: signRequest.sign_group_id,
-      document_id: signRequest.document_id,
-      document_title: signRequest.document_title,
-      document_category: signRequest.document_category,
-      event_type: 'SIGNED',
-      actor_email: signRequest.candidate_email,
-      actor_name: signRequest.candidate_name,
-      actor_type: 'signer',
-      recipient_email: signRequest.candidate_email,
-      recipient_name: signRequest.candidate_name,
-      ip_address: ipAddress,
-      user_agent: userAgent,
-      metadata: { method: signatureMethod },
     });
 
     // For offer letters, update the JobApplication status to 'hired'
@@ -272,117 +238,8 @@ export default async function(req) {
       console.error('Sign confirmation email failed:', e.message);
     }
 
-    // ─── Completion certificate (multi-signer: when all parties have signed) ──
-    if (signRequest.sign_group_id) {
-      try {
-        const { allSigned, requests: groupReqs } = await checkSignGroupCompletion(
-          base44, signRequest.sign_group_id
-        );
-        if (allSigned && groupReqs.length > 0) {
-          const certHtml = buildCompletionCertificateHtml(signRequest, groupReqs);
-          const certBytes = await buildSignedPdfFromHtml({
-            html: certHtml,
-            signatureFields: [],
-            fieldValues: {},
-            documentTitle: `Completion Certificate — ${signRequest.document_title}`,
-            candidateName: '',
-            signedAt: now,
-          });
-          if (certBytes) {
-            const certUpload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
-              file: new File([certBytes], `cert-${signRequest.sign_group_id}.pdf`, { type: 'application/pdf' }),
-            });
-            const certUri = certUpload?.file_uri || '';
-            if (certUri) {
-              for (const r of groupReqs) {
-                await base44.asServiceRole.entities.SignRequest.update(r.id, {
-                  completion_certificate_uri: certUri,
-                  completion_certificate_generated_at: now,
-                });
-              }
-            }
-          }
-          await logSignEvent(base44, {
-            request_id: signRequest.request_id,
-            sign_group_id: signRequest.sign_group_id,
-            document_id: signRequest.document_id,
-            document_title: signRequest.document_title,
-            document_category: signRequest.document_category,
-            event_type: 'COMPLETED',
-            actor_type: 'system',
-            metadata: { signer_count: groupReqs.length },
-          });
-          await logSignEvent(base44, {
-            request_id: signRequest.request_id,
-            sign_group_id: signRequest.sign_group_id,
-            document_id: signRequest.document_id,
-            document_title: signRequest.document_title,
-            document_category: signRequest.document_category,
-            event_type: 'CERTIFICATE_GENERATED',
-            actor_type: 'system',
-          });
-        }
-      } catch (e) {
-        console.error('Completion certificate generation failed:', e.message);
-      }
-    }
-
     return Response.json({ success: true, status: 'signed', orientation_document_id: orientationDocId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-}
-
-// ── Completion Certificate HTML Builder ──────────────────────────────────
-// Generates a branded HTML completion certificate listing all signers,
-// their signature methods, timestamps, and IP addresses. Converted to PDF
-// and stored as a private file when all parties in a sign group have signed.
-function buildCompletionCertificateHtml(signRequest: any, groupReqs: any[]): string {
-  const signers = groupReqs.map((r: any, i: number) => {
-    const method = r.signature_method === 'drawn' ? 'Drawn signature' : 'Typed name';
-    const signedAt = r.signed_at ? new Date(r.signed_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : '';
-    return `
-      <tr>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#1A1A1A;">${r.signer_name || r.candidate_name || 'Signer ' + (i + 1)}</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#666;">${r.signer_email || r.candidate_email || ''}</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#666;">${method}</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#666;">${signedAt}</td>
-      </tr>`;
-  }).join('');
-
-  const completedAt = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:Georgia,serif;color:#1A1A1A;">
-  <div style="max-width:700px;margin:0 auto;padding:48px 32px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <p style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#B8956A;margin:0 0 8px;">Arriv Estate Media</p>
-      <h1 style="font-size:28px;margin:0 0 4px;color:#1A1A1A;">Certificate of Completion</h1>
-      <p style="font-size:14px;color:#666;margin:0;">This document has been fully executed by all parties.</p>
-    </div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px;margin-bottom:24px;">
-      <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;margin:0 0 4px;">Document</p>
-      <p style="font-size:18px;font-weight:600;color:#1A1A1A;margin:0 0 12px;">${signRequest.document_title || 'Document'}</p>
-      <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;margin:0 0 4px;">Completed</p>
-      <p style="font-size:14px;color:#1A1A1A;margin:0;">${completedAt}</p>
-    </div>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-      <thead>
-        <tr style="background:#F7F1E8;">
-          <th style="padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999;">Signer</th>
-          <th style="padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999;">Email</th>
-          <th style="padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999;">Method</th>
-          <th style="padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999;">Signed At</th>
-        </tr>
-      </thead>
-      <tbody>${signers}</tbody>
-    </table>
-    <div style="border-top:1px solid #e5e7eb;padding-top:16px;text-align:center;">
-      <p style="font-size:12px;color:#999;margin:0;">This certificate is generated electronically and serves as a record of completion. All signatures were obtained in accordance with the Electronic Signatures in Global and National Commerce Act (E-SIGN).</p>
-    </div>
-  </div>
-</body>
-</html>`;
 }
