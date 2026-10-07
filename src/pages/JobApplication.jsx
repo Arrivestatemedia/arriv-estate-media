@@ -259,14 +259,13 @@ export default function JobApplication() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Portfolio Link *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Portfolio Link</label>
                   <Input
                     type="url"
                     name="portfolioLink"
                     value={formData.portfolioLink}
                     onChange={handleInputChange}
-                    required
-                    placeholder="https://yourportfolio.com"
+                    placeholder="https://yourportfolio.com (optional)"
                   />
                 </div>
 
@@ -414,7 +413,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.eEOCagreed || !formData.signature}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.linkedin || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.eEOCagreed || !formData.signature}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
