@@ -11,6 +11,8 @@ import {
   addMonths,
   generateId,
   round2,
+  PROMOTIONAL_ADDON_CATEGORIES,
+  PROMOTIONAL_MAX_BENEFIT_VALUE,
 } from '../../shared/prepaidEngine.ts';
 
 export default async function(req) {
@@ -455,6 +457,287 @@ export default async function(req) {
         remaining_credits: newCreditsBalance,
         remaining_booking_value: newBvBalance,
         transaction_id: txnId,
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SPLIT_REDEEM — apply available wallet credits, return cash shortfall.
+    // Used for checkout when wallet may not cover the full booking total.
+    // Atomic: FIFO consumption + wallet transaction + balance update in one call.
+    // If the Arriv Pay shortfall charge fails later, call reverse_redemption
+    // with the returned transaction_id to restore wallet value.
+    // ════════════════════════════════════════════════════════════════════════
+    if (action === 'split_redeem') {
+      const { wallet_id, retail_price, booking_id, description, idempotency_key } = body;
+      if (!wallet_id) return Response.json({ error: 'wallet_id is required' }, { status: 400 });
+      if (!retail_price || retail_price <= 0) return Response.json({ error: 'retail_price must be positive' }, { status: 400 });
+
+      // Idempotency: if idempotency_key provided, check for existing transaction
+      if (idempotency_key) {
+        const existing = await base44.asServiceRole.entities.WalletTransaction.filter(
+          { transaction_id: idempotency_key },
+          undefined,
+          1
+        );
+        const existingArr = Array.isArray(existing) ? existing : (existing?.data || []);
+        if (existingArr.length > 0) {
+          return { status: 'duplicate', transaction_id: idempotency_key };
+        }
+      }
+
+      const wallet = await base44.asServiceRole.entities.PrepaidWallet.get(wallet_id);
+      if (!wallet) return Response.json({ error: 'Wallet not found' }, { status: 404 });
+      if (wallet.status !== 'active') return Response.json({ error: 'Wallet is not active' }, { status: 400 });
+
+      const walletBvAvailable = round2(wallet.credits_balance * PREPAID_CREDIT_VALUE);
+      const walletApplied = round2(Math.min(walletBvAvailable, retail_price));
+      const cashShortfall = round2(retail_price - walletApplied);
+
+      if (walletApplied <= 0) {
+        return Response.json({
+          status: 'success',
+          wallet_applied: 0,
+          cash_shortfall: retail_price,
+          transaction_id: '',
+          message: 'No wallet value available. Full payment via Arriv Pay.',
+        });
+      }
+
+      const creditsConsumed = creditsRequiredForPrice(walletApplied);
+
+      // Get eligible lots (FIFO)
+      const lotsResponse = await base44.asServiceRole.entities.CreditLot.filter(
+        { wallet_id: wallet.id, expired: false },
+        'fifo_order',
+        200
+      );
+      const lots = Array.isArray(lotsResponse) ? lotsResponse : (lotsResponse?.data || []);
+      const consumptionResult = consumeFIFO(lots, creditsConsumed);
+
+      const nowIso = new Date().toISOString();
+      const txnId = idempotency_key || generateId('ptxn');
+
+      // Apply consumption to each lot
+      for (const entry of consumptionResult.consumption) {
+        const lot = lots.find(l => l.lot_id === entry.lot_id);
+        if (lot) {
+          await base44.asServiceRole.entities.CreditLot.update(lot.id, {
+            credits_remaining: round2(lot.credits_remaining - entry.credits),
+            booking_value_remaining: round2(lot.booking_value_remaining - entry.booking_value),
+          });
+        }
+      }
+
+      // Create wallet transaction
+      await base44.asServiceRole.entities.WalletTransaction.create({
+        transaction_id: txnId,
+        wallet_id: wallet.id,
+        customer_id: wallet.customer_id,
+        customer_email: wallet.customer_email,
+        type: 'BOOKING_REDEMPTION',
+        cash_amount: 0,
+        credits: -round2(consumptionResult.total_consumed),
+        booking_value: -round2(consumptionResult.booking_value_consumed),
+        stripe_transaction_id: '',
+        booking_id: booking_id || '',
+        lot_id: consumptionResult.consumption.length === 1 ? consumptionResult.consumption[0].lot_id : '',
+        source: 'BOOKING',
+        actor: user?.email || 'system',
+        description: description || `Wallet split payment — $${round2(consumptionResult.booking_value_consumed)} booking value applied to $${round2(retail_price)} booking`,
+        prepaid_tier: wallet.tier,
+        created_at: nowIso,
+      });
+
+      // Update wallet balances
+      const newCreditsBalance = round2(wallet.credits_balance - consumptionResult.total_consumed);
+      const newBvBalance = round2(newCreditsBalance * PREPAID_CREDIT_VALUE);
+      await base44.asServiceRole.entities.PrepaidWallet.update(wallet.id, {
+        credits_balance: newCreditsBalance,
+        booking_value_balance: newBvBalance,
+        total_credits_redeemed: round2(wallet.total_credits_redeemed + consumptionResult.total_consumed),
+        total_booking_value_redeemed: round2(wallet.total_booking_value_redeemed + consumptionResult.booking_value_consumed),
+        updated_at: nowIso,
+      });
+
+      return Response.json({
+        status: 'success',
+        wallet_id: wallet.id,
+        booking_id: booking_id || '',
+        retail_price: round2(retail_price),
+        wallet_applied: walletApplied,
+        cash_shortfall: cashShortfall,
+        credits_consumed: round2(consumptionResult.total_consumed),
+        booking_value_consumed: round2(consumptionResult.booking_value_consumed),
+        lots_consumed: consumptionResult.consumption,
+        remaining_credits: newCreditsBalance,
+        remaining_booking_value: newBvBalance,
+        transaction_id: txnId,
+        message: cashShortfall > 0
+          ? `Wallet applied $${walletApplied}. Charge $${cashShortfall} via Arriv Pay to complete booking.`
+          : `Wallet fully covered the booking. No Arriv Pay charge needed.`,
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REVERSE_REDEMPTION — restore wallet value when a split-payment Arriv Pay
+    // shortfall charge fails. Creates a compensating REFUND_REVERSAL transaction
+    // and restores credits to the consumed lots. Does NOT delete the original
+    // BOOKING_REDEMPTION transaction (immutable ledger).
+    // ════════════════════════════════════════════════════════════════════════
+    if (action === 'reverse_redemption') {
+      const { transaction_id, reason } = body;
+      if (!transaction_id) return Response.json({ error: 'transaction_id is required' }, { status: 400 });
+
+      const origTxnResp = await base44.asServiceRole.entities.WalletTransaction.filter(
+        { transaction_id },
+        undefined,
+        1
+      );
+      const origTxnArr = Array.isArray(origTxnResp) ? origTxnResp : (origTxnResp?.data || []);
+      const origTxn = origTxnArr[0];
+      if (!origTxn) return Response.json({ error: 'Original transaction not found' }, { status: 404 });
+      if (origTxn.type !== 'BOOKING_REDEMPTION') return Response.json({ error: 'Can only reverse BOOKING_REDEMPTION transactions' }, { status: 400 });
+
+      // Idempotency: check if already reversed
+      const existingReversal = await base44.asServiceRole.entities.WalletTransaction.filter(
+        { lot_id: origTxn.lot_id, type: 'REFUND_REVERSAL', description: `Reversal of ${transaction_id}` },
+        undefined,
+        1
+      );
+      const existingRevArr = Array.isArray(existingReversal) ? existingReversal : (existingReversal?.data || []);
+      if (existingRevArr.length > 0) {
+        return { status: 'duplicate', transaction_id: existingRevArr[0].transaction_id };
+      }
+
+      const creditsToRestore = round2(Math.abs(origTxn.credits));
+      const bvToRestore = round2(Math.abs(origTxn.booking_value));
+      const nowIso = new Date().toISOString();
+
+      // Restore credits to the original lot (if still exists and not expired)
+      if (origTxn.lot_id) {
+        const lotResp = await base44.asServiceRole.entities.CreditLot.filter({ lot_id: origTxn.lot_id }, undefined, 1);
+        const lotArr = Array.isArray(lotResp) ? lotResp : (lotResp?.data || []);
+        const lot = lotArr[0];
+        if (lot && !lot.expired) {
+          await base44.asServiceRole.entities.CreditLot.update(lot.id, {
+            credits_remaining: round2(lot.credits_remaining + creditsToRestore),
+            booking_value_remaining: round2(lot.booking_value_remaining + bvToRestore),
+          });
+        }
+      }
+
+      // Create compensating transaction
+      const reversalTxnId = generateId('ptxn');
+      await base44.asServiceRole.entities.WalletTransaction.create({
+        transaction_id: reversalTxnId,
+        wallet_id: origTxn.wallet_id,
+        customer_id: origTxn.customer_id,
+        customer_email: origTxn.customer_email,
+        type: 'REFUND_REVERSAL',
+        cash_amount: 0,
+        credits: creditsToRestore,
+        booking_value: bvToRestore,
+        stripe_transaction_id: '',
+        booking_id: origTxn.booking_id || '',
+        lot_id: origTxn.lot_id || '',
+        source: 'BOOKING',
+        actor: user?.email || 'system',
+        description: `Reversal of ${transaction_id}${reason ? ` — ${reason}` : ''}`,
+        prepaid_tier: origTxn.prepaid_tier || '',
+        created_at: nowIso,
+      });
+
+      // Restore wallet balance
+      const wallet = await base44.asServiceRole.entities.PrepaidWallet.get(origTxn.wallet_id);
+      if (wallet) {
+        const newCredits = round2(wallet.credits_balance + creditsToRestore);
+        await base44.asServiceRole.entities.PrepaidWallet.update(origTxn.wallet_id, {
+          credits_balance: newCredits,
+          booking_value_balance: round2(newCredits * PREPAID_CREDIT_VALUE),
+          total_credits_redeemed: round2(Math.max(0, wallet.total_credits_redeemed - creditsToRestore)),
+          total_booking_value_redeemed: round2(Math.max(0, wallet.total_booking_value_redeemed - bvToRestore)),
+          updated_at: nowIso,
+        });
+      }
+
+      return Response.json({
+        status: 'success',
+        original_transaction_id: transaction_id,
+        reversal_transaction_id: reversalTxnId,
+        credits_restored: creditsToRestore,
+        booking_value_restored: bvToRestore,
+        message: 'Wallet value restored. Original redemption preserved as immutable ledger entry.',
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REDEEM_PROMOTIONAL_ADDON — Premier/Elite promotional add-on benefit.
+    // Customer-facing price becomes $0 for one eligible add-on. Benefit counter
+    // decrements. Media Specialist still receives payout. Arriv absorbs cost.
+    // No cash value, no credit conversion, no transfer, no rollover.
+    // ════════════════════════════════════════════════════════════════════════
+    if (action === 'redeem_promotional_addon') {
+      const { wallet_id, addon_category, booking_id } = body;
+      if (!wallet_id) return Response.json({ error: 'wallet_id is required' }, { status: 400 });
+      if (!addon_category) return Response.json({ error: 'addon_category is required' }, { status: 400 });
+
+      if (!PROMOTIONAL_ADDON_CATEGORIES.includes(addon_category)) {
+        return Response.json({ error: `Add-on "${addon_category}" is not eligible for promotional redemption. Eligible: ${PROMOTIONAL_ADDON_CATEGORIES.join(', ')}` }, { status: 400 });
+      }
+
+      const wallet = await base44.asServiceRole.entities.PrepaidWallet.get(wallet_id);
+      if (!wallet) return Response.json({ error: 'Wallet not found' }, { status: 404 });
+      if (wallet.status !== 'active') return Response.json({ error: 'Wallet is not active' }, { status: 400 });
+
+      const config = getTierConfig(wallet.tier);
+      if (!config || config.promotional_benefits_per_cycle === 0) {
+        return Response.json({ error: `${wallet.tier} tier does not include promotional add-on benefits` }, { status: 400 });
+      }
+
+      const available = (wallet.promotional_benefits_available || 0) - (wallet.promotional_benefits_used || 0);
+      if (available <= 0) {
+        return Response.json({ error: 'No promotional add-on benefits remaining this cycle' }, { status: 400 });
+      }
+
+      const nowIso = new Date().toISOString();
+
+      // Decrement benefit counter
+      await base44.asServiceRole.entities.PrepaidWallet.update(wallet.id, {
+        promotional_benefits_used: (wallet.promotional_benefits_used || 0) + 1,
+        updated_at: nowIso,
+      });
+
+      // Record immutable benefit redemption (no credits consumed, no cash)
+      const txnId = generateId('ptxn');
+      await base44.asServiceRole.entities.WalletTransaction.create({
+        transaction_id: txnId,
+        wallet_id: wallet.id,
+        customer_id: wallet.customer_id,
+        customer_email: wallet.customer_email,
+        type: 'PROMOTIONAL_BENEFIT',
+        cash_amount: 0,
+        credits: 0,
+        booking_value: 0,
+        stripe_transaction_id: '',
+        booking_id: booking_id || '',
+        lot_id: '',
+        source: 'BOOKING',
+        actor: user?.email || 'system',
+        description: `Promotional add-on redeemed: ${addon_category} (max $${PROMOTIONAL_MAX_BENEFIT_VALUE} value). Tier: ${wallet.tier}. Media Specialist payout preserved.`,
+        prepaid_tier: wallet.tier,
+        created_at: nowIso,
+      });
+
+      return Response.json({
+        status: 'success',
+        wallet_id: wallet.id,
+        addon_category,
+        customer_price: 0,
+        max_benefit_value: PROMOTIONAL_MAX_BENEFIT_VALUE,
+        benefits_remaining: available - 1,
+        benefits_used: (wallet.promotional_benefits_used || 0) + 1,
+        transaction_id: txnId,
+        message: `${addon_category} redeemed as promotional benefit. Customer price: $0. Media Specialist payout unaffected. Arriv absorbs promotional cost.`,
       });
     }
 

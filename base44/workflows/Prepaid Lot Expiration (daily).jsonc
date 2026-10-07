@@ -1,0 +1,47 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 3 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Prepaid Lot Expiration (daily)",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "prepaid_lot_expiration",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "expire_lots": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "managePrepaid",
+            "args": {
+              "action": "expire_lots"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Expire past-due credit lots",
+            "description": "Mark expired lots, create wallet transactions, update balances"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Daily at 3am ET: marks past-due credit lots as expired, creates EXPIRATION wallet transactions, and updates wallet balances. Idempotent \u2014 skips lots already marked expired."
+}

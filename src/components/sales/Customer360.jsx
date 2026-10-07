@@ -18,6 +18,7 @@ import CustomerIntelligencePanel from "@/components/sales/CustomerIntelligencePa
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
 import AgreementsSection from "@/components/agreements/AgreementsSection";
 import CreateAgreementModal from "@/components/agreements/CreateAgreementModal";
+import WalletPanel from "@/components/customer/WalletPanel";
 
 const PACKAGE_LABELS = {
   mls_walkthrough: "MLS Walkthrough",
@@ -430,12 +431,17 @@ export default function Customer360({ contact, contactKey, activities, onReload,
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          {/* ── Customer Intelligence Tab (canonical Arriv One Customer360) ── */}
-          <TabsContent value="intelligence">
+            {/* Arriv Wallet */}
+            <div className="mt-4">
+             <WalletPanel customerEmail={customerEmail} customerId={contact?.id} />
+            </div>
+            </TabsContent>
+
+            {/* ── Customer Intelligence Tab (canonical Arriv One Customer360) ── */}
+            <TabsContent value="intelligence">
             <CustomerIntelligencePanel contact={contact} />
-          </TabsContent>
+            </TabsContent>
 
           {/* ── Communications Tab ──────────────────────────────────── */}
           <TabsContent value="communications">

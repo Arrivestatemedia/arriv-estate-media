@@ -15,9 +15,10 @@
       "enum": [
         "PREPAID_PURCHASE_COMMISSION",
         "PREPAID_RELOAD_COMMISSION",
+        "AUTO_FUND_COMMISSION",
         "COMMISSION_REVERSAL"
       ],
-      "description": "Compensation event type"
+      "description": "Compensation event type. AUTO_FUND_COMMISSION = recurring Auto-Fund customer payment; PREPAID_RELOAD_COMMISSION = lump-sum reload purchase."
     },
     "employee_id": {
       "type": "string",
@@ -92,6 +93,19 @@
     "delivery_attempts": {
       "type": "integer",
       "default": 0
+    },
+    "delivery_status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "DELIVERED",
+        "ACKNOWLEDGED",
+        "FAILED",
+        "RETRYING",
+        "REVIEW_REQUIRED"
+      ],
+      "default": "PENDING",
+      "description": "Arriv Pay delivery state for this compensation event"
     },
     "idempotency_key": {
       "type": "string",

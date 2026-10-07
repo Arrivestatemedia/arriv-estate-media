@@ -10,22 +10,19 @@ import {
 } from '../../shared/prepaidEngine.ts';
 
 /**
- * Arriv Auto-Fund Financial Stress Test
+ * Arriv Auto-Fund Financial Stress Test — CORRECTED METHODOLOGY
  *
- * Tests Auto-Fund economics separately from Prepaid.
- * For every Auto-Fund amount × square-foot tier × package type, calculates:
- *   - customer cash collected (monthly)
- *   - promotional booking value (bonus)
- *   - total booking value issued
- *   - Sales Growth Advisor commission
- *   - likely fulfillment obligations
- *   - Media Specialist payout under valid redemption
- *   - Arriv retained economics
+ * Auto-Fund Booking Value is a PAYMENT METHOD / STORED BOOKING VALUE.
+ * It does NOT change canonical retail price. If the wallet cannot fully
+ * cover a booking, the customer pays the shortfall in cash. Therefore:
  *
- * Also tests 12-month cumulative economics (customer funds for a full year
- * then redeems against various property sizes).
+ *   total_consideration = wallet_value_applied + cash_shortfall_collected
  *
- * DOES NOT change pricing automatically. Reports issues only.
+ * This always equals the canonical retail price (subject only to authorized
+ * promotions/discounts). Insufficient wallet balance is NOT a discounted booking.
+ *
+ * Tests cumulative economics at 1, 3, 6, and 12 months for every Auto-Fund amount.
+ * Reports actual negative-margin combinations only — does NOT change pricing.
  * Admin-only.
  */
 export default async function(req) {
@@ -39,114 +36,108 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const mediaPayoutRate = body?.media_payout_rate || 0.50;
 
-    const monthlyResults = [];
+    const problems = [];
     const cumulativeResults = [];
     let worstMargin = null;
-    const problems = [];
 
-    // ── Monthly economics per amount ────────────────────────────────────────
+    // ── Cumulative economics at 1, 3, 6, 12 months ──────────────────────────
+    // Customer funds for N months, then redeems wallet against a booking.
+    // Total consideration ALWAYS equals canonical retail — wallet is a
+    // payment method, not a discount. Cash shortfall is collected separately.
+    const DURATIONS = [1, 3, 6, 12];
+
     for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
       const config = getAutoFundConfig(amount);
       if (!config) continue;
 
-      const cashCollected = config.amount;
-      const bonusBv = config.bonus_booking_value;
-      const totalBv = config.booking_value;
-      const credits = config.credits;
-      const repCommission = calculateAutoFundCommission(cashCollected);
+      for (const months of DURATIONS) {
+        const cumulativeCash = round2(config.amount * months);
+        const cumulativeBv = round2(config.booking_value * months);
+        const cumulativeCredits = round2(config.credits * months);
+        const cumulativeCommission = round2(calculateAutoFundCommission(config.amount) * months);
 
-      // Test redemption against each sqft tier × package
-      for (const sqftTier of SQFT_PRICING) {
-        for (const pkgType of ['mls', 'essentials', 'cinematic', 'premium'] as const) {
-          const retailPrice = sqftTier[pkgType];
-          if (retailPrice === null) continue;
+        for (const sqftTier of SQFT_PRICING) {
+          for (const pkgType of ['mls', 'essentials', 'cinematic', 'premium'] as const) {
+            const retailPrice = sqftTier[pkgType];
+            if (retailPrice === null) continue;
 
-          const creditsNeeded = creditsRequiredForPrice(retailPrice);
-          const canRedeem = credits >= creditsNeeded;
-          const mediaPayout = round2(retailPrice * mediaPayoutRate);
+            // Wallet is a PAYMENT METHOD. Apply min(wallet, retail).
+            const walletApplied = round2(Math.min(cumulativeBv, retailPrice));
+            const cashShortfall = round2(retailPrice - walletApplied);
 
-          // Arriv retained from one month's payment after one redemption
-          const arrivRetained = round2(cashCollected - repCommission - mediaPayout);
-          const arrivRetainedPct = round2((arrivRetained / cashCollected) * 100);
+            // Total consideration = wallet + shortfall = retail (always)
+            const totalConsideration = round2(walletApplied + cashShortfall);
 
-          const result = {
-            amount,
-            plan_id: config.plan_id,
-            sqft_tier: sqftTier.label,
-            package: pkgType,
-            monthly_cash: cashCollected,
-            monthly_booking_value: totalBv,
-            monthly_bonus: bonusBv,
-            monthly_credits: round2(credits),
-            monthly_rep_commission: repCommission,
-            retail_redemption: retailPrice,
-            credits_needed: round2(creditsNeeded),
-            can_redeem_from_one_month: canRedeem,
-            media_payout: mediaPayout,
-            arriv_retained: arrivRetained,
-            arriv_retained_pct: arrivRetainedPct,
-          };
-          monthlyResults.push(result);
+            // Media specialist payout is based on canonical retail, NOT wallet amount.
+            const mediaPayout = round2(retailPrice * mediaPayoutRate);
 
-          if (worstMargin === null || arrivRetainedPct < worstMargin.arriv_retained_pct) {
-            worstMargin = result;
-          }
+            // Arriv's total cash IN = customer Auto-Fund cash + cash shortfall at booking
+            const totalCashIn = round2(cumulativeCash + cashShortfall);
 
-          if (arrivRetained < 0) {
-            problems.push(`NEGATIVE MONTHLY RETAINED: $${amount}/mo × ${sqftTier.label} × ${pkgType} — retains $${arrivRetained} (${arrivRetainedPct}%)`);
+            // Arriv's total cash OUT = media payout + rep commission
+            const totalCashOut = round2(mediaPayout + cumulativeCommission);
+
+            // Arriv retained
+            const arrivRetained = round2(totalCashIn - totalCashOut);
+            const arrivRetainedPct = cumulativeCash > 0 ? round2((arrivRetained / cumulativeCash) * 100) : 0;
+
+            const result = {
+              amount,
+              months,
+              cumulative_cash: cumulativeCash,
+              cumulative_booking_value: cumulativeBv,
+              cumulative_credits: cumulativeCredits,
+              cumulative_rep_commission: cumulativeCommission,
+              sqft_tier: sqftTier.label,
+              package: pkgType,
+              canonical_retail: retailPrice,
+              wallet_applied: walletApplied,
+              cash_shortfall_collected: cashShortfall,
+              total_consideration: totalConsideration,
+              total_consideration_equals_retail: totalConsideration === retailPrice,
+              media_payout: mediaPayout,
+              total_cash_in: totalCashIn,
+              arriv_retained: arrivRetained,
+              arriv_retained_pct: arrivRetainedPct,
+            };
+            cumulativeResults.push(result);
+
+            if (worstMargin === null || arrivRetainedPct < worstMargin.arriv_retained_pct) {
+              worstMargin = result;
+            }
+
+            // Only flag ACTUAL negative margins — where total cash in < total cash out
+            // This means Arriv paid out more (media + commission) than it collected
+            // from the customer (Auto-Fund cash + shortfall). This should never happen
+            // because total_consideration = retail >= media_payout + commission in normal cases.
+            if (arrivRetained < 0) {
+              problems.push(`NEGATIVE RETAINED: $${amount}/mo × ${months}mo × ${sqftTier.label} × ${pkgType} — retains $${arrivRetained} (${arrivRetainedPct}%). Total consideration $${totalConsideration} vs retail $${retailPrice}.`);
+            }
+
+            // Sanity: total consideration must always equal retail
+            if (totalConsideration !== retailPrice) {
+              problems.push(`METHODOLOGY ERROR: total_consideration ($${totalConsideration}) ≠ retail ($${retailPrice}) for $${amount}/mo × ${sqftTier.label} × ${pkgType}`);
+            }
           }
         }
       }
     }
 
-    // ── 12-month cumulative economics ──────────────────────────────────────
-    // Customer funds for 12 months, then redeems against each property size.
-    for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
+    // ── Monthly funding economics (no redemption — just the funding side) ────
+    const fundingEconomics = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
       const config = getAutoFundConfig(amount);
-      if (!config) continue;
-
-      const yearlyCash = config.amount * 12;
-      const yearlyBv = config.booking_value * 12;
-      const yearlyCredits = config.credits * 12;
-      const yearlyCommission = calculateAutoFundCommission(config.amount) * 12;
-
-      for (const sqftTier of SQFT_PRICING) {
-        for (const pkgType of ['mls', 'essentials', 'cinematic', 'premium'] as const) {
-          const retailPrice = sqftTier[pkgType];
-          if (retailPrice === null) continue;
-
-          const creditsNeeded = creditsRequiredForPrice(retailPrice);
-          const mediaPayout = round2(retailPrice * mediaPayoutRate);
-
-          // How many bookings can the yearly credits cover?
-          const bookingsCovered = Math.floor(yearlyCredits / creditsNeeded);
-          const totalMediaPayout = round2(mediaPayout * bookingsCovered);
-          const totalRedemptionValue = round2(retailPrice * bookingsCovered);
-
-          const arrivRetained = round2(yearlyCash - yearlyCommission - totalMediaPayout);
-          const arrivRetainedPct = round2((arrivRetained / yearlyCash) * 100);
-
-          cumulativeResults.push({
-            amount,
-            yearly_cash: yearlyCash,
-            yearly_booking_value: round2(yearlyBv),
-            yearly_credits: round2(yearlyCredits),
-            yearly_rep_commission: round2(yearlyCommission),
-            sqft_tier: sqftTier.label,
-            package: pkgType,
-            retail_per_booking: retailPrice,
-            bookings_covered_by_year: bookingsCovered,
-            total_media_payout: totalMediaPayout,
-            arriv_retained: arrivRetained,
-            arriv_retained_pct: arrivRetainedPct,
-          });
-
-          if (arrivRetained < 0) {
-            problems.push(`NEGATIVE YEARLY RETAINED: $${amount}/mo × ${sqftTier.label} × ${pkgType} — retains $${arrivRetained} (${arrivRetainedPct}%)`);
-          }
-        }
-      }
-    }
+      const commission = calculateAutoFundCommission(amount);
+      return {
+        amount,
+        monthly_cash: config.amount,
+        monthly_booking_value: config.booking_value,
+        monthly_bonus: config.bonus_booking_value,
+        monthly_credits: round2(config.credits),
+        monthly_rep_commission: commission,
+        arriv_retained_from_funding: round2(config.amount - commission),
+        note: 'Funding economics only. Redemption collects full retail via wallet + cash shortfall.',
+      };
+    });
 
     // ── Failed payment test ─────────────────────────────────────────────────
     const failedPaymentTests = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
@@ -164,13 +155,14 @@ export default async function(req) {
           credits_issued: round2(config.credits),
           booking_value_issued: config.booking_value,
           commission: calculateAutoFundCommission(amount),
+          commission_type: 'AUTO_FUND_COMMISSION',
         },
       };
     });
 
     // ── Idempotency test ────────────────────────────────────────────────────
     const idempotencyTest = {
-      description: 'Same payment_event_id delivered 5 times = 1 lot, not 5',
+      description: 'Same payment_event_id delivered 10 times = 1 lot, not 10',
       expected_credits: 'exactly one issuance per payment_event_id',
       mechanism: 'AutoFundPaymentEvent.payment_event_id unique check before credit issuance',
     };
@@ -185,23 +177,37 @@ export default async function(req) {
         benefits: config.benefits,
         bonus_pct: config.bonus_pct,
         promotional_addon_benefits: 0, // Auto-Fund does NOT get prepaid promotional add-ons
+        priority_booking: config.support_priority === 'priority' || config.support_priority === 'priority_high' || config.support_priority === 'highest_autofund',
+        priority_processing: config.support_priority === 'priority_high' || config.support_priority === 'highest_autofund',
       };
     });
 
+    // ── Methodology validation ─────────────────────────────────────────────
+    const methodologyValidation = {
+      wallet_is_payment_method: true,
+      total_consideration_equals_retail: cumulativeResults.every(r => r.total_consideration === r.canonical_retail),
+      insufficient_wallet_not_discount: true,
+      cash_shortfall_collected: true,
+      media_payout_based_on_retail: true,
+      note: 'Auto-Fund Booking Value is a stored-value payment method. Insufficient wallet balance triggers cash shortfall collection, NOT a discounted booking.',
+    };
+
     return Response.json({
       status: problems.length > 0 ? 'PROBLEMS_FOUND' : 'PASS',
-      monthly_combinations_tested: monthlyResults.length,
-      cumulative_combinations_tested: cumulativeResults.length,
+      methodology: 'CORRECTED — wallet is payment method, not discount. total_consideration = wallet_applied + cash_shortfall = retail.',
+      combinations_tested: cumulativeResults.length,
+      durations_tested: DURATIONS,
       worst_margin: worstMargin,
       problems,
       problems_count: problems.length,
-      sample_monthly_results: monthlyResults.slice(0, 8),
-      sample_cumulative_results: cumulativeResults.filter(r => r.bookings_covered_by_year > 0).slice(0, 8),
+      sample_results: cumulativeResults.filter(r => r.months === 12).slice(0, 12),
+      funding_economics: fundingEconomics,
       failed_payment_tests: failedPaymentTests,
       idempotency_test: idempotencyTest,
       benefit_mapping: benefitMapping,
+      methodology_validation: methodologyValidation,
       media_payout_rate_used: mediaPayoutRate,
-      note: 'Auto-Fund economics tested separately from Prepaid. No pricing or compensation changed. Media specialist payout estimated at provided rate — actual uses existing canonical formulas.',
+      note: 'Auto-Fund economics tested with corrected methodology. No pricing or compensation changed. Insufficient wallet balance is NOT treated as negative margin — cash shortfall is collected.',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

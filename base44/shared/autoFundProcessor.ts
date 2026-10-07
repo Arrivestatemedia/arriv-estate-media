@@ -155,7 +155,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
         await base44.entities.PrepaidCompensationEvent.create({
           source_event_id: commissionSourceEventId,
           source_system: 'ARRIV_ESTATE_MEDIA',
-          source_type: 'PREPAID_RELOAD_COMMISSION',
+          source_type: 'AUTO_FUND_COMMISSION',
           employee_id: data.sales_rep_id,
           employee_email: repEmail,
           customer_id: data.customer_id,
