@@ -68,6 +68,7 @@ import ClientJobGallery from './pages/ClientJobGallery';
 import AdminClientGalleryPreview from './pages/AdminClientGalleryPreview';
 import SignDocumentPage from './pages/SignDocumentPage';
 import RegionalJobRouter from './pages/RegionalJobRouter';
+import PrepaidPurchase from './pages/PrepaidPurchase';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -545,6 +546,14 @@ const AuthenticatedApp = () => {
       <Route path="/AdminClientGalleryPreview" element={<AdminClientGalleryPreview />} />
       <Route path="/sign/:token" element={<SignDocumentPage />} />
       <Route path="/join" element={<RegionalJobRouter />} />
+      <Route
+        path="/PrepaidPurchase"
+        element={
+          <LayoutWrapper currentPageName="PrepaidPurchase">
+            <PrepaidPurchase />
+          </LayoutWrapper>
+        }
+      />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
