@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
+import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 
 /**
  * Arriv Pay Customer Payment Event Webhook
@@ -38,7 +39,10 @@ export default async function(req) {
       return Response.json({ error: 'Prepaid/Auto-Fund feature is not enabled' }, { status: 503 });
     }
 
-    // ── HMAC Validation ────────────────────────────────────────────────────
+    // ── HMAC Validation (canonical_estate_media contract) ────────────────────
+    // Canonical signing input: body\ntimestamp\nrequest_id\nsource_app
+    // Headers: x-arriv-pay-signature, x-arriv-pay-timestamp,
+    //          x-arriv-pay-request-id, x-arriv-pay-source-app
     const handoffSecret = secrets.get("ARRIV_PAYROLL_HANDOFF_SECRET");
     if (!handoffSecret) {
       return Response.json({ error: 'Arriv Pay handoff secret not configured' }, { status: 503 });
@@ -49,37 +53,32 @@ export default async function(req) {
 
     const signature = req.headers.get('x-arriv-pay-signature') || '';
     const timestamp = req.headers.get('x-arriv-pay-timestamp') || '';
+    const requestId = req.headers.get('x-arriv-pay-request-id') || '';
+    const sourceApp = req.headers.get('x-arriv-pay-source-app') || '';
 
     // Timestamp freshness (±5 minutes)
-    if (timestamp) {
-      const eventTime = parseInt(timestamp, 10);
-      const now = Date.now();
-      const fiveMinutes = 5 * 60 * 1000;
-      if (Math.abs(now - eventTime) > fiveMinutes) {
-        return Response.json({ error: 'Timestamp outside acceptable window' }, { status: 401 });
-      }
+    if (timestamp && !isTimestampFresh(timestamp)) {
+      return Response.json({ error: 'Timestamp outside acceptable window' }, { status: 401 });
     }
 
-    // HMAC verification using Web Crypto API
+    // Canonical HMAC verification (body\ntimestamp\nrequest_id\nsource_app)
     if (signature && timestamp) {
-      const message = `${timestamp}.${bodyText}`;
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(handoffSecret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
-      const expectedHex = Array.from(new Uint8Array(expectedSig))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      if (signature !== expectedHex) {
+      const isValid = await verifyCanonicalRequest(handoffSecret, {
+        body: bodyText,
+        timestamp,
+        requestId,
+        sourceAppId: sourceApp,
+        signature,
+      });
+      if (!isValid) {
         return Response.json({ error: 'Invalid signature' }, { status: 401 });
       }
+      // Validate source application
+      if (sourceApp && sourceApp !== 'arriv_pay' && sourceApp !== 'ARRIV_PAY') {
+        return Response.json({ error: 'Invalid source application' }, { status: 401 });
+      }
     } else {
-      // Fallback: bearer token match (for initial integration testing)
+      // Fallback: bearer token match (for initial integration testing only)
       const authHeader = req.headers.get('authorization') || '';
       const provided = authHeader.replace(/^Bearer\s+/i, '');
       if (provided !== handoffSecret) {

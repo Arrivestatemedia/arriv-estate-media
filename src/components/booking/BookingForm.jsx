@@ -11,6 +11,7 @@ import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getPackagePriceForTier, getTierLabel, determinePricingTier } from "@/lib/services";
+import WalletCheckout from "@/components/booking/WalletCheckout";
 
 const inputStyles = "";
 
@@ -160,6 +161,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   const [showPredictions, setShowPredictions] = useState(false);
   const autocompleteService = useRef(null);
   const placesService = useRef(null);
+  const [walletDecision, setWalletDecision] = useState({ useWallet: false, walletBalance: 0, walletApplied: 0, cashShortfall: 0, walletId: null });
 
   useEffect(() => {
     // Initialize Google Places Autocomplete
@@ -227,7 +229,16 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      const submissionData = {
+        ...formData,
+        wallet: walletDecision.useWallet ? {
+          use_wallet: true,
+          wallet_id: walletDecision.walletId,
+          wallet_applied: walletDecision.walletApplied,
+          cash_shortfall: walletDecision.cashShortfall,
+        } : { use_wallet: false },
+      };
+      await onSubmit(submissionData);
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);
@@ -540,6 +551,14 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                     </span>
                   </label>
                 </div>
+              )}
+
+              {!requestPayAtClosing && !isCustomQuote && !isEditing && formData.client_email && totalPrice > 0 && (
+                <WalletCheckout
+                  customerEmail={formData.client_email}
+                  totalPrice={totalPrice}
+                  onWalletDecision={setWalletDecision}
+                />
               )}
 
               <div className="flex gap-3 pt-4">
