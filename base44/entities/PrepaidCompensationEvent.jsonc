@@ -1,0 +1,131 @@
+{
+  "name": "PrepaidCompensationEvent",
+  "type": "object",
+  "properties": {
+    "source_event_id": {
+      "type": "string",
+      "description": "Globally unique immutable ID. Used by Arriv Pay for idempotency."
+    },
+    "source_system": {
+      "type": "string",
+      "default": "ARRIV_ESTATE_MEDIA"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "PREPAID_PURCHASE_COMMISSION",
+        "PREPAID_RELOAD_COMMISSION",
+        "COMMISSION_REVERSAL"
+      ],
+      "description": "Compensation event type"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Canonical Arriv Pay employee ID (SalesTeamMember ID)"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Denormalized for lookups"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Estate Media WalletTransaction ID that triggered this commission"
+    },
+    "gross_customer_cash": {
+      "type": "number",
+      "description": "Total cash collected from customer (prepaid purchase or reload)"
+    },
+    "commission_amount": {
+      "type": "number",
+      "description": "Commission amount (10% of gross_customer_cash)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the commission was earned"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "APPROVED",
+        "REVERSED"
+      ],
+      "default": "APPROVED"
+    },
+    "reverses_source_event_id": {
+      "type": "string",
+      "description": "For COMMISSION_REVERSAL: the original source_event_id being reversed"
+    },
+    "reversal_amount": {
+      "type": "number",
+      "description": "For COMMISSION_REVERSAL: the amount being reversed"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for reversal or notes"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prepaid_tier": {
+      "type": "string",
+      "description": "Prepaid tier snapshot"
+    },
+    "delivered_to_payroll": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this event has been delivered to Arriv Pay"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivery_attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key (same as source_event_id) to prevent duplicate payroll earnings"
+    }
+  },
+  "required": [
+    "source_event_id",
+    "source_system",
+    "source_type",
+    "employee_id",
+    "commission_amount",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

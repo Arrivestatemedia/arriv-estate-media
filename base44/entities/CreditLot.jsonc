@@ -1,0 +1,124 @@
+{
+  "name": "CreditLot",
+  "type": "object",
+  "properties": {
+    "wallet_id": {
+      "type": "string",
+      "description": "PrepaidWallet ID this lot belongs to"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (denormalized for lookups)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized for RLS"
+    },
+    "lot_id": {
+      "type": "string",
+      "description": "Stable lot identifier (globally unique)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "purchase",
+        "reload",
+        "admin_adjustment",
+        "promotional"
+      ]
+    },
+    "source_transaction_id": {
+      "type": "string",
+      "description": "WalletTransaction ID that created this lot"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "STARTER",
+        "PRO",
+        "PREMIER",
+        "ELITE"
+      ],
+      "description": "Tier of the purchase/reload that created this lot"
+    },
+    "credits_issued": {
+      "type": "number",
+      "description": "Original credits in this lot"
+    },
+    "credits_remaining": {
+      "type": "number",
+      "default": 0,
+      "description": "Unconsumed credits remaining in this lot"
+    },
+    "booking_value_issued": {
+      "type": "number",
+      "description": "Original booking value (credits_issued * $275)"
+    },
+    "booking_value_remaining": {
+      "type": "number",
+      "default": 0
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this lot expires. Independent per lot."
+    },
+    "expired": {
+      "type": "boolean",
+      "default": false
+    },
+    "expired_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fifo_order": {
+      "type": "integer",
+      "description": "Monotonic order for FIFO consumption (oldest first)"
+    },
+    "stripe_transaction_id": {
+      "type": "string",
+      "description": "Associated Stripe payment ID (if applicable)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "wallet_id",
+    "customer_id",
+    "lot_id",
+    "source",
+    "credits_issued",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

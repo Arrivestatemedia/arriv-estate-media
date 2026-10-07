@@ -1,0 +1,124 @@
+{
+  "name": "WalletTransaction",
+  "type": "object",
+  "properties": {
+    "transaction_id": {
+      "type": "string",
+      "description": "Stable, globally unique, immutable transaction ID"
+    },
+    "wallet_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized for RLS"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "PREPAID_PURCHASE",
+        "RELOAD",
+        "BOOKING_REDEMPTION",
+        "PROMOTIONAL_BENEFIT",
+        "REFUND_REVERSAL",
+        "EXPIRATION",
+        "ADMIN_ADJUSTMENT",
+        "COMMISSION_EVENT"
+      ],
+      "description": "Immutable ledger transaction type"
+    },
+    "cash_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Cash collected (for purchases/reloads) or refunded (for reversals)"
+    },
+    "credits": {
+      "type": "number",
+      "default": 0,
+      "description": "Credit delta. Positive for issuance, negative for consumption/expiration."
+    },
+    "booking_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Booking value delta (credits * $275)"
+    },
+    "stripe_transaction_id": {
+      "type": "string",
+      "description": "Associated Stripe payment intent/charge ID"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Associated booking ID (for redemption transactions)"
+    },
+    "lot_id": {
+      "type": "string",
+      "description": "Affected credit lot ID (for lot-level transactions)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "SYSTEM",
+        "ADMIN",
+        "CUSTOMER",
+        "BOOKING",
+        "STRIPE"
+      ],
+      "description": "What initiated this transaction"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User/system ID or email that caused this transaction"
+    },
+    "description": {
+      "type": "string"
+    },
+    "prepaid_tier": {
+      "type": "string",
+      "description": "Tier snapshot at transaction time (for purchase/reload)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Immutable timestamp"
+    }
+  },
+  "required": [
+    "transaction_id",
+    "wallet_id",
+    "customer_id",
+    "type",
+    "created_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

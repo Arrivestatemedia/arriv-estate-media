@@ -1,0 +1,144 @@
+{
+  "name": "PrepaidWallet",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (Contact entity ID). Authoritative customer identity link."
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized customer email for RLS and lookups"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Denormalized customer display name"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "STARTER",
+        "PRO",
+        "PREMIER",
+        "ELITE"
+      ],
+      "description": "Current prepaid tier"
+    },
+    "support_tier": {
+      "type": "string",
+      "enum": [
+        "PREPAID_STARTER",
+        "PREPAID_PRO",
+        "PREPAID_PREMIER",
+        "PREPAID_ELITE"
+      ],
+      "description": "Support tier for Arriv Assist routing"
+    },
+    "credits_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Canonical credit balance. Authoritative ledger value."
+    },
+    "booking_value_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Display booking value (credits_balance * $275). Derived, not authoritative."
+    },
+    "total_credits_issued": {
+      "type": "number",
+      "default": 0
+    },
+    "total_booking_value_issued": {
+      "type": "number",
+      "default": 0
+    },
+    "total_credits_redeemed": {
+      "type": "number",
+      "default": 0
+    },
+    "total_booking_value_redeemed": {
+      "type": "number",
+      "default": 0
+    },
+    "total_credits_expired": {
+      "type": "number",
+      "default": 0
+    },
+    "total_booking_value_expired": {
+      "type": "number",
+      "default": 0
+    },
+    "promotional_benefits_available": {
+      "type": "integer",
+      "default": 0,
+      "description": "Promotional add-on benefits available this cycle"
+    },
+    "promotional_benefits_used": {
+      "type": "integer",
+      "default": 0
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "Attributed Sales Growth Advisor ID (SalesTeamMember ID)"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "feature_flag_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Per-wallet feature flag. Global flag in AppSetting must also be true."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "customer_id",
+    "tier",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
