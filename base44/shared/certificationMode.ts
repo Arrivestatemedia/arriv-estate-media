@@ -75,7 +75,7 @@ export function evaluateCertificationBypass(ctx: CertificationContext): Certific
       reason: 'Missing timestamp',
     };
   }
-  // 4. Valid request ID
+  // 4. Valid request ID with cert_ prefix (intent marker)
   if (!ctx.requestId) {
     return {
       isCertification: false,
@@ -83,13 +83,21 @@ export function evaluateCertificationBypass(ctx: CertificationContext): Certific
       reason: 'Missing request ID',
     };
   }
-  // 5. Synthetic cert_ prefix on at least one identifier
+  if (!isCertificationId(ctx.requestId)) {
+    return {
+      isCertification: false,
+      certId: null,
+      reason: 'Request ID must carry cert_ prefix for certification bypass',
+    };
+  }
+  // 5. Synthetic cert_ prefix on at least one payload identifier
+  //    (request ID alone is NOT sufficient — payload must also be synthetic)
   const certIds = (ctx.identifiers || []).filter(isCertificationId);
   if (certIds.length === 0) {
     return {
       isCertification: false,
       certId: null,
-      reason: 'No cert_ prefixed synthetic identifier found',
+      reason: 'No cert_ prefixed synthetic payload identifier found',
     };
   }
   return {
