@@ -77,6 +77,45 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
   let commissionSourceEventId = '';
 
   if (isSuccess) {
+    // ── Retrieve wallet BEFORE issuing credits ─────────────────────────────
+    // data.wallet_id is the Base44 entity primary key (id) of the PrepaidWallet.
+    // The PrepaidWallet entity has no custom wallet_id field — its primary key
+    // IS the wallet_id used throughout the system. Since .get() throws an opaque
+    // 500 when the entity is not found (and id is not a filterable field), we
+    // use .filter() by customer_id (a filterable field) and then match by id
+    // to retrieve exactly the right wallet. This gives controlled zero-match
+    // and multiple-match behavior instead of an opaque entity-primary-key 500.
+    if (!data.customer_id) {
+      return {
+        status: 'error',
+        error: 'customer_id is required to retrieve the wallet',
+        payment_event_id: data.payment_event_id,
+      };
+    }
+    const walletResults = await base44.entities.PrepaidWallet.filter(
+      { customer_id: data.customer_id },
+      undefined,
+      10
+    );
+    const walletArr = Array.isArray(walletResults) ? walletResults : (walletResults?.data || []);
+    const matchingWallets = walletArr.filter(w => w.id === data.wallet_id);
+
+    if (matchingWallets.length === 0) {
+      return {
+        status: 'error',
+        error: `PrepaidWallet not found for wallet_id: ${data.wallet_id}`,
+        payment_event_id: data.payment_event_id,
+      };
+    }
+    if (matchingWallets.length > 1) {
+      return {
+        status: 'error',
+        error: `Multiple PrepaidWallets found for wallet_id: ${data.wallet_id} — data integrity issue`,
+        payment_event_id: data.payment_event_id,
+      };
+    }
+    const wallet = matchingWallets[0];
+
     // ── Create credit lot (12-month validity, FIFO) ────────────────────────
     lotId = idPrefix + generateId('lot');
     const expiresAt = addMonths(new Date(), 12).toISOString();
@@ -126,19 +165,16 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       await base44.entities.CreditLot.update(lotRecord.id, { source_transaction_id: walletTxnId });
     }
 
-    // ── Update wallet balance ──────────────────────────────────────────────
-    const wallet = await base44.entities.PrepaidWallet.get(data.wallet_id);
-    if (wallet) {
-      const newCredits = round2(wallet.credits_balance + credits);
-      const newBv = round2(wallet.booking_value_balance + bookingValue);
-      await base44.entities.PrepaidWallet.update(data.wallet_id, {
-        credits_balance: newCredits,
-        booking_value_balance: newBv,
-        total_credits_issued: round2(wallet.total_credits_issued + credits),
-        total_booking_value_issued: round2(wallet.total_booking_value_issued + bookingValue),
-        updated_at: nowIso,
-      });
-    }
+    // ── Update wallet balance (wallet already retrieved above) ───────────
+    const newCredits = round2(wallet.credits_balance + credits);
+    const newBv = round2(wallet.booking_value_balance + bookingValue);
+    await base44.entities.PrepaidWallet.update(data.wallet_id, {
+      credits_balance: newCredits,
+      booking_value_balance: newBv,
+      total_credits_issued: round2(wallet.total_credits_issued + credits),
+      total_booking_value_issued: round2(wallet.total_booking_value_issued + bookingValue),
+      updated_at: nowIso,
+    });
 
     // ── Commission event (if rep attributed and eligible) ──────────────────
     if (data.sales_rep_id) {

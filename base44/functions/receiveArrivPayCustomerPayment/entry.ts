@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
+// autoFundProcessor: wallet lookup uses .filter(customer_id) + id match (not .get)
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
@@ -161,6 +162,7 @@ export default async function(req) {
       ...result,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
+      _walletLookupMethod: "filter_v2",
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
