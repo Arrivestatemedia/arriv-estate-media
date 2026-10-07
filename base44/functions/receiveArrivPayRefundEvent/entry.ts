@@ -1,39 +1,43 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
-import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
-import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
-import { evaluateCertificationBypass } from '../../shared/certificationMode.ts';
+import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
+import { evaluateCertificationBypass, isCertificationId } from '../../shared/certificationMode.ts';
+import { processCommissionReversal } from '../../shared/commissionReversalEngine.ts';
 
 /**
- * Arriv Pay Customer Payment Event Webhook
+ * Arriv Pay Refund Event Webhook
  *
- * Receives authenticated customer payment events from Arriv Pay:
- *   - recurring Auto-Fund charges (succeeded/failed)
- *   - retry events
- *   - one-time prepaid purchase confirmations
- *   - top-up confirmations
+ * Receives authenticated customer refund/chargeback events from Arriv Pay
+ * and determines whether commission attributable to the refunded revenue
+ * must be reversed.
  *
- * Boundary correction: Arriv Pay owns customer payment PROCESSING.
- * Estate Media owns WHAT the successful payment entitles (credits, booking value).
+ * Estate Media owns the reversal determination:
+ *   - identifies original commissionable payment
+ *   - identifies compensation event(s) attributable to that payment
+ *   - calculates proportional/full reversal (from ORIGINAL event, not current rate)
+ *   - traces to commissionable CUSTOMER CASH, not promotional Booking Value
+ *   - creates immutable COMMISSION_REVERSAL event(s)
+ *   - caps cumulative reversals at original commission
+ *   - never deletes original commission events
  *
- * Security: HMAC validation using ARRIV_PAYROLL_HANDOFF_SECRET.
+ * Arriv Pay owns payroll treatment. Estate Media does NOT debit employees,
+ * edit paychecks, or alter completed payroll.
+ *
+ * Security: canonical HMAC (ARRIV_PAYROLL_HANDOFF_SECRET).
  *   - timestamp freshness (±5 min)
- *   - nonce/replay protection via payment_event_id idempotency
- *   - body integrity
+ *   - source validation (must be arriv_pay)
+ *   - replay/idempotency via refund_event_id + original source_event_id pair
  *
- * Idempotency: Each payment_event_id is processed exactly once.
- *   Duplicate deliveries return the original result without re-issuing credits.
+ * Certification mode: cert_-prefixed synthetic events bypass the
+ * prepaid_enabled feature flag ONLY when valid canonical HMAC is present.
+ * Bearer fallback NEVER qualifies for certification bypass.
  */
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
 
     // ── HMAC Validation (canonical_estate_media contract) ────────────────────
-    // Auth runs BEFORE the feature flag so certification mode can bypass it.
-    // Canonical signing input: body\ntimestamp\nrequest_id\nsource_app
-    // Headers: x-arriv-pay-signature, x-arriv-pay-timestamp,
-    //          x-arriv-pay-request-id, x-arriv-pay-source-app
     const handoffSecret = secrets.get("ARRIV_PAYROLL_HANDOFF_SECRET");
     if (!handoffSecret) {
       return Response.json({ error: 'Arriv Pay handoff secret not configured' }, { status: 503 });
@@ -53,17 +57,18 @@ export default async function(req) {
     }
 
     let authMethod: 'hmac' | 'bearer' | 'none' = 'none';
+    let hmacValid = false;
 
-    // Canonical HMAC verification (body\ntimestamp\nrequest_id\nsource_app)
+    // Canonical HMAC verification
     if (signature && timestamp) {
-      const isValid = await verifyCanonicalRequest(handoffSecret, {
+      hmacValid = await verifyCanonicalRequest(handoffSecret, {
         body: bodyText,
         timestamp,
         requestId,
         sourceAppId: sourceApp,
         signature,
       });
-      if (!isValid) {
+      if (!hmacValid) {
         return Response.json({ error: 'Invalid signature' }, { status: 401 });
       }
       // Validate source application
@@ -72,8 +77,7 @@ export default async function(req) {
       }
       authMethod = 'hmac';
     } else {
-      // Fallback: bearer token match (for initial integration testing only)
-      // Bearer fallback NEVER qualifies for certification bypass.
+      // Bearer fallback (initial integration testing only — NEVER qualifies for cert bypass)
       const authHeader = req.headers.get('authorization') || '';
       const provided = authHeader.replace(/^Bearer\s+/i, '');
       if (provided !== handoffSecret) {
@@ -82,34 +86,30 @@ export default async function(req) {
       authMethod = 'bearer';
     }
 
-    // ── Parse event (needed for cert_ identifier check) ─────────────────────
+    // ── Parse refund event ──────────────────────────────────────────────────
     const {
-      payment_event_id,
-      subscription_id,
+      refund_event_id,
+      original_payment_event_id,
+      refunded_commissionable_amount,
+      refund_type,
+      reason,
       customer_id,
       customer_email,
-      wallet_id,
-      amount_charged,
-      status,
-      event_type,
-      sales_rep_id,
-      stripe_invoice_id,
-      stripe_charge_id,
-      failure_reason,
-      billing_period_start,
-      billing_period_end,
     } = body;
 
+    if (!refund_event_id) return Response.json({ error: 'refund_event_id is required' }, { status: 400 });
+    if (!original_payment_event_id) return Response.json({ error: 'original_payment_event_id is required' }, { status: 400 });
+    if (!refunded_commissionable_amount || refunded_commissionable_amount <= 0) {
+      return Response.json({ error: 'refunded_commissionable_amount must be positive' }, { status: 400 });
+    }
+
     // ── Certification bypass evaluation ─────────────────────────────────────
-    // Bypasses prepaid_enabled ONLY when ALL safeguards are met:
-    //   valid HMAC (not bearer), trusted source, fresh timestamp, valid
-    //   request ID, cert_ prefixed synthetic identifiers.
     const certResult = evaluateCertificationBypass({
       authMethod,
       sourceApp,
       timestamp,
       requestId,
-      identifiers: [payment_event_id, customer_id, customer_email, subscription_id, wallet_id],
+      identifiers: [refund_event_id, original_payment_event_id, customer_id, customer_email],
     });
 
     // ── Feature flag check (bypassed ONLY for qualifying cert_ events) ──────
@@ -126,33 +126,13 @@ export default async function(req) {
       }
     }
 
-    if (!payment_event_id) return Response.json({ error: 'payment_event_id is required' }, { status: 400 });
-    if (!subscription_id) return Response.json({ error: 'subscription_id is required' }, { status: 400 });
-    if (!wallet_id) return Response.json({ error: 'wallet_id is required' }, { status: 400 });
-
-    const validStatuses = ['succeeded', 'failed', 'retry_succeeded'];
-    if (!validStatuses.includes(status)) {
-      return Response.json({ error: 'Invalid status. Must be: succeeded, failed, or retry_succeeded' }, { status: 400 });
-    }
-
-    // ── Process via shared processor (handles idempotency + credit issuance) ─
-    const result = await processAutoFundPayment({
+    // ── Process commission reversal ────────────────────────────────────────
+    const result = await processCommissionReversal({
       base44: base44.asServiceRole,
-      payment_event_id,
-      subscription_id,
-      customer_id,
-      customer_email,
-      wallet_id,
-      amount_charged,
-      status,
-      event_type: event_type || 'recurring',
-      sales_rep_id,
-      stripe_invoice_id,
-      stripe_charge_id,
-      failure_reason,
-      billing_period_start,
-      billing_period_end,
-      raw_event: bodyText,
+      refund_event_id,
+      original_payment_event_id,
+      refunded_commissionable_amount: round2(refunded_commissionable_amount),
+      reason: reason || refund_type || 'customer_refund',
       actor: 'arriv_pay',
       cert_mode: certResult.isCertification,
     });
@@ -165,4 +145,8 @@ export default async function(req) {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+}
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
 }

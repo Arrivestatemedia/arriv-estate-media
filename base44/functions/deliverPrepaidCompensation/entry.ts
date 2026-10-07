@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 import { signRequest, isNonRetryableError, backoffDelayMs } from '../../shared/payrollCrypto.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
+import { isCertificationId } from '../../shared/certificationMode.ts';
 
 /**
  * Prepaid Compensation Delivery Pipeline
@@ -30,20 +31,37 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Feature flag check
-    const flagRecords = await base44.asServiceRole.entities.AppSetting.filter(
-      { key: PREPAID_FEATURE_FLAG_KEY },
-      undefined,
-      1
-    );
-    const flagArr = Array.isArray(flagRecords) ? flagRecords : (flagRecords?.data || []);
-    const globalEnabled = flagArr.length > 0 ? flagArr[0].value === 'true' : false;
-    if (!globalEnabled) {
-      return Response.json({ error: 'Prepaid feature is not enabled' }, { status: 503 });
-    }
-
     const body = await req.json().catch(() => ({}));
     const { action, event_id, max_batch } = body;
+
+    // ── Certification bypass for cert_-prefixed synthetic events ────────────
+    // A cert_-prefixed source_event_id bypasses the prepaid_enabled feature
+    // flag so Arriv Pay can complete certification while production stays OFF.
+    // This bypass is scoped to synthetic records only — the admin is still
+    // authenticated, and all financial/ledger validation remains enforced.
+    let isCertEvent = false;
+    if (event_id) {
+      try {
+        const event = await base44.asServiceRole.entities.PrepaidCompensationEvent.get(event_id);
+        if (event && isCertificationId(event.source_event_id)) {
+          isCertEvent = true;
+        }
+      } catch {}
+    }
+
+    // Feature flag check (bypassed for cert_ synthetic events)
+    if (!isCertEvent) {
+      const flagRecords = await base44.asServiceRole.entities.AppSetting.filter(
+        { key: PREPAID_FEATURE_FLAG_KEY },
+        undefined,
+        1
+      );
+      const flagArr = Array.isArray(flagRecords) ? flagRecords : (flagRecords?.data || []);
+      const globalEnabled = flagArr.length > 0 ? flagArr[0].value === 'true' : false;
+      if (!globalEnabled) {
+        return Response.json({ error: 'Prepaid feature is not enabled' }, { status: 503 });
+      }
+    }
 
     // ── Deliver a single event by ID ────────────────────────────────────────
     if (action === 'deliver_one' && event_id) {
@@ -54,13 +72,28 @@ export default async function(req) {
     // ── Deliver all PENDING/RETRYING events in batch ────────────────────────
     const batchSize = Math.min(max_batch || 50, 100);
 
-    // Fetch PENDING and RETRYING events
+    // Fetch PENDING and RETRYING events.
+    // When the production feature flag is OFF, only cert_-prefixed synthetic
+    // events are eligible for delivery (certification mode isolation).
     const pendingResp = await base44.asServiceRole.entities.PrepaidCompensationEvent.filter(
       { delivery_status: { $in: ['PENDING', 'RETRYING'] }, status: 'APPROVED' },
       '-earned_at',
       batchSize
     );
-    const pendingEvents = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
+    let pendingEvents = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
+
+    // If feature flag is off, filter to cert_ events only
+    if (!isCertEvent) {
+      // Re-check flag for batch path (isCertEvent was only set for deliver_one)
+      const flagRecords2 = await base44.asServiceRole.entities.AppSetting.filter(
+        { key: PREPAID_FEATURE_FLAG_KEY }, undefined, 1
+      );
+      const flagArr2 = Array.isArray(flagRecords2) ? flagRecords2 : (flagRecords2?.data || []);
+      const globalEnabled2 = flagArr2.length > 0 ? flagArr2[0].value === 'true' : false;
+      if (!globalEnabled2) {
+        pendingEvents = pendingEvents.filter(e => isCertificationId(e.source_event_id));
+      }
+    }
 
     const results = [];
     let delivered = 0;

@@ -38,10 +38,13 @@ export interface ProcessPaymentParams {
   billing_period_end?: string;
   raw_event?: string;
   actor?: string;
+  /** When true, all generated child IDs are cert_-prefixed for certification isolation. */
+  cert_mode?: boolean;
 }
 
 export async function processAutoFundPayment(params: ProcessPaymentParams) {
   const { base44, ...data } = params;
+  const idPrefix = data.cert_mode ? 'cert_' : '';
 
   // ── Idempotency: check if this payment event was already processed ─────────
   const existing = await base44.entities.AutoFundPaymentEvent.filter(
@@ -75,7 +78,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
 
   if (isSuccess) {
     // ── Create credit lot (12-month validity, FIFO) ────────────────────────
-    lotId = generateId('lot');
+    lotId = idPrefix + generateId('lot');
     const expiresAt = addMonths(new Date(), 12).toISOString();
 
     const lotRecord = await base44.entities.CreditLot.create({
@@ -98,7 +101,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
     });
 
     // ── Create wallet transaction ──────────────────────────────────────────
-    walletTxnId = generateId('ptxn');
+    walletTxnId = idPrefix + generateId('ptxn');
     await base44.entities.WalletTransaction.create({
       transaction_id: walletTxnId,
       wallet_id: data.wallet_id,
@@ -151,7 +154,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
 
       if (repEligible) {
         const commissionAmount = calculateAutoFundCommission(data.amount_charged);
-        commissionSourceEventId = generateId('empe');
+        commissionSourceEventId = idPrefix + generateId('empe');
         await base44.entities.PrepaidCompensationEvent.create({
           source_event_id: commissionSourceEventId,
           source_system: 'ARRIV_ESTATE_MEDIA',
