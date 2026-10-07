@@ -1,0 +1,137 @@
+{
+  "name": "AutoFundPaymentEvent",
+  "type": "object",
+  "properties": {
+    "payment_event_id": {
+      "type": "string",
+      "description": "Globally unique immutable payment event ID from Arriv Pay. Used for idempotency."
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription ID"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized for RLS"
+    },
+    "amount_charged": {
+      "type": "number",
+      "description": "Cash charged to customer"
+    },
+    "booking_value_issued": {
+      "type": "number",
+      "description": "Booking value issued to wallet (0 if payment failed)"
+    },
+    "bonus_booking_value": {
+      "type": "number",
+      "description": "Bonus portion of booking value (0 for $50 plan or failed payments)"
+    },
+    "credits_issued": {
+      "type": "number",
+      "description": "Credits issued (booking_value / 275). 0 if failed."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "retry_succeeded",
+        "refunded",
+        "reversed"
+      ],
+      "description": "Payment outcome"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "recurring",
+        "topup",
+        "retry"
+      ],
+      "description": "Whether this was a recurring charge, one-time top-up, or retry"
+    },
+    "stripe_invoice_id": {
+      "type": "string"
+    },
+    "stripe_charge_id": {
+      "type": "string"
+    },
+    "wallet_transaction_id": {
+      "type": "string",
+      "description": "Linked WalletTransaction ID (empty if failed)"
+    },
+    "lot_id": {
+      "type": "string",
+      "description": "Linked CreditLot ID (empty if failed)"
+    },
+    "commission_event_id": {
+      "type": "string",
+      "description": "Linked PrepaidCompensationEvent source_event_id (empty if failed or no rep)"
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Reason for failure (if applicable)"
+    },
+    "billing_period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "billing_period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Estate Media processed this event"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Same as payment_event_id \u2014 prevents duplicate credit issuance"
+    },
+    "raw_event": {
+      "type": "string",
+      "description": "JSON snapshot of original Arriv Pay event for audit (no secrets)"
+    }
+  },
+  "required": [
+    "payment_event_id",
+    "subscription_id",
+    "customer_id",
+    "amount_charged",
+    "status",
+    "idempotency_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

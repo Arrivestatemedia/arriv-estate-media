@@ -69,6 +69,7 @@ import AdminClientGalleryPreview from './pages/AdminClientGalleryPreview';
 import SignDocumentPage from './pages/SignDocumentPage';
 import RegionalJobRouter from './pages/RegionalJobRouter';
 import PrepaidPurchase from './pages/PrepaidPurchase';
+import AutoFund from './pages/AutoFund';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -551,6 +552,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="PrepaidPurchase">
             <PrepaidPurchase />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AutoFund"
+        element={
+          <LayoutWrapper currentPageName="AutoFund">
+            <AutoFund />
           </LayoutWrapper>
         }
       />

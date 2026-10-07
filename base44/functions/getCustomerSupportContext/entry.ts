@@ -4,6 +4,7 @@ import {
   PREPAID_CREDIT_VALUE,
   PREPAID_FEATURE_FLAG_KEY,
   getTierConfig,
+  getAutoFundConfig,
   round2,
 } from '../../shared/prepaidEngine.ts';
 
@@ -108,14 +109,55 @@ export default async function(req) {
       recentBookingIds = bookingArr.slice(0, 5).map(b => b.id);
     } catch {}
 
+    // ── Check for Auto-Fund subscription ─────────────────────────────────────
+    let autoFundSubscription = null;
+    try {
+      const subsResp = await base44.asServiceRole.entities.AutoFundSubscription.filter(
+        { customer_id: wallet.customer_id, status: { $in: ['active', 'paused', 'past_due'] } },
+        '-created_date',
+        1
+      );
+      const subsArr = Array.isArray(subsResp) ? subsResp : (subsResp?.data || []);
+      autoFundSubscription = subsArr[0] || null;
+    } catch {}
+
+    let autoFundSupportTier = null;
+    let autoFundSupportPriority = null;
+    let autoFundBenefits = [];
+    let autoFundAmount = null;
+    let autoFundStatus = null;
+    let autoFundNextBilling = null;
+    let autoFundNextBookingValue = null;
+    if (autoFundSubscription) {
+      const afConfig = getAutoFundConfig(autoFundSubscription.amount);
+      autoFundSupportTier = afConfig?.support_tier || null;
+      autoFundSupportPriority = afConfig?.support_priority || 'standard';
+      autoFundBenefits = afConfig?.benefits || [];
+      autoFundAmount = autoFundSubscription.amount;
+      autoFundStatus = autoFundSubscription.status;
+      autoFundNextBilling = autoFundSubscription.next_billing_date;
+      autoFundNextBookingValue = afConfig?.booking_value || autoFundSubscription.amount;
+    }
+
+    // Determine account relationship and effective support tier
+    const accountRelationship = autoFundSubscription ? 'auto_fund' : 'prepaid';
+    const effectiveSupportTier = autoFundSupportTier || wallet.support_tier;
+
     // ── Return minimum-necessary support context ─────────────────────────────
     return Response.json({
       has_prepaid: true,
+      has_auto_fund: !!autoFundSubscription,
       customerId: wallet.customer_id,
       customerName: wallet.customer_name,
-      accountRelationship: 'prepaid',
+      accountRelationship,
       prepaidTier: wallet.tier,
-      supportTier: wallet.support_tier,
+      supportTier: effectiveSupportTier,
+      autoFundSupportTier,
+      autoFundSupportPriority,
+      autoFundAmount,
+      autoFundStatus,
+      autoFundNextBilling,
+      autoFundNextBookingValue,
       walletBookingValue: round2(wallet.credits_balance * PREPAID_CREDIT_VALUE),
       walletCredits: round2(wallet.credits_balance),
       expirationSummary: earliestExpiry ? {
@@ -123,8 +165,9 @@ export default async function(req) {
         active_lots: activeLots.length,
       } : { active_lots: 0 },
       eligibleBenefits: config ? config.benefits : [],
-      priorityBookingEligible: config ? config.priority_booking : false,
-      priorityProcessingEligible: config ? config.priority_processing : false,
+      autoFundBenefits,
+      priorityBookingEligible: (config ? config.priority_booking : false) || (autoFundSubscription && autoFundAmount >= 350),
+      priorityProcessingEligible: (config ? config.priority_processing : false) || (autoFundSubscription && autoFundAmount >= 500),
       promotionalBenefitsAvailable: wallet.promotional_benefits_available - wallet.promotional_benefits_used,
       activeBookingIds,
       recentBookingIds,

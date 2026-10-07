@@ -273,3 +273,161 @@ export function getPriceForSqft(sqft: number, packageType: "mls" | "essentials" 
 
 export const PROMOTIONAL_ADDON_CATEGORIES = ["Drone", "3D Tour", "Twilight Exterior Edits"];
 export const PROMOTIONAL_MAX_BENEFIT_VALUE = 125;
+
+// ┌────────────────────────────────────────────────────────────────────────────
+// ARRIV AUTO-FUND — recurring wallet funding (extends Prepaid, does not replace)
+// ┌────────────────────────────────────────────────────────────────────────────
+
+export interface AutoFundAmountConfig {
+  amount: number;
+  plan_id: string;
+  booking_value: number;
+  bonus_pct: number;
+  bonus_booking_value: number;
+  credits: number;
+  support_tier: string;
+  support_priority: "standard" | "priority" | "priority_high" | "highest_autofund";
+  benefits: string[];
+  validity_months: number;
+}
+
+/**
+ * Auto-Fund amounts. Customer pays monthly; booking value added to wallet.
+ * $50 = no bonus. $100+ = 5% bonus booking value.
+ * Credits = booking_value / 275 (canonical, full precision).
+ */
+export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
+  50: {
+    amount: 50,
+    plan_id: "autofund_50",
+    booking_value: 50,
+    bonus_pct: 0,
+    bonus_booking_value: 0,
+    credits: 50 / 275,
+    support_tier: "AUTOFUND_50",
+    support_priority: "standard",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+    ],
+    validity_months: 12,
+  },
+  100: {
+    amount: 100,
+    plan_id: "autofund_100",
+    booking_value: 105,
+    bonus_pct: 5,
+    bonus_booking_value: 5,
+    credits: 105 / 275,
+    support_tier: "AUTOFUND_100",
+    support_priority: "standard",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+      "Qualifying free rescheduling",
+    ],
+    validity_months: 12,
+  },
+  200: {
+    amount: 200,
+    plan_id: "autofund_200",
+    booking_value: 210,
+    bonus_pct: 5,
+    bonus_booking_value: 10,
+    credits: 210 / 275,
+    support_tier: "AUTOFUND_200",
+    support_priority: "priority",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+      "Qualifying free rescheduling",
+      "Priority Arriv Assist support",
+    ],
+    validity_months: 12,
+  },
+  350: {
+    amount: 350,
+    plan_id: "autofund_350",
+    booking_value: 367.50,
+    bonus_pct: 5,
+    bonus_booking_value: 17.50,
+    credits: 367.50 / 275,
+    support_tier: "AUTOFUND_350",
+    support_priority: "priority",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+      "Qualifying free rescheduling",
+      "Priority Arriv Assist support",
+      "Priority Booking",
+    ],
+    validity_months: 12,
+  },
+  500: {
+    amount: 500,
+    plan_id: "autofund_500",
+    booking_value: 525,
+    bonus_pct: 5,
+    bonus_booking_value: 25,
+    credits: 525 / 275,
+    support_tier: "AUTOFUND_500",
+    support_priority: "priority_high",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+      "Qualifying free rescheduling",
+      "Priority Arriv Assist support",
+      "Priority Booking",
+      "Priority Processing when operational capacity allows",
+    ],
+    validity_months: 12,
+  },
+  1000: {
+    amount: 1000,
+    plan_id: "autofund_1000",
+    booking_value: 1050,
+    bonus_pct: 5,
+    bonus_booking_value: 50,
+    credits: 1050 / 275,
+    support_tier: "AUTOFUND_1000",
+    support_priority: "highest_autofund",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+      "Qualifying free rescheduling",
+      "Priority Arriv Assist support",
+      "Priority Booking",
+      "Priority Processing when operational capacity allows",
+      "Eligible Early Access to new Estate Media services",
+    ],
+    validity_months: 12,
+  },
+};
+
+export const AUTO_FUND_AMOUNT_OPTIONS = [50, 100, 200, 350, 500, 1000];
+
+export function getAutoFundConfig(amount: number): AutoFundAmountConfig | null {
+  return AUTO_FUND_AMOUNTS[amount] || null;
+}
+
+/** Auto-Fund commission: 10% of actual cash collected, same as prepaid. */
+export function calculateAutoFundCommission(cashCollected: number): number {
+  return round2(cashCollected * 0.10);
+}
