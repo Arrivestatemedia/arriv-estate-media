@@ -491,11 +491,11 @@ export default async function(req) {
     const multiRefundId2 = certRunId + '_multi_refund_2';
     const multiResult1 = await processCommissionReversal({
       base44: b, refund_event_id: multiRefundId1, original_payment_event_id: certTxnId3,
-      refunded_commissionable_amount: 200, reason: 'cert multi refund #1', actor: 'certification_suite',
+      refunded_commissionable_amount: 200, reason: 'cert multi refund #1', actor: 'certification_suite', cert_mode: true,
     });
     const multiResult2 = await processCommissionReversal({
       base44: b, refund_event_id: multiRefundId2, original_payment_event_id: certTxnId3,
-      refunded_commissionable_amount: 300, reason: 'cert multi refund #2', actor: 'certification_suite',
+      refunded_commissionable_amount: 300, reason: 'cert multi refund #2', actor: 'certification_suite', cert_mode: true,
     });
 
     const multi1 = multiResult1.results.find(r => r.status === 'created');
@@ -522,7 +522,7 @@ export default async function(req) {
     for (let i = 0; i < 10; i++) {
       const r = await processCommissionReversal({
         base44: b, refund_event_id: dupRefundId, original_payment_event_id: certTxnId2,
-        refunded_commissionable_amount: 200, reason: 'cert dup refund test', actor: 'certification_suite',
+        refunded_commissionable_amount: 200, reason: 'cert dup refund test', actor: 'certification_suite', cert_mode: true,
       });
       if (r.status === 'processed') dupRefundProcessed++;
     }
@@ -556,6 +556,7 @@ export default async function(req) {
       refunded_commissionable_amount: 100,
       reason: 'cert autofund full refund',
       actor: 'certification_suite',
+      cert_mode: true,
     });
 
     const afRefundCreated = afRefundResult.results.find(r => r.status === 'created');
@@ -622,6 +623,7 @@ export default async function(req) {
       refunded_commissionable_amount: 2500,
       reason: 'cert premier full refund',
       actor: 'certification_suite',
+      cert_mode: true,
     });
 
     const premierCreated = premierRefundResult.results.find(r => r.status === 'created');
@@ -660,6 +662,7 @@ export default async function(req) {
       refunded_commissionable_amount: 250,
       reason: 'cert already-paid commission refund',
       actor: 'certification_suite',
+      cert_mode: true,
     });
 
     // Verify: original commission event still exists, still APPROVED, still ACKNOWLEDGED
