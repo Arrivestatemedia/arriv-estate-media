@@ -1,0 +1,107 @@
+{
+  "name": "PaymentRecoveryNotification",
+  "type": "object",
+  "properties": {
+    "notification_id": {
+      "type": "string",
+      "description": "Globally unique notification ID. Used for idempotency \u2014 prevents duplicate notifications for the same event + type."
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription ID this notification belongs to"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (denormalized for lookups)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized for RLS"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Denormalized display name"
+    },
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "immediate_failure",
+        "day_3_reminder",
+        "day_7_reminder",
+        "paused_after_3",
+        "method_updated",
+        "payment_recovered",
+        "auto_fund_resumed",
+        "prepaid_purchase_failed"
+      ],
+      "description": "Type of recovery notification"
+    },
+    "payment_event_id": {
+      "type": "string",
+      "description": "Arriv Pay payment_event_id that triggered this notification (for failure/recovery types)"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the notification was sent (or queued in cert mode)"
+    },
+    "recovery_link_url": {
+      "type": "string",
+      "description": "Customer-specific recovery link included in the notification"
+    },
+    "recovery_link_token": {
+      "type": "string",
+      "description": "Opaque token associated with the recovery link"
+    },
+    "email_subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the email was actually sent via Brevo. False in certification mode (queued but not sent to real customers)."
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is a synthetic certification test notification. Excluded from production analytics."
+    }
+  },
+  "required": [
+    "notification_id",
+    "subscription_id",
+    "customer_email",
+    "notification_type",
+    "sent_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

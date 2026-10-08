@@ -86,6 +86,62 @@
       "type": "boolean",
       "default": true
     },
+    "consecutive_failed_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Consecutive failed billing attempts. Reset to 0 on successful payment."
+    },
+    "last_failure_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the most recent payment failure occurred"
+    },
+    "last_failure_reason": {
+      "type": "string",
+      "description": "Safe failure reason (no sensitive card data). Populated from Arriv Pay webhook."
+    },
+    "recovery_hold_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when a failed payment is unresolved. Blocks automatic charging until the customer updates their payment method or the payment is recovered."
+    },
+    "recovery_hold_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the recovery hold was activated"
+    },
+    "recovery_hold_reason": {
+      "type": "string",
+      "description": "Why the recovery hold is active (e.g. PAYMENT_FAILED, THREE_FAILURE_PAUSE)"
+    },
+    "auto_charge_paused": {
+      "type": "boolean",
+      "default": false,
+      "description": "True after 3 consecutive failed billing attempts. Pauses all automatic charges until the customer updates their payment method and explicitly resumes."
+    },
+    "auto_charge_paused_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When automatic charging was paused after 3 failures"
+    },
+    "auto_charge_paused_reason": {
+      "type": "string",
+      "description": "Reason for auto-charge pause (e.g. THREE_CONSECUTIVE_FAILURES)"
+    },
+    "payment_method_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer last successfully updated their payment method via the recovery flow"
+    },
+    "recovery_link_token": {
+      "type": "string",
+      "description": "Current active recovery link token (opaque, cryptographically random). Used to verify the customer identity when they open the card-update link."
+    },
+    "recovery_link_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the current recovery link token expires"
+    },
     "created_at": {
       "type": "string",
       "format": "date-time"
