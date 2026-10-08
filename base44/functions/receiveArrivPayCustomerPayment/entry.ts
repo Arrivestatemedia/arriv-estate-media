@@ -110,7 +110,10 @@ export default async function(req) {
       sourceApp,
       timestamp,
       requestId,
-      identifiers: [payment_event_id, customer_id, customer_email, subscription_id, wallet_id],
+      // Only pass identifiers that are synthetic (cert_-prefixed) in certification
+      // mode. wallet_id and customer_id are foreign keys to real Base44 entities
+      // (PrepaidWallet, Contact) and are UUIDs, not cert_ identifiers.
+      identifiers: [payment_event_id, customer_email, subscription_id],
     });
 
     // ── Feature flag check (bypassed ONLY for qualifying cert_ events) ──────
