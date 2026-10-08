@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, RefreshCw, Pause, Play, XCircle, Plus, Loader2, TrendingUp, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
+import PaymentRecoveryFlow from "@/components/customer/PaymentRecoveryFlow";
 
 const AMOUNT_OPTIONS = [
   { amount: 50, bv: 50, bonus: 0, benefits: ["Customer 360", "Arriv Wallet", "Automatic monthly funding", "Rollover Booking Value"] },
@@ -29,6 +30,22 @@ export default function AutoFund() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [view, setView] = useState("main");
+
+  // Recovery flow: detect recovery_token or recovery=success from URL
+  const [recoveryToken, setRecoveryToken] = useState(null);
+  const [stripeSessionId, setStripeSessionId] = useState(null);
+  const [recoveryStatus, setRecoveryStatus] = useState(null);
+  const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("recovery_token");
+    const sessionId = params.get("session_id");
+    const status = params.get("recovery");
+    if (token) setRecoveryToken(token);
+    if (sessionId) setStripeSessionId(sessionId);
+    if (status) setRecoveryStatus(status);
+  }, []);
 
   useEffect(() => { loadSubscriptions(); }, []);
 
@@ -106,6 +123,27 @@ export default function AutoFund() {
             </Button>
           </div>
         </div>
+
+        {/* Customer-facing payment recovery flow */}
+        {recoveryToken && !recoveryDismissed && (
+          <div className="mb-8">
+            <PaymentRecoveryFlow
+              recoveryToken={recoveryToken}
+              stripeSessionId={stripeSessionId}
+              recoveryStatus={recoveryStatus}
+              onDismiss={() => {
+                setRecoveryDismissed(true);
+                // Clean URL params
+                const url = new URL(window.location.href);
+                url.searchParams.delete("recovery_token");
+                url.searchParams.delete("session_id");
+                url.searchParams.delete("recovery");
+                window.history.replaceState({}, "", url.toString());
+                loadSubscriptions();
+              }}
+            />
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">

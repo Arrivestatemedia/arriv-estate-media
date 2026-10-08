@@ -37,6 +37,59 @@ export default async function(req) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    // ── get_recovery_status_by_token (customer-facing, token IS the auth) ──
+    if (action === 'get_recovery_status_by_token') {
+      const { recovery_token } = body;
+      if (!recovery_token) {
+        return Response.json({ error: 'recovery_token required' }, { status: 400 });
+      }
+
+      // Look up subscription by recovery_link_token
+      const subResults = await base44.asServiceRole.entities.AutoFundSubscription.filter(
+        { recovery_link_token: recovery_token },
+        undefined,
+        1
+      );
+      const subArr = Array.isArray(subResults) ? subResults : (subResults?.data || []);
+      const sub = subArr[0];
+
+      if (!sub) {
+        return Response.json({ error: 'Invalid or expired recovery link' }, { status: 404 });
+      }
+
+      // Check token expiry
+      if (sub.recovery_link_expires_at && new Date(sub.recovery_link_expires_at) < new Date()) {
+        return Response.json({ error: 'Recovery link has expired. Please contact support.' }, { status: 410 });
+      }
+
+      // Return recovery status (no auth required — token IS the auth)
+      const notifResults = await base44.asServiceRole.entities.PaymentRecoveryNotification.filter(
+        { subscription_id: sub.id },
+        '-sent_at',
+        10
+      );
+      const notifications = Array.isArray(notifResults) ? notifResults : (notifResults?.data || []);
+
+      return Response.json({
+        subscription_id: sub.id,
+        customer_name: sub.customer_name || '',
+        customer_email: sub.customer_email,
+        amount: sub.amount,
+        status: sub.status,
+        auto_charge_paused: sub.auto_charge_paused || false,
+        consecutive_failed_attempts: sub.consecutive_failed_attempts || 0,
+        last_failure_at: sub.last_failure_at || '',
+        last_failure_reason: sub.last_failure_reason || '',
+        recovery_hold_active: sub.recovery_hold_active || false,
+        next_billing_date: sub.next_billing_date || '',
+        notifications: notifications.map(n => ({
+          notification_id: n.notification_id,
+          type: n.notification_type,
+          sent_at: n.sent_at,
+        })),
+      });
+    }
+
     // ── get_recovery_status ────────────────────────────────────────────
     if (action === 'get_recovery_status') {
       const { subscription_id, customer_email } = body;
