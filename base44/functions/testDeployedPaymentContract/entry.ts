@@ -804,6 +804,7 @@ export default async function(req) {
       failed,
       all_passed: failed === 0,
       production_balances_unchanged: snapshotDiff.unchanged,
+      debug_starter_event: debugStarterEvent,
       cleanup_errors: cleanupResult?.errors || [],
       cleanup_verification: cleanupVerification,
       results,
