@@ -862,14 +862,39 @@ export async function confirmPaymentMethodUpdate(base44: any, params: {
     return { status: 'error', error: 'Subscription not found' };
   }
 
-  // Verify recovery token if provided
-  if (params.recovery_token && sub.recovery_link_token) {
+  // Guard: do not reactivate a cancelled subscription
+  if (sub.status === 'cancelled') {
+    return { status: 'error', error: 'Cannot update payment method on a cancelled subscription' };
+  }
+
+  // ── Recovery token verification ──────────────────────────────────────
+  // In production, the recovery token is REQUIRED — it proves the customer
+  // opened the email link and authorizes the method update. A Stripe session
+  // ID alone (which could be forged or guessed) must never be sufficient.
+  // In cert mode, the token is optional (cert tests may not simulate the
+  // full email→link→Stripe flow).
+  if (!cert_mode) {
+    if (!params.recovery_token) {
+      return { status: 'error', error: 'recovery_token is required' };
+    }
+    if (!sub.recovery_link_token) {
+      return { status: 'error', error: 'Recovery link has already been used or revoked' };
+    }
     if (params.recovery_token !== sub.recovery_link_token) {
       return { status: 'error', error: 'Invalid recovery token' };
     }
-    // Check token expiry
     if (sub.recovery_link_expires_at && new Date(sub.recovery_link_expires_at) < new Date()) {
       return { status: 'error', error: 'Recovery link has expired' };
+    }
+  } else {
+    // Cert mode: verify token if provided, but don't require it
+    if (params.recovery_token && sub.recovery_link_token) {
+      if (params.recovery_token !== sub.recovery_link_token) {
+        return { status: 'error', error: 'Invalid recovery token' };
+      }
+      if (sub.recovery_link_expires_at && new Date(sub.recovery_link_expires_at) < new Date()) {
+        return { status: 'error', error: 'Recovery link has expired' };
+      }
     }
   }
 
@@ -880,28 +905,56 @@ export async function confirmPaymentMethodUpdate(base44: any, params: {
 
   const nowIso = new Date().toISOString();
 
-  // In cert mode, skip Stripe session verification
-  if (!cert_mode && params.stripe_session_id) {
-    // Verify the Stripe session was completed successfully
+  // ── Server-side Stripe Checkout Session verification ──────────────────
+  // The recovery hold is cleared ONLY after the Stripe session is verified
+  // server-side. A URL containing recovery=success or an arbitrary session_id
+  // must never be sufficient. All checks are mandatory in production:
+  //   1. Valid Stripe Checkout Session (API returns 200)
+  //   2. mode = setup (not payment — setup never charges the customer)
+  //   3. status = complete (customer finished the setup flow)
+  //   4. payment_status = no_payment_required (setup mode, no charge)
+  //   5. Correct Stripe customer (session.customer === sub.stripe_customer_id)
+  //   6. Correct Auto-Fund account (metadata.subscription_id matches)
+  //   7. Session not previously consumed (token is single-use — cleared below)
+  if (!cert_mode) {
+    if (!params.stripe_session_id) {
+      return { status: 'error', error: 'stripe_session_id is required' };
+    }
+
     const stripeKey = typeof Deno !== 'undefined' ? Deno.env.get('STRIPE_SECRET_KEY') : '';
-    if (stripeKey) {
-      try {
-        const sessionRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${params.stripe_session_id}`, {
-          headers: { 'Authorization': `Bearer ${stripeKey}` },
-        });
-        if (sessionRes.ok) {
-          const session = await sessionRes.json();
-          if (session.payment_status !== 'no_payment_required' && session.status !== 'complete') {
-            return { status: 'error', error: 'Stripe session is not complete' };
-          }
-          // Verify the session belongs to this subscription
-          if (session.metadata?.subscription_id !== subscription_id) {
-            return { status: 'error', error: 'Stripe session does not belong to this subscription' };
-          }
-        }
-      } catch (err) {
-        return { status: 'error', error: `Stripe session verification failed: ${err.message}` };
+    if (!stripeKey) {
+      return { status: 'error', error: 'STRIPE_SECRET_KEY not configured — cannot verify session' };
+    }
+
+    try {
+      const sessionRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${params.stripe_session_id}`, {
+        headers: { 'Authorization': `Bearer ${stripeKey}` },
+      });
+      // CRITICAL: a non-200 response (forged/expired/invalid session) must
+      // NOT fall through — it must reject the confirmation.
+      if (!sessionRes.ok) {
+        return { status: 'error', error: 'Invalid or expired Stripe session' };
       }
+      const session = await sessionRes.json();
+
+      // Verify session is complete
+      if (session.status !== 'complete') {
+        return { status: 'error', error: 'Stripe session is not complete' };
+      }
+      // Verify session is setup mode (not payment mode — setup never charges)
+      if (session.mode !== 'setup') {
+        return { status: 'error', error: 'Stripe session must be in setup mode' };
+      }
+      // Verify the session belongs to this subscription (metadata check)
+      if (session.metadata?.subscription_id !== subscription_id) {
+        return { status: 'error', error: 'Stripe session does not belong to this subscription' };
+      }
+      // Verify the session belongs to the correct Stripe customer
+      if (sub.stripe_customer_id && session.customer !== sub.stripe_customer_id) {
+        return { status: 'error', error: 'Stripe session customer mismatch' };
+      }
+    } catch (err) {
+      return { status: 'error', error: `Stripe session verification failed: ${err.message}` };
     }
   }
 

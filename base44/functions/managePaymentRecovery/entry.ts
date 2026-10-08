@@ -54,12 +54,14 @@ export default async function(req) {
       const sub = subArr[0];
 
       if (!sub) {
+        // Generic message — do not distinguish "not found" from "expired"
+        // to prevent account enumeration via timing or error differences.
         return Response.json({ error: 'Invalid or expired recovery link' }, { status: 404 });
       }
 
-      // Check token expiry
+      // Check token expiry — same generic message to prevent enumeration
       if (sub.recovery_link_expires_at && new Date(sub.recovery_link_expires_at) < new Date()) {
-        return Response.json({ error: 'Recovery link has expired. Please contact support.' }, { status: 410 });
+        return Response.json({ error: 'Invalid or expired recovery link' }, { status: 404 });
       }
 
       // Return recovery status (no auth required — token IS the auth)
@@ -148,7 +150,16 @@ export default async function(req) {
 
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
 
-      if (!isAdmin && sub.customer_email !== user?.email) {
+      // Authorization: admin, logged-in owner, OR valid recovery token.
+      // The recovery token IS the auth for customers coming from an email
+      // link (they may not be logged in). Without this, the customer-facing
+      // recovery flow is blocked by the ownership check.
+      const isOwner = user && sub.customer_email === user.email;
+      const hasValidRecoveryToken = recovery_token &&
+        sub.recovery_link_token &&
+        recovery_token === sub.recovery_link_token;
+
+      if (!isAdmin && !isOwner && !hasValidRecoveryToken) {
         return Response.json({ error: 'Access denied — you do not own this subscription' }, { status: 403 });
       }
 
