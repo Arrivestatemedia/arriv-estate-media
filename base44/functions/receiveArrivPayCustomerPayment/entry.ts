@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 // autoFundProcessor: wallet lookup uses .filter(customer_id) + id match (not .get)
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
-import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
+import { PREPAID_FEATURE_FLAG_KEY, AUTO_FUND_AMOUNT_OPTIONS } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 import { evaluateCertificationBypass } from '../../shared/certificationMode.ts';
 import {
@@ -10,6 +10,24 @@ import {
   processSuccessfulAutoFundPayment,
   processFailedPrepaidPurchase,
 } from '../../shared/individualPaymentRecoveryEngine.ts';
+
+/**
+ * Normalize amount_charged: Arriv Pay sends integer cents (e.g., 10000 = $100).
+ * Existing callers may send dollars (e.g., 100 = $100).
+ * Heuristic: if the value matches a known plan amount, treat as dollars.
+ * If value/100 matches a known plan amount, treat as cents.
+ * Otherwise, treat as dollars (backward compatible).
+ */
+function normalizeAmountCharged(raw: number): number {
+  if (raw == null || typeof raw !== 'number') return 0;
+  // Explicit cents field takes precedence
+  // (Arriv Pay may send amount_charged_cents as an explicit integer)
+  // This is handled by the caller before calling this function.
+  const PLAN_AMOUNTS = AUTO_FUND_AMOUNT_OPTIONS; // [50, 100, 200, 350, 500, 1000]
+  if (PLAN_AMOUNTS.includes(raw)) return raw; // dollars
+  if (PLAN_AMOUNTS.includes(raw / 100)) return raw / 100; // cents → dollars
+  return raw; // backward compatible: treat as dollars
+}
 
 /**
  * Arriv Pay Customer Payment Event Webhook
@@ -144,11 +162,18 @@ export default async function(req) {
     if (!payment_event_id) return Response.json({ error: 'payment_event_id is required' }, { status: 400 });
     if (!subscription_id) return Response.json({ error: 'subscription_id is required' }, { status: 400 });
     if (!wallet_id) return Response.json({ error: 'wallet_id is required' }, { status: 400 });
+    if (!customer_id) return Response.json({ error: 'customer_id is required' }, { status: 400 });
+    if (!customer_email) return Response.json({ error: 'customer_email is required' }, { status: 400 });
 
     const validStatuses = ['succeeded', 'failed', 'retry_succeeded'];
     if (!validStatuses.includes(status)) {
       return Response.json({ error: 'Invalid status. Must be: succeeded, failed, or retry_succeeded' }, { status: 400 });
     }
+
+    // ── Normalize amount_charged (Arriv Pay sends integer cents) ──────────
+    const normalizedAmount = body.amount_charged_cents != null
+      ? body.amount_charged_cents / 100
+      : normalizeAmountCharged(amount_charged);
 
     // ── B2B invoice payment classification ──────────────────────────────────
     // Not every Arriv Pay event is a B2B invoice payment. Explicit classification:
@@ -180,7 +205,7 @@ export default async function(req) {
             action: 'process_payment_received',
             invoice_id: invoiceId,
             payment_intent_id: stripe_charge_id || stripe_invoice_id,
-            amount_paid: amount_charged,
+            amount_paid: normalizedAmount,
             certification_mode: certResult.isCertification,
           });
           return Response.json({
@@ -205,7 +230,7 @@ export default async function(req) {
       customer_id,
       customer_email,
       wallet_id,
-      amount_charged,
+      amount_charged: normalizedAmount,
       status,
       event_type: event_type || 'recurring',
       sales_rep_id,
@@ -239,7 +264,7 @@ export default async function(req) {
               customer_email,
               customer_name: '',
               wallet_id,
-              amount_charged,
+              amount_charged: normalizedAmount,
               failure_reason: failure_reason || 'Payment declined',
               event_type: effectiveEventType,
               cert_mode: certResult.isCertification,
@@ -255,7 +280,7 @@ export default async function(req) {
               customer_id,
               customer_email,
               customer_name: '',
-              amount: amount_charged,
+              amount: normalizedAmount,
               failure_reason: failure_reason || 'Payment declined',
               cert_mode: certResult.isCertification,
             });
@@ -272,7 +297,7 @@ export default async function(req) {
             customer_id,
             customer_email,
             customer_name: '',
-            amount_charged,
+            amount_charged: normalizedAmount,
             booking_value_added: result.booking_value_issued || 0,
             cert_mode: certResult.isCertification,
           });
@@ -282,12 +307,29 @@ export default async function(req) {
       }
     }
 
+    // ── HTTP error semantics ─────────────────────────────────────────────
+    // Arriv Pay must distinguish:
+    //   200 = accepted (processed or duplicate/idempotent)
+    //   404 = wallet not found (rejected — fixture missing)
+    //   403 = ownership mismatch (rejected — security)
+    //   500 = processing failure (transient — safe to retry)
+    let httpStatus = 200;
+    if (result.status === 'error') {
+      if (result.error?.includes('not found')) {
+        httpStatus = 404;
+      } else if (result.error?.includes('mismatch') || result.error?.includes('ownership')) {
+        httpStatus = 403;
+      } else {
+        httpStatus = 500;
+      }
+    }
+
     return Response.json({
       ...result,
       recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
-    });
+    }, { status: httpStatus });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

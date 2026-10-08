@@ -15,6 +15,7 @@ import {
   NOTIFICATION_TYPES,
 } from '../../shared/individualPaymentRecoveryEngine.ts';
 import { isCertificationId } from '../../shared/certificationMode.ts';
+import { setupCertFixtures, cleanupCertFixtures } from '../../shared/certFixtures.ts';
 
 export default async function(req) {
   try {
@@ -30,6 +31,8 @@ export default async function(req) {
       'admin_override_hold',
       'send_reminder',
       'process_reminders',
+      'setup_cert_fixtures',
+      'cleanup_cert_fixtures',
     ];
     const isAdmin = user && user.role === 'admin';
 
@@ -334,6 +337,28 @@ export default async function(req) {
         cert_mode: cert_mode === true,
       });
 
+      return Response.json(result);
+    }
+
+    // ── setup_cert_fixtures (admin) ────────────────────────────────────
+    // Creates synthetic Prepaid + Auto-Fund fixtures for Arriv Pay certification.
+    // Returns the exact wallet_id, subscription_id, and customer identifiers
+    // that Arriv Pay needs to send authenticated certification payment events.
+    if (action === 'setup_cert_fixtures') {
+      const result = await setupCertFixtures(base44.asServiceRole);
+      return Response.json(result);
+    }
+
+    // ── cleanup_cert_fixtures (admin) ───────────────────────────────────
+    // Removes ONLY cert_-prefixed records for the given run_id.
+    // Verifies no production dependencies before deletion.
+    if (action === 'cleanup_cert_fixtures') {
+      const { run_id } = body;
+      if (!run_id) return Response.json({ error: 'run_id required' }, { status: 400 });
+      if (!run_id.startsWith('cert_')) {
+        return Response.json({ error: 'Refusing to clean up non-cert_ run ID' }, { status: 400 });
+      }
+      const result = await cleanupCertFixtures(base44.asServiceRole, run_id);
       return Response.json(result);
     }
 

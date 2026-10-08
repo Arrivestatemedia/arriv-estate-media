@@ -142,11 +142,21 @@ export default async function(req) {
       cert_mode: certResult.isCertification,
     });
 
+    // ── HTTP error semantics ─────────────────────────────────────────────
+    // 200 = processed or duplicate (idempotent acknowledgement)
+    // 400 = invalid request (missing fields, non-positive amount)
+    // 500 = processing failure (transient)
+    let httpStatus = 200;
+    if (result.status === 'error') {
+      httpStatus = 500;
+    }
+
     return Response.json({
       ...result,
+      refund_type: refund_type || 'customer_refund',
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
-    });
+    }, { status: httpStatus });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
