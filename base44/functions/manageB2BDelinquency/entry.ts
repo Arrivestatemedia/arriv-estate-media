@@ -334,14 +334,24 @@ export default async function(req) {
       if (!alreadyPaid) {
         // Partial payment handling
         if (amount_paid !== undefined && amount_paid < invoice.amount) {
+          await b.entities.Invoice.update(invoice_id, {
+            partial_payment_amount: amount_paid,
+            delinquency_status: DELINQUENCY_STATUS.PAYMENT_PENDING,
+          });
+          return Response.json({ status: 'partial_payment', invoice_id, amount_paid, remaining: invoice.amount - amount_paid });
+        }
+
+        // Full payment — reconcile
         await b.entities.Invoice.update(invoice_id, {
-          partial_payment_amount: amount_paid,
-          delinquency_status: DELINQUENCY_STATUS.PAYMENT_PENDING,
+          payment_status: 'paid',
+          paid_at: nowIso,
+          stripe_payment_intent_id: payment_intent_id || invoice.stripe_payment_intent_id,
+          delinquency_status: DELINQUENCY_STATUS.RECOVERED,
+          recovered_at: nowIso,
         });
-        return Response.json({ status: 'partial_payment', invoice_id, amount_paid, remaining: invoice.amount - amount_paid });
       }
 
-      // Full payment — reconcile
+      // Remove org restriction (runs for both already-paid and newly-paid)
       const wasRestricted = invoice.booking_restricted_at !== undefined && invoice.booking_restricted_at !== null;
       const recovery = evaluateRecovery({
         payment_confirmed: true,
@@ -349,15 +359,6 @@ export default async function(req) {
         management_hold_active: false,
       });
 
-      await b.entities.Invoice.update(invoice_id, {
-        payment_status: 'paid',
-        paid_at: nowIso,
-        stripe_payment_intent_id: payment_intent_id || invoice.stripe_payment_intent_id,
-        delinquency_status: DELINQUENCY_STATUS.RECOVERED,
-        recovered_at: nowIso,
-      });
-
-      // Remove org restriction
       if (invoice.b2b_organization_id && recovery.restrictions_removed) {
         await b.entities.B2BOrganization.update(invoice.b2b_organization_id, {
           booking_restricted: false,

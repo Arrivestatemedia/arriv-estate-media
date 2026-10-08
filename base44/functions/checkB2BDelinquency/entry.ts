@@ -23,6 +23,26 @@ export default async function(req) {
 
     const { buildB2BNotification } = await import('../../shared/b2bNotificationEngine.ts');
 
+    // Helper: send notification via Brevo (SendEmail) — only in production mode
+    async function sendNotification(type, org, invoice, recipientEmail) {
+      if (certificationMode || !recipientEmail) return;
+      try {
+        const notif = buildB2BNotification(type, org, recipientEmail, org.billing_contact_name, {
+          invoice_id: invoice?.id,
+          invoice_number: invoice?.invoice_number,
+          amount: invoice?.amount,
+          due_date: invoice?.due_date,
+        });
+        await base44.integrations.Core.SendEmail({
+          to: recipientEmail,
+          subject: notif.subject,
+          body: notif.body,
+        });
+      } catch (e) {
+        console.warn(`Failed to send ${type} notification:`, e.message);
+      }
+    }
+
     const body = await req.json().catch(() => ({}));
     const certificationMode = body.certification_mode === true;
     const nowIso = new Date().toISOString();
@@ -85,6 +105,7 @@ export default async function(req) {
       if (notif.send_3d_reminder) {
         updates.delinquency_reminder_3d_sent_at = nowIso;
         if (!certificationMode && org.billing_contact_email) {
+          await sendNotification('past_due', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'past_due_3d',
             invoice_id: invoice.id,
@@ -97,6 +118,7 @@ export default async function(req) {
       if (notif.send_7d_reminder) {
         updates.delinquency_reminder_7d_sent_at = nowIso;
         if (!certificationMode && org.billing_contact_email) {
+          await sendNotification('past_due', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'past_due_7d',
             invoice_id: invoice.id,
@@ -109,6 +131,7 @@ export default async function(req) {
       if (notif.send_advance_warning) {
         updates.restriction_warning_sent_at = nowIso;
         if (!certificationMode && org.billing_contact_email) {
+          await sendNotification('account_hold', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'advance_restriction_warning',
             invoice_id: invoice.id,
@@ -143,6 +166,7 @@ export default async function(req) {
         });
 
         if (!certificationMode && org.billing_contact_email) {
+          await sendNotification('account_hold', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'account_hold',
             invoice_id: invoice.id,

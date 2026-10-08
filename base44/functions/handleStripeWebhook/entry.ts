@@ -68,6 +68,21 @@ Deno.serve(async (req) => {
           stripe_payment_intent_id: paymentIntent.id
         });
         await base44.asServiceRole.functions.invoke('processPaymentConfirmation', { invoiceId: invoice.id });
+
+        // B2B invoice reconciliation: remove booking restrictions + create commission events
+        if (invoice.invoice_type === 'b2b_annual_contract' ||
+            invoice.invoice_type === 'b2b_implementation' ||
+            invoice.invoice_type === 'b2b_approved_overage') {
+          try {
+            await base44.asServiceRole.functions.invoke('manageB2BDelinquency', {
+              action: 'process_payment_received',
+              invoice_id: invoice.id,
+              payment_intent_id: paymentIntent.id,
+            });
+          } catch (e) {
+            console.warn('B2B delinquency reconciliation failed:', e.message);
+          }
+        }
       } else {
         console.warn('No invoice matched for payment_intent:', paymentIntent.id);
       }
@@ -187,6 +202,21 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
             invoiceId: invoice.id
           });
+
+          // B2B invoice reconciliation: remove booking restrictions + create commission events
+          if (invoice.invoice_type === 'b2b_annual_contract' ||
+              invoice.invoice_type === 'b2b_implementation' ||
+              invoice.invoice_type === 'b2b_approved_overage') {
+            try {
+              await base44.asServiceRole.functions.invoke('manageB2BDelinquency', {
+                action: 'process_payment_received',
+                invoice_id: invoice.id,
+                payment_intent_id: session.payment_intent,
+              });
+            } catch (e) {
+              console.warn('B2B delinquency reconciliation failed:', e.message);
+            }
+          }
         } else {
           console.warn('No invoice matched for session:', session.id, 'Payment link:', session.payment_link);
         }
