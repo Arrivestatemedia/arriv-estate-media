@@ -90,14 +90,29 @@ export function evaluateCertificationBypass(ctx: CertificationContext): Certific
       reason: 'Request ID must carry cert_ prefix for certification bypass',
     };
   }
-  // 5. Synthetic cert_ prefix on at least one payload identifier
-  //    (request ID alone is NOT sufficient — payload must also be synthetic)
-  const certIds = (ctx.identifiers || []).filter(isCertificationId);
+  // 5. Synthetic cert_ prefix on ALL non-empty payload identifiers
+  //    (request ID alone is NOT sufficient — payload must also be fully synthetic)
+  //    Partial cert identity (some cert_, some real) must NOT qualify — a real
+  //    wallet_id with a cert_ payment_event_id could otherwise bypass the feature
+  //    flag and credit a production wallet.
+  const nonEmptyIds = (ctx.identifiers || []).filter(
+    (id) => id != null && String(id).trim() !== ''
+  );
+  const certIds = nonEmptyIds.filter(isCertificationId);
   if (certIds.length === 0) {
     return {
       isCertification: false,
       certId: null,
       reason: 'No cert_ prefixed synthetic payload identifier found',
+    };
+  }
+  const nonCertIds = nonEmptyIds.filter((id) => !isCertificationId(id));
+  if (nonCertIds.length > 0) {
+    return {
+      isCertification: false,
+      certId: null,
+      reason:
+        'Partial cert identity — all payload identifiers must carry cert_ prefix',
     };
   }
   return {
