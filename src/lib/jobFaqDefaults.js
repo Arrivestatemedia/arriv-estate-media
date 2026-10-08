@@ -63,7 +63,7 @@ export const SALES_GROWTH_ADVISOR_FAQS = [
   },
   {
     q: "What is the estimated earning range?",
-    a: "The estimated monthly commission range is $500–$5,000, based on projected volumes of individual bookings, individual subscriptions, and B2B accounts. Actual earnings depend entirely on individual sales performance, and no minimum earnings are guaranteed.",
+    a: "Commissions are uncapped, with no minimum earnings guaranteed. Actual earnings depend entirely on individual sales performance across individual bookings, individual subscriptions, and B2B accounts.",
   },
   {
     q: "Do I need real estate experience?",

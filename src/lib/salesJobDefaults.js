@@ -38,7 +38,7 @@ export const SALES_JOB_DEFAULTS = {
   ],
   employment_type: "full_time",
   work_arrangement: "hybrid",
-  compensation: "$500–$5,000/month estimated commission (uncapped, commission-only W-2)",
+  compensation: "Uncapped monthly commissions (commission-only W-2)",
   work_schedule: "Monday–Thursday",
   location: "Field-based with remote flexibility",
   design_description:
