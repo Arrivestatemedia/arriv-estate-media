@@ -48,10 +48,27 @@ export const GRACE_PERIOD_DAYS: Record<string, number> = {
 };
 
 /**
- * Map a B2B contract_type to a customer classification.
- * Returns null if classification is missing or ambiguous → flag for admin review.
+ * Resolve the effective customer classification for delinquency purposes.
+ *
+ * Priority:
+ *   1. Explicit `delinquencyTier` override (set by admin based on customer size)
+ *   2. Fallback: map from `contractType` (legacy behavior)
+ *   3. null → flag for admin review
+ *
+ * `delinquencyTier` = 'unclassified' is treated as null (admin review required).
+ * This preserves existing contract_type and contractual payment terms —
+ * the tier is a SEPARATE explicit classification that does not reclassify
+ * the customer's contract.
  */
-export function classifyCustomer(contractType: string | undefined | null): string | null {
+export function classifyCustomer(
+  contractType: string | undefined | null,
+  delinquencyTier?: string | null
+): string | null {
+  // 1. Explicit tier override takes precedence
+  if (delinquencyTier && delinquencyTier !== 'unclassified') {
+    return delinquencyTier;
+  }
+  // 2. Fallback: map from contract_type (legacy)
   if (!contractType) return null;
   switch (contractType) {
     case 'business':
@@ -140,6 +157,7 @@ export function calculateDelinquency(params: {
     management_exception_expires_at?: string;
   };
   contract_type?: string | null;
+  delinquency_tier?: string | null;
   now?: string; // ISO datetime for testing; defaults to current time
 }): DelinquencyCalculation {
   const now = params.now ? new Date(params.now) : new Date();
@@ -160,8 +178,8 @@ export function calculateDelinquency(params: {
     };
   }
 
-  // Classify customer
-  const classification = classifyCustomer(params.contract_type);
+  // Classify customer — explicit delinquency_tier takes precedence over contract_type
+  const classification = classifyCustomer(params.contract_type, params.delinquency_tier);
   const gracePeriodDays = getGracePeriodDays(classification);
   const requiresAdminReview = classification === null;
 

@@ -54,7 +54,11 @@ export default async function(req) {
 
       const results = [];
       for (const inv of b2bInvoices) {
-        const calc = calculateDelinquency({ invoice: inv, contract_type: contractType });
+        const calc = calculateDelinquency({
+          invoice: inv,
+          contract_type: contractType,
+          delinquency_tier: org.delinquency_tier,
+        });
         results.push({
           invoice_id: inv.id,
           invoice_number: inv.invoice_number,
@@ -73,7 +77,7 @@ export default async function(req) {
       }
 
       const outstanding = calculateOutstandingBalance(b2bInvoices);
-      const classification = classifyCustomer(contractType);
+      const classification = classifyCustomer(contractType, org.delinquency_tier);
       const graceDays = getGracePeriodDays(classification);
 
       return Response.json({

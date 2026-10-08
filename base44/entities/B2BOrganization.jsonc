@@ -199,6 +199,17 @@
       "default": false,
       "description": "Whether Preferred membership benefits can stack with B2B contract. Default false per \u00a7XXXVII \u2014 B2B economics take precedence."
     },
+    "delinquency_tier": {
+      "type": "string",
+      "enum": [
+        "individual_agent_small_team",
+        "small_midsize_brokerage",
+        "large_brokerage_property_mgmt",
+        "enterprise_developer_corporate",
+        "unclassified"
+      ],
+      "description": "Explicit delinquency classification tier. Set by admin based on customer size, NOT contract_type. Determines grace period (7/14/21/30 days). 'unclassified' flags for admin review."
+    },
     "booking_restricted": {
       "type": "boolean",
       "default": false,

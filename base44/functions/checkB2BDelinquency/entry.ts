@@ -53,7 +53,11 @@ export default async function(req) {
       const contract = contracts.find(c => c.status === 'active' || c.status === 'live') || contracts[0];
       const contractType = contract?.contract_type || org.contract_type;
 
-      const calc = calculateDelinquency({ invoice, contract_type: contractType });
+      const calc = calculateDelinquency({
+        invoice,
+        contract_type: contractType,
+        delinquency_tier: org.delinquency_tier,
+      });
 
       // Skip if not yet due or already paid
       if (calc.delinquency_status === DELINQUENCY_STATUS.NOT_YET_DUE ||
