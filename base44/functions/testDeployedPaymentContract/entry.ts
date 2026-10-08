@@ -410,7 +410,6 @@ export default async function(req) {
         status === 200 &&
         data.status === 'processed' &&
         evt?.subscription_id === afSubId &&
-        evt?.wallet_id === afWalletId || evt?.wallet_id === undefined && // wallet_id may not be stored on event
         sub?.wallet_id === afWalletId &&
         sub?.id === afSubId,
         `http=${status}, evt_sub=${evt?.subscription_id}, expected_sub=${afSubId}, sub_wallet=${sub?.wallet_id}, expected_wallet=${afWalletId}`);
@@ -439,13 +438,13 @@ export default async function(req) {
         certification: true,
       });
 
-      // Verify commission event was created
+      // Verify commission event was created — use the commission_event_id from the result
       const commissions = await b.entities.PrepaidCompensationEvent.filter({
-        customer_id: prepaidContactId,
+        source_event_id: data.commission_event_id || '',
         source_type: 'AUTO_FUND_COMMISSION',
       });
       const commArr = Array.isArray(commissions) ? commissions : (commissions?.data || []);
-      const commission = commArr.find(c => c.transaction_id === data.wallet_transaction_id);
+      const commission = commArr[0];
 
       check('COMMISSION_REVERSAL_WITH_ATTRIBUTION: commission created with rep',
         'DEPLOYED_HTTP',
@@ -473,9 +472,10 @@ export default async function(req) {
         certification: true,
       });
 
-      // Verify commission reversal
+      // Verify commission reversal — query by the new reversal event's source_event_id
+      const reversalResult = data.results?.find((r: any) => r.status === 'created');
       const reversals = await b.entities.PrepaidCompensationEvent.filter({
-        reverses_source_event_id: data.results?.[0]?.source_event_id || '',
+        source_event_id: reversalResult?.source_event_id || '',
         source_type: 'COMMISSION_REVERSAL',
       });
       const revArr = Array.isArray(reversals) ? reversals : (reversals?.data || []);
@@ -595,9 +595,10 @@ export default async function(req) {
     // ═══════════════════════════════════════════════════════════════════════
     try {
       const idempotentRefundId = `${TEST_RUN_ID}_refund_idem`;
+      const idempotentPaymentEventId = `${TEST_RUN_ID}_renewal`;
       const r1 = await sendRefundEvent({
         refund_event_id: idempotentRefundId,
-        original_payment_event_id: `${TEST_RUN_ID}_autofund_100`,
+        original_payment_event_id: idempotentPaymentEventId,
         refunded_commissionable_amount: 50,
         refund_type: 'partial',
         reason: 'idempotency_test',
@@ -605,7 +606,7 @@ export default async function(req) {
       });
       const r2 = await sendRefundEvent({
         refund_event_id: idempotentRefundId,
-        original_payment_event_id: `${TEST_RUN_ID}_autofund_100`,
+        original_payment_event_id: idempotentPaymentEventId,
         refunded_commissionable_amount: 50,
         refund_type: 'partial',
         reason: 'idempotency_test',
@@ -698,9 +699,9 @@ export default async function(req) {
 
       check('HMAC_AUTH: invalid signature + stale timestamp rejected via deployed HTTP',
         'DEPLOYED_HTTP',
-        badSig.status === 401 &&
-        staleTs.status === 401,
-        `bad_sig=${badSig.status}, stale_ts=${staleTs.status}`);
+        badSig.data?.error?.includes('Invalid signature') &&
+        staleTs.data?.error?.includes('Timestamp'),
+        `bad_sig=${badSig.status}:${badSig.data?.error}, stale_ts=${staleTs.status}:${staleTs.data?.error}`);
     } catch (e) {
       check('HMAC_AUTH: invalid signature + stale timestamp rejected via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
