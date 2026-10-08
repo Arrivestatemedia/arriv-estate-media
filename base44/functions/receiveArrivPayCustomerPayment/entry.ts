@@ -5,6 +5,11 @@ import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 import { evaluateCertificationBypass } from '../../shared/certificationMode.ts';
+import {
+  processFailedAutoFundPayment,
+  processSuccessfulAutoFundPayment,
+  processFailedPrepaidPurchase,
+} from '../../shared/individualPaymentRecoveryEngine.ts';
 
 /**
  * Arriv Pay Customer Payment Event Webhook
@@ -214,8 +219,72 @@ export default async function(req) {
       cert_mode: certResult.isCertification,
     });
 
+    // ── Recovery engine: process failure/success for recovery state ────────
+    // Only for NEW events (not duplicates). The autoFundProcessor already
+    // handles idempotency — duplicates return { status: 'duplicate' } and
+    // we skip recovery processing to avoid double-counting failures.
+    let recoveryResult = null;
+    if (result.status === 'processed') {
+      const effectiveEventType = event_type || 'recurring';
+      const isRecurringOrRetry = effectiveEventType === 'recurring' || effectiveEventType === 'retry';
+
+      if (status === 'failed') {
+        if (isRecurringOrRetry) {
+          // Auto-Fund recurring/retry failure → 3-strike rule applies
+          try {
+            recoveryResult = await processFailedAutoFundPayment(base44.asServiceRole, {
+              payment_event_id,
+              subscription_id,
+              customer_id,
+              customer_email,
+              customer_name: '',
+              wallet_id,
+              amount_charged,
+              failure_reason: failure_reason || 'Payment declined',
+              event_type: effectiveEventType,
+              cert_mode: certResult.isCertification,
+            });
+          } catch (e) {
+            console.error('Recovery engine error (failed):', e.message);
+          }
+        } else {
+          // One-time Prepaid/topup failure → no 3-strike rule
+          try {
+            recoveryResult = await processFailedPrepaidPurchase(base44.asServiceRole, {
+              payment_event_id,
+              customer_id,
+              customer_email,
+              customer_name: '',
+              amount: amount_charged,
+              failure_reason: failure_reason || 'Payment declined',
+              cert_mode: certResult.isCertification,
+            });
+          } catch (e) {
+            console.error('Recovery engine error (prepaid failed):', e.message);
+          }
+        }
+      } else if (status === 'succeeded' || status === 'retry_succeeded') {
+        // Successful payment → reset failure counter, clear recovery hold
+        try {
+          recoveryResult = await processSuccessfulAutoFundPayment(base44.asServiceRole, {
+            payment_event_id,
+            subscription_id,
+            customer_id,
+            customer_email,
+            customer_name: '',
+            amount_charged,
+            booking_value_added: result.booking_value_issued || 0,
+            cert_mode: certResult.isCertification,
+          });
+        } catch (e) {
+          console.error('Recovery engine error (success):', e.message);
+        }
+      }
+    }
+
     return Response.json({
       ...result,
+      recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
     });
