@@ -47,6 +47,28 @@ export default async function(req) {
     const certificationMode = body.certification_mode === true;
     const nowIso = new Date().toISOString();
 
+    // ── Production-activation flag (defaults OFF) ──────────────────────────
+    // When OFF, the scanner runs in DRY-RUN mode: it calculates delinquency
+    // and updates invoice status fields, but does NOT send customer
+    // notifications or apply booking restrictions. This prevents unintended
+    // customer contact or account restrictions before an admin explicitly
+    // enables production rollout.
+    let productionActive = false;
+    try {
+      const flagRecords = await b.entities.AppSetting.filter(
+        { key: 'B2B_DELINQUENCY_PRODUCTION_ACTIVE' },
+        undefined,
+        1
+      );
+      const flagArr = Array.isArray(flagRecords) ? flagRecords : (flagRecords?.data || []);
+      productionActive = flagArr.length > 0 ? flagArr[0].value === 'true' : false;
+    } catch (e) {
+      console.warn('Could not read B2B_DELINQUENCY_PRODUCTION_ACTIVE flag, defaulting to OFF (dry-run):', e.message);
+    }
+
+    // In dry-run mode, suppress all customer-facing side effects
+    const dryRun = !productionActive && !certificationMode;
+
     // Find all unpaid B2B invoices
     const allInvoices = await b.entities.Invoice.list('-created_date', 500);
     const unpaidB2B = allInvoices.filter(inv =>
@@ -79,9 +101,10 @@ export default async function(req) {
         delinquency_tier: org.delinquency_tier,
       });
 
-      // Skip if not yet due or already paid
+      // Skip if not yet due, already paid, or has an active management exception
       if (calc.delinquency_status === DELINQUENCY_STATUS.NOT_YET_DUE ||
-          calc.delinquency_status === DELINQUENCY_STATUS.PAYMENT_SUCCEEDED) {
+          calc.delinquency_status === DELINQUENCY_STATUS.PAYMENT_SUCCEEDED ||
+          calc.delinquency_status === DELINQUENCY_STATUS.EXCEPTION_APPROVED) {
         continue;
       }
 
@@ -101,10 +124,10 @@ export default async function(req) {
 
       const updates = {};
 
-      // Send 3-day reminder
+      // Send 3-day reminder (suppressed in dry-run mode)
       if (notif.send_3d_reminder) {
         updates.delinquency_reminder_3d_sent_at = nowIso;
-        if (!certificationMode && org.billing_contact_email) {
+        if (!dryRun && !certificationMode && org.billing_contact_email) {
           await sendNotification('past_due', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'past_due_3d',
@@ -114,10 +137,10 @@ export default async function(req) {
         }
       }
 
-      // Send 7-day reminder
+      // Send 7-day reminder (suppressed in dry-run mode)
       if (notif.send_7d_reminder) {
         updates.delinquency_reminder_7d_sent_at = nowIso;
-        if (!certificationMode && org.billing_contact_email) {
+        if (!dryRun && !certificationMode && org.billing_contact_email) {
           await sendNotification('past_due', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'past_due_7d',
@@ -127,10 +150,10 @@ export default async function(req) {
         }
       }
 
-      // Send advance warning (for longer grace periods)
+      // Send advance warning (suppressed in dry-run mode)
       if (notif.send_advance_warning) {
         updates.restriction_warning_sent_at = nowIso;
-        if (!certificationMode && org.billing_contact_email) {
+        if (!dryRun && !certificationMode && org.billing_contact_email) {
           await sendNotification('account_hold', org, invoice, org.billing_contact_email);
           notificationsSent.push({
             type: 'advance_restriction_warning',
@@ -147,31 +170,42 @@ export default async function(req) {
       if (calc.grace_period_deadline) updates.grace_period_deadline = calc.grace_period_deadline.split('T')[0];
 
       // Apply booking restriction when grace expires (non-enterprise auto)
+      // SUPPRESSED in dry-run mode — restrictions are only calculated, not applied
       if (calc.grace_expired && !invoice.booking_restricted_at && calc.should_restrict_bookings) {
-        updates.booking_restricted_at = nowIso;
-        updates.delinquency_status = DELINQUENCY_STATUS.BOOKING_RESTRICTED;
-        updates.restriction_notice_sent_at = nowIso;
-
-        // Restrict the organization
-        await b.entities.B2BOrganization.update(org.id, {
-          booking_restricted: true,
-          booking_restricted_at: nowIso,
-          booking_restriction_reason: 'GRACE_EXPIRED',
-        });
-
-        restrictionsApplied.push({
-          organization_id: org.id,
-          invoice_id: invoice.id,
-          reason: 'GRACE_EXPIRED_AUTO',
-        });
-
-        if (!certificationMode && org.billing_contact_email) {
-          await sendNotification('account_hold', org, invoice, org.billing_contact_email);
-          notificationsSent.push({
-            type: 'account_hold',
+        if (dryRun) {
+          // Dry-run: record what WOULD happen but do not restrict
+          restrictionsApplied.push({
+            organization_id: org.id,
             invoice_id: invoice.id,
-            recipient: org.billing_contact_email,
+            reason: 'GRACE_EXPIRED_AUTO (dry-run — not applied)',
+            dry_run: true,
           });
+        } else {
+          updates.booking_restricted_at = nowIso;
+          updates.delinquency_status = DELINQUENCY_STATUS.BOOKING_RESTRICTED;
+          updates.restriction_notice_sent_at = nowIso;
+
+          // Restrict the organization
+          await b.entities.B2BOrganization.update(org.id, {
+            booking_restricted: true,
+            booking_restricted_at: nowIso,
+            booking_restriction_reason: 'GRACE_EXPIRED',
+          });
+
+          restrictionsApplied.push({
+            organization_id: org.id,
+            invoice_id: invoice.id,
+            reason: 'GRACE_EXPIRED_AUTO',
+          });
+
+          if (!certificationMode && org.billing_contact_email) {
+            await sendNotification('account_hold', org, invoice, org.billing_contact_email);
+            notificationsSent.push({
+              type: 'account_hold',
+              invoice_id: invoice.id,
+              recipient: org.billing_contact_email,
+            });
+          }
         }
       }
 
@@ -213,6 +247,8 @@ export default async function(req) {
     return Response.json({
       status: 'completed',
       certification_mode: certificationMode,
+      production_active: productionActive,
+      dry_run: dryRun,
       invoices_processed: processed.length,
       notifications_sent: notificationsSent.length,
       restrictions_applied: restrictionsApplied.length,
