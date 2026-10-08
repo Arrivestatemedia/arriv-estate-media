@@ -47,10 +47,10 @@ const DEFAULT_SUBTITLE = SALES_JOB_DEFAULTS.page_description;
 
 const DEFAULT_WHO_YOU_BUILD = [
   { icon: Users, label: "Real Estate Agents" },
-  { icon: Users, label: "Real Estate Teams" },
-  { icon: Building2, label: "Brokerages" },
-  { icon: HardHat, label: "Home Builders" },
-  { icon: Briefcase, label: "Property Management Companies" },
+  { icon: Building2, label: "Brokers & Brokerages" },
+  { icon: Briefcase, label: "Property Managers" },
+  { icon: Building2, label: "Apartment Communities" },
+  { icon: HardHat, label: "Developers & Builders" },
 ];
 
 const DEFAULT_RESPONSIBILITIES = SALES_JOB_DEFAULTS.responsibilities;
@@ -58,32 +58,32 @@ const DEFAULT_RESPONSIBILITIES = SALES_JOB_DEFAULTS.responsibilities;
 const DEFAULT_QUALIFICATIONS = SALES_JOB_DEFAULTS.required_qualifications;
 
 const DEFAULT_TRAINING_TOPICS = [
-  { icon: FileText, label: "Arriv products and services" },
-  { icon: Target, label: "Sales techniques" },
+  { icon: FileText, label: "Arriv services & pricing" },
+  { icon: Target, label: "Sales processes" },
   { icon: Users, label: "Prospecting strategies" },
-  { icon: Briefcase, label: "CRM training" },
-  { icon: Presentation, label: "Client presentations" },
-  { icon: ShieldCheck, label: "Objection handling" },
-  { icon: Award, label: "Closing strategies" },
+  { icon: Briefcase, label: "Technology platform & CRM" },
+  { icon: Presentation, label: "Customer relationship tools" },
+  { icon: ShieldCheck, label: "Field outreach methods" },
+  { icon: Award, label: "Ongoing coaching & support" },
 ];
 
 const DEFAULT_WHY_JOIN = [
-  { icon: Wallet, label: "$500 Training Bonus", desc: "Earn a bonus after completing our two-week onboarding and training program." },
-  { icon: TrendingUp, label: "Uncapped Commission", desc: "Your earning potential is based entirely on the business you generate." },
-  { icon: CalendarClock, label: "Flexible", desc: "This is a 100% remote role — work from anywhere." },
-  { icon: GraduationCap, label: "Comprehensive Training", desc: "Full training provided — no real estate experience necessary." },
-  { icon: TrendingUp, label: "Career Growth", desc: "Join the founding sales team and grow as Arriv expands." },
-  { icon: Star, label: "Shape the Future", desc: "Help build an innovative real estate technology company from the ground up." },
+  { icon: CalendarClock, label: "Four-Day Workweek", desc: "Work Monday through Thursday and enjoy a three-day weekend every week." },
+  { icon: TrendingUp, label: "Uncapped Commissions", desc: "Earn 15% on individual bookings, 10% on subscriptions, and recurring B2B commissions with no cap." },
+  { icon: Wallet, label: "Recurring B2B Income", desc: "Earn 8% on eligible recurring B2B subscription revenue — build a book of business that pays you month after month." },
+  { icon: GraduationCap, label: "Paid Training", desc: "12 hours of paid core onboarding plus ongoing coaching and supervised selling support." },
+  { icon: Users, label: "Inbound Leads", desc: "Access inbound leads shared with the sales team alongside your own prospecting." },
+  { icon: Star, label: "Founding Team", desc: "Join an emerging company's founding sales team and help establish Arriv Estate Media in your market." },
 ];
 
 
 
 const DEFAULT_TRUST = [
-  "Commission-Based W-2",
-  "100% Commission",
-  "$500 Training Bonus",
-  "Uncapped Earning Potential",
-  "100% Remote",
+  "W-2 Commission-Only",
+  "$500–$5,000/Month Estimated",
+  "Uncapped Commissions",
+  "Four-Day Workweek",
+  "Paid Training",
 ];
 
 function Section({ eyebrow, title, children, id }) {
@@ -175,9 +175,10 @@ export default function AboutSalesJob() {
   if (job?.compensation) heroBadges.push({ icon: Wallet, label: job.compensation });
   if (job?.work_schedule) heroBadges.push({ icon: Clock, label: job.work_schedule });
   const heroBadgesToRender = heroBadges.length ? heroBadges : [
-    { icon: Briefcase, label: "Commission-Based W-2" },
-    { icon: MapPin, label: "100% Remote – Work From Anywhere" },
-    { icon: Wallet, label: "100% Commission + $500 Training Bonus" },
+    { icon: Briefcase, label: "W-2 Commission-Only" },
+    { icon: MapPin, label: "Field-Based with Remote Flexibility" },
+    { icon: Wallet, label: "$500–$5,000/Month Estimated Commission" },
+    { icon: Clock, label: "Monday–Thursday" },
   ];
 
   if (loading) {
@@ -203,7 +204,7 @@ export default function AboutSalesJob() {
           >
             <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
             <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
-              {job?.hero_badge || "Founding Sales Team – 100% Remote"}
+              {job?.hero_badge || "Founding Sales Team"}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">
@@ -263,18 +264,20 @@ export default function AboutSalesJob() {
       {/* About Arriv */}
       <Section eyebrow="About Arriv Estate Media" id="about">
         <p className="text-lg leading-relaxed max-w-3xl" style={{ color: "rgba(26,26,26,0.78)" }}>
-          Arriv Estate Media is redefining the way real estate professionals order, manage, and receive
-          professional media services. Our platform connects real estate agents, brokerages, builders, and
-          property managers with trusted photographers, videographers, drone pilots, and media specialists
-          through one seamless experience.
+          Arriv Estate Media is building a modern real estate media marketplace connecting real estate
+          professionals, brokerages, apartment communities, property managers, and developers with
+          professional photography, videography, and creative media services. Our technology platform and
+          media specialist network are established — we're now expanding our customer base.
         </p>
         <div
           className="mt-8 rounded-2xl p-6 sm:p-8"
           style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}
         >
           <p className="text-base sm:text-lg leading-relaxed" style={{ color: TEXT_DARK }}>
-            We're building our <strong>founding sales team</strong> and looking for driven professionals who
-            are passionate about sales, relationship-building, and helping businesses grow.
+            We're looking for motivated sales professionals who can build relationships, identify
+            opportunities, and close business. As a <strong>founding Sales Growth Advisor</strong>, you'll
+            develop your own customer portfolio, establish commercial relationships, and earn recurring
+            commissions as the business grows.
           </p>
         </div>
       </Section>
@@ -289,7 +292,13 @@ export default function AboutSalesJob() {
             {subtitle}
           </p>
           <p className="mt-4 text-base leading-relaxed" style={{ color: "rgba(26,26,26,0.7)" }}>
-            If you're entrepreneurial, motivated, and enjoy talking with people, we'd love to meet you.
+            This is a territory-based role. About half of your working week is spent in the field, meeting
+            prospective customers in person. The rest is flexible remote work: prospecting, follow-up, and
+            closing. A typical week includes three field-focused days and one dedicated remote day.
+          </p>
+          <p className="mt-4 text-base leading-relaxed" style={{ color: "rgba(26,26,26,0.7)" }}>
+            We're especially interested in experienced sales professionals and individuals with backgrounds in
+            real estate, account management, business development, and other relationship-driven industries.
           </p>
         </div>
       </Section>
@@ -347,7 +356,8 @@ export default function AboutSalesJob() {
           ))}
         </div>
         <p className="mt-6 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-          Sales experience is preferred but not required. No real estate experience is necessary — we provide the training.
+          Experience in real estate, mortgage lending, insurance, advertising, property management, or
+          hospitality sales is especially valuable.
         </p>
       </Section>
 
@@ -384,35 +394,74 @@ export default function AboutSalesJob() {
 
       {/* Compensation */}
       <Section eyebrow="Compensation" title="Uncapped earning potential">
+        <div
+          className="rounded-2xl p-6 sm:p-8 mb-6"
+          style={{ backgroundColor: "rgba(184,149,106,0.08)", border: "1px solid rgba(184,149,106,0.3)" }}
+        >
+          <p className="text-base leading-relaxed" style={{ color: TEXT_DARK }}>
+            This is a W-2, commission-only position with no guaranteed base salary or draw. Commissions are
+            uncapped. The estimated monthly commission range is <strong>$500–$5,000</strong>, based on
+            projected volumes of individual bookings, individual subscriptions, and B2B accounts. Actual
+            earnings depend entirely on individual sales performance, and no minimum earnings are guaranteed.
+          </p>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>💰</span>
-            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>Commission-Based W-2 Position</h3>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>📸</span>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>15% — Individual Bookings</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Earn uncapped commissions by helping real estate professionals grow their business through Arriv Estate Media. Your income is directly tied to the relationships you build and the revenue you generate.
+              Earn 15% commission on qualifying individual media bookings.
             </p>
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🎯</span>
-            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>$500 Paid Training Bonus</h3>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🔄</span>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>10% — Individual Subscriptions</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Complete our two-week onboarding and training program and receive a $500 Training Bonus. We'll teach you our sales process, CRM, products, objection handling, and how to build a successful real estate client portfolio.
+              Earn 10% on eligible individual subscription revenue.
+            </p>
+          </div>
+          <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🏢</span>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>60% — B2B Implementation</h3>
+            <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
+              Earn 60% on eligible B2B implementation fees.
+            </p>
+          </div>
+          <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🚀</span>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>15% — First-Month B2B</h3>
+            <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
+              Earn 15% on eligible first-month B2B subscription revenue.
             </p>
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
             <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>📈</span>
-            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>Career Growth</h3>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>8% — Recurring B2B</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              This position is designed to grow with Arriv. As the company expands, high-performing Sales Growth Advisors may have the opportunity to transition into salary + commission compensation, leadership opportunities, and expanded employee benefits based on business needs and performance.
+              Earn 8% on eligible recurring B2B subscription revenue thereafter — build a book of business that pays you month after month.
+            </p>
+          </div>
+          <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🎓</span>
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>Paid Required Training</h3>
+            <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
+              Required standalone training is paid separately at the applicable legally required rate.
             </p>
           </div>
         </div>
+        <p className="mt-6 text-sm" style={{ color: "rgba(26,26,26,0.6)" }}>
+          Commissions are earned on eligible collected revenue and governed by the written commission
+          agreement. Arriv is an early-stage company, and our customer base is still developing.
+        </p>
       </Section>
 
       {/* Training */}
-      <Section eyebrow="Training Program" title="Two weeks of comprehensive training">
+      <Section eyebrow="Training & Support" title="12 hours of paid core onboarding">
         <p className="text-base leading-relaxed max-w-3xl mb-8" style={{ color: "rgba(26,26,26,0.7)" }}>
-          Complete our two-week onboarding and training program and earn your $500 Training Bonus. Training covers everything you need to succeed:
+          Arriv provides 12 hours of paid core onboarding covering our services, pricing, sales processes,
+          technology platform, and customer relationship tools. Required standalone training is paid
+          separately at the applicable legally required rate. You'll also receive ongoing coaching,
+          supervised selling support, and direct access to company leadership. Training covers:
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {DEFAULT_TRAINING_TOPICS.map(({ icon: Icon, label }) => (

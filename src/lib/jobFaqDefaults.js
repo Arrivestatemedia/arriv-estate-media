@@ -59,27 +59,35 @@ export const MEDIA_SPECIALIST_ATLANTA_FAQS = [
 export const SALES_GROWTH_ADVISOR_FAQS = [
   {
     q: "Is this a salaried position?",
-    a: "No. This is a commission-based W-2 position. Your earning potential is uncapped — your income is directly tied to the relationships you build and the revenue you generate.",
+    a: "No. This is a W-2, commission-only position with no guaranteed base salary or draw. Commissions are uncapped and earned on eligible collected revenue.",
+  },
+  {
+    q: "What is the estimated earning range?",
+    a: "The estimated monthly commission range is $500–$5,000, based on projected volumes of individual bookings, individual subscriptions, and B2B accounts. Actual earnings depend entirely on individual sales performance, and no minimum earnings are guaranteed.",
   },
   {
     q: "Do I need real estate experience?",
-    a: "No. No real estate experience is necessary — we provide the training. Sales experience is preferred but not required.",
-  },
-  {
-    q: "What is the $500 Training Bonus?",
-    a: "New Arriv Sales Growth Advisors who successfully complete our two-week onboarding and training program will receive a $500 Training Bonus.",
+    a: "Experience in real estate, mortgage lending, insurance, advertising, property management, or hospitality sales is especially valuable. Previous experience in sales, account management, business development, or another customer-facing role is expected.",
   },
   {
     q: "Where is this role based?",
-    a: "This is a 100% remote role. You can work from anywhere — no office or hybrid requirements.",
+    a: "This is a territory-based, field role. About half of your working week is spent in the field meeting prospective customers in person. A typical week includes three field-focused days and one dedicated remote day. This is not a fully remote position.",
+  },
+  {
+    q: "What is the work schedule?",
+    a: "Monday through Thursday — a four-day workweek.",
   },
   {
     q: "What does the training cover?",
-    a: "Training includes Arriv products and services, sales techniques, prospecting strategies, CRM training, client presentations, objection handling, and closing strategies.",
+    a: "Arriv provides 12 hours of paid core onboarding covering our services, pricing, sales processes, technology platform, and customer relationship tools. Representatives also receive ongoing coaching, supervised selling support, and direct access to company leadership.",
   },
   {
     q: "Who will I be selling to?",
-    a: "You'll build relationships with real estate agents, real estate teams, brokerages, home builders, and property management companies.",
+    a: "You'll build relationships with real estate agents, brokers, property managers, apartment communities, and developers.",
+  },
+  {
+    q: "What is the commission structure?",
+    a: "Our commission structure includes 15% on qualifying individual media bookings, 10% on eligible individual subscription revenue, 60% on eligible B2B implementation fees, 15% on eligible first-month B2B subscription revenue, and 8% on eligible recurring B2B subscription revenue thereafter. Commissions are earned on eligible collected revenue and governed by the written commission agreement.",
   },
 ];
 
