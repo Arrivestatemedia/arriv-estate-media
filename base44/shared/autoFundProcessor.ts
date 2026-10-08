@@ -50,6 +50,7 @@ export interface ProcessPaymentParams {
 export async function processAutoFundPayment(params: ProcessPaymentParams) {
   const { base44, ...data } = params;
   const idPrefix = data.cert_mode ? 'cert_' : '';
+  // Deployed payment contract — supports prepaid_purchase, topup, recurring/retry
 
   // ── Idempotency: check if this payment event was already processed ─────────
   const existing = await base44.entities.AutoFundPaymentEvent.filter(

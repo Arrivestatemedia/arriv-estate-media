@@ -215,7 +215,7 @@ export default async function(req) {
         lotArr[0].tier === 'STARTER' &&
         lotArr[0].source === 'purchase' &&
         starterTxn?.type === 'PREPAID_PURCHASE',
-        `http=${status}, processor=${data.status}, bv_cents=${data.booking_value_issued_cents}, bonus=${data.bonus_booking_value}, wallet=${wallet.booking_value_balance_cents}, credits=${wallet.credits_balance}, tier=${lotArr[0]?.tier}, source=${lotArr[0]?.source}, txn_type=${starterTxn?.type}`);
+        `http=${status}, processor=${data.status}, debug_evt=${data._debug_event_type}, body_evt=${data._debug_body_event_type}, keys=${data._debug_body_keys?.join(',')}, bv_cents=${data.booking_value_issued_cents}, bonus=${data.bonus_booking_value}, wallet=${wallet.booking_value_balance_cents}, credits=${wallet.credits_balance}, tier=${lotArr[0]?.tier}, source=${lotArr[0]?.source}, txn_type=${starterTxn?.type}`);
     } catch (e) {
       check('STARTER_PREPAID_BONUS: $500 → 55,000¢ BV + 2 credits via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
