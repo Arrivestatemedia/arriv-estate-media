@@ -38,6 +38,18 @@ export interface CertificationContext {
   requestId: string;
   /** Identifiers from the payload that must carry the cert_ prefix (payment_event_id, customer_id, customer_email, etc.) */
   identifiers: (string | undefined | null)[];
+  /**
+   * Optional body-level certification flag sent by the source application
+   * (e.g. Arriv Pay sends `certification: true`). When true, this serves as
+   * the intent marker IN PLACE OF a cert_-prefixed request ID header.
+   *
+   * This flag ALONE never authorizes financial mutations — it is only
+   * accepted when combined with valid canonical HMAC, trusted source,
+   * fresh timestamp, and cert_-prefixed synthetic payload identifiers.
+   * Wallet-level synthetic fixture isolation is enforced separately by
+   * the payment processor.
+   */
+  certificationFlag?: boolean;
 }
 
 export interface CertificationResult {
@@ -75,19 +87,23 @@ export function evaluateCertificationBypass(ctx: CertificationContext): Certific
       reason: 'Missing timestamp',
     };
   }
-  // 4. Valid request ID with cert_ prefix (intent marker)
-  if (!ctx.requestId) {
+  // 4. Intent marker: EITHER a cert_-prefixed request ID header OR a
+  //    body-level `certification: true` flag from the source application.
+  //    Neither alone is sufficient — both require valid HMAC + trusted
+  //    source + fresh timestamp (steps 1-3) and synthetic payload
+  //    identifiers (step 5) to qualify.
+  if (!ctx.requestId && !ctx.certificationFlag) {
     return {
       isCertification: false,
       certId: null,
-      reason: 'Missing request ID',
+      reason: 'Missing request ID and certification flag',
     };
   }
-  if (!isCertificationId(ctx.requestId)) {
+  if (ctx.requestId && !isCertificationId(ctx.requestId) && !ctx.certificationFlag) {
     return {
       isCertification: false,
       certId: null,
-      reason: 'Request ID must carry cert_ prefix for certification bypass',
+      reason: 'Request ID must carry cert_ prefix or certification flag must be true',
     };
   }
   // 5. Synthetic cert_ prefix on ALL non-empty payload identifiers

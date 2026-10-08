@@ -110,10 +110,16 @@ export default async function(req) {
       sourceApp,
       timestamp,
       requestId,
-      // Only pass identifiers that are synthetic (cert_-prefixed) in certification
-      // mode. wallet_id and customer_id are foreign keys to real Base44 entities
-      // (PrepaidWallet, Contact) and are UUIDs, not cert_ identifiers.
-      identifiers: [payment_event_id, customer_email, subscription_id],
+      // Arriv Pay sends `certification: true` in the body as its intent marker.
+      // This is accepted ONLY alongside valid HMAC + trusted source + fresh
+      // timestamp + cert_-prefixed payment_event_id. It NEVER authorizes alone.
+      certificationFlag: body.certification === true,
+      // Only payment_event_id is a synthetic identifier Arriv Pay controls and
+      // can cert_-prefix. subscription_id is a Stripe foreign key (sub_xxx),
+      // customer_email is a real-world value — neither can be cert_-prefixed.
+      // Wallet-level synthetic fixture isolation is enforced separately by
+      // the payment processor (autoFundProcessor.ts lines 126-175).
+      identifiers: [payment_event_id],
     });
 
     // ── Feature flag check (bypassed ONLY for qualifying cert_ events) ──────

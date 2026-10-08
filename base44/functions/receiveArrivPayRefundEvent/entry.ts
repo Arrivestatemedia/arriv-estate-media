@@ -109,7 +109,12 @@ export default async function(req) {
       sourceApp,
       timestamp,
       requestId,
-      identifiers: [refund_event_id, original_payment_event_id, customer_id, customer_email],
+      // Arriv Pay sends `certification: true` in the body as its intent marker.
+      certificationFlag: body.certification === true,
+      // Only refund_event_id and original_payment_event_id are synthetic
+      // identifiers Arriv Pay controls. customer_id is a UUID foreign key,
+      // customer_email is a real-world value — neither can be cert_-prefixed.
+      identifiers: [refund_event_id, original_payment_event_id],
     });
 
     // ── Feature flag check (bypassed ONLY for qualifying cert_ events) ──────
