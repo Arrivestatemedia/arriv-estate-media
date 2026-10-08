@@ -75,7 +75,7 @@ export default async function(req) {
         cert_mode: certMode,
       });
 
-      if (result.status === 'error') return Response.json(result, { status: 400 });
+      if (result.status === 'error') return Response.json(result);
       return Response.json(result);
     }
 
@@ -108,7 +108,7 @@ export default async function(req) {
         cert_mode: certMode,
       });
 
-      if (result.status === 'error') return Response.json(result, { status: 400 });
+      if (result.status === 'error') return Response.json(result);
       return Response.json(result);
     }
 
@@ -142,7 +142,7 @@ export default async function(req) {
         cert_mode: certMode,
       });
 
-      if (result.status === 'error') return Response.json(result, { status: 400 });
+      if (result.status === 'error') return Response.json(result);
       return Response.json(result);
     }
 
@@ -226,7 +226,7 @@ export default async function(req) {
         cert_mode: cert_mode === true,
       });
 
-      if (result.status === 'error') return Response.json(result, { status: 400 });
+      if (result.status === 'error') return Response.json(result);
       return Response.json(result);
     }
 

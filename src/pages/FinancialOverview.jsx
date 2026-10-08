@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Wallet, TrendingUp, DollarSign, Clock, Users, Briefcase, Loader2 } from "lucide-react";
+import PaymentRecoveryDashboard from "@/components/admin/PaymentRecoveryDashboard";
 
 export default function FinancialOverview() {
   const [data, setData] = useState(null);
@@ -195,6 +196,11 @@ export default function FinancialOverview() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Payment Recovery Dashboard */}
+      <div className="mt-8">
+        <PaymentRecoveryDashboard />
       </div>
     </div>
   );

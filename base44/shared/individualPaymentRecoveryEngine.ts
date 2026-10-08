@@ -156,9 +156,10 @@ async function sendNotification(
     recovery_link_url?: string;
     recovery_link_token?: string;
     cert_mode: boolean;
+    idempotency_key?: string;
   }
 ): Promise<{ notification_id: string; email_sent: boolean; duplicate: boolean }> {
-  const notificationId = buildNotificationId(
+  const notificationId = params.idempotency_key || buildNotificationId(
     params.subscription_id,
     params.notification_type,
     params.payment_event_id
@@ -404,6 +405,29 @@ export async function processFailedAutoFundPayment(base44: any, params: {
         status: 'error',
         error: 'Production event cannot operate on a certification subscription',
         payment_event_id,
+      };
+    }
+  }
+
+  // Idempotency: check if this payment_event_id was already processed.
+  // If a notification already exists for this event, this is a duplicate
+  // webhook delivery — do NOT increment the counter or mutate state.
+  if (applyThreeStrikeRule && payment_event_id) {
+    const existingNotifResults = await base44.entities.PaymentRecoveryNotification.filter(
+      { subscription_id, payment_event_id, notification_type: NOTIFICATION_TYPES.IMMEDIATE_FAILURE },
+      undefined,
+      1
+    );
+    const existingNotifArr = Array.isArray(existingNotifResults) ? existingNotifResults : (existingNotifResults?.data || []);
+    if (existingNotifArr.length > 0) {
+      return {
+        status: 'duplicate',
+        subscription_id,
+        payment_event_id,
+        consecutive_failed_attempts: sub.consecutive_failed_attempts || 0,
+        auto_charge_paused: sub.auto_charge_paused || false,
+        recovery_hold_active: sub.recovery_hold_active || false,
+        message: 'Payment event already processed — duplicate ignored',
       };
     }
   }
@@ -679,17 +703,24 @@ export async function sendRecoveryReminder(base44: any, params: {
     is_final: isFinal,
   });
 
+  const notifType = reminder_type === 'day_3' ? NOTIFICATION_TYPES.DAY_3_REMINDER : NOTIFICATION_TYPES.DAY_7_REMINDER;
+  // Deterministic idempotency key per recovery cycle: subscription + type + recovery_hold_at.
+  // When the hold is cleared (recovery) and a new failure starts, recovery_hold_at changes,
+  // allowing a new reminder in the new cycle.
+  const cycleKey = sub.recovery_hold_at || sub.last_failure_at || 'unknown';
+
   const notificationResult = await sendNotification(base44, {
     subscription_id: subscription_id,
     customer_id: sub.customer_id,
     customer_email: sub.customer_email,
     customer_name: sub.customer_name,
-    notification_type: reminder_type === 'day_3' ? NOTIFICATION_TYPES.DAY_3_REMINDER : NOTIFICATION_TYPES.DAY_7_REMINDER,
+    notification_type: notifType,
     subject: reminderEmail.subject,
     html_body: reminderEmail.html_body,
     recovery_link_url: recoveryLink,
     recovery_link_token: recoveryToken,
     cert_mode,
+    idempotency_key: `${subscription_id}_${notifType}_${cycleKey}`,
   });
 
   return {

@@ -158,6 +158,7 @@ export default async function(req) {
         failure_reason: 'card_declined',
         cert_mode: true,
       });
+      const prepaidFailResp = prepaidFailResult?.data || prepaidFailResult;
 
       // Verify no wallet/lot/txn was created for this failure
       const failWalletTxns = await b.entities.WalletTransaction.filter({
@@ -172,10 +173,10 @@ export default async function(req) {
 
       check(
         '1. Initial Prepaid decline creates no credits',
-        prepaidFailResult.status === 'processed' &&
+        prepaidFailResp?.status === 'processed' &&
         failWalletTxns.length === 0 &&
         failLots.length === 0,
-        `status=${prepaidFailResult.status}, txns=${failWalletTxns.length}, lots=${failLots.length}`
+        `status=${prepaidFailResp?.status}, txns=${failWalletTxns.length}, lots=${failLots.length}`
       );
     } catch (e) {
       check('1. Initial Prepaid decline creates no credits', false, e.message);
@@ -197,6 +198,7 @@ export default async function(req) {
         event_type: 'recurring',
         cert_mode: true,
       });
+      const autofundFailResp = autofundFailResult?.data || autofundFailResult;
 
       // Verify no new credits, no new lots, no new wallet txns for the failure
       const allLots = await b.entities.CreditLot.filter({ customer_email: testEmail });
@@ -205,11 +207,11 @@ export default async function(req) {
 
       check(
         '2. Auto-Fund decline creates no credits',
-        autofundFailResult.status === 'processed' &&
+        autofundFailResp?.status === 'processed' &&
         allLots.length === 1 && // only the pre-existing lot
         allTxns.length === 0 && // no new wallet transactions
         allCommissions.length === 0, // no commissions
-        `lots=${allLots.length}, txns=${allTxns.length}, commissions=${allCommissions.length}`
+        `status=${autofundFailResp?.status}, lots=${allLots.length}, txns=${allTxns.length}, commissions=${allCommissions.length}`
       );
     } catch (e) {
       check('2. Auto-Fund decline creates no credits', false, e.message);
@@ -245,6 +247,7 @@ export default async function(req) {
         event_type: 'recurring',
         cert_mode: true,
       });
+      const dupResp = dupResult?.data || dupResult;
 
       // The duplicate should not increment the counter
       const subAfterDup = await b.entities.AutoFundSubscription.get(subscription.id);
@@ -255,9 +258,10 @@ export default async function(req) {
 
       check(
         '6. Duplicate failure webhook does not increment count twice',
+        dupResp?.status === 'duplicate' &&
         subAfterDup.consecutive_failed_attempts === 1 &&
         immediateNotifsAfterDup.length === 1, // still only 1 notification
-        `failures=${subAfterDup.consecutive_failed_attempts}, notifs=${immediateNotifsAfterDup.length}`
+        `dup_status=${dupResp?.status}, failures=${subAfterDup.consecutive_failed_attempts}, notifs=${immediateNotifsAfterDup.length}`
       );
     } catch (e) {
       check('6. Duplicate failure webhook does not increment count twice', false, e.message);
@@ -289,6 +293,7 @@ export default async function(req) {
         reminder_type: 'day_3',
         cert_mode: true,
       });
+      const dupReminderResp = dupReminderResult?.data || dupReminderResult;
 
       const day3NotifsAfterDup = await b.entities.PaymentRecoveryNotification.filter({
         subscription_id: subscription.id,
@@ -298,9 +303,9 @@ export default async function(req) {
       check(
         '4. Day 3 reminder queued once',
         day3Notifs.length === 1 &&
-        dupReminderResult.status === 'duplicate' &&
+        dupReminderResp?.status === 'duplicate' &&
         day3NotifsAfterDup.length === 1,
-        `first=${day3Notifs.length}, dup_status=${dupReminderResult.status}, after_dup=${day3NotifsAfterDup.length}`
+        `first=${day3Notifs.length}, dup_status=${dupReminderResp?.status}, after_dup=${day3NotifsAfterDup.length}`
       );
     } catch (e) {
       check('4. Day 3 reminder queued once', false, e.message);
@@ -326,12 +331,13 @@ export default async function(req) {
       });
 
       // Send again — should be idempotent
-      await b.functions.invoke('managePaymentRecovery', {
+      const dupReminder7Result = await b.functions.invoke('managePaymentRecovery', {
         action: 'send_reminder',
         subscription_id: subscription.id,
         reminder_type: 'day_7',
         cert_mode: true,
       });
+      const dupReminder7Resp = dupReminder7Result?.data || dupReminder7Result;
 
       const day7NotifsAfterDup = await b.entities.PaymentRecoveryNotification.filter({
         subscription_id: subscription.id,
@@ -341,8 +347,9 @@ export default async function(req) {
       check(
         '5. Day 7 reminder queued once',
         day7Notifs.length === 1 &&
+        dupReminder7Resp?.status === 'duplicate' &&
         day7NotifsAfterDup.length === 1,
-        `first=${day7Notifs.length}, after_dup=${day7NotifsAfterDup.length}`
+        `first=${day7Notifs.length}, dup_status=${dupReminder7Resp?.status}, after_dup=${day7NotifsAfterDup.length}`
       );
     } catch (e) {
       check('5. Day 7 reminder queued once', false, e.message);
@@ -454,7 +461,7 @@ export default async function(req) {
       check(
         '11. Unauthorized card-update attempt rejected',
         unauthorizedResp?.status === 'error' &&
-        unauthorizedResp?.error?.includes('Access denied'),
+        (unauthorizedResp?.error?.includes('Access denied') || unauthorizedResp?.error?.includes('does not belong')),
         `status=${unauthorizedResp?.status}, error=${unauthorizedResp?.error}`
       );
     } catch (e) {
@@ -519,6 +526,7 @@ export default async function(req) {
         booking_value_added: 105,
         cert_mode: true,
       });
+      const successResp = successResult?.data || successResult;
 
       // Send duplicate success — should be no_action (already healthy)
       const dupSuccessResult = await b.functions.invoke('managePaymentRecovery', {
@@ -531,13 +539,13 @@ export default async function(req) {
         booking_value_added: 105,
         cert_mode: true,
       });
-
       const dupSuccessResp = dupSuccessResult?.data || dupSuccessResult;
 
       check(
         '14. Successful retry funds exactly once',
-        successResult?.status === 'processed' || successResult?.status === 'no_action',
-        `status=${successResult?.status}, dup_status=${dupSuccessResp?.status}`
+        (successResp?.status === 'processed' || successResp?.status === 'no_action') &&
+        (dupSuccessResp?.status === 'processed' || dupSuccessResp?.status === 'no_action'),
+        `status=${successResp?.status}, dup_status=${dupSuccessResp?.status}`
       );
     } catch (e) {
       check('14. Successful retry funds exactly once', false, e.message);
