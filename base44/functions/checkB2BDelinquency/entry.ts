@@ -125,41 +125,49 @@ export default async function(req) {
       const updates = {};
 
       // Send 3-day reminder (suppressed in dry-run mode)
+      // In dry-run: do NOT stamp the sent timestamp — the notification was not sent.
+      // Stamping it would cause the scanner to skip the reminder when production activates.
       if (notif.send_3d_reminder) {
-        updates.delinquency_reminder_3d_sent_at = nowIso;
-        if (!dryRun && !certificationMode && org.billing_contact_email) {
-          await sendNotification('past_due', org, invoice, org.billing_contact_email);
-          notificationsSent.push({
-            type: 'past_due_3d',
-            invoice_id: invoice.id,
-            recipient: org.billing_contact_email,
-          });
+        if (!dryRun) {
+          updates.delinquency_reminder_3d_sent_at = nowIso;
+          if (!certificationMode && org.billing_contact_email) {
+            await sendNotification('past_due', org, invoice, org.billing_contact_email);
+            notificationsSent.push({
+              type: 'past_due_3d',
+              invoice_id: invoice.id,
+              recipient: org.billing_contact_email,
+            });
+          }
         }
       }
 
       // Send 7-day reminder (suppressed in dry-run mode)
       if (notif.send_7d_reminder) {
-        updates.delinquency_reminder_7d_sent_at = nowIso;
-        if (!dryRun && !certificationMode && org.billing_contact_email) {
-          await sendNotification('past_due', org, invoice, org.billing_contact_email);
-          notificationsSent.push({
-            type: 'past_due_7d',
-            invoice_id: invoice.id,
-            recipient: org.billing_contact_email,
-          });
+        if (!dryRun) {
+          updates.delinquency_reminder_7d_sent_at = nowIso;
+          if (!certificationMode && org.billing_contact_email) {
+            await sendNotification('past_due', org, invoice, org.billing_contact_email);
+            notificationsSent.push({
+              type: 'past_due_7d',
+              invoice_id: invoice.id,
+              recipient: org.billing_contact_email,
+            });
+          }
         }
       }
 
       // Send advance warning (suppressed in dry-run mode)
       if (notif.send_advance_warning) {
-        updates.restriction_warning_sent_at = nowIso;
-        if (!dryRun && !certificationMode && org.billing_contact_email) {
-          await sendNotification('account_hold', org, invoice, org.billing_contact_email);
-          notificationsSent.push({
-            type: 'advance_restriction_warning',
-            invoice_id: invoice.id,
-            recipient: org.billing_contact_email,
-          });
+        if (!dryRun) {
+          updates.restriction_warning_sent_at = nowIso;
+          if (!certificationMode && org.billing_contact_email) {
+            await sendNotification('account_hold', org, invoice, org.billing_contact_email);
+            notificationsSent.push({
+              type: 'advance_restriction_warning',
+              invoice_id: invoice.id,
+              recipient: org.billing_contact_email,
+            });
+          }
         }
       }
 
