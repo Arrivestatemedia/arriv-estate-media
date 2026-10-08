@@ -32,6 +32,10 @@ export default async function(req) {
 
     const { buildB2BNotification } = await import('../../shared/b2bNotificationEngine.ts');
     const { isOrganizationOnHold } = await import('../../shared/b2bGoverningContract.ts');
+    const {
+      calculateImplementationCommission, calculateRecurringCommission,
+      getRecurringRateForMonth,
+    } = await import('../../shared/b2bCommissionEngine.ts');
 
     // ── check_organization ──────────────────────────────────────────────
     if (action === 'check_organization') {
@@ -103,7 +107,7 @@ export default async function(req) {
       const org = await b.entities.B2BOrganization.get(organization_id);
       if (!org) return Response.json({ error: 'Organization not found' }, { status: 404 });
 
-      const classification = classifyCustomer(org.contract_type);
+      const classification = classifyCustomer(org.contract_type, org.delinquency_tier);
       if (!isEnterpriseClassification(classification)) {
         return Response.json({ error: 'Enterprise restriction only applies to enterprise accounts' }, { status: 400 });
       }
@@ -252,11 +256,12 @@ export default async function(req) {
         const outstanding = calculateOutstandingBalance(b2bInvoices);
         if (outstanding.invoice_count === 0 && !org.booking_restricted) continue;
 
-        const classification = classifyCustomer(org.contract_type);
+        const classification = classifyCustomer(org.contract_type, org.delinquency_tier);
         dashboard.push({
           organization_id: org.id,
           organization_name: org.display_name || org.legal_name,
           contract_type: org.contract_type,
+          delinquency_tier: org.delinquency_tier,
           classification,
           grace_period_days: getGracePeriodDays(classification),
           contract_status: org.contract_status,
@@ -274,6 +279,42 @@ export default async function(req) {
       return Response.json({ organizations: dashboard, total: dashboard.length });
     }
 
+    // ── set_delinquency_tier ────────────────────────────────────────────
+    if (action === 'set_delinquency_tier') {
+      const { organization_id, delinquency_tier } = body;
+      if (!organization_id) return Response.json({ error: 'organization_id required' }, { status: 400 });
+      const validTiers = [
+        'individual_agent_small_team',
+        'small_midsize_brokerage',
+        'large_brokerage_property_mgmt',
+        'enterprise_developer_corporate',
+        'unclassified',
+      ];
+      if (!validTiers.includes(delinquency_tier)) {
+        return Response.json({ error: 'Invalid delinquency_tier' }, { status: 400 });
+      }
+
+      const org = await b.entities.B2BOrganization.get(organization_id);
+      if (!org) return Response.json({ error: 'Organization not found' }, { status: 404 });
+
+      const nowIso = new Date().toISOString();
+      await b.entities.B2BOrganization.update(organization_id, {
+        delinquency_tier,
+      });
+
+      await b.entities.B2BAuditLog.create({
+        actor: user.email,
+        actor_type: 'admin',
+        action: 'DELINQUENCY_TIER_SET',
+        reason: `Delinquency tier set to ${delinquency_tier}`,
+        entity_type: 'B2BOrganization',
+        entity_id: organization_id,
+        timestamp: nowIso,
+      });
+
+      return Response.json({ status: 'updated', organization_id, delinquency_tier });
+    }
+
     // ── process_payment_received ────────────────────────────────────────
     if (action === 'process_payment_received') {
       const { invoice_id, payment_intent_id, amount_paid, certification_mode } = body;
@@ -282,15 +323,17 @@ export default async function(req) {
       const invoice = await b.entities.Invoice.get(invoice_id);
       if (!invoice) return Response.json({ error: 'Invoice not found' }, { status: 404 });
 
-      // Idempotency: already paid
-      if (invoice.payment_status === 'paid') {
-        return Response.json({ status: 'already_paid', invoice_id });
-      }
+      // Idempotency: already paid — still process restriction removal + commission
+      // (Stripe webhook may have already marked the invoice as paid; we still
+      // need to remove booking restrictions and create B2B commission events)
+      const alreadyPaid = invoice.payment_status === 'paid';
 
       const nowIso = new Date().toISOString();
 
-      // Partial payment handling
-      if (amount_paid !== undefined && amount_paid < invoice.amount) {
+      // If not already paid, process the payment
+      if (!alreadyPaid) {
+        // Partial payment handling
+        if (amount_paid !== undefined && amount_paid < invoice.amount) {
         await b.entities.Invoice.update(invoice_id, {
           partial_payment_amount: amount_paid,
           delinquency_status: DELINQUENCY_STATUS.PAYMENT_PENDING,
@@ -341,6 +384,65 @@ export default async function(req) {
           sales_rep_active: repActive,
         });
         commissionResult = { ...commCheck, sales_rep_id: salesRepId, rep_active: repActive };
+
+        // Create B2BCommissionEvent when eligible (idempotent on invoice_id + event_type)
+        if (commCheck.generate) {
+          const eventId = `b2bcomm_${invoice.id}_${invoice.invoice_type}`;
+          const idempotencyKey = `${invoice.id}_${invoice.invoice_type}_v1`;
+
+          // Idempotency: check for existing event
+          const existing = await b.entities.B2BCommissionEvent.filter({ event_id: eventId });
+          if (!existing || existing.length === 0) {
+            // Default commission config (matches b2bCommissionEngine.ts canonical rates)
+            const defaultConfig = {
+              implementation_commission_rate: 0.60,
+              recurring: { first_month_rate: 0.15, months_2_12_rate: 0.08, month_13_plus_rate: 0.05 },
+              annual_close_bonus: { month_to_month_rate: 0.015, twelve_month_billed_monthly_rate: 0.015, annual_prepaid_rate: 0.03, cap: 7500 },
+              renewal_bonus: { rate: 0.01, cap: 2500 },
+              expansion: { first_month_rate: 0.15, months_2_12_rate: 0.08, month_13_plus_rate: 0.05 },
+              rep_departure: { future_recurring_stops: true, no_buyout: true, vested_amounts_preserved: true },
+            };
+
+            let eventType = 'B2B_RECURRING_COMMISSION';
+            let commCalc;
+
+            if (invoice.invoice_type === 'b2b_implementation') {
+              eventType = 'B2B_IMPLEMENTATION_COMMISSION';
+              commCalc = calculateImplementationCommission(defaultConfig, invoice.amount);
+            } else {
+              // Annual contract or overage — calculate lifecycle month from contract start
+              const startDate = contract?.start_date ? new Date(contract.start_date) : new Date();
+              const now = new Date();
+              const lifecycleMonth = Math.max(1, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1);
+              commCalc = calculateRecurringCommission(defaultConfig, invoice.amount, lifecycleMonth);
+            }
+
+            await b.entities.B2BCommissionEvent.create({
+              event_id: eventId,
+              organization_id: invoice.b2b_organization_id || '',
+              contract_id: contract?.id || invoice.b2b_contract_id || '',
+              sales_rep_id: salesRepId,
+              sales_rep_email: salesRepEmail,
+              event_type: eventType,
+              amount: commCalc.amount,
+              commission_rate: commCalc.rate,
+              commission_basis: commCalc.basis,
+              source_record_id: invoice.id,
+              source_record_type: invoice.invoice_type,
+              idempotency_key: idempotencyKey,
+              payroll_status: 'pending',
+              eligible_at: new Date().toISOString().split('T')[0],
+              created_at: nowIso,
+            });
+
+            commissionResult.commission_event_id = eventId;
+            commissionResult.commission_amount = commCalc.amount;
+            commissionResult.commission_rate = commCalc.rate;
+          } else {
+            commissionResult.duplicate = true;
+            commissionResult.commission_event_id = eventId;
+          }
+        }
       }
 
       await b.entities.B2BAuditLog.create({
