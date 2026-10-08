@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SALES_GROWTH_ADVISOR_FAQS as DEFAULT_FAQ } from "@/lib/jobFaqDefaults";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import {
@@ -80,6 +80,7 @@ const DEFAULT_WHY_JOIN = [
 
 const DEFAULT_TRUST = [
   "W-2 Commission-Only",
+  "$500–$5,000/Month Estimated",
   "Uncapped Commissions",
   "Four-Day Workweek",
   "Paid Training",
@@ -131,20 +132,16 @@ function FaqItem({ q, a }) {
 }
 
 export default function AboutSalesJob() {
-  const location = useLocation();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        // Atlanta route (/careers/sales-growth-advisor) looks up by slug;
-        // DMV route (/SalesGrowthAdvisor) looks up by source_url.
-        const isAtlanta = location.pathname.startsWith("/careers/sales-growth-advisor");
-        const params = isAtlanta
-          ? { slug: "sales-growth-advisor", host: window.location.hostname }
-          : { source_url: "/SalesGrowthAdvisor", host: window.location.hostname };
-        const res = await base44.functions.invoke("getPublicJobPage", params);
+        const res = await base44.functions.invoke("getPublicJobPage", {
+          source_url: "/SalesGrowthAdvisor",
+          host: window.location.hostname,
+        });
         const d = res?.data ?? res;
         if (d?.job) {
           setJob(d.job);
@@ -156,7 +153,7 @@ export default function AboutSalesJob() {
       setLoading(false);
     })();
     return () => { document.title = "Arriv Estate Media"; };
-  }, [location.pathname]);
+  }, []);
 
   // Derive display values from the JobOpening, falling back to defaults.
   const title = job?.title || DEFAULT_TITLE;
@@ -180,7 +177,7 @@ export default function AboutSalesJob() {
   const heroBadgesToRender = heroBadges.length ? heroBadges : [
     { icon: Briefcase, label: "W-2 Commission-Only" },
     { icon: MapPin, label: "Field-Based with Remote Flexibility" },
-    { icon: Wallet, label: "Uncapped Monthly Commissions" },
+    { icon: Wallet, label: "$500–$5,000/Month Estimated Commission" },
     { icon: Clock, label: "Monday–Thursday" },
   ];
 
@@ -403,8 +400,9 @@ export default function AboutSalesJob() {
         >
           <p className="text-base leading-relaxed" style={{ color: TEXT_DARK }}>
             This is a W-2, commission-only position with no guaranteed base salary or draw. Commissions are
-            uncapped, with no minimum earnings guaranteed. Actual earnings depend entirely on individual
-            sales performance across individual bookings, individual subscriptions, and B2B accounts.
+            uncapped. The estimated monthly commission range is <strong>$500–$5,000</strong>, based on
+            projected volumes of individual bookings, individual subscriptions, and B2B accounts. Actual
+            earnings depend entirely on individual sales performance, and no minimum earnings are guaranteed.
           </p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

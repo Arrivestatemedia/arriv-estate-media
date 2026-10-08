@@ -473,7 +473,6 @@ const AuthenticatedApp = () => {
         path="/careers/:jobId/apply"
         element={<PublicJobApplication />}
       />
-      <Route path="/careers/sales-growth-advisor" element={<AboutSalesJob />} />
       <Route
         path="/careers/:jobId"
         element={<PublicJobPage />}
