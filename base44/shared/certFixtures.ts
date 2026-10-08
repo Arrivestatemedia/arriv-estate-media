@@ -318,3 +318,166 @@ export async function cleanupCertFixtures(
 
   return { deleted, errors };
 }
+
+// ── Production snapshot and cleanup verification ─────────────────────────
+
+export interface ProductionSnapshot {
+  total_wallets: number;
+  total_wallet_balance_cents: number;
+  total_lots: number;
+  total_lot_remaining_cents: number;
+  total_transactions: number;
+  total_payment_events: number;
+  total_commission_events: number;
+  total_subscriptions: number;
+  timestamp: string;
+}
+
+/**
+ * Snapshot production financial records (non-cert) for before/after comparison.
+ * Only counts records where customer_email does NOT contain @cert.test.
+ */
+export async function snapshotProductionFinancials(base44: any): Promise<ProductionSnapshot> {
+  const snapshot: ProductionSnapshot = {
+    total_wallets: 0,
+    total_wallet_balance_cents: 0,
+    total_lots: 0,
+    total_lot_remaining_cents: 0,
+    total_transactions: 0,
+    total_payment_events: 0,
+    total_commission_events: 0,
+    total_subscriptions: 0,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    const wallets = await base44.entities.PrepaidWallet.filter({}, undefined, 500);
+    const walletArr = Array.isArray(wallets) ? wallets : (wallets?.data || []);
+    const prodWallets = walletArr.filter(w => !isCertificationId(w.customer_email));
+    snapshot.total_wallets = prodWallets.length;
+    snapshot.total_wallet_balance_cents = prodWallets.reduce((s, w) => s + (w.booking_value_balance_cents || 0), 0);
+  } catch {}
+
+  try {
+    const lots = await base44.entities.CreditLot.filter({}, undefined, 500);
+    const lotArr = Array.isArray(lots) ? lots : (lots?.data || []);
+    const prodLots = lotArr.filter(l => !isCertificationId(l.customer_email));
+    snapshot.total_lots = prodLots.length;
+    snapshot.total_lot_remaining_cents = prodLots.reduce((s, l) => s + (l.booking_value_remaining_cents || 0), 0);
+  } catch {}
+
+  try {
+    const txns = await base44.entities.WalletTransaction.filter({}, undefined, 500);
+    const txnArr = Array.isArray(txns) ? txns : (txns?.data || []);
+    snapshot.total_transactions = txnArr.filter(t => !isCertificationId(t.customer_email)).length;
+  } catch {}
+
+  try {
+    const events = await base44.entities.AutoFundPaymentEvent.filter({}, undefined, 500);
+    const eventArr = Array.isArray(events) ? events : (events?.data || []);
+    snapshot.total_payment_events = eventArr.filter(e => !isCertificationId(e.customer_email)).length;
+  } catch {}
+
+  try {
+    const commissions = await base44.entities.PrepaidCompensationEvent.filter({}, undefined, 500);
+    const commArr = Array.isArray(commissions) ? commissions : (commissions?.data || []);
+    snapshot.total_commission_events = commArr.filter(c => !isCertificationId(c.employee_email) && !isCertificationId(c.customer_id)).length;
+  } catch {}
+
+  try {
+    const subs = await base44.entities.AutoFundSubscription.filter({}, undefined, 500);
+    const subArr = Array.isArray(subs) ? subs : (subs?.data || []);
+    snapshot.total_subscriptions = subArr.filter(s => !isCertificationId(s.customer_email)).length;
+  } catch {}
+
+  return snapshot;
+}
+
+export interface SnapshotDiff {
+  unchanged: boolean;
+  diffs: string[];
+}
+
+/**
+ * Compare two production snapshots. Returns unchanged=true if all counts
+ * and balances are identical.
+ */
+export function compareSnapshots(before: ProductionSnapshot, after: ProductionSnapshot): SnapshotDiff {
+  const diffs: string[] = [];
+
+  if (before.total_wallets !== after.total_wallets) {
+    diffs.push(`wallets: ${before.total_wallets} → ${after.total_wallets}`);
+  }
+  if (before.total_wallet_balance_cents !== after.total_wallet_balance_cents) {
+    diffs.push(`wallet_balance_cents: ${before.total_wallet_balance_cents} → ${after.total_wallet_balance_cents}`);
+  }
+  if (before.total_lots !== after.total_lots) {
+    diffs.push(`lots: ${before.total_lots} → ${after.total_lots}`);
+  }
+  if (before.total_lot_remaining_cents !== after.total_lot_remaining_cents) {
+    diffs.push(`lot_remaining_cents: ${before.total_lot_remaining_cents} → ${after.total_lot_remaining_cents}`);
+  }
+  if (before.total_transactions !== after.total_transactions) {
+    diffs.push(`transactions: ${before.total_transactions} → ${after.total_transactions}`);
+  }
+  if (before.total_payment_events !== after.total_payment_events) {
+    diffs.push(`payment_events: ${before.total_payment_events} → ${after.total_payment_events}`);
+  }
+  if (before.total_commission_events !== after.total_commission_events) {
+    diffs.push(`commission_events: ${before.total_commission_events} → ${after.total_commission_events}`);
+  }
+  if (before.total_subscriptions !== after.total_subscriptions) {
+    diffs.push(`subscriptions: ${before.total_subscriptions} → ${after.total_subscriptions}`);
+  }
+
+  return { unchanged: diffs.length === 0, diffs };
+}
+
+export interface CleanupVerificationResult {
+  clean: boolean;
+  remaining_cert_records: { entity: string; count: number }[];
+  errors: string[];
+}
+
+/**
+ * Verify no cert_-prefixed records remain after cleanup.
+ * Queries each entity for any record with @cert.test email pattern.
+ */
+export async function verifyCleanupComplete(base44: any, runId: string): Promise<CleanupVerificationResult> {
+  const remaining: { entity: string; count: number }[] = [];
+  const errors: string[] = [];
+  const emailPattern = `${runId}_`;
+
+  const entitiesToCheck: { name: string; filter: any }[] = [
+    { name: 'AutoFundPaymentEvent', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'WalletTransaction', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'CreditLot', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'PrepaidCompensationEvent', filter: { customer_id: { $regex: emailPattern } } },
+    { name: 'PaymentRecoveryNotification', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'AutoFundSubscription', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'PrepaidWallet', filter: { customer_email: { $regex: emailPattern } } },
+    { name: 'Contact', filter: { email: { $regex: emailPattern } } },
+  ];
+
+  for (const { name, filter } of entitiesToCheck) {
+    try {
+      const resp = await base44.entities[name].filter(filter, undefined, 200);
+      const arr = Array.isArray(resp) ? resp : (resp?.data || []);
+      const certRecords = arr.filter((r: any) => {
+        const email = r.customer_email || r.email || r.employee_email || '';
+        return isCertificationId(email);
+      });
+      if (certRecords.length > 0) {
+        remaining.push({ entity: name, count: certRecords.length });
+      }
+    } catch (e) {
+      errors.push(`${name}: ${e.message}`);
+    }
+  }
+
+  return {
+    clean: remaining.length === 0 && errors.length === 0,
+    remaining_cert_records: remaining,
+    errors,
+  };
+}

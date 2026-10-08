@@ -21,6 +21,7 @@ import {
   fromCents,
   creditsFromCents,
   PREPAID_CREDIT_VALUE,
+  PREPAID_TIERS,
 } from './prepaidEngine.ts';
 import { isCertificationId } from './certificationMode.ts';
 
@@ -33,7 +34,7 @@ export interface ProcessPaymentParams {
   wallet_id: string;
   amount_charged: number;
   status: 'succeeded' | 'failed' | 'retry_succeeded';
-  event_type: 'recurring' | 'topup' | 'retry';
+  event_type: 'recurring' | 'topup' | 'retry' | 'prepaid_purchase';
   sales_rep_id?: string;
   stripe_invoice_id?: string;
   stripe_charge_id?: string;
@@ -65,17 +66,51 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
   const config = getAutoFundConfig(data.amount_charged);
   const isSuccess = data.status === 'succeeded' || data.status === 'retry_succeeded';
   const isTopup = data.event_type === 'topup';
+  const isPrepaidPurchase = data.event_type === 'prepaid_purchase';
 
   // ── Calculate booking value and credits ──────────────────────────────────
-  // Top-ups get NO bonus (ordinary payment). Recurring gets plan bonus if applicable.
+  // Three distinct event types, each with its own bonus rule:
+  //   - prepaid_purchase: applies the canonical Prepaid tier bonus (e.g., $500
+  //     STARTER → $550 BV = 55,000¢ = 2 credits). Tier looked up by cash_price.
+  //   - topup: 1:1 cash → BV, NO bonus (ordinary wallet top-up).
+  //   - recurring/retry: Auto-Fund plan bonus (e.g., $100 → $105 BV = 10,500¢).
   // booking_value_cents is the AUTHORITATIVE value (integer, no floating-point loss).
   // credits and booking_value are DERIVED for display only.
-  const bookingValue = isSuccess
-    ? (isTopup ? data.amount_charged : (config?.booking_value || data.amount_charged))
-    : 0;
-  const bonusBv = isSuccess
-    ? (isTopup ? 0 : (config?.bonus_booking_value || 0))
-    : 0;
+  let bookingValue = 0;
+  let bonusBv = 0;
+  let lotTier = 'STARTER';
+  let txnType = 'RELOAD';
+  let lotSource = 'reload';
+
+  if (isSuccess) {
+    if (isPrepaidPurchase) {
+      // Canonical Prepaid tier purchase — apply tier bonus
+      const tierConfig = Object.values(PREPAID_TIERS).find(t => t.cash_price === data.amount_charged);
+      if (tierConfig) {
+        bookingValue = tierConfig.booking_value;
+        bonusBv = round2(tierConfig.booking_value - data.amount_charged);
+        lotTier = tierConfig.tier;
+      } else {
+        // Unknown tier amount — fail closed, no bonus
+        bookingValue = data.amount_charged;
+        bonusBv = 0;
+        lotTier = 'STARTER';
+      }
+      txnType = 'PREPAID_PURCHASE';
+      lotSource = 'purchase';
+    } else if (isTopup) {
+      bookingValue = data.amount_charged;
+      bonusBv = 0;
+      txnType = 'RELOAD';
+      lotSource = 'reload';
+    } else {
+      // recurring/retry — Auto-Fund plan bonus
+      bookingValue = config?.booking_value || data.amount_charged;
+      bonusBv = config?.bonus_booking_value || 0;
+      txnType = 'RELOAD';
+      lotSource = 'reload';
+    }
+  }
   const bookingValueCents = toCents(bookingValue);
   const credits = creditsFromCents(bookingValueCents);
 
@@ -183,9 +218,9 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       customer_id: data.customer_id,
       customer_email: data.customer_email,
       lot_id: lotId,
-      source: 'reload',
+      source: lotSource,
       source_transaction_id: '',
-      tier: 'STARTER',
+      tier: lotTier,
       credits_issued: credits,
       credits_remaining: credits,
       booking_value_issued: fromCents(bookingValueCents),
@@ -206,7 +241,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       wallet_id: data.wallet_id,
       customer_id: data.customer_id,
       customer_email: data.customer_email,
-      type: 'RELOAD',
+      type: txnType,
       cash_amount: data.amount_charged,
       credits: credits,
       booking_value: fromCents(bookingValueCents),
@@ -216,8 +251,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       lot_id: lotId,
       source: 'STRIPE',
       actor: data.actor || 'arriv_pay',
-      description: `Auto-Fund ${data.event_type} — $${data.amount_charged} → $${fromCents(bookingValueCents)} booking value${bonusBv > 0 ? ` (incl. $${round2(bonusBv)} bonus)` : ''}`,
-      prepaid_tier: '',
+      description: `${isPrepaidPurchase ? 'Prepaid' : 'Auto-Fund'} ${data.event_type} — $${data.amount_charged} → $${fromCents(bookingValueCents)} booking value${bonusBv > 0 ? ` (incl. $${round2(bonusBv)} bonus)` : ''}`,
+      prepaid_tier: lotTier,
       created_at: nowIso,
     });
 

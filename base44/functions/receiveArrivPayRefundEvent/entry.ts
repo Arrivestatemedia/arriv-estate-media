@@ -4,6 +4,7 @@ import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCr
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
 import { evaluateCertificationBypass, isCertificationId } from '../../shared/certificationMode.ts';
 import { processCommissionReversal } from '../../shared/commissionReversalEngine.ts';
+import { processWalletRefundAdjustment } from '../../shared/walletRefundEngine.ts';
 
 /**
  * Arriv Pay Refund Event Webhook
@@ -142,6 +143,28 @@ export default async function(req) {
       cert_mode: certResult.isCertification,
     });
 
+    // ── Process wallet/CreditLot refund adjustment ────────────────────────
+    // Reverses the unredeemed booking value from the original payment's
+    // CreditLot, creates a REFUND_REVERSAL WalletTransaction, and adjusts
+    // the wallet balance. Redeemed credits are reported as an unresolved
+    // decision (no approved policy for reversing consumed booking value).
+    let walletRefundResult = null;
+    try {
+      walletRefundResult = await processWalletRefundAdjustment({
+        base44: base44.asServiceRole,
+        refund_event_id,
+        original_payment_event_id,
+        refunded_cash: round2(refunded_commissionable_amount),
+        refund_type: (refund_type === 'chargeback' ? 'chargeback' : (refunded_commissionable_amount >= (await getOriginalCash(base44.asServiceRole, original_payment_event_id)) ? 'full' : 'partial')),
+        reason: reason || refund_type || 'customer_refund',
+        actor: 'arriv_pay',
+        cert_mode: certResult.isCertification,
+      });
+    } catch (e) {
+      console.error('Wallet refund adjustment error:', e.message);
+      walletRefundResult = { status: 'error', message: e.message };
+    }
+
     // ── HTTP error semantics ─────────────────────────────────────────────
     // 200 = processed or duplicate (idempotent acknowledgement)
     // 400 = invalid request (missing fields, non-positive amount)
@@ -153,12 +176,27 @@ export default async function(req) {
 
     return Response.json({
       ...result,
+      wallet_refund: walletRefundResult,
       refund_type: refund_type || 'customer_refund',
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
     }, { status: httpStatus });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+async function getOriginalCash(base44: any, paymentEventId: string): Promise<number> {
+  try {
+    const resp = await base44.entities.AutoFundPaymentEvent.filter(
+      { payment_event_id: paymentEventId },
+      undefined,
+      1
+    );
+    const arr = Array.isArray(resp) ? resp : (resp?.data || []);
+    return arr.length > 0 ? (arr[0].amount_charged || 0) : 0;
+  } catch {
+    return 0;
   }
 }
 
