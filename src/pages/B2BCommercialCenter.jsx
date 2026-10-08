@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Building2, TrendingUp, DollarSign, Users, AlertTriangle, Calendar, ChevronRight, Loader2 } from "lucide-react";
+import { Building2, TrendingUp, DollarSign, Users, AlertTriangle, Calendar, ChevronRight, Loader2, Shield } from "lucide-react";
+import DelinquencyTab from "@/components/b2b/DelinquencyTab";
 
 export default function B2BCommercialCenter() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [activeTab, setActiveTab] = useState('organizations');
 
   useEffect(() => { loadData(); }, []);
 
@@ -44,6 +46,14 @@ export default function B2BCommercialCenter() {
           <MetricCard icon={Calendar} label="Upcoming Renewals" value={metrics.upcoming_renewals || 0} />
         </div>
 
+        <div className="flex gap-2 mb-4">
+          <TabButton active={activeTab === 'organizations'} onClick={() => setActiveTab('organizations')} icon={Building2} label="Organizations" />
+          <TabButton active={activeTab === 'delinquency'} onClick={() => setActiveTab('delinquency')} icon={Shield} label="Delinquency" />
+        </div>
+
+        {activeTab === 'delinquency' ? (
+          <DelinquencyTab />
+        ) : (
         <div className="bg-white rounded-xl border border-[#B8956A]/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-[#B8956A]/20">
             <h2 className="text-lg font-medium text-[#1A1A1A]">Organizations</h2>
@@ -66,6 +76,7 @@ export default function B2BCommercialCenter() {
             ))}
           </div>
         </div>
+        )}
       </div>
 
       {selectedOrg && <OrgDetailModal org={selectedOrg} onClose={() => setSelectedOrg(null)} />}
@@ -111,5 +122,21 @@ function DetailRow({ label, value }) {
       <span className="text-[#1A1A1A]/50">{label}</span>
       <span className="text-[#1A1A1A] font-medium">{value || '—'}</span>
     </div>
+  );
+}
+
+function TabButton({ active, onClick, icon: Icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+        active
+          ? 'bg-[#B8956A] text-white'
+          : 'bg-white text-[#1A1A1A]/60 border border-[#B8956A]/20 hover:bg-[#B8956A]/5'
+      }`}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </button>
   );
 }

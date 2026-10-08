@@ -145,6 +145,53 @@ export default async function(req) {
       return Response.json({ error: 'Invalid status. Must be: succeeded, failed, or retry_succeeded' }, { status: 400 });
     }
 
+    // ── B2B invoice payment classification ──────────────────────────────────
+    // Not every Arriv Pay event is a B2B invoice payment. Explicit classification:
+    //   1. body.b2b_invoice_id present → B2B invoice payment (reconcile directly)
+    //   2. body.event_type === 'b2b_recurring' or 'b2b_implementation' → B2B payment
+    //   3. Otherwise → individual Auto-Fund/Prepaid (existing flow)
+    const b2bInvoiceId = body.b2b_invoice_id;
+    const isB2BPayment = !!b2bInvoiceId || body.event_type === 'b2b_recurring' || body.event_type === 'b2b_implementation';
+
+    if (isB2BPayment && status === 'succeeded') {
+      let invoiceId = b2bInvoiceId;
+
+      // If no direct invoice ID, try to find by stripe_invoice_id or customer_email
+      if (!invoiceId) {
+        const b2bInvoices = await base44.asServiceRole.entities.Invoice.filter({
+          payment_status: 'unpaid',
+          invoice_source: { $in: ['b2b_annual_contract', 'b2b_implementation', 'b2b_approved_overage'] },
+        });
+        const match = b2bInvoices.find(inv =>
+          (stripe_invoice_id && inv.stripe_payment_intent_id === stripe_invoice_id) ||
+          (customer_email && inv.client_email?.toLowerCase() === customer_email.toLowerCase())
+        );
+        invoiceId = match?.id;
+      }
+
+      if (invoiceId) {
+        try {
+          const reconcileResult = await base44.asServiceRole.functions.invoke('manageB2BDelinquency', {
+            action: 'process_payment_received',
+            invoice_id: invoiceId,
+            payment_intent_id: stripe_charge_id || stripe_invoice_id,
+            amount_paid: amount_charged,
+            certification_mode: certResult.isCertification,
+          });
+          return Response.json({
+            ...reconcileResult,
+            b2b_payment: true,
+            certification_mode: certResult.isCertification,
+            cert_id: certResult.certId,
+          });
+        } catch (e) {
+          return Response.json({ error: `B2B reconciliation failed: ${e.message}` }, { status: 500 });
+        }
+      }
+
+      console.warn('B2B payment event without matching invoice:', payment_event_id);
+    }
+
     // ── Process via shared processor (handles idempotency + credit issuance) ─
     const result = await processAutoFundPayment({
       base44: base44.asServiceRole,
