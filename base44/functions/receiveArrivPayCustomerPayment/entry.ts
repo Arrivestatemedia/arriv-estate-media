@@ -162,7 +162,6 @@ export default async function(req) {
       ...result,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
-      _walletLookupMethod: "filter_v2",
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
