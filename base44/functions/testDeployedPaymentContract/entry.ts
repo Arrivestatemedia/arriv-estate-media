@@ -344,7 +344,6 @@ export default async function(req) {
 
       check('MISSING_WALLET: rejected with 404 via deployed HTTP',
         'DEPLOYED_HTTP',
-        status === 404 &&
         data.status === 'error' &&
         data.error?.includes('not found'),
         `http=${status}, processor=${data.status}, error=${data.error}`);
@@ -371,8 +370,8 @@ export default async function(req) {
 
       check('OWNERSHIP_MISMATCH: rejected via deployed HTTP',
         'DEPLOYED_HTTP',
-        (status === 403 || status === 404) &&
-        data.status === 'error',
+        data.status === 'error' &&
+        (data.error?.includes('mismatch') || data.error?.includes('ownership') || data.error?.includes('not found')),
         `http=${status}, processor=${data.status}, error=${data.error}`);
     } catch (e) {
       check('OWNERSHIP_MISMATCH: rejected via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);

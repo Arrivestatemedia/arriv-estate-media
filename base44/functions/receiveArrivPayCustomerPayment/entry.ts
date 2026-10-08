@@ -326,6 +326,7 @@ export default async function(req) {
 
     return Response.json({
       ...result,
+      _debug_event_type: event_type,
       recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
