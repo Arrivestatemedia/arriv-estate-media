@@ -36,7 +36,6 @@ export default async function(req) {
     let failed = 0;
 
     // ── Create a synthetic active rep ───────────────────────────────────────
-    const certRepId = `${certRunId}_rep`;
     const certRep = await b.entities.SalesTeamMember.create({
       email: `${certRunId}@cert.test`,
       full_name: 'Cert Test Rep',
@@ -46,9 +45,9 @@ export default async function(req) {
       role: 'user',
       compensation_type: 'commission_only',
     }).catch(() => null);
+    const certRepId = certRep?.id || '';
 
     // ── Create an inactive rep ──────────────────────────────────────────────
-    const certInactiveRepId = `${certRunId}_inactive_rep`;
     const certInactiveRep = await b.entities.SalesTeamMember.create({
       email: `${certRunId}_inactive@cert.test`,
       full_name: 'Cert Inactive Rep',
@@ -57,9 +56,9 @@ export default async function(req) {
       role: 'user',
       compensation_type: 'commission_only',
     }).catch(() => null);
+    const certInactiveRepId = certInactiveRep?.id || '';
 
     // ── Create a pending-resolution rep (no payroll mapping) ────────────────
-    const certPendingRepId = `${certRunId}_pending_rep`;
     const certPendingRep = await b.entities.SalesTeamMember.create({
       email: `${certRunId}_pending@cert.test`,
       full_name: 'Cert Pending Rep',
@@ -69,6 +68,7 @@ export default async function(req) {
       role: 'user',
       compensation_type: 'commission_only',
     }).catch(() => null);
+    const certPendingRepId = certPendingRep?.id || '';
 
     // Helper: create a synthetic B2BCommissionEvent
     async function createCertEvent(overrides) {
@@ -192,6 +192,7 @@ export default async function(req) {
       const event = await createCertEvent({
         sales_rep_id: certInactiveRepId,
         sales_rep_email: `${certRunId}_inactive@cert.test`,
+        idempotency_key: `${certRunId}_inactive_${Math.random().toString(36).substring(2, 8)}`,
       });
       const elig = await validateEligibility(event.id);
 
@@ -265,6 +266,7 @@ export default async function(req) {
       const event = await createCertEvent({
         sales_rep_id: certPendingRepId,
         sales_rep_email: `${certRunId}_pending@cert.test`,
+        idempotency_key: `${certRunId}_pending_${Math.random().toString(36).substring(2, 8)}`,
       });
       const elig = await validateEligibility(event.id);
 
