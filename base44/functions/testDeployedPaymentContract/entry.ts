@@ -739,6 +739,24 @@ export default async function(req) {
       check('WALLET_ISOLATION_CREDIT_PRECISION: cert isolation + integer cents via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
 
+    // ── DEBUG: Check stored event_type for Starter purchase ──────────────
+    let debugStarterEvent: any = null;
+    try {
+      const starterEvents = await b.entities.AutoFundPaymentEvent.filter({
+        payment_event_id: `${TEST_RUN_ID}_starter_500`,
+      }, undefined, 1);
+      const starterArr = Array.isArray(starterEvents) ? starterEvents : (starterEvents?.data || []);
+      debugStarterEvent = {
+        stored_event_type: starterArr[0]?.event_type,
+        stored_booking_value_cents: starterArr[0]?.booking_value_issued_cents,
+        stored_bonus: starterArr[0]?.bonus_booking_value,
+        raw_event_has_prepaid_purchase: starterArr[0]?.raw_event?.includes('prepaid_purchase'),
+        raw_event_snippet: starterArr[0]?.raw_event?.substring(0, 200),
+      };
+    } catch (e) {
+      debugStarterEvent = { error: e.message };
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // SNAPSHOT PRODUCTION FINANCIALS (AFTER)
     // ═══════════════════════════════════════════════════════════════════════
