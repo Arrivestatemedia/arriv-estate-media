@@ -198,6 +198,56 @@
       "type": "boolean",
       "default": false,
       "description": "Whether Preferred membership benefits can stack with B2B contract. Default false per \u00a7XXXVII \u2014 B2B economics take precedence."
+    },
+    "booking_restricted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether new booking creation is restricted due to payment delinquency (grace period expired). Existing paid bookings, completed jobs, and delivered media are always preserved."
+    },
+    "booking_restricted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When booking restriction was applied"
+    },
+    "booking_restriction_reason": {
+      "type": "string",
+      "description": "Reason for booking restriction (GRACE_EXPIRED, ENTERPRISE_APPROVAL_GRANTED, etc.)"
+    },
+    "delinquency_outstanding_balance": {
+      "type": "number",
+      "description": "Total outstanding balance across all unpaid B2B invoices"
+    },
+    "delinquency_invoice_count": {
+      "type": "integer",
+      "description": "Count of unpaid B2B invoices"
+    },
+    "delinquency_oldest_past_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date of the oldest past-due invoice"
+    },
+    "delinquency_days_past_due_max": {
+      "type": "integer",
+      "description": "Maximum days past due across all outstanding invoices"
+    },
+    "management_exception_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a management exception or payment arrangement is currently active"
+    },
+    "enterprise_restriction_approved_by": {
+      "type": "string",
+      "description": "Admin who explicitly approved booking restriction for an enterprise account"
+    },
+    "enterprise_restriction_approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When enterprise booking restriction was explicitly approved"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is a synthetic certification test organization (cert_-prefixed). Excluded from production analytics."
     }
   },
   "required": [

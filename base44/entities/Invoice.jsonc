@@ -190,6 +190,110 @@
     "notes": {
       "type": "string",
       "description": "Additional notes for B2B invoices"
+    },
+    "delinquency_status": {
+      "type": "string",
+      "enum": [
+        "not_yet_due",
+        "payment_pending",
+        "payment_succeeded",
+        "payment_declined",
+        "payment_overdue",
+        "retry_scheduled",
+        "recovered",
+        "grace_expired",
+        "booking_restricted",
+        "exception_approved",
+        "subscription_cancelled"
+      ],
+      "description": "B2B delinquency lifecycle status. Calculated from due_date + payment_status + customer classification."
+    },
+    "grace_period_days": {
+      "type": "integer",
+      "description": "Calculated grace period in days based on customer classification (7/14/21/30). Null if classification ambiguous."
+    },
+    "grace_period_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date + grace period days. The date after which restrictions may apply."
+    },
+    "days_past_due": {
+      "type": "integer",
+      "description": "Days past the contractual due date (calculated)."
+    },
+    "delinquency_reminder_3d_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 3-day post-due-date reminder was sent"
+    },
+    "delinquency_reminder_7d_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 7-day post-due-date reminder was sent"
+    },
+    "restriction_warning_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the advance restriction warning was sent (for longer grace periods)"
+    },
+    "booking_restricted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When new booking creation was restricted for this organization due to delinquency"
+    },
+    "restriction_notice_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the booking restriction notification was sent"
+    },
+    "recovered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When payment was recovered after a delinquency period"
+    },
+    "recovery_notice_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the payment recovery notification was sent"
+    },
+    "management_exception_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "approved",
+        "expired",
+        "denied"
+      ],
+      "default": "none",
+      "description": "Management exception status for enterprise accounts or documented payment arrangements"
+    },
+    "management_exception_approved_by": {
+      "type": "string",
+      "description": "Admin email who approved the management exception"
+    },
+    "management_exception_reason": {
+      "type": "string",
+      "description": "Reason for the management exception or payment arrangement"
+    },
+    "management_exception_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the management exception expires"
+    },
+    "payment_retry_scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the next payment retry is scheduled"
+    },
+    "partial_payment_amount": {
+      "type": "number",
+      "description": "Amount of partial payment received (if applicable). Invoice remains unpaid until full amount is collected."
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is a synthetic certification test invoice (cert_-prefixed). Excluded from production analytics."
     }
   },
   "required": [
