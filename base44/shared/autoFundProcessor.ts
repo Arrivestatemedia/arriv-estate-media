@@ -17,8 +17,12 @@ import {
   addMonths,
   generateId,
   round2,
+  toCents,
+  fromCents,
+  creditsFromCents,
   PREPAID_CREDIT_VALUE,
 } from './prepaidEngine.ts';
+import { isCertificationId } from './certificationMode.ts';
 
 export interface ProcessPaymentParams {
   base44: any;
@@ -64,13 +68,16 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
 
   // ── Calculate booking value and credits ──────────────────────────────────
   // Top-ups get NO bonus (ordinary payment). Recurring gets plan bonus if applicable.
+  // booking_value_cents is the AUTHORITATIVE value (integer, no floating-point loss).
+  // credits and booking_value are DERIVED for display only.
   const bookingValue = isSuccess
     ? (isTopup ? data.amount_charged : (config?.booking_value || data.amount_charged))
     : 0;
   const bonusBv = isSuccess
     ? (isTopup ? 0 : (config?.bonus_booking_value || 0))
     : 0;
-  const credits = bookingValue / PREPAID_CREDIT_VALUE;
+  const bookingValueCents = toCents(bookingValue);
+  const credits = creditsFromCents(bookingValueCents);
 
   let walletTxnId = '';
   let lotId = '';
@@ -116,6 +123,57 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
     }
     const wallet = matchingWallets[0];
 
+    // ── Certification wallet isolation ────────────────────────────────────
+    // A cert_ payment ID or cert_ customer_email alone is NOT proof that the
+    // wallet is synthetic. We verify against the PERSISTED wallet record:
+    //
+    //   1. Ownership: wallet.customer_id must match the event's customer_id
+    //   2. Email match: wallet.customer_email must match the event's customer_email
+    //   3. In cert mode: event customer_email must be cert_-prefixed (synthetic event)
+    //   4. In cert mode: wallet customer_email must be cert_-prefixed (synthetic fixture)
+    //
+    // This prevents a cert_-prefixed event from crediting a production wallet.
+    // Fail closed — no financial mutation if any check fails.
+    if (wallet.customer_id !== data.customer_id) {
+      return {
+        status: 'error',
+        error: 'Wallet ownership mismatch — wallet.customer_id does not match event customer_id',
+        payment_event_id: data.payment_event_id,
+      };
+    }
+    if (wallet.customer_email !== data.customer_email) {
+      return {
+        status: 'error',
+        error: 'Wallet email mismatch — wallet.customer_email does not match event customer_email',
+        payment_event_id: data.payment_event_id,
+      };
+    }
+    if (data.cert_mode) {
+      if (!isCertificationId(data.customer_email)) {
+        return {
+          status: 'error',
+          error: 'Certification mode requires cert_-prefixed customer_email in the event payload',
+          payment_event_id: data.payment_event_id,
+        };
+      }
+      if (!isCertificationId(wallet.customer_email)) {
+        return {
+          status: 'error',
+          error: 'Certification mode cannot operate on a production wallet — wallet customer_email is not cert_-prefixed',
+          payment_event_id: data.payment_event_id,
+        };
+      }
+    } else {
+      // Production events must NOT operate on certification wallets (mixed identity rejection)
+      if (isCertificationId(wallet.customer_email)) {
+        return {
+          status: 'error',
+          error: 'Production event cannot operate on a certification wallet — mixed synthetic/production identity rejected',
+          payment_event_id: data.payment_event_id,
+        };
+      }
+    }
+
     // ── Create credit lot (12-month validity, FIFO) ────────────────────────
     lotId = idPrefix + generateId('lot');
     const expiresAt = addMonths(new Date(), 12).toISOString();
@@ -128,10 +186,12 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       source: 'reload',
       source_transaction_id: '',
       tier: 'STARTER',
-      credits_issued: round2(credits),
-      credits_remaining: round2(credits),
-      booking_value_issued: round2(bookingValue),
-      booking_value_remaining: round2(bookingValue),
+      credits_issued: credits,
+      credits_remaining: credits,
+      booking_value_issued: fromCents(bookingValueCents),
+      booking_value_remaining: fromCents(bookingValueCents),
+      booking_value_issued_cents: bookingValueCents,
+      booking_value_remaining_cents: bookingValueCents,
       expires_at: expiresAt,
       expired: false,
       fifo_order: Date.now(),
@@ -148,14 +208,15 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       customer_email: data.customer_email,
       type: 'RELOAD',
       cash_amount: data.amount_charged,
-      credits: round2(credits),
-      booking_value: round2(bookingValue),
+      credits: credits,
+      booking_value: fromCents(bookingValueCents),
+      booking_value_cents: bookingValueCents,
       stripe_transaction_id: data.stripe_charge_id || data.stripe_invoice_id || '',
       booking_id: '',
       lot_id: lotId,
       source: 'STRIPE',
       actor: data.actor || 'arriv_pay',
-      description: `Auto-Fund ${data.event_type} — $${data.amount_charged} → $${round2(bookingValue)} booking value${bonusBv > 0 ? ` (incl. $${round2(bonusBv)} bonus)` : ''}`,
+      description: `Auto-Fund ${data.event_type} — $${data.amount_charged} → $${fromCents(bookingValueCents)} booking value${bonusBv > 0 ? ` (incl. $${round2(bonusBv)} bonus)` : ''}`,
       prepaid_tier: '',
       created_at: nowIso,
     });
@@ -166,13 +227,21 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
     }
 
     // ── Update wallet balance (wallet already retrieved above) ───────────
-    const newCredits = round2(wallet.credits_balance + credits);
-    const newBv = round2(wallet.booking_value_balance + bookingValue);
+    // booking_value_balance_cents is AUTHORITATIVE (integer, exact).
+    // credits_balance and booking_value_balance are DERIVED for display.
+    const walletBvCents = wallet.booking_value_balance_cents ?? toCents(wallet.booking_value_balance || 0);
+    const walletTotalIssuedCents = wallet.total_booking_value_issued_cents ?? toCents(wallet.total_booking_value_issued || 0);
+    const newBvCents = walletBvCents + bookingValueCents;
+    const newTotalIssuedCents = walletTotalIssuedCents + bookingValueCents;
+    const newCredits = creditsFromCents(newBvCents);
+    const newBv = fromCents(newBvCents);
     await base44.entities.PrepaidWallet.update(data.wallet_id, {
       credits_balance: newCredits,
       booking_value_balance: newBv,
-      total_credits_issued: round2(wallet.total_credits_issued + credits),
-      total_booking_value_issued: round2(wallet.total_booking_value_issued + bookingValue),
+      booking_value_balance_cents: newBvCents,
+      total_credits_issued: creditsFromCents(newTotalIssuedCents),
+      total_booking_value_issued: fromCents(newTotalIssuedCents),
+      total_booking_value_issued_cents: newTotalIssuedCents,
       updated_at: nowIso,
     });
 
@@ -221,9 +290,10 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
     customer_id: data.customer_id,
     customer_email: data.customer_email,
     amount_charged: data.amount_charged,
-    booking_value_issued: round2(bookingValue),
+    booking_value_issued: fromCents(bookingValueCents),
+    booking_value_issued_cents: bookingValueCents,
     bonus_booking_value: round2(bonusBv),
-    credits_issued: round2(credits),
+    credits_issued: credits,
     status: data.status,
     event_type: data.event_type,
     stripe_invoice_id: data.stripe_invoice_id || '',
@@ -242,8 +312,9 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
   return {
     status: 'processed',
     payment_event_id: data.payment_event_id,
-    credits_issued: round2(credits),
-    booking_value_issued: round2(bookingValue),
+    credits_issued: credits,
+    booking_value_issued: fromCents(bookingValueCents),
+    booking_value_issued_cents: bookingValueCents,
     bonus_booking_value: round2(bonusBv),
     lot_id: lotId,
     wallet_transaction_id: walletTxnId,

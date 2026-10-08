@@ -37,36 +37,62 @@
     "credits_balance": {
       "type": "number",
       "default": 0,
-      "description": "Canonical credit balance. Authoritative ledger value."
+      "description": "Display credit balance. Derived from booking_value_balance_cents / 27500. Not authoritative."
     },
     "booking_value_balance": {
       "type": "number",
       "default": 0,
-      "description": "Display booking value (credits_balance * $275). Derived, not authoritative."
+      "description": "Display booking value (credits_balance * $275). Derived from booking_value_balance_cents. Not authoritative."
+    },
+    "booking_value_balance_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Authoritative booking value balance in integer cents. No floating-point loss. Sum of all non-expired lot booking_value_remaining_cents."
     },
     "total_credits_issued": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_issued_cents."
     },
     "total_booking_value_issued": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_issued_cents."
+    },
+    "total_booking_value_issued_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Authoritative total booking value ever issued, in integer cents."
     },
     "total_credits_redeemed": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_redeemed_cents."
     },
     "total_booking_value_redeemed": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_redeemed_cents."
+    },
+    "total_booking_value_redeemed_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Authoritative total booking value redeemed, in integer cents."
     },
     "total_credits_expired": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_expired_cents."
     },
     "total_booking_value_expired": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Display only \u2014 derived from total_booking_value_expired_cents."
+    },
+    "total_booking_value_expired_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Authoritative total booking value expired, in integer cents."
     },
     "promotional_benefits_available": {
       "type": "integer",

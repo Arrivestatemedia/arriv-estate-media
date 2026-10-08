@@ -23,7 +23,12 @@
     },
     "booking_value_issued": {
       "type": "number",
-      "description": "Booking value issued to wallet (0 if payment failed)"
+      "description": "Booking value issued to wallet (display). Derived from booking_value_issued_cents."
+    },
+    "booking_value_issued_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Booking value issued in integer cents. Authoritative \u2014 no floating-point loss."
     },
     "bonus_booking_value": {
       "type": "number",
@@ -31,7 +36,7 @@
     },
     "credits_issued": {
       "type": "number",
-      "description": "Credits issued (booking_value / 275). 0 if failed."
+      "description": "Credits issued (display). Derived from booking_value_issued_cents / 27500. 0 if failed."
     },
     "status": {
       "type": "string",

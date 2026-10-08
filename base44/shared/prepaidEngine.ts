@@ -151,6 +151,26 @@ export function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+/** Convert dollars to integer cents (authoritative — no floating-point loss). */
+export function toCents(dollars: number): number {
+  return Math.round(dollars * 100);
+}
+
+/** Convert integer cents to dollars (display only). */
+export function fromCents(cents: number): number {
+  return round2(cents / 100);
+}
+
+/** Convert integer cents to credits (display only). 1 credit = 27500 cents. */
+export function creditsFromCents(cents: number): number {
+  return round2(cents / (PREPAID_CREDIT_VALUE * 100));
+}
+
+/** Convert credits to integer cents (for display-derived amounts). */
+export function centsFromCredits(credits: number): number {
+  return Math.round(credits * PREPAID_CREDIT_VALUE * 100);
+}
+
 // ┌────────────────────────────────────────────────────────────────────────────
 // COMMISSION CALCULATION
 // └────────────────────────────────────────────────────────────────────────────
@@ -221,6 +241,82 @@ export function consumeFIFO(lots: CreditLotLike[], creditsNeeded: number): Consu
     credits_shortfall: round2(Math.max(0, remaining)),
     total_consumed: round2(totalConsumed),
     booking_value_consumed: round2(bookingValueConsumed),
+  };
+}
+
+// ┌────────────────────────────────────────────────────────────────────────────
+// FIFO CREDIT CONSUMPTION — INTEGER CENTS (authoritative, no precision loss)
+// └────────────────────────────────────────────────────────────────────────────
+
+export interface CreditLotCentsLike {
+  lot_id: string;
+  booking_value_remaining_cents: number;
+  fifo_order: number;
+  expired: boolean;
+  expires_at: string;
+}
+
+export interface ConsumptionEntryCents {
+  lot_id: string;
+  booking_value_cents: number;
+  credits: number;
+  booking_value: number;
+}
+
+export interface ConsumptionResultCents {
+  consumption: ConsumptionEntryCents[];
+  booking_value_shortfall_cents: number;
+  total_consumed_cents: number;
+  total_consumed: number;
+  booking_value_consumed: number;
+  credits_consumed: number;
+}
+
+/**
+ * Consume booking value from lots using FIFO (oldest eligible first).
+ * Works in INTEGER CENTS — no floating-point precision loss.
+ * Eligible = not expired, booking_value_remaining_cents > 0, not past expiry date.
+ * Does NOT mutate input lots — returns a consumption plan.
+ *
+ * Falls back to booking_value_remaining * 100 when booking_value_remaining_cents
+ * is missing (legacy lots created before the cents migration).
+ */
+export function consumeFIFOCents(lots: CreditLotCentsLike[], centsNeeded: number): ConsumptionResultCents {
+  const now = new Date().toISOString();
+  const eligible = lots
+    .filter(l => {
+      const remaining = l.booking_value_remaining_cents ?? Math.round((l as any).booking_value_remaining * 100);
+      return !l.expired && remaining > 0 && new Date(l.expires_at) > new Date(now);
+    })
+    .sort((a, b) => (a.fifo_order || 0) - (b.fifo_order || 0));
+
+  const consumption: ConsumptionEntryCents[] = [];
+  let remaining = Math.round(centsNeeded);
+  let totalConsumedCents = 0;
+
+  for (const lot of eligible) {
+    if (remaining <= 0) break;
+    const lotRemaining = lot.booking_value_remaining_cents ?? Math.round((lot as any).booking_value_remaining * 100);
+    const take = Math.min(lotRemaining, remaining);
+    if (take <= 0) continue;
+    const credits = take / (PREPAID_CREDIT_VALUE * 100);
+    consumption.push({
+      lot_id: lot.lot_id,
+      booking_value_cents: take,
+      credits: round2(credits),
+      booking_value: fromCents(take),
+    });
+    remaining -= take;
+    totalConsumedCents += take;
+  }
+
+  return {
+    consumption,
+    booking_value_shortfall_cents: Math.max(0, remaining),
+    total_consumed_cents: totalConsumedCents,
+    total_consumed: fromCents(totalConsumedCents),
+    booking_value_consumed: fromCents(totalConsumedCents),
+    credits_consumed: round2(totalConsumedCents / (PREPAID_CREDIT_VALUE * 100)),
   };
 }
 

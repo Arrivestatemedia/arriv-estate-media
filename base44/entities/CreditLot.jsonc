@@ -43,20 +43,30 @@
     },
     "credits_issued": {
       "type": "number",
-      "description": "Original credits in this lot"
+      "description": "Original credits in this lot. Display only \u2014 derived from booking_value_issued_cents."
     },
     "credits_remaining": {
       "type": "number",
       "default": 0,
-      "description": "Unconsumed credits remaining in this lot"
+      "description": "Unconsumed credits remaining. Display only \u2014 derived from booking_value_remaining_cents."
     },
     "booking_value_issued": {
       "type": "number",
-      "description": "Original booking value (credits_issued * $275)"
+      "description": "Original booking value (display). Derived from booking_value_issued_cents."
     },
     "booking_value_remaining": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Remaining booking value (display). Derived from booking_value_remaining_cents."
+    },
+    "booking_value_issued_cents": {
+      "type": "integer",
+      "description": "Original booking value in integer cents. Authoritative \u2014 no floating-point loss."
+    },
+    "booking_value_remaining_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Remaining booking value in integer cents. Authoritative for FIFO and expiration."
     },
     "expires_at": {
       "type": "string",

@@ -38,12 +38,17 @@
     "credits": {
       "type": "number",
       "default": 0,
-      "description": "Credit delta. Positive for issuance, negative for consumption/expiration."
+      "description": "Credit delta. Display only \u2014 derived from booking_value_cents."
     },
     "booking_value": {
       "type": "number",
       "default": 0,
-      "description": "Booking value delta (credits * $275)"
+      "description": "Booking value delta (display). Derived from booking_value_cents."
+    },
+    "booking_value_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Booking value delta in integer cents. Authoritative \u2014 no floating-point loss."
     },
     "stripe_transaction_id": {
       "type": "string",
