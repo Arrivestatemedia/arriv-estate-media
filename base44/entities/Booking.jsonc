@@ -140,6 +140,35 @@
     "referral_tender_amount": {
       "type": "integer",
       "description": "Referral reward tender applied, in CENTS"
+    },
+    "wallet_applied_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Booking value paid from the Arriv Wallet, in CENTS. 0 = no wallet used (standard cash booking)."
+    },
+    "wallet_id": {
+      "type": "string",
+      "description": "PrepaidWallet id redeemed for this booking (empty when no wallet was used)"
+    },
+    "wallet_funding_source": {
+      "type": "string",
+      "enum": [
+        "none",
+        "auto_fund",
+        "prepaid",
+        "mixed"
+      ],
+      "default": "none",
+      "description": "Which program funded the wallet balance redeemed for this booking. Informational/disclosure \u2014 Auto-Fund redemptions issue 'reload' lots, Prepaid 'purchase' lots."
+    },
+    "booking_funding_classification": {
+      "type": "string",
+      "enum": [
+        "standard_marketplace",
+        "wallet_funded"
+      ],
+      "default": "standard_marketplace",
+      "description": "Reliable server-side booking classification. 'wallet_funded' bookings (Auto-Fund or Prepaid redemption) generate ZERO booking-level sales commission \u2014 the advisor was already compensated at funding time. Standard marketplace bookings keep the existing 15% marketplace commission."
     }
   },
   "required": [

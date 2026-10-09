@@ -700,7 +700,27 @@ export function getAutoFundVipTerms(amount: number): AutoFundVipTerms | null {
   };
 }
 
-/** Auto-Fund commission: 10% of actual cash collected, same as prepaid. */
-export function calculateAutoFundCommission(cashCollected: number): number {
-  return round2(cashCollected * 0.10);
+// ┌────────────────────────────────────────────────────────────────────────────
+// FINAL AUTO-FUND SALES COMMISSION POLICY (owner-approved — supersedes flat 10%)
+// ─────────────────────────────────────────────────────────────────────────────
+//   First successful Auto-Fund payment, genuinely NEW Auto-Fund customer: 15%
+//   Every subsequent successful monthly Auto-Fund payment:                8%
+//   Every Auto-Fund booking (wallet redemption):                          0%
+//
+// Commission is ALWAYS on actual successfully collected cash — never on
+// promotional bonus Booking Value. Acquisition eligibility is CUSTOMER-level and
+// persistent: it does not reset on pause/resume, cancel/reactivate, tier change,
+// payment-method replacement, failed-then-retry, migration, or a replacement
+// subscription for the same customer identity.
+export const AUTO_FUND_FIRST_PAYMENT_RATE = 0.15;
+export const AUTO_FUND_RECURRING_RATE = 0.08;
+
+/**
+ * Auto-Fund Sales Growth Advisor commission.
+ * @param cashCollected actual successfully collected cash (never bonus Booking Value)
+ * @param isFirstPayment true ONLY for the customer's first successful Auto-Fund payment
+ */
+export function calculateAutoFundCommission(cashCollected: number, isFirstPayment = false): number {
+  const rate = isFirstPayment ? AUTO_FUND_FIRST_PAYMENT_RATE : AUTO_FUND_RECURRING_RATE;
+  return round2(cashCollected * rate);
 }

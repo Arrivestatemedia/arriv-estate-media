@@ -273,12 +273,12 @@ export default async function(req) {
     const commission = commissionArr[0];
 
     results['commission_attribution'] = {
-      status: (commission && commission.commission_amount === 10 && commission.gross_customer_cash === 100) ? 'PASS' : 'FAIL',
+      status: (commission && commission.commission_amount === 15 && commission.gross_customer_cash === 100) ? 'PASS' : 'FAIL',
       commission_amount: commission?.commission_amount,
-      expected: 10,
+      expected: 15,
       gross_cash: commission?.gross_customer_cash,
       expected_cash: 100,
-      note: '10% of $100 cash = $10. Commission uses actual funded cash, not $105 booking value.',
+      note: '15% first-payment acquisition on $100 cash = $15. Commission uses actual funded cash, not $105 booking value.',
     };
 
     // ── TEST 6: No commission without eligible rep ──────────────────────

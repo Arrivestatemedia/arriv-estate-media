@@ -1,6 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { resolveMarketplaceSalesRep } from '../../shared/payoutV2.ts';
 
+// Determine which funding program backs the wallet balance being redeemed.
+// Auto-Fund issues 'reload' credit lots; Prepaid purchases issue 'purchase' lots.
+// Used only for the disclosure label — commission suppression keys on wallet usage.
+async function resolveWalletFundingSource(base44, walletId) {
+  if (!walletId) return 'none';
+  try {
+    const res = await base44.asServiceRole.entities.CreditLot.filter({ wallet_id: walletId }, undefined, 200);
+    const lots = Array.isArray(res) ? res : (res?.data || []);
+    const hasReload = lots.some(l => l.source === 'reload');
+    const hasPurchase = lots.some(l => l.source === 'purchase');
+    if (hasReload && hasPurchase) return 'mixed';
+    if (hasReload) return 'auto_fund';
+    if (hasPurchase) return 'prepaid';
+    return 'none';
+  } catch {
+    return 'none';
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -15,9 +34,28 @@ Deno.serve(async (req) => {
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
     const isPastShoot = !!booking.past_shoot;
 
+    // ── Wallet-funded classification (reliable server-side, NOT a UI-only check) ─
+    // Auto-Fund and Prepaid redemptions must NOT generate a booking-level sales
+    // commission: the Sales Growth Advisor is already compensated at FUNDING time
+    // (Auto-Fund 15%/8%; Prepaid 10%). Classification keys on wallet value actually
+    // applied to this booking, taken from the submitted wallet decision and stamped
+    // immutably on the booking record.
+    const walletInput = booking.wallet || {};
+    const walletAppliedDollars = walletInput.use_wallet ? (parseFloat(walletInput.wallet_applied) || 0) : 0;
+    const walletAppliedCents = Math.max(0, Math.round(walletAppliedDollars * 100));
+    const isWalletFunded = walletAppliedCents > 0;
+    const walletFundingSource = isWalletFunded
+      ? await resolveWalletFundingSource(base44, walletInput.wallet_id)
+      : 'none';
+
     // Create booking in database — auto-approve past shoots
+    const { wallet: _walletInput, ...bookingFields } = booking;
     const createdBooking = await base44.asServiceRole.entities.Booking.create({
-      ...booking,
+      ...bookingFields,
+      wallet_applied_cents: walletAppliedCents,
+      wallet_id: isWalletFunded ? (walletInput.wallet_id || '') : '',
+      wallet_funding_source: walletFundingSource,
+      booking_funding_classification: isWalletFunded ? 'wallet_funded' : 'standard_marketplace',
       status: isPastShoot ? 'approved' : 'pending'
     });
 
@@ -67,7 +105,10 @@ Deno.serve(async (req) => {
     // The sales rep is resolved with Brad fallback — every eligible job has a
     // 15% sales commission. Uses the canonical commissionable_service_value
     // from the pricing engine when available; falls back to total_price * 0.15.
-    try {
+    // Auto-Fund / wallet-funded bookings: ZERO booking-level sales commission —
+    // the advisor was already compensated at funding time. Standard marketplace
+    // bookings keep the existing 15% PAYOUT_V2 commission.
+    if (!isWalletFunded) try {
       let repData = null;
       try {
         const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: resolvedRep.sales_member_id });

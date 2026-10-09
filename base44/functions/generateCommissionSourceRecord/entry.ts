@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const clearance = await computeClearanceDate(base44, invoice);
     const record = await generateSourceRecord(base44, invoice, clearance);
     if (!record) {
-      return Response.json({ skipped: true, reason: "no sales rep attributed to this invoice" });
+      return Response.json({ skipped: true, reason: "no commissionable source — no rep attributed, or the invoice belongs to a wallet-funded (Auto-Fund/Prepaid) booking" });
     }
 
     await writeAuditLog(base44, {

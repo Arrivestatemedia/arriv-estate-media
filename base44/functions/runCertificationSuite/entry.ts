@@ -220,7 +220,7 @@ export default async function(req) {
 
     // ════════════════════════════════════════════════════════════════════════
     // TEST 3: Auto-Fund $100 cert_ payment
-    // $100 customer cash → $105 Booking Value → ~0.3818 credits → $10 commission
+    // $100 customer cash → $105 Booking Value → ~0.3818 credits → $15 first-payment commission
     // ════════════════════════════════════════════════════════════════════════
     const afConfig = getAutoFundConfig(100);
     const certAfPaymentId = certRunId + '_autofund_pay';
@@ -546,7 +546,7 @@ export default async function(req) {
 
     // ════════════════════════════════════════════════════════════════════════
     // TEST 9: Auto-Fund refund (cash not Booking Value)
-    // $100 cash, $105 BV, $10 commission. Full $100 refund → $10 reversal (NOT $10.50).
+    // $100 cash, $105 BV, $15 first-payment commission. Full $100 refund → $15 reversal (NOT $15.75).
     // ════════════════════════════════════════════════════════════════════════
     const afRefundId = certRunId + '_af_refund';
     const afRefundResult = await processCommissionReversal({
@@ -561,12 +561,12 @@ export default async function(req) {
 
     const afRefundCreated = afRefundResult.results.find(r => r.status === 'created');
     results['autofund_refund'] = {
-      status: (afRefundCreated?.reversal_amount === 10 && afRefundCreated?.original_commissionable_cash === 100) ? 'PASS' : 'FAIL',
+      status: (afRefundCreated?.reversal_amount === 15 && afRefundCreated?.original_commissionable_cash === 100) ? 'PASS' : 'FAIL',
       reversal_amount: afRefundCreated?.reversal_amount,
-      expected_reversal: 10,
+      expected_reversal: 15,
       original_cash: afRefundCreated?.original_commissionable_cash,
       expected_cash: 100,
-      note: 'Reversal calculated from $100 customer cash, NOT $105 Booking Value',
+      note: 'Reversal calculated from $100 customer cash, NOT $105 Booking Value (15% first-payment commission)',
     };
 
     // ════════════════════════════════════════════════════════════════════════

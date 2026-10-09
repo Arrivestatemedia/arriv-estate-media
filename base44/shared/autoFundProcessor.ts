@@ -14,6 +14,7 @@
 import {
   getAutoFundConfig,
   calculateAutoFundCommission,
+  calculatePrepaidCommission,
   addMonths,
   generateId,
   round2,
@@ -45,6 +46,47 @@ export interface ProcessPaymentParams {
   actor?: string;
   /** When true, all generated child IDs are cert_-prefixed for certification isolation. */
   cert_mode?: boolean;
+}
+
+/** Reason marker written on the customer's acquisition commission event. */
+export const AUTO_FUND_FIRST_PAYMENT_REASON = 'AUTO_FUND_FIRST_PAYMENT_15_PERCENT';
+
+/**
+ * Customer-level Auto-Fund acquisition eligibility.
+ * Returns true ONLY for the customer's first successful Auto-Fund cycle payment.
+ *
+ * Persistent + customer-level: keyed on (a) prior successful cycle events for the
+ * same customer identity and (b) a prior acquisition-commission marker for that
+ * identity. It therefore does NOT reset on pause/resume, cancel/reactivate, tier
+ * change, payment-method replacement, failed-then-retry, migration, or a
+ * replacement subscription for the same customer.
+ */
+async function isFirstAutoFundPayment(base44, customerId, currentPaymentEventId) {
+  // (a) Any prior SUCCESSFUL Auto-Fund cycle payment for this customer identity?
+  const priorEventsRes = await base44.entities.AutoFundPaymentEvent.filter(
+    { customer_id: customerId, status: { $in: ['succeeded', 'retry_succeeded'] } },
+    undefined,
+    200
+  );
+  const priorEvents = Array.isArray(priorEventsRes) ? priorEventsRes : (priorEventsRes?.data || []);
+  const priorCyclePayments = priorEvents.filter(
+    e => e.payment_event_id !== currentPaymentEventId
+      && (e.event_type === 'recurring' || e.event_type === 'retry')
+  );
+  if (priorCyclePayments.length > 0) return false;
+
+  // (b) Defensive customer-level acquisition marker — blocks a second acquisition
+  //     award if the acquisition commission was already recorded for this identity
+  //     (guards a concurrency window where two cycle events arrive together).
+  const priorCommRes = await base44.entities.PrepaidCompensationEvent.filter(
+    { customer_id: customerId, source_type: 'AUTO_FUND_COMMISSION' },
+    undefined,
+    200
+  );
+  const priorComm = Array.isArray(priorCommRes) ? priorCommRes : (priorCommRes?.data || []);
+  if (priorComm.some(c => c.reason === AUTO_FUND_FIRST_PAYMENT_REASON)) return false;
+
+  return true;
 }
 
 export async function processAutoFundPayment(params: ProcessPaymentParams) {
@@ -310,7 +352,26 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       } catch {}
 
       if (repEligible) {
-        const commissionAmount = calculateAutoFundCommission(data.amount_charged);
+        // ── FINAL SALES COMMISSION POLICY ─────────────────────────────────
+        // Prepaid purchases keep their own 10% rule (Prepaid program unchanged).
+        // Auto-Fund: 15% on the first successful payment (customer-level,
+        // persistent), 8% on every subsequent payment. Always on collected cash,
+        // never on promotional bonus Booking Value.
+        let commissionAmount;
+        let commissionReason;
+        if (isPrepaidPurchase) {
+          commissionAmount = calculatePrepaidCommission(data.amount_charged);
+          commissionReason = 'PREPAID_COMMISSION_10_PERCENT';
+        } else {
+          const isCycleEvent = data.event_type === 'recurring' || data.event_type === 'retry';
+          const isFirstPayment = isCycleEvent
+            ? await isFirstAutoFundPayment(base44, data.customer_id, data.payment_event_id)
+            : false;
+          commissionAmount = calculateAutoFundCommission(data.amount_charged, isFirstPayment);
+          commissionReason = isFirstPayment
+            ? AUTO_FUND_FIRST_PAYMENT_REASON
+            : 'AUTO_FUND_RECURRING_8_PERCENT';
+        }
         commissionSourceEventId = idPrefix + generateId('empe');
         await base44.entities.PrepaidCompensationEvent.create({
           source_event_id: commissionSourceEventId,
@@ -325,6 +386,7 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
           currency: 'USD',
           earned_at: nowIso,
           status: 'APPROVED',
+          reason: commissionReason,
           prepaid_tier: '',
           delivered_to_payroll: false,
           delivery_attempts: 0,

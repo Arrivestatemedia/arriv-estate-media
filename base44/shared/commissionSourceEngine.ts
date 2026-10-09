@@ -108,6 +108,20 @@ export async function generateSourceRecord(base44, invoice, clearanceDate) {
   });
   if (existing && existing.length) return existing[0];
 
+  // Auto-Fund / wallet-funded bookings generate NO booking-level sales commission.
+  // The Sales Growth Advisor is compensated at FUNDING time (Auto-Fund 15%/8%);
+  // the specialist payout is unaffected. Standard marketplace bookings are unchanged.
+  if (invoice.booking_id) {
+    try {
+      const booking = await base44.asServiceRole.entities.Booking.get(invoice.booking_id);
+      if (booking && ((booking.wallet_applied_cents || 0) > 0 || booking.booking_funding_classification === 'wallet_funded')) {
+        return null;
+      }
+    } catch (_e) {
+      // Booking not found — fall through to standard marketplace behavior.
+    }
+  }
+
   const resolved = await resolveEmployeeForInvoice(base44, invoice);
   if (!resolved) return null;
   let { member, invite } = resolved;

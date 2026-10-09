@@ -5,6 +5,8 @@ import {
   getAutoFundConfig,
   getPriceForSqft,
   calculateAutoFundCommission,
+  AUTO_FUND_FIRST_PAYMENT_RATE,
+  AUTO_FUND_RECURRING_RATE,
   round2,
   resolveVipAddOnDiscount,
   isVipAutoFundTier,
@@ -173,13 +175,15 @@ export default async function (req) {
         adversarial: true,
         jobs: [{ pkg: 'premium', sqft: 10000, count: 2 }],
       },
-      {
-        id: 'adv_mls_12x',
-        label: 'ADVERSARIAL: 12x MLS walkthroughs per month — maximum booking count',
-        has_premium: false,
-        adversarial: true,
-        jobs: [{ pkg: 'mls', sqft: 2000, count: 12 }],
-      },
+      // ── MLS Walkthrough volume ladder (1/3/6/12/20 per month) ──────────────
+      { id: 'mls_1x', label: 'MLS volume: 1x/month (≤2,500 sqft)', has_premium: false, mls_volume: true, jobs: [{ pkg: 'mls', sqft: 2000, count: 1 }] },
+      { id: 'mls_3x', label: 'MLS volume: 3x/month (≤2,500 sqft)', has_premium: false, mls_volume: true, jobs: [{ pkg: 'mls', sqft: 2000, count: 3 }] },
+      { id: 'mls_6x', label: 'MLS volume: 6x/month (≤2,500 sqft)', has_premium: false, mls_volume: true, jobs: [{ pkg: 'mls', sqft: 2000, count: 6 }] },
+      { id: 'mls_12x', label: 'MLS volume: 12x/month (≤2,500 sqft)', has_premium: false, mls_volume: true, adversarial: true, jobs: [{ pkg: 'mls', sqft: 2000, count: 12 }] },
+      { id: 'mls_20x', label: 'MLS volume: 20x/month (≤2,500 sqft)', has_premium: false, mls_volume: true, adversarial: true, jobs: [{ pkg: 'mls', sqft: 2000, count: 20 }] },
+      { id: 'mls_6x_mid', label: 'MLS volume: 6x/month (2,501–3,500 sqft)', has_premium: false, mls_volume: true, jobs: [{ pkg: 'mls', sqft: 3000, count: 6 }] },
+      { id: 'mls_12x_mid', label: 'MLS volume: 12x/month (2,501–3,500 sqft)', has_premium: false, mls_volume: true, jobs: [{ pkg: 'mls', sqft: 3000, count: 12 }] },
+      // Adversarial mixes retained from the prior audit.
       {
         id: 'adv_cinematic_2x',
         label: 'ADVERSARIAL: 2x Cinematic per month (3,501-5,000 sqft)',
@@ -232,7 +236,8 @@ export default async function (req) {
 
       for (let m = 0; m < MONTHS; m++) {
         cashIn += config.amount;
-        commission += config.amount * commissionRate;
+        // FINAL commission policy: 15% on the first successful payment, 8% thereafter.
+        commission += config.amount * (m === 0 ? AUTO_FUND_FIRST_PAYMENT_RATE : AUTO_FUND_RECURRING_RATE);
         stripeFees += config.amount * stripeRate + stripeFixed;
         walletCents += Math.round(config.booking_value * 100);
 
@@ -261,9 +266,9 @@ export default async function (req) {
             payout += job.pkg === 'mls' ? mlsPayoutForSqft(job.sqft) : retail * SPECIALIST_PAYOUT_RATE;
             // Editing is charged ONCE per completed edit.
             editing += job.pkg === 'premium' ? premiumEditing : (EDITING_COST_OTHER[job.pkg] || 0);
-            // Intended rule: 15% booking commission on the CASH shortfall only.
-            bookingCommission += shortfall * BOOKING_COMMISSION_RATE;
-            // Current production system: 15% on the FULL retail (CSV) — the double-dip.
+            // FINAL policy: Auto-Fund bookings generate ZERO booking-level commission.
+            bookingCommission += 0;
+            // Superseded behavior (the gap this change closes): 15% on the FULL CSV.
             currentSystemBookingCommission += retail * BOOKING_COMMISSION_RATE;
             bookings += 1;
           }
@@ -318,6 +323,7 @@ export default async function (req) {
         scenario_id: scenario.id,
         scenario: scenario.label,
         adversarial: !!scenario.adversarial,
+        mls_volume: !!scenario.mls_volume,
         premium_editing: premiumEditing,
         months: MONTHS,
         bookings,
@@ -441,6 +447,18 @@ export default async function (req) {
       return `${amount}/mo | worst adversarial ${w.margin_pct}% (${w.scenario_id}, edit $${w.premium_editing}) | contribution $${w.contribution}`;
     });
 
+    // ── MLS Walkthrough volume ladder (§6) — 1/3/6/12/20 per month ─────────
+    const MLS_VOLUME_IDS = ['mls_1x', 'mls_3x', 'mls_6x', 'mls_12x', 'mls_20x', 'mls_6x_mid', 'mls_12x_mid'];
+    const mlsVolumeLines: string[] = [];
+    for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
+      for (const sid of MLS_VOLUME_IDS) {
+        const r = results.find(x => x.amount === amount && x.scenario_id === sid);
+        if (r) mlsVolumeLines.push(
+          `$${amount}/mo | ${sid} (annual retail $${r.retail_redeemed}) | margin ${r.margin_pct}% | contribution $${r.contribution} | unredeemed BV $${r.unredeemed_booking_value} | after obligations $${r.contribution_after_obligations}`
+        );
+      }
+    }
+
     // ── VIP ceiling impact on the worst scenario ───────────────────────────
     const worstTier = worstMargin.amount;
     const worstScenario = SCENARIOS.find(s => s.id === worstMargin.scenario_id)!;
@@ -473,7 +491,7 @@ export default async function (req) {
       `VERIFIED specialist payout: 40% of post-sales = 34% of retail for standard packages (mediaCompensationEngine STANDARD_40_PERCENT_AFTER_SALES).`,
       `MLS walkthroughs: guaranteed payout table ($50-$120 by tier), NOT a percentage of retail.`,
       `Payout is frozen at job creation (ProviderCompensationSnapshot) and paid via processWeeklyPayouts using the stored job.pay_rate.`,
-      `Booking commission: current production applies 15% on FULL CSV at booking submission (handleBookingSubmission). Intended rule: 15% of cash shortfall only. Gap = double_dip_gap.`,
+      `Booking commission: FINAL POLICY = 0% on Auto-Fund bookings (wallet redemption). The superseded behavior applied 15% on FULL CSV at booking submission — the gap it closes is double_dip_gap.`,
     ];
 
     const pass = negativeContribution.length === 0 && belowTargetMargin.length === 0
@@ -481,7 +499,7 @@ export default async function (req) {
 
     return Response.json({
       status: pass ? 'PASS' : 'REVIEW_REQUIRED',
-      model_version: 'v3_20261009_per_edit_editing_bounded_vip',
+      model_version: 'v4_20261009_final_commission_policy',
       combinations_tested: results.length,
       months_simulated: MONTHS,
       findings: {
@@ -494,6 +512,7 @@ export default async function (req) {
         worst_after_obligations: worstAfterObligations ? lineAfter(project(worstAfterObligations)) : null,
         per_tier: perTier,
         adversarial_worst: adversarialWorst,
+        mls_volume: mlsVolumeLines,
         below_target_margin: belowTargetMargin.map(line),
         negative_contribution: negativeContribution.map(line),
         negative_after_obligations: negativeAfterObligations.map(lineAfter),
@@ -506,9 +525,11 @@ export default async function (req) {
       methodology:
         'Wallet is a payment method, not a discount. total_consideration = wallet_applied + cash_shortfall = canonical retail. Payout and editing charged once, against redeemed services only. Unredeemed Booking Value deducted once, after realized contribution. Promotional bonus Booking Value is never cash.',
       model_changes: [
-        'Premium editing costed PER COMPLETED EDIT: $100-$150 expected, $175-$200 stress (was per square foot).',
-        'VIP enhanced support is a BOUNDED entitlement: maximum 4 sessions per month (48/year), modelled at 25% utilisation = 12 sessions/year.',
-        'Adversarial service mixes added to probe for negative contribution from any other mix.',
+        'FINAL Sales commission policy: 15% first successful Auto-Fund payment, 8% thereafter, 0% booking-level on Auto-Fund bookings.',
+        'Specialist payout uses the verified 34%-of-retail basis (40% of post-sales); MLS uses its guaranteed table.',
+        'Premium editing costed PER COMPLETED EDIT on the $100-$200 ladder.',
+        'VIP enhanced support is a BOUNDED entitlement: maximum 4 sessions per month (48/year).',
+        'MLS Walkthrough volume ladder added: 1/3/6/12/20 bookings per month.',
       ],
       flagged_scenarios: {
         below_target_margin: { count: belowTargetMargin.length, groups: flaggedSummary.below_target_margin },
@@ -525,6 +546,9 @@ export default async function (req) {
         booking_commission_rate: BOOKING_COMMISSION_RATE,
         booking_commission_basis: '15% of cash shortfall (intended rule)',
         commission_rate: commissionRate,
+        autofund_first_payment_rate: AUTO_FUND_FIRST_PAYMENT_RATE,
+        autofund_recurring_rate: AUTO_FUND_RECURRING_RATE,
+        autofund_booking_commission_rate: 0,
         stripe_rate: stripeRate,
         stripe_fixed_fee: stripeFixed,
         editing_model: 'PER_COMPLETED_EDIT',
@@ -579,13 +603,19 @@ export default async function (req) {
         integrity.redemptions_blocked === 0,
       funding_economics: AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
         const c = getAutoFundConfig(amount);
+        const first = calculateAutoFundCommission(amount, true);
+        const recurring = calculateAutoFundCommission(amount, false);
+        const year1Commission = round2(first + recurring * (MONTHS - 1));
         return {
           amount,
           monthly_booking_value: c.booking_value,
           monthly_bonus: c.bonus_booking_value,
           monthly_credits: round2(c.credits),
-          monthly_rep_commission: calculateAutoFundCommission(amount),
-          arriv_retained_from_funding: round2(amount - calculateAutoFundCommission(amount)),
+          first_payment_commission: first,
+          recurring_commission: recurring,
+          annual_commission_year1: year1Commission,
+          annual_cash_year1: round2(amount * MONTHS),
+          arriv_retained_year1_before_fulfillment: round2(amount * MONTHS - year1Commission),
         };
       }),
       promo_bv_never_cash: {

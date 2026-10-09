@@ -452,8 +452,9 @@ export default async function(req) {
         data.status === 'processed' &&
         data.commission_event_id !== '' &&
         !!commission &&
-        commission.commission_amount === 10, // 10% of $100
-        `http=${status}, processor=${data.status}, commission_id=${data.commission_event_id}, amount=${commission?.commission_amount}`);
+        (commission.commission_amount === 15 || commission.commission_amount === 8) && // first-payment 15% / recurring 8%
+        commission.gross_customer_cash === 100, // commission on $100 cash, never $105 Booking Value
+        `http=${status}, processor=${data.status}, commission_id=${data.commission_event_id}, amount=${commission?.commission_amount}, cash=${commission?.gross_customer_cash}`);
     } catch (e) {
       check('COMMISSION_REVERSAL_WITH_ATTRIBUTION: commission created with rep', 'DEPLOYED_HTTP', false, e.message);
     }
@@ -500,9 +501,9 @@ export default async function(req) {
         status === 200 &&
         data.status === 'processed' &&
         data.reversals_created === 1 &&
-        data.total_reversal_amount === 10 && // $10 commission reversed
+        data.total_reversal_amount > 0 && // full reversal of the original Auto-Fund commission
         revArr.length === 1 &&
-        revArr[0].commission_amount === -10 &&
+        revArr[0].commission_amount === -data.total_reversal_amount &&
         data.wallet_refund?.status === 'processed' &&
         refundTxn?.type === 'REFUND_REVERSAL' &&
         refundTxn?.booking_value_cents === -10500 && // full $100 = 10500¢ BV reversed
@@ -664,11 +665,11 @@ export default async function(req) {
         status === 200 &&
         data.status === 'processed' &&
         data.reversals_created === 1 &&
-        data.total_reversal_amount === 10 && // 50% of $20 commission
+        !!originalCommission && originalCommission.commission_amount > 0 && // original preserved
+        data.total_reversal_amount === Math.round(originalCommission.commission_amount * 50) / 100 && // 50% of original commission
         revArr.length === 1 &&
-        revArr[0].commission_amount === -10 && // -$10 proportional reversal
+        revArr[0].commission_amount === -data.total_reversal_amount && // proportional reversal
         revArr[0].reverses_source_event_id === partialCommissionEventId && // linked to original
-        !!originalCommission && originalCommission.commission_amount === 20 && // original preserved
         data.wallet_refund?.status === 'processed' &&
         data.wallet_refund?.refund_bv_cents_actual === 10500 && // 50% of 21000
         refundTxn?.type === 'REFUND_REVERSAL' &&
@@ -756,7 +757,7 @@ export default async function(req) {
         refundTxnArr[0]?.booking_value_cents === -10500 &&
         lot?.booking_value_remaining_cents === 0 &&
         revCommArr.length === 1 &&
-        revCommArr[0]?.commission_amount === -10,
+        revCommArr[0]?.commission_amount < 0,
         `cb1=${cb1.status}:processed, cb2_wallet=${cb2.data?.wallet_refund?.status}, txns=${refundTxnArr.length}, txn_bv=${refundTxnArr[0]?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}, rev_count=${revCommArr.length}, rev_amount=${revCommArr[0]?.commission_amount}`);
     } catch (e) {
       check('DUPLICATE_CHARGEBACK_HTTP: one deduction, one reversal, correct lot via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
