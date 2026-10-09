@@ -312,13 +312,24 @@ export default async function(req) {
     // Arriv Pay must distinguish:
     //   200 = accepted (processed or duplicate/idempotent)
     //   404 = wallet not found (rejected — fixture missing)
-    //   403 = ownership mismatch (rejected — security)
+    //   403 = security rejection (ownership/email mismatch, certification or
+    //         synthetic-isolation violation) — permanent, NEVER retry
     //   500 = processing failure (transient — safe to retry)
+    //
+    // Certification/synthetic-isolation rejections are permanent security
+    // rejections. Classifying them as 500 would tell Arriv Pay to retry a
+    // request that can never succeed. They are rejected before any financial
+    // mutation, so they must surface as 403, not as a retryable 500.
     let httpStatus = 200;
     if (result.status === 'error') {
-      if (result.error?.includes('not found')) {
+      const errLower = (result.error || '').toLowerCase();
+      if (errLower.includes('not found')) {
         httpStatus = 404;
-      } else if (result.error?.includes('mismatch') || result.error?.includes('ownership')) {
+      } else if (
+        errLower.includes('mismatch') ||
+        errLower.includes('ownership') ||
+        errLower.includes('certification')
+      ) {
         httpStatus = 403;
       } else {
         httpStatus = 500;

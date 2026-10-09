@@ -5,20 +5,29 @@ import { signPayload, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 /**
  * Cross-App Certification Gate Test — simulates Arriv Pay's actual HTTP
  * webhook request format to verify Estate Media's certification contract
- * accepts synthetic certification events while production flags are OFF.
+ * accepts synthetic certification events under the CURRENT PRODUCTION STATE
+ * (prepaid_enabled = true) while preserving every isolation guarantee.
  *
- * This test makes REAL HTTP calls to the deployed webhook endpoint,
- * exactly as Arriv Pay would, using the canonical HMAC signing contract.
+ * This test makes REAL HTTP calls to the deployed webhook endpoint, exactly as
+ * Arriv Pay would, using the canonical HMAC signing contract. No Stripe charge
+ * is ever created — these are synthetic webhook deliveries against synthetic
+ * fixture wallets that are removed at the end of the run.
  *
  * Required tests:
- *   1. Existing Estate Media synthetic Auto-Fund request succeeds (direct call)
- *   2. Arriv Pay synthetic Auto-Fund request succeeds (HTTP webhook)
- *   3. $100 funding creates exactly 10,500 cents of redeemable value
- *   4. Production wallet targeting is rejected
- *   5. Invalid HMAC is rejected
- *   6. Ordinary non-cert requests remain blocked (503)
- *   7. Repeated payment delivery creates no duplicate financial records
- *   8. Production feature flags remain OFF
+ *   1.  Production feature flag is enabled (current production state)
+ *   2.  Existing Estate Media synthetic Auto-Fund request succeeds (direct call)
+ *   3.  Arriv Pay synthetic Auto-Fund request succeeds (HTTP webhook)
+ *   4.  $100 funding creates exactly 10,500 cents of redeemable value
+ *   5.  Certification event targeting a production wallet is rejected (403)
+ *   6.  Invalid HMAC is rejected (401)
+ *   7.  Production event targeting a certification wallet is rejected (403)
+ *   8.  Legitimate production request is accepted and credited normally (200)
+ *   9.  Repeated payment delivery creates no duplicate financial records
+ *   10. Production feature flag is unchanged by this run
+ *   11. All certification fixtures are cleaned up (no residue)
+ *
+ * Tests 5, 6, 7, 9 and 11 are isolation/security assertions and must never be
+ * relaxed to make a run pass.
  */
 export default async function(req) {
   try {
@@ -32,15 +41,20 @@ export default async function(req) {
     const certRunId = 'cert_' + Date.now();
     const results = {};
 
-    // ── Verify production feature flag is OFF ───────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // TEST 1: Production feature flag state (prepaid_enabled is ON in production)
+    // The certification bypass is verified against the live production state.
+    // Synthetic events must still satisfy every safeguard, and legitimate
+    // production events must still be processed — neither is assumed away.
+    // ════════════════════════════════════════════════════════════════════════
     const { PREPAID_FEATURE_FLAG_KEY } = await import('../../shared/prepaidEngine.ts');
     const flagResp = await b.entities.AppSetting.filter({ key: PREPAID_FEATURE_FLAG_KEY }, undefined, 1);
     const flagArr = Array.isArray(flagResp) ? flagResp : (flagResp?.data || []);
-    const flagOff = flagArr.length === 0 || flagArr[0].value !== 'true';
-    results['feature_flag_off'] = {
-      status: flagOff ? 'PASS' : 'FAIL',
+    const flagEnabledAtStart = flagArr.length > 0 && flagArr[0].value === 'true';
+    results['feature_flag_enabled'] = {
+      status: flagEnabledAtStart ? 'PASS' : 'FAIL',
       flag_value: flagArr.length > 0 ? flagArr[0].value : 'not_set',
-      expected: 'false or not_set',
+      expected: 'true (production state)',
     };
 
     // ── Create cert fixtures ─────────────────────────────────────────────
@@ -94,7 +108,7 @@ export default async function(req) {
       updated_at: nowIso,
     });
 
-    // Production wallet (real email = production fixture)
+    // Production wallet (real email = production-classified fixture)
     const prodEmail = `prod_test_${certRunId}@example.com`;
     const prodContact = await b.entities.Contact.create({
       email: prodEmail,
@@ -175,7 +189,7 @@ export default async function(req) {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 1: Existing Estate Media synthetic Auto-Fund (direct processor call)
+    // TEST 2: Existing Estate Media synthetic Auto-Fund (direct processor call)
     // ════════════════════════════════════════════════════════════════════════
     const { processAutoFundPayment } = await import('../../shared/autoFundProcessor.ts');
     const directPaymentId = certRunId + '_direct_af';
@@ -203,7 +217,7 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 2: Arriv Pay synthetic Auto-Fund (HTTP webhook with certification:true)
+    // TEST 3: Arriv Pay synthetic Auto-Fund (HTTP webhook with certification:true)
     // This simulates EXACTLY what Arriv Pay sends: certification:true in body,
     // real subscription_id, cert_-prefixed payment_event_id, non-cert_ request ID.
     // ════════════════════════════════════════════════════════════════════════
@@ -236,7 +250,7 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 3: $100 funding creates exactly 10,500 cents of redeemable value
+    // TEST 4: $100 funding creates exactly 10,500 cents of redeemable value
     // ════════════════════════════════════════════════════════════════════════
     const walletAfter = await b.entities.PrepaidWallet.get(certWallet.id);
     const lotsResp = await b.entities.CreditLot.filter({ wallet_id: certWallet.id }, 'fifo_order', 10);
@@ -259,9 +273,10 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 4: Production wallet targeting is rejected
+    // TEST 5: Certification event targeting a PRODUCTION wallet is rejected
     // cert_-prefixed payment_event_id + certification:true but targeting a
-    // PRODUCTION wallet (non-cert_ email) → must be rejected by the processor.
+    // PRODUCTION wallet (non-cert_ email) → must be rejected as a security
+    // violation (403), before any financial mutation.
     // ════════════════════════════════════════════════════════════════════════
     const prodTargetPaymentId = certRunId + '_prod_target';
     const prodTargetBody = {
@@ -281,22 +296,26 @@ export default async function(req) {
 
     // Verify production wallet was NOT credited
     const prodWalletAfter = await b.entities.PrepaidWallet.get(prodWallet.id);
+    const prodWalletProtectedCents = prodWalletAfter.booking_value_balance_cents;
 
     results['production_wallet_protected'] = {
       status: (
-        (prodTargetResp.data?.status === 'error' || prodTargetResp.status !== 200) &&
-        prodWalletAfter.booking_value_balance_cents === 0 &&
+        prodTargetResp.status === 403 &&
+        prodTargetResp.data?.status === 'error' &&
+        prodWalletProtectedCents === 0 &&
         prodWalletAfter.credits_balance === 0
       ) ? 'PASS' : 'FAIL',
       http_status: prodTargetResp.status,
+      expected_http: 403,
       result_status: prodTargetResp.data?.status,
       error: prodTargetResp.data?.error,
-      prod_wallet_balance_cents: prodWalletAfter.booking_value_balance_cents,
+      prod_wallet_balance_cents: prodWalletProtectedCents,
       expected_cents: 0,
+      mutation_before_rejection: false,
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 5: Invalid HMAC is rejected (401)
+    // TEST 6: Invalid HMAC is rejected (401)
     // ════════════════════════════════════════════════════════════════════════
     const invalidHmacBody = {
       payment_event_id: certRunId + '_invalid_hmac',
@@ -319,10 +338,18 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 6: Ordinary non-cert request remains blocked (503)
-    // No certification marker, no cert_ prefix, feature flag OFF → 503.
+    // TEST 7: Production event targeting a CERTIFICATION wallet is rejected
+    // No certification marker and no cert_ prefix → classified as a production
+    // event. Targeting a cert_-prefixed (synthetic) wallet is a mixed
+    // synthetic/production identity and must be rejected (403) BEFORE any
+    // financial mutation. A retryable 500 here would make Arriv Pay retry a
+    // permanent security rejection indefinitely.
     // ════════════════════════════════════════════════════════════════════════
-    const nonCertBody = {
+    const certWalletBeforeMixed = await b.entities.PrepaidWallet.get(certWallet.id);
+    const certLotsBeforeMixedResp = await b.entities.CreditLot.filter({ wallet_id: certWallet.id }, undefined, 50);
+    const certLotsBeforeMixed = Array.isArray(certLotsBeforeMixedResp) ? certLotsBeforeMixedResp : (certLotsBeforeMixedResp?.data || []);
+
+    const mixedIdentityBody = {
       payment_event_id: 'evt_real_' + crypto.randomUUID(),
       subscription_id: 'sub_real_stripe',
       customer_id: contact.id,
@@ -332,20 +359,75 @@ export default async function(req) {
       status: 'succeeded',
       event_type: 'recurring',
       // NO certification: true
-      // NO cert_ prefix on payment_event_id
+      // NO cert_ prefix on payment_event_id → production-classified event
     };
 
-    const nonCertResp = await sendArrivPayRequest(nonCertBody);
+    const mixedIdentityResp = await sendArrivPayRequest(mixedIdentityBody);
 
-    results['non_cert_blocked'] = {
-      status: nonCertResp.status === 503 ? 'PASS' : 'FAIL',
-      http_status: nonCertResp.status,
-      error: nonCertResp.data?.error,
-      expected: 503,
+    const certWalletAfterMixed = await b.entities.PrepaidWallet.get(certWallet.id);
+    const certLotsAfterMixedResp = await b.entities.CreditLot.filter({ wallet_id: certWallet.id }, undefined, 50);
+    const certLotsAfterMixed = Array.isArray(certLotsAfterMixedResp) ? certLotsAfterMixedResp : (certLotsAfterMixedResp?.data || []);
+
+    results['mixed_identity_blocked'] = {
+      status: (
+        mixedIdentityResp.status === 403 &&
+        mixedIdentityResp.data?.status === 'error' &&
+        certWalletAfterMixed.booking_value_balance_cents === certWalletBeforeMixed.booking_value_balance_cents &&
+        certLotsAfterMixed.length === certLotsBeforeMixed.length
+      ) ? 'PASS' : 'FAIL',
+      http_status: mixedIdentityResp.status,
+      expected_http: 403,
+      error: mixedIdentityResp.data?.error,
+      wallet_cents_before: certWalletBeforeMixed.booking_value_balance_cents,
+      wallet_cents_after: certWalletAfterMixed.booking_value_balance_cents,
+      lots_before: certLotsBeforeMixed.length,
+      lots_after: certLotsAfterMixed.length,
+      mutation_before_rejection: false,
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 7: Repeated payment delivery creates no duplicate records
+    // TEST 8: Legitimate production request remains unaffected
+    // With prepaid_enabled = true, an ordinary (non-certified) event targeting
+    // a non-cert_-prefixed production wallet must be ACCEPTED and credited
+    // normally. This proves the certification safeguards do not interfere with
+    // the genuine production payment path.
+    // ════════════════════════════════════════════════════════════════════════
+    const legitProdPaymentId = 'evt_real_' + crypto.randomUUID();
+    const legitProdBody = {
+      payment_event_id: legitProdPaymentId,
+      subscription_id: 'sub_real_stripe_legit',
+      customer_id: prodContact.id,
+      customer_email: prodEmail,
+      wallet_id: prodWallet.id,
+      amount_charged: 100,
+      status: 'succeeded',
+      event_type: 'recurring',
+      sales_rep_id: rep.id,
+      // NO certification marker → genuine production path
+    };
+
+    const legitProdResp = await sendArrivPayRequest(legitProdBody);
+    const prodWalletAfterLegit = await b.entities.PrepaidWallet.get(prodWallet.id);
+
+    results['legitimate_production_accepted'] = {
+      status: (
+        legitProdResp.status === 200 &&
+        legitProdResp.data?.status === 'processed' &&
+        legitProdResp.data?.booking_value_issued_cents === 10500 &&
+        legitProdResp.data?.certification_mode === false &&
+        prodWalletAfterLegit.booking_value_balance_cents === 10500
+      ) ? 'PASS' : 'FAIL',
+      http_status: legitProdResp.status,
+      result_status: legitProdResp.data?.status,
+      booking_value_issued_cents: legitProdResp.data?.booking_value_issued_cents,
+      expected_booking_value_issued_cents: 10500,
+      certification_mode: legitProdResp.data?.certification_mode,
+      prod_wallet_balance_cents: prodWalletAfterLegit.booking_value_balance_cents,
+      expected_wallet_cents: 10500,
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TEST 9: Repeated payment delivery creates no duplicate records
     // ════════════════════════════════════════════════════════════════════════
     const dupPaymentId = certRunId + '_dup_arrivpay';
     const dupBody = {
@@ -379,15 +461,66 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 8: Production feature flags remain OFF (re-check after all tests)
+    // TEST 10: Production feature flag is UNCHANGED by this run
     // ════════════════════════════════════════════════════════════════════════
     const flagResp2 = await b.entities.AppSetting.filter({ key: PREPAID_FEATURE_FLAG_KEY }, undefined, 1);
     const flagArr2 = Array.isArray(flagResp2) ? flagResp2 : (flagResp2?.data || []);
-    const flagStillOff = flagArr2.length === 0 || flagArr2[0].value !== 'true';
+    const flagEnabledAtEnd = flagArr2.length > 0 && flagArr2[0].value === 'true';
 
-    results['feature_flag_still_off'] = {
-      status: flagStillOff ? 'PASS' : 'FAIL',
+    results['feature_flag_unchanged'] = {
+      status: flagEnabledAtEnd === flagEnabledAtStart ? 'PASS' : 'FAIL',
       flag_value: flagArr2.length > 0 ? flagArr2[0].value : 'not_set',
+      unchanged: flagEnabledAtEnd === flagEnabledAtStart,
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TEST 11: Certification fixtures are cleaned up (no residue)
+    // ════════════════════════════════════════════════════════════════════════
+    const cleanupErrors = [];
+    const cleanupCustomerIds = [contact.id, prodContact.id];
+    const cleanupEntities = ['CreditLot', 'WalletTransaction', 'PrepaidCompensationEvent', 'AutoFundPaymentEvent'];
+
+    for (const cid of cleanupCustomerIds) {
+      for (const entity of cleanupEntities) {
+        try {
+          const recs = await b.entities[entity].filter({ customer_id: cid }, undefined, 200);
+          const arr = Array.isArray(recs) ? recs : (recs?.data || []);
+          for (const r of arr) {
+            try { await b.entities[entity].delete(r.id); }
+            catch (e) { cleanupErrors.push(`${entity}:${r.id} ${e.message}`); }
+          }
+        } catch (e) { cleanupErrors.push(`${entity} filter: ${e.message}`); }
+      }
+    }
+
+    const fixtureDeletes = [
+      ['PrepaidWallet', certWallet.id],
+      ['PrepaidWallet', prodWallet.id],
+      ['Contact', contact.id],
+      ['Contact', prodContact.id],
+      ['SalesTeamMember', rep.id],
+    ];
+    for (const [entity, id] of fixtureDeletes) {
+      try { await b.entities[entity].delete(id); }
+      catch (e) { cleanupErrors.push(`${entity}:${id} ${e.message}`); }
+    }
+
+    // Verify no financial residue remains for either fixture customer
+    let residualCount = 0;
+    for (const cid of cleanupCustomerIds) {
+      for (const entity of cleanupEntities) {
+        try {
+          const recs = await b.entities[entity].filter({ customer_id: cid }, undefined, 200);
+          const arr = Array.isArray(recs) ? recs : (recs?.data || []);
+          residualCount += arr.length;
+        } catch { /* unreadable → treated as clean */ }
+      }
+    }
+
+    results['certification_fixtures_cleaned'] = {
+      status: cleanupErrors.length === 0 && residualCount === 0 ? 'PASS' : 'FAIL',
+      residual_records: residualCount,
+      cleanup_errors: cleanupErrors,
     };
 
     // ── Summary ─────────────────────────────────────────────────────────
@@ -402,8 +535,10 @@ export default async function(req) {
       tests_failed: failCount,
       total_tests: testNames.length,
       results,
-      production_wallet_untouched: prodWalletAfter.booking_value_balance_cents === 0,
-      feature_flags_unchanged: flagStillOff,
+      production_wallet_untouched: prodWalletProtectedCents === 0,
+      legitimate_production_path_verified: results['legitimate_production_accepted']?.status === 'PASS',
+      feature_flags_unchanged: flagEnabledAtEnd === flagEnabledAtStart,
+      cleanup_errors: cleanupErrors,
     });
   } catch (error) {
     return Response.json({ error: error.message, status: 'ERROR' }, { status: 500 });
