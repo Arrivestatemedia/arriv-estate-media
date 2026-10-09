@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 // autoFundProcessor: wallet lookup uses .filter(customer_id) + id match (not .get)
+// v2: supports prepaid_purchase event_type with canonical tier bonus
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { PREPAID_FEATURE_FLAG_KEY, AUTO_FUND_AMOUNT_OPTIONS } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
@@ -329,6 +330,7 @@ export default async function(req) {
       _debug_event_type: event_type,
       _debug_body_event_type: body.event_type,
       _debug_body_keys: Object.keys(body),
+      _webhook_version: 'v2_prepaid_20261009',
       recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,

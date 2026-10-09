@@ -54,9 +54,10 @@
       "enum": [
         "recurring",
         "topup",
-        "retry"
+        "retry",
+        "prepaid_purchase"
       ],
-      "description": "Whether this was a recurring charge, one-time top-up, or retry"
+      "description": "Whether this was a recurring charge, one-time top-up, retry, or canonical prepaid tier purchase"
     },
     "stripe_invoice_id": {
       "type": "string"
