@@ -591,6 +591,178 @@ export default async function(req) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // TEST 11b: PARTIAL REFUND WITH COMMISSION (DEPLOYED_HTTP)
+    // $200 payment with rep → $210 BV (21000¢), $20 commission.
+    // Partial refund $100 (50%) → $10 commission reversal + 10500¢ wallet reversal.
+    // Verifies proportional commission reversal, original commission linkage,
+    // wallet adjustment, CreditLot adjustment, and no duplicate reversal.
+    // ═══════════════════════════════════════════════════════════════════════
+    let partialCommissionPaymentEventId = '';
+    let partialCommissionEventId = '';
+    try {
+      // Step 1: Create commission-attributed payment ($200 recurring with rep)
+      partialCommissionPaymentEventId = `${TEST_RUN_ID}_partial_comm_200`;
+      const payResult = await sendPaymentEvent({
+        payment_event_id: partialCommissionPaymentEventId,
+        subscription_id: `cert_sub_partial_comm_${TEST_RUN_ID}`,
+        customer_id: prepaidContactId,
+        customer_email: prepaidEmail,
+        wallet_id: prepaidWalletId,
+        amount_charged: 200,
+        amount_charged_cents: 20000,
+        status: 'succeeded',
+        event_type: 'recurring',
+        sales_rep_id: salesRepId,
+        certification: true,
+      });
+      partialCommissionEventId = payResult.data.commission_event_id || '';
+
+      // Step 2: Send partial refund (50% = $100) through published refund endpoint
+      const partialCommRefundId = `${TEST_RUN_ID}_partial_comm_refund`;
+      const { status, data } = await sendRefundEvent({
+        refund_event_id: partialCommRefundId,
+        original_payment_event_id: partialCommissionPaymentEventId,
+        refunded_commissionable_amount: 100, // 50% of $200
+        refund_type: 'partial',
+        reason: 'partial_commission_refund',
+        certification: true,
+      });
+
+      // Verify proportional commission reversal
+      const reversalResult = data.results?.find((r: any) => r.status === 'created');
+      const reversals = await b.entities.PrepaidCompensationEvent.filter({
+        source_event_id: reversalResult?.source_event_id || '',
+        source_type: 'COMMISSION_REVERSAL',
+      });
+      const revArr = Array.isArray(reversals) ? reversals : (reversals?.data || []);
+
+      // Verify original commission still exists and is linked
+      const originalCommissions = await b.entities.PrepaidCompensationEvent.filter({
+        source_event_id: partialCommissionEventId,
+        source_type: 'AUTO_FUND_COMMISSION',
+      });
+      const origCommArr = Array.isArray(originalCommissions) ? originalCommissions : (originalCommissions?.data || []);
+      const originalCommission = origCommArr[0];
+
+      // Verify wallet refund adjustment (50% of 21000 = 10500¢)
+      const refundTxns = await b.entities.WalletTransaction.filter({
+        transaction_id: `refund_${partialCommRefundId}`,
+      });
+      const refundTxnArr = Array.isArray(refundTxns) ? refundTxns : (refundTxns?.data || []);
+      const refundTxn = refundTxnArr[0];
+
+      // Verify CreditLot adjustment (50% remaining = 10500¢)
+      const originalEvent = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: partialCommissionPaymentEventId }, undefined, 1);
+      const origEvtArr = Array.isArray(originalEvent) ? originalEvent : (originalEvent?.data || []);
+      const lotId = origEvtArr[0]?.lot_id;
+      const lots = await b.entities.CreditLot.filter({ lot_id: lotId }, undefined, 1);
+      const lotArr = Array.isArray(lots) ? lots : (lots?.data || []);
+      const lot = lotArr[0];
+
+      check('PARTIAL_REFUND_COMMISSION_HTTP: proportional commission + wallet + lot via deployed HTTP',
+        'DEPLOYED_HTTP',
+        status === 200 &&
+        data.status === 'processed' &&
+        data.reversals_created === 1 &&
+        data.total_reversal_amount === 10 && // 50% of $20 commission
+        revArr.length === 1 &&
+        revArr[0].commission_amount === -10 && // -$10 proportional reversal
+        revArr[0].reverses_source_event_id === partialCommissionEventId && // linked to original
+        !!originalCommission && originalCommission.commission_amount === 20 && // original preserved
+        data.wallet_refund?.status === 'processed' &&
+        data.wallet_refund?.refund_bv_cents_actual === 10500 && // 50% of 21000
+        refundTxn?.type === 'REFUND_REVERSAL' &&
+        refundTxn?.booking_value_cents === -10500 &&
+        lot?.booking_value_remaining_cents === 10500, // 21000 - 10500
+        `http=${status}, reversals=${data.reversals_created}, amount=${data.total_reversal_amount}, rev_amount=${revArr[0]?.commission_amount}, linked=${revArr[0]?.reverses_source_event_id === partialCommissionEventId}, orig_comm=${originalCommission?.commission_amount}, wallet=${data.wallet_refund?.refund_bv_cents_actual}, txn_bv=${refundTxn?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}`);
+    } catch (e) {
+      check('PARTIAL_REFUND_COMMISSION_HTTP: proportional commission + wallet + lot via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEST 11c: DUPLICATE CHARGEBACK (DEPLOYED_HTTP)
+    // $100 payment with rep → $105 BV (10500¢), $10 commission.
+    // Send same chargeback twice → 1 wallet deduction, 1 reversal txn,
+    // correct CreditLot balance (0), 1 linked commission reversal.
+    // ═══════════════════════════════════════════════════════════════════════
+    let dupChargebackPaymentEventId = '';
+    let dupChargebackCommissionEventId = '';
+    try {
+      // Step 1: Create commission-attributed payment ($100 recurring with rep)
+      dupChargebackPaymentEventId = `${TEST_RUN_ID}_dup_cb_100`;
+      const payResult = await sendPaymentEvent({
+        payment_event_id: dupChargebackPaymentEventId,
+        subscription_id: `cert_sub_dup_cb_${TEST_RUN_ID}`,
+        customer_id: prepaidContactId,
+        customer_email: prepaidEmail,
+        wallet_id: prepaidWalletId,
+        amount_charged: 100,
+        amount_charged_cents: 10000,
+        status: 'succeeded',
+        event_type: 'recurring',
+        sales_rep_id: salesRepId,
+        certification: true,
+      });
+      dupChargebackCommissionEventId = payResult.data.commission_event_id || '';
+
+      // Step 2: Send chargeback twice with same refund_event_id
+      const dupChargebackId = `${TEST_RUN_ID}_dup_chargeback`;
+      const cb1 = await sendRefundEvent({
+        refund_event_id: dupChargebackId,
+        original_payment_event_id: dupChargebackPaymentEventId,
+        refunded_commissionable_amount: 100,
+        refund_type: 'chargeback',
+        reason: 'duplicate_chargeback_test',
+        certification: true,
+      });
+      const cb2 = await sendRefundEvent({
+        refund_event_id: dupChargebackId,
+        original_payment_event_id: dupChargebackPaymentEventId,
+        refunded_commissionable_amount: 100,
+        refund_type: 'chargeback',
+        reason: 'duplicate_chargeback_test',
+        certification: true,
+      });
+
+      // Verify only one REFUND_REVERSAL txn exists
+      const refundTxns = await b.entities.WalletTransaction.filter({
+        transaction_id: `refund_${dupChargebackId}`,
+      });
+      const refundTxnArr = Array.isArray(refundTxns) ? refundTxns : (refundTxns?.data || []);
+
+      // Verify CreditLot balance (should be 0 — fully reversed)
+      const originalEvent = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: dupChargebackPaymentEventId }, undefined, 1);
+      const origEvtArr = Array.isArray(originalEvent) ? originalEvent : (originalEvent?.data || []);
+      const lotId = origEvtArr[0]?.lot_id;
+      const lots = await b.entities.CreditLot.filter({ lot_id: lotId }, undefined, 1);
+      const lotArr = Array.isArray(lots) ? lots : (lots?.data || []);
+      const lot = lotArr[0];
+
+      // Verify commission reversal (exactly 1 record linked to original)
+      const reversalCommissions = await b.entities.PrepaidCompensationEvent.filter({
+        reverses_source_event_id: dupChargebackCommissionEventId,
+        source_type: 'COMMISSION_REVERSAL',
+      });
+      const revCommArr = Array.isArray(reversalCommissions) ? reversalCommissions : (reversalCommissions?.data || []);
+
+      check('DUPLICATE_CHARGEBACK_HTTP: one deduction, one reversal, correct lot via deployed HTTP',
+        'DEPLOYED_HTTP',
+        cb1.status === 200 &&
+        cb1.data?.status === 'processed' &&
+        cb1.data?.wallet_refund?.status === 'processed' &&
+        cb2.status === 200 &&
+        cb2.data?.wallet_refund?.status === 'duplicate' &&
+        refundTxnArr.length === 1 &&
+        refundTxnArr[0]?.booking_value_cents === -10500 &&
+        lot?.booking_value_remaining_cents === 0 &&
+        revCommArr.length === 1 &&
+        revCommArr[0]?.commission_amount === -10,
+        `cb1=${cb1.status}:processed, cb2_wallet=${cb2.data?.wallet_refund?.status}, txns=${refundTxnArr.length}, txn_bv=${refundTxnArr[0]?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}, rev_count=${revCommArr.length}, rev_amount=${revCommArr[0]?.commission_amount}`);
+    } catch (e) {
+      check('DUPLICATE_CHARGEBACK_HTTP: one deduction, one reversal, correct lot via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // TEST 12: REFUND IDEMPOTENCY (DEPLOYED_HTTP)
     // ═══════════════════════════════════════════════════════════════════════
     try {
