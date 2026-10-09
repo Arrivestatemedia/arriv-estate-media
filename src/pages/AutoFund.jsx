@@ -11,10 +11,10 @@ import PaymentRecoveryFlow from "@/components/customer/PaymentRecoveryFlow";
 const AMOUNT_OPTIONS = [
   { amount: 50, bv: 50, bonus: 0, benefits: ["Customer 360", "Arriv Wallet", "Automatic monthly funding", "Rollover Booking Value"] },
   { amount: 100, bv: 105, bonus: 5, benefits: ["Everything above", "5% monthly bonus Booking Value", "Qualifying free rescheduling"] },
-  { amount: 200, bv: 210, bonus: 10, benefits: ["Everything above", "Priority Arriv Assist support"] },
-  { amount: 350, bv: 367.50, bonus: 17.50, benefits: ["Everything above", "Priority Booking"] },
-  { amount: 500, bv: 525, bonus: 25, benefits: ["Everything above", "Priority Processing when capacity allows"] },
-  { amount: 1000, bv: 1050, bonus: 50, benefits: ["Everything above", "Eligible Early Access to new Estate Media services"] },
+  { amount: 200, bv: 220, bonus: 20, benefits: ["Everything above", "10% monthly bonus Booking Value", "Priority Arriv Assist support"] },
+  { amount: 350, bv: 411.25, bonus: 61.25, benefits: ["Everything above", "17.5% monthly bonus Booking Value", "Priority Booking"] },
+  { amount: 500, bv: 625, bonus: 125, benefits: ["Everything above", "25% monthly bonus Booking Value", "Priority Processing when capacity allows"] },
+  { amount: 1000, bv: 1500, bonus: 500, benefits: ["Everything above", "50% monthly bonus Booking Value", "Eligible Early Access to new Estate Media services"] },
 ];
 
 export default function AutoFund() {

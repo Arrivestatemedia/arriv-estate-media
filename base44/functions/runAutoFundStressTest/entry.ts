@@ -98,7 +98,8 @@ export default async function(req) {
 
             // Arriv retained (contribution margin after ALL costs)
             const arrivRetained = round2(totalCashIn - totalCashOut);
-            const arrivRetainedPct = cumulativeCash > 0 ? round2((arrivRetained / cumulativeCash) * 100) : 0;
+            // Margin % uses ACTUAL CASH COLLECTED (Auto-Fund cash + shortfall) as denominator
+            const arrivRetainedPct = totalCashIn > 0 ? round2((arrivRetained / totalCashIn) * 100) : 0;
 
             const result = {
               amount,
