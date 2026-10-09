@@ -68,6 +68,30 @@ export default async function (req) {
     const PREMIUM_EDITING_RATES = [...PREMIUM_EDITING_EXPECTED, ...PREMIUM_EDITING_STRESS];
     const EDITING_COST_OTHER: Record<string, number> = { mls: 20, essentials: 50, cinematic: 100 };
 
+    // ── Verified specialist payout (traced from mediaCompensationEngine.ts) ──
+    // Standard packages: 40% of POST-SALES value = 34% of retail (CSV).
+    // MLS walkthroughs: guaranteed payout table by sqft tier ($50-$120).
+    // The payout is frozen at job creation (ProviderCompensationSnapshot) and
+    // paid via processWeeklyPayouts using the stored job.pay_rate.
+    const SPECIALIST_PAYOUT_RATE = 0.34;
+    const MLS_PAYOUT_TABLE = [
+      { max: 2500, payout: 50 },
+      { max: 3500, payout: 60 },
+      { max: 5000, payout: 70 },
+      { max: 7500, payout: 90 },
+      { max: 10000, payout: 120 },
+    ];
+    function mlsPayoutForSqft(sqft: number): number {
+      const t = MLS_PAYOUT_TABLE.find(t => sqft <= t.max);
+      return t ? t.payout : 120;
+    }
+    // Booking-level sales commission: the existing contractual rule is 15% of
+    // commissionable_service_value (CSV). Under the intended Auto-Fund rule, the
+    // 15% applies to the CASH portion only (the wallet-funded portion already
+    // compensated the rep via the 10% funding commission). The current production
+    // system applies 15% on the FULL CSV; the gap is reported separately.
+    const BOOKING_COMMISSION_RATE = 0.15;
+
     // ── VIP model: bounded enhanced-support sessions ─────────────────────────
     // Entitlement ceiling. Utilisation is modelled separately because the cap is
     // an entitlement, not a cost: the ceiling is what the member MAY use.
@@ -203,6 +227,8 @@ export default async function (req) {
       let shortfallTotal = 0;
       let bookings = 0;
       let firstBookingAppliedCents = 0;
+      let bookingCommission = 0;
+      let currentSystemBookingCommission = 0;
 
       for (let m = 0; m < MONTHS; m++) {
         cashIn += config.amount;
@@ -232,9 +258,13 @@ export default async function (req) {
             if (appliedCents + shortfallCents !== retailCents) integrity.total_consideration_mismatches += 1;
 
             retailRedeemed += retail;
-            payout += retail * mediaPayoutRate;
+            payout += job.pkg === 'mls' ? mlsPayoutForSqft(job.sqft) : retail * SPECIALIST_PAYOUT_RATE;
             // Editing is charged ONCE per completed edit.
             editing += job.pkg === 'premium' ? premiumEditing : (EDITING_COST_OTHER[job.pkg] || 0);
+            // Intended rule: 15% booking commission on the CASH shortfall only.
+            bookingCommission += shortfall * BOOKING_COMMISSION_RATE;
+            // Current production system: 15% on the FULL retail (CSV) — the double-dip.
+            currentSystemBookingCommission += retail * BOOKING_COMMISSION_RATE;
             bookings += 1;
           }
         }
@@ -243,7 +273,7 @@ export default async function (req) {
       let refundDetail = null;
       if (scenario.refund && firstBookingAppliedCents > 0) {
         const returnedBv = round2(firstBookingAppliedCents / 100);
-        const reversedPayout = round2(returnedBv * mediaPayoutRate);
+        const reversedPayout = round2(returnedBv * SPECIALIST_PAYOUT_RATE);
         walletCents += firstBookingAppliedCents;
         payout = round2(payout - reversedPayout);
         refundDetail = {
@@ -263,20 +293,23 @@ export default async function (req) {
         : { retainer: 0, sessions: 0, priority: 0, addons: 0, total: 0 };
 
       const unredeemed = round2(walletCents / 100);
-      const realizedCosts = round2(payout + commission + stripeFees + editing + vip.total);
+      // Intended rule: funding commission (10%) + booking commission (15% of cash
+      // shortfall) + specialist (34%/MLS) + editing + stripe + VIP.
+      const realizedCosts = round2(payout + commission + bookingCommission + stripeFees + editing + vip.total);
       const contribution = round2(cashIn - realizedCosts);
       const marginPct = cashIn > 0 ? round2((contribution / cashIn) * 100) : 0;
+      // Current production system: 15% booking commission on FULL CSV (double-dip).
+      const currentSystemCosts = round2(payout + commission + currentSystemBookingCommission + stripeFees + editing + vip.total);
+      const currentSystemContribution = round2(cashIn - currentSystemCosts);
+      const doubleDipGap = round2(currentSystemBookingCommission - bookingCommission);
 
-      const payoutObligation = round2(unredeemed * mediaPayoutRate);
+      const payoutObligation = round2(unredeemed * SPECIALIST_PAYOUT_RATE);
       const editingRatio = retailRedeemed > 0 ? editing / retailRedeemed : 0;
       const editingObligation = round2(unredeemed * editingRatio);
       const totalObligations = round2(payoutObligation + editingObligation);
       const contributionAfterObligations = round2(contribution - totalObligations);
 
-      // Canonical compensation basis for comparison: 40% of POST-SALES value
-      // where post-sales = retail - 15% sales commission (= 34% of retail).
-      const canonicalPayout = round2(retailRedeemed * 0.34);
-      const canonicalContribution = round2(cashIn - (canonicalPayout + commission + stripeFees + editing + vip.total));
+      // (The model now uses the verified 34%-of-retail specialist payout directly.)
 
       return {
         amount,
@@ -295,6 +328,10 @@ export default async function (req) {
         retail_redeemed: round2(retailRedeemed),
         specialist_payout: round2(payout),
         rep_commission: round2(commission),
+        booking_commission: round2(bookingCommission),
+        current_system_booking_commission: round2(currentSystemBookingCommission),
+        current_system_contribution: currentSystemContribution,
+        double_dip_gap: doubleDipGap,
         stripe_fees: round2(stripeFees),
         editing_costs: round2(editing),
         vip_incremental_cost: vip.total,
@@ -308,7 +345,6 @@ export default async function (req) {
         total_remaining_obligations: totalObligations,
         contribution_after_obligations: contributionAfterObligations,
         margin_after_obligations_pct: cashIn > 0 ? round2((contributionAfterObligations / cashIn) * 100) : 0,
-        canonical_payout_basis_contribution: canonicalContribution,
         refund_applied: !!scenario.refund,
       };
     }
@@ -434,10 +470,10 @@ export default async function (req) {
 
     // ── Payout basis comparison ─────────────────────────────────────────────
     const payoutBasis = [
-      `Modelled: 40% of retail. Worst scenario contribution $${worstMargin.contribution}.`,
-      `Canonical engine, standard packages: 40% of post-sales = 34% of retail. Same scenario $${worstMargin.canonical_payout_basis_contribution}.`,
-      `MLS walkthroughs use a guaranteed payout table ($50-$120 by tier), NOT 40% of retail.`,
-      `Unverified: whether a 15% booking-level sales commission also applies to wallet redemptions. If it does, add ~15 points of retail cost.`,
+      `VERIFIED specialist payout: 40% of post-sales = 34% of retail for standard packages (mediaCompensationEngine STANDARD_40_PERCENT_AFTER_SALES).`,
+      `MLS walkthroughs: guaranteed payout table ($50-$120 by tier), NOT a percentage of retail.`,
+      `Payout is frozen at job creation (ProviderCompensationSnapshot) and paid via processWeeklyPayouts using the stored job.pay_rate.`,
+      `Booking commission: current production applies 15% on FULL CSV at booking submission (handleBookingSubmission). Intended rule: 15% of cash shortfall only. Gap = double_dip_gap.`,
     ];
 
     const pass = negativeContribution.length === 0 && belowTargetMargin.length === 0
@@ -484,6 +520,10 @@ export default async function (req) {
       },
       assumptions: {
         media_payout_rate: mediaPayoutRate,
+        specialist_payout_rate: SPECIALIST_PAYOUT_RATE,
+        specialist_payout_basis: '34% of retail (standard) / MLS guaranteed table',
+        booking_commission_rate: BOOKING_COMMISSION_RATE,
+        booking_commission_basis: '15% of cash shortfall (intended rule)',
         commission_rate: commissionRate,
         stripe_rate: stripeRate,
         stripe_fixed_fee: stripeFixed,
