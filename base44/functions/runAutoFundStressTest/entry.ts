@@ -322,6 +322,31 @@ export default async function (req) {
       null as any
     );
 
+    // Compact grouped roll-up of every flagged scenario, keyed by tier + scenario,
+    // so the findings can be read without paging the full per-run arrays.
+    const groupFlagged = (rows: Record<string, any>[]) => {
+      const byKey = new Map<string, any>();
+      for (const r of rows) {
+        const k = `${r.amount}|${r.scenario}`;
+        if (!byKey.has(k)) {
+          byKey.set(k, { amount: r.amount, vip_tier: r.vip_tier, scenario: r.scenario, runs: [] });
+        }
+        byKey.get(k).runs.push({
+          premium_editing: r.premium_editing,
+          margin_pct: r.margin_pct,
+          contribution: r.contribution,
+          contribution_after_obligations: r.contribution_after_obligations,
+          vip_incremental_cost: r.vip_incremental_cost,
+        });
+      }
+      return Array.from(byKey.values());
+    };
+
+    const flaggedSummary = {
+      below_target_margin: groupFlagged(belowTargetMargin),
+      negative_contribution: groupFlagged(negativeContribution),
+    };
+
     // ── VIP cost sensitivity for the $1,000 tier (base scenario) ────────────
     const vipTier = AUTO_FUND_AMOUNTS[1000];
     const baseScenario = SCENARIOS[0];
@@ -404,6 +429,14 @@ export default async function (req) {
         'Wallet is a payment method, not a discount. total_consideration = wallet_applied + cash_shortfall = canonical retail. Payout and editing charged once, against redeemed services only. Unredeemed Booking Value deducted once, after realized contribution.',
       months_simulated: MONTHS,
       combinations_tested: results.length,
+      flagged_scenarios: {
+        below_target_margin: { count: belowTargetMargin.length, groups: flaggedSummary.below_target_margin },
+        negative_contribution: { count: negativeContribution.length, groups: flaggedSummary.negative_contribution },
+        negative_after_obligations: {
+          count: negativeAfterObligations.length,
+          groups: groupFlagged(negativeAfterObligations),
+        },
+      },
       assumptions: {
         media_payout_rate: mediaPayoutRate,
         commission_rate: commissionRate,
@@ -429,12 +462,6 @@ export default async function (req) {
       worst_after_obligations: worstAfterObligations
         ? { ...project(worstAfterObligations), contribution_after_obligations: worstAfterObligations.contribution_after_obligations }
         : null,
-      negative_contribution_count: negativeContribution.length,
-      negative_contribution: negativeContribution,
-      below_target_margin_count: belowTargetMargin.length,
-      below_target_margin: belowTargetMargin,
-      negative_after_obligations_count: negativeAfterObligations.length,
-      negative_after_obligations: negativeAfterObligations,
       vip_cost_sensitivity: vipSensitivity,
       vip_disclosure_check: vipDisclosureCheck,
       refund_tests: refundTests,

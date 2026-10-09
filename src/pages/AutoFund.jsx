@@ -44,6 +44,33 @@ const VIP_EXCLUSIONS = [
   "No uncapped discounts.",
 ];
 
+function FlaggedGroups({ title, data, tone }) {
+  if (!data?.count || !data?.groups?.length) return null;
+  const toneClass = tone === 'red' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50';
+  return (
+    <div>
+      <p className="text-sm font-medium text-[#1A1A1A] mb-2">{title} ({data.count})</p>
+      <div className="space-y-2 max-h-80 overflow-y-auto">
+        {data.groups.map((g, i) => (
+          <div key={i} className={`p-2.5 rounded-lg border ${toneClass}`}>
+            <p className="text-xs font-medium text-[#1A1A1A]">
+              ${g.amount}/mo · {g.scenario}{g.vip_tier ? ' · VIP' : ''}
+            </p>
+            <div className="mt-1 space-y-0.5">
+              {g.runs.map((r, j) => (
+                <p key={j} className="text-[11px] text-[#1A1A1A]/65">
+                  Premium editing ${r.premium_editing}: margin {r.margin_pct}% · contribution ${r.contribution} · after obligations ${r.contribution_after_obligations}
+                  {r.vip_incremental_cost > 0 ? ` · VIP cost $${r.vip_incremental_cost}` : ''}
+                </p>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function VipTerms() {
   return (
     <div className="mt-3 pt-3 border-t border-[#B8956A]/20">
@@ -339,7 +366,7 @@ export default function AutoFund() {
                   {result.combinations_tested} combinations over {result.months_simulated} months · target margin {result.assumptions?.target_contribution_margin_pct}%
                 </p>
                 <p className="text-xs text-[#1A1A1A]/55 mt-1">
-                  Below target: {result.below_target_margin_count} · Negative: {result.negative_contribution_count} · Negative after obligations: {result.negative_after_obligations_count}
+                  Below target: {result.flagged_scenarios?.below_target_margin?.count ?? 0} · Negative: {result.flagged_scenarios?.negative_contribution?.count ?? 0} · Negative after obligations: {result.flagged_scenarios?.negative_after_obligations?.count ?? 0}
                 </p>
               </div>
 
@@ -374,42 +401,23 @@ export default function AutoFund() {
                 </div>
               )}
 
-              {result.below_target_margin?.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Below {result.assumptions?.target_contribution_margin_pct}% Target Margin ({result.below_target_margin_count})</p>
-                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                    {result.below_target_margin.map((r, i) => (
-                      <div key={i} className="p-2.5 rounded-lg border border-amber-200 bg-amber-50 text-xs">
-                        <p className="text-[#1A1A1A]">
-                          <span className="font-medium">${r.amount}/mo</span> · {r.scenario} · Premium editing ${r.premium_editing}
-                        </p>
-                        <p className="text-[#1A1A1A]/65 mt-0.5">
-                          Margin {r.margin_pct}% · Contribution ${r.contribution} · After obligations ${r.contribution_after_obligations}
-                          {r.vip_incremental_cost > 0 && ` · VIP cost $${r.vip_incremental_cost}`}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <FlaggedGroups
+                title={`Below ${result.assumptions?.target_contribution_margin_pct}% Target Margin`}
+                data={result.flagged_scenarios?.below_target_margin}
+                tone="amber"
+              />
 
-              {result.negative_contribution?.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Negative Contribution ({result.negative_contribution_count})</p>
-                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                    {result.negative_contribution.map((r, i) => (
-                      <div key={i} className="p-2.5 rounded-lg border border-red-200 bg-red-50 text-xs">
-                        <p className="text-[#1A1A1A]">
-                          <span className="font-medium">${r.amount}/mo</span> · {r.scenario} · Premium editing ${r.premium_editing}
-                        </p>
-                        <p className="text-[#1A1A1A]/65 mt-0.5">
-                          Cash in ${r.cash_in} · Contribution ${r.contribution} ({r.margin_pct}%) · After obligations ${r.contribution_after_obligations}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <FlaggedGroups
+                title="Negative Contribution"
+                data={result.flagged_scenarios?.negative_contribution}
+                tone="red"
+              />
+
+              <FlaggedGroups
+                title="Negative After Funding Obligations"
+                data={result.flagged_scenarios?.negative_after_obligations}
+                tone="red"
+              />
 
               {result.vip_cost_sensitivity?.length > 0 && (
                 <div>
