@@ -389,7 +389,9 @@ export interface AutoFundAmountConfig {
 
 /**
  * Auto-Fund amounts. Customer pays monthly; booking value added to wallet.
- * $50 = no bonus. $100+ = 5% bonus booking value.
+ * Revised approved bonus structure: $50 = 0%, $100 = 5%, $200 = 10%,
+ * $350 = 15%, $500 = 20%, $1,000 = 35%. Bonus Booking Value is promotional
+ * and is NEVER charged to the customer as a booking shortfall.
  * Credits = booking_value / 275 (canonical, full precision).
  */
 export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
@@ -452,10 +454,10 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   350: {
     amount: 350,
     plan_id: "autofund_350",
-    booking_value: 411.25,
-    bonus_pct: 17.5,
-    bonus_booking_value: 61.25,
-    credits: 411.25 / 275,
+    booking_value: 402.5,
+    bonus_pct: 15,
+    bonus_booking_value: 52.5,
+    credits: 402.5 / 275,
     support_tier: "AUTOFUND_350",
     support_priority: "priority",
     benefits: [
@@ -463,7 +465,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
       "Arriv Wallet",
       "Automatic monthly funding",
       "Rollover Booking Value",
-      "17.5% monthly bonus Booking Value",
+      "15% monthly bonus Booking Value",
       "Qualifying free rescheduling",
       "Priority Arriv Assist support",
       "Priority Booking",
@@ -473,10 +475,10 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   500: {
     amount: 500,
     plan_id: "autofund_500",
-    booking_value: 625,
-    bonus_pct: 25,
-    bonus_booking_value: 125,
-    credits: 625 / 275,
+    booking_value: 600,
+    bonus_pct: 20,
+    bonus_booking_value: 100,
+    credits: 600 / 275,
     support_tier: "AUTOFUND_500",
     support_priority: "priority_high",
     benefits: [
@@ -484,7 +486,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
       "Arriv Wallet",
       "Automatic monthly funding",
       "Rollover Booking Value",
-      "25% monthly bonus Booking Value",
+      "20% monthly bonus Booking Value",
       "Qualifying free rescheduling",
       "Priority Arriv Assist support",
       "Priority Booking",
@@ -495,10 +497,10 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   1000: {
     amount: 1000,
     plan_id: "autofund_1000",
-    booking_value: 1500,
-    bonus_pct: 50,
-    bonus_booking_value: 500,
-    credits: 1500 / 275,
+    booking_value: 1350,
+    bonus_pct: 35,
+    bonus_booking_value: 350,
+    credits: 1350 / 275,
     support_tier: "AUTOFUND_1000",
     support_priority: "highest_autofund",
     benefits: [
@@ -506,7 +508,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
       "Arriv Wallet",
       "Automatic monthly funding",
       "Rollover Booking Value",
-      "50% monthly bonus Booking Value",
+      "35% monthly bonus Booking Value",
       "Qualifying free rescheduling",
       "Priority Arriv Assist support",
       "Priority Booking",

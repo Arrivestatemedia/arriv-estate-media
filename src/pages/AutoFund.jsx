@@ -12,9 +12,9 @@ const AMOUNT_OPTIONS = [
   { amount: 50, bv: 50, bonus: 0, benefits: ["Customer 360", "Arriv Wallet", "Automatic monthly funding", "Rollover Booking Value"] },
   { amount: 100, bv: 105, bonus: 5, benefits: ["Everything above", "5% monthly bonus Booking Value", "Qualifying free rescheduling"] },
   { amount: 200, bv: 220, bonus: 20, benefits: ["Everything above", "10% monthly bonus Booking Value", "Priority Arriv Assist support"] },
-  { amount: 350, bv: 411.25, bonus: 61.25, benefits: ["Everything above", "17.5% monthly bonus Booking Value", "Priority Booking"] },
-  { amount: 500, bv: 625, bonus: 125, benefits: ["Everything above", "25% monthly bonus Booking Value", "Priority Processing when capacity allows"] },
-  { amount: 1000, bv: 1500, bonus: 500, benefits: ["Everything above", "50% monthly bonus Booking Value", "Eligible Early Access to new Estate Media services"] },
+  { amount: 350, bv: 402.50, bonus: 52.50, benefits: ["Everything above", "15% monthly bonus Booking Value", "Priority Booking"] },
+  { amount: 500, bv: 600, bonus: 100, benefits: ["Everything above", "20% monthly bonus Booking Value", "Priority Processing when capacity allows"] },
+  { amount: 1000, bv: 1350, bonus: 350, benefits: ["Everything above", "35% monthly bonus Booking Value", "Eligible Early Access to new Estate Media services"] },
 ];
 
 export default function AutoFund() {
