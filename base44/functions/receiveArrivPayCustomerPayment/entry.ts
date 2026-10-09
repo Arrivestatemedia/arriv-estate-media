@@ -321,22 +321,36 @@ export default async function(req) {
     // request that can never succeed. They are rejected before any financial
     // mutation, so they must surface as 403, not as a retryable 500.
     let httpStatus = 200;
+    let errorCode: string | null = null;
+    let retryable: boolean | null = null;
     if (result.status === 'error') {
       const errLower = (result.error || '').toLowerCase();
       if (errLower.includes('not found')) {
+        // The event's customer/wallet pair does not resolve. Rejected before any
+        // mutation, so a bounded redelivery is safe while enrollment settles.
         httpStatus = 404;
+        errorCode = 'WALLET_NOT_FOUND';
+        retryable = true;
       } else if (
         errLower.includes('mismatch') ||
         errLower.includes('ownership') ||
         errLower.includes('certification')
       ) {
+        // Permanent security rejection. Rejected before any financial mutation,
+        // so it can NEVER succeed on redelivery. Carries a machine-readable
+        // non-retryable code because the ecosystem retry contract classifies
+        // retryability from an error code/message, not from the status alone.
         httpStatus = 403;
+        errorCode = 'PERMANENT_REJECTION';
+        retryable = false;
       } else {
         httpStatus = 500;
+        errorCode = 'PROCESSING_ERROR';
+        retryable = true;
       }
     }
 
-    return Response.json({
+    const responseBody: Record<string, unknown> = {
       ...result,
       _debug_event_type: event_type,
       _debug_body_event_type: body.event_type,
@@ -345,7 +359,16 @@ export default async function(req) {
       recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
-    }, { status: httpStatus });
+    };
+
+    // Machine-readable rejection contract — a permanent security rejection must
+    // not rely on the counterparty inferring permanence from the status alone.
+    if (errorCode) {
+      responseBody.error_code = errorCode;
+      responseBody.retryable = retryable;
+    }
+
+    return Response.json(responseBody, { status: httpStatus });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

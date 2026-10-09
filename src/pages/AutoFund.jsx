@@ -8,14 +8,59 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, RefreshCw, Pause, Play, XCircle, Plus, Loader2, TrendingUp, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
 import PaymentRecoveryFlow from "@/components/customer/PaymentRecoveryFlow";
 
+// Approved Auto-Fund ladder. `bonus` is bonus Booking Value in dollars;
+// `bonusPct` is the published bonus percentage — the two differ, so the
+// percentage is never derived from the dollar amount in the display.
 const AMOUNT_OPTIONS = [
-  { amount: 50, bv: 50, bonus: 0, benefits: ["Customer 360", "Arriv Wallet", "Automatic monthly funding", "Rollover Booking Value"] },
-  { amount: 100, bv: 105, bonus: 5, benefits: ["Everything above", "5% monthly bonus Booking Value", "Qualifying free rescheduling"] },
-  { amount: 200, bv: 220, bonus: 20, benefits: ["Everything above", "10% monthly bonus Booking Value", "Priority Arriv Assist support"] },
-  { amount: 350, bv: 402.50, bonus: 52.50, benefits: ["Everything above", "15% monthly bonus Booking Value", "Priority Booking"] },
-  { amount: 500, bv: 600, bonus: 100, benefits: ["Everything above", "20% monthly bonus Booking Value", "Priority Processing when capacity allows"] },
-  { amount: 1000, bv: 1350, bonus: 350, benefits: ["Everything above", "35% monthly bonus Booking Value", "Eligible Early Access to new Estate Media services"] },
+  { amount: 50, bv: 50, bonus: 0, bonusPct: 0, benefits: ["Customer 360", "Arriv Wallet", "Automatic monthly funding", "Rollover Booking Value"] },
+  { amount: 100, bv: 105, bonus: 5, bonusPct: 5, benefits: ["Everything above", "5% monthly bonus Booking Value", "Qualifying free rescheduling"] },
+  { amount: 200, bv: 220, bonus: 20, bonusPct: 10, benefits: ["Everything above", "10% monthly bonus Booking Value", "Priority Arriv Assist support"] },
+  { amount: 350, bv: 402.50, bonus: 52.50, bonusPct: 15, benefits: ["Everything above", "15% monthly bonus Booking Value", "Priority Booking"] },
+  { amount: 500, bv: 600, bonus: 100, bonusPct: 20, benefits: ["Everything above", "20% monthly bonus Booking Value", "Priority Processing when capacity allows"] },
+  {
+    amount: 1000, bv: 1250, bonus: 250, bonusPct: 25, vip: true,
+    benefits: [
+      "Everything above",
+      "25% monthly bonus Booking Value",
+      "VIP priority scheduling, subject to specialist availability",
+      "VIP Arriv Assist routing",
+      "VIP highest-priority human-support escalation",
+      "Preferred pricing on selected add-ons when margin requirements are met",
+    ],
+  },
 ];
+
+// Full VIP terms — every limit is disclosed to the customer before enrollment.
+const VIP_DISCLOSURE = [
+  "Priority scheduling: your booking request is sequenced ahead of standard requests in the scheduling queue, subject to specialist availability. It does not guarantee a specific date, time, or specialist, and does not guarantee a faster delivery turnaround.",
+  "Enhanced support: Arriv Assist routing is prioritised and human-support escalation carries the highest priority available on the support queue during business hours. It does not provide a dedicated agent, a guaranteed response time, or 24/7 coverage.",
+  "Preferred add-on pricing: 10% off selected add-ons, capped at $25 per booking, applied only when the discounted price still meets Arriv's required contribution margin. Add-ons that cannot meet the margin receive no discount. Not cumulative with other add-on promotions.",
+];
+
+const VIP_EXCLUSIONS = [
+  "No guaranteed turnaround times.",
+  "No unlimited revisions.",
+  "No complimentary services.",
+  "No uncapped discounts.",
+];
+
+function VipTerms() {
+  return (
+    <div className="mt-3 pt-3 border-t border-[#B8956A]/20">
+      <p className="text-xs font-medium text-[#1A1A1A] mb-2">VIP terms</p>
+      <ul className="space-y-2">
+        {VIP_DISCLOSURE.map((t, i) => (
+          <li key={i} className="text-[11px] leading-relaxed text-[#1A1A1A]/60">{t}</li>
+        ))}
+      </ul>
+      <div className="mt-2 space-y-0.5">
+        {VIP_EXCLUSIONS.map((e, i) => (
+          <p key={i} className="text-[11px] text-[#1A1A1A]/45">{e}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AutoFund() {
   const [loading, setLoading] = useState(false);
@@ -179,6 +224,7 @@ export default function AutoFund() {
                     className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedAmount === opt.amount ? 'border-[#B8956A] bg-[#B8956A]/5' : 'border-[#B8956A]/15 hover:border-[#B8956A]/40'}`}>
                     <p className="text-lg font-bold text-[#1A1A1A]">${opt.amount}</p>
                     <p className="text-xs text-[#1A1A1A]/60">${opt.bv} BV{opt.bonus > 0 && ` (+$${opt.bonus})`}</p>
+                    {opt.vip && <p className="text-[10px] font-medium text-[#B8956A] mt-1">VIP</p>}
                   </div>
                 ))}
               </div>
@@ -193,6 +239,7 @@ export default function AutoFund() {
                       </li>
                     ))}
                   </ul>
+                  {selectedAmount === 1000 && <VipTerms />}
                 </div>
               )}
 
@@ -281,56 +328,111 @@ export default function AutoFund() {
           <Card className="mb-8 border-[#B8956A]/20 bg-white">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-[#1A1A1A]">Auto-Fund Stress Test</CardTitle>
+                <CardTitle className="text-[#1A1A1A]">Auto-Fund Financial Certification</CardTitle>
                 <Button variant="ghost" onClick={() => { setView("main"); setResult(null); }} className="text-[#1A1A1A]/60">Close</Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className={`p-4 rounded-lg mb-4 ${result.status === 'PASS' ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
-                <p className="font-medium text-[#1A1A1A]">Status: {result.status} — {result.monthly_combinations_tested} monthly + {result.cumulative_combinations_tested} cumulative combinations</p>
-                {result.problems_count > 0 && <p className="text-sm text-amber-800 mt-1">{result.problems_count} problems found</p>}
+            <CardContent className="space-y-5">
+              <div className={`p-4 rounded-lg ${result.status === 'PASS' ? 'bg-[#B8956A]/10 border border-[#B8956A]/30' : 'bg-amber-50 border border-amber-200'}`}>
+                <p className="font-medium text-[#1A1A1A]">Status: {result.status}</p>
+                <p className="text-sm text-[#1A1A1A]/70 mt-1">
+                  {result.combinations_tested} combinations over {result.months_simulated} months · target margin {result.assumptions?.target_contribution_margin_pct}%
+                </p>
+                <p className="text-xs text-[#1A1A1A]/55 mt-1">
+                  Below target: {result.below_target_margin_count} · Negative: {result.negative_contribution_count} · Negative after obligations: {result.negative_after_obligations_count}
+                </p>
               </div>
 
+              {result.tier_ladder && (
+                <div>
+                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Tier Ladder</p>
+                  <div className="space-y-1.5">
+                    {result.tier_ladder.map(t => (
+                      <div key={t.amount} className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-[#B8956A]/15 text-sm">
+                        <span className="text-[#1A1A1A]">${t.amount}/mo</span>
+                        <span className="text-[#1A1A1A]/55">{t.bonus_pct}%</span>
+                        <span className="font-medium text-[#1A1A1A]">${t.booking_value} BV</span>
+                        {t.vip && <Badge className="bg-[#B8956A] text-[#1A1A1A]">VIP</Badge>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {result.worst_margin && (
-                <div className="p-4 rounded-lg bg-[#B8956A]/5 mb-4">
-                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Worst Monthly Margin</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                    <div><span className="text-[#1A1A1A]/50">Amount:</span> ${result.worst_margin.monthly_cash}/mo</div>
-                    <div><span className="text-[#1A1A1A]/50">SqFt:</span> {result.worst_margin.sqft_tier}</div>
-                    <div><span className="text-[#1A1A1A]/50">Package:</span> {result.worst_margin.package}</div>
-                    <div><span className="text-[#1A1A1A]/50">Retained:</span> {result.worst_margin.arriv_retained_pct}%</div>
+                <div className="p-4 rounded-lg bg-[#B8956A]/5">
+                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Thinnest Scenario</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-[#1A1A1A]/50">Tier:</span> ${result.worst_margin.amount}/mo</div>
+                    <div><span className="text-[#1A1A1A]/50">Margin:</span> {result.worst_margin.margin_pct}%</div>
+                    <div className="col-span-2"><span className="text-[#1A1A1A]/50">Scenario:</span> {result.worst_margin.scenario}</div>
+                    <div><span className="text-[#1A1A1A]/50">Premium editing:</span> ${result.worst_margin.premium_editing}</div>
+                    <div><span className="text-[#1A1A1A]/50">Contribution:</span> ${result.worst_margin.contribution}</div>
+                    <div><span className="text-[#1A1A1A]/50">Unredeemed BV:</span> ${result.worst_margin.unredeemed_bv}</div>
+                    <div><span className="text-[#1A1A1A]/50">After obligations:</span> ${result.worst_margin.contribution_after_obligations}</div>
                   </div>
                 </div>
               )}
 
-              {result.benefit_mapping && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Benefit Mapping</p>
-                  <div className="space-y-2">
-                    {result.benefit_mapping.map(b => (
-                      <div key={b.amount} className="p-3 rounded-lg border border-[#B8956A]/15">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-[#1A1A1A]">${b.amount}/mo</span>
-                          <Badge className="bg-[#B8956A] text-[#1A1A1A]">{b.support_tier}</Badge>
-                        </div>
-                        <p className="text-xs text-[#1A1A1A]/60">Priority: {b.support_priority} · Bonus: {b.bonus_pct}% · Promo add-ons: {b.promotional_addon_benefits}</p>
+              {result.below_target_margin?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Below {result.assumptions?.target_contribution_margin_pct}% Target Margin ({result.below_target_margin_count})</p>
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {result.below_target_margin.map((r, i) => (
+                      <div key={i} className="p-2.5 rounded-lg border border-amber-200 bg-amber-50 text-xs">
+                        <p className="text-[#1A1A1A]">
+                          <span className="font-medium">${r.amount}/mo</span> · {r.scenario} · Premium editing ${r.premium_editing}
+                        </p>
+                        <p className="text-[#1A1A1A]/65 mt-0.5">
+                          Margin {r.margin_pct}% · Contribution ${r.contribution} · After obligations ${r.contribution_after_obligations}
+                          {r.vip_incremental_cost > 0 && ` · VIP cost $${r.vip_incremental_cost}`}
+                        </p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {result.failed_payment_tests && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Failed Payment Handling</p>
-                  <div className="space-y-1">
-                    {result.failed_payment_tests.map(t => (
-                      <div key={t.amount} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-[#B8956A]" />
-                        <span className="text-[#1A1A1A]">${t.amount}/mo: fail → {t.payment_fails.credits_issued} credits, {t.payment_fails.commission} commission. Wallet preserved: {String(t.payment_fails.wallet_preserved)}</span>
+              {result.negative_contribution?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">Negative Contribution ({result.negative_contribution_count})</p>
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {result.negative_contribution.map((r, i) => (
+                      <div key={i} className="p-2.5 rounded-lg border border-red-200 bg-red-50 text-xs">
+                        <p className="text-[#1A1A1A]">
+                          <span className="font-medium">${r.amount}/mo</span> · {r.scenario} · Premium editing ${r.premium_editing}
+                        </p>
+                        <p className="text-[#1A1A1A]/65 mt-0.5">
+                          Cash in ${r.cash_in} · Contribution ${r.contribution} ({r.margin_pct}%) · After obligations ${r.contribution_after_obligations}
+                        </p>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {result.vip_cost_sensitivity?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-[#1A1A1A] mb-2">VIP Incremental Cost Sensitivity ($1,000 tier)</p>
+                  <div className="space-y-1.5">
+                    {result.vip_cost_sensitivity.map(s => (
+                      <div key={s.priority_utilisation} className="flex items-center justify-between p-2.5 rounded-lg border border-[#B8956A]/15 text-xs text-[#1A1A1A]/70">
+                        <span>Priority used on {Math.round(s.priority_utilisation * 100)}% of bookings</span>
+                        <span className="font-medium text-[#1A1A1A]">${s.vip_incremental_cost}/yr</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.integrity_checks && (
+                <div className="p-3 rounded-lg bg-[#B8956A]/5">
+                  <p className="text-sm font-medium text-[#1A1A1A]">
+                    Integrity: {result.integrity_passed ? 'passed' : 'review required'}
+                  </p>
+                  <p className="text-xs text-[#1A1A1A]/60 mt-1">
+                    Consideration mismatches {result.integrity_checks.total_consideration_mismatches} · Duplicate payouts {result.integrity_checks.duplicate_payout_events} · Duplicate editing {result.integrity_checks.duplicate_editing_charges} · Blocked redemptions {result.integrity_checks.redemptions_blocked}
+                  </p>
                 </div>
               )}
 
@@ -375,9 +477,11 @@ export default function AutoFund() {
                   <CardContent className="pt-5">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-serif text-xl text-[#1A1A1A]">${opt.amount}/month</span>
-                      {opt.bonus > 0 && <Badge className="bg-[#B8956A] text-[#1A1A1A]">+{opt.bonus}% bonus</Badge>}
+                      {opt.bonusPct > 0 && <Badge className="bg-[#B8956A] text-[#1A1A1A]">+{opt.bonusPct}% bonus</Badge>}
                     </div>
-                    <p className="text-sm text-[#1A1A1A]/60 mb-3">${opt.bv} Booking Value every month</p>
+                    <p className="text-sm text-[#1A1A1A]/60 mb-3">
+                      ${opt.bv} Booking Value every month{opt.bonus > 0 ? ` (+$${opt.bonus} bonus)` : ''}
+                    </p>
                     <ul className="space-y-1.5">
                       {opt.benefits.map((b, i) => (
                         <li key={i} className="flex items-start gap-2 text-xs text-[#1A1A1A]/70">
@@ -385,6 +489,7 @@ export default function AutoFund() {
                         </li>
                       ))}
                     </ul>
+                    {opt.vip && <VipTerms />}
                   </CardContent>
                 </Card>
               ))}

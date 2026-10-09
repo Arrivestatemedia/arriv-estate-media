@@ -385,14 +385,22 @@ export interface AutoFundAmountConfig {
   support_priority: "standard" | "priority" | "priority_high" | "highest_autofund";
   benefits: string[];
   validity_months: number;
+  /** True only for the $1,000 tier — carries the VIP benefits program. */
+  vip?: boolean;
 }
 
 /**
  * Auto-Fund amounts. Customer pays monthly; booking value added to wallet.
- * Revised approved bonus structure: $50 = 0%, $100 = 5%, $200 = 10%,
- * $350 = 15%, $500 = 20%, $1,000 = 35%. Bonus Booking Value is promotional
- * and is NEVER charged to the customer as a booking shortfall.
- * Credits = booking_value / 275 (canonical, full precision).
+ *
+ * FINAL APPROVED bonus structure: $50 = 0%, $100 = 5%, $200 = 10%,
+ * $350 = 15%, $500 = 20%, $1,000 = 25% (VIP tier).
+ *
+ * Bonus Booking Value is promotional and is NEVER charged to the customer as a
+ * booking shortfall. Credits = booking_value / 275 (canonical, full precision).
+ *
+ * Changing a tier's booking_value affects FUTURE issuances only. Existing
+ * CreditLots, wallet balances, issued/ redeemed totals, and financial history
+ * are never rewritten — entitlements already granted stay exactly as granted.
  */
 export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   50: {
@@ -497,23 +505,24 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   1000: {
     amount: 1000,
     plan_id: "autofund_1000",
-    booking_value: 1350,
-    bonus_pct: 35,
-    bonus_booking_value: 350,
-    credits: 1350 / 275,
+    booking_value: 1250,
+    bonus_pct: 25,
+    bonus_booking_value: 250,
+    credits: 1250 / 275,
     support_tier: "AUTOFUND_1000",
     support_priority: "highest_autofund",
+    vip: true,
     benefits: [
       "Customer 360",
       "Arriv Wallet",
       "Automatic monthly funding",
       "Rollover Booking Value",
-      "35% monthly bonus Booking Value",
+      "25% monthly bonus Booking Value",
       "Qualifying free rescheduling",
-      "Priority Arriv Assist support",
-      "Priority Booking",
-      "Priority Processing when operational capacity allows",
-      "Eligible Early Access to new Estate Media services",
+      "VIP priority scheduling, subject to specialist availability",
+      "VIP Arriv Assist routing",
+      "VIP highest-priority human-support escalation",
+      "Preferred pricing on selected add-ons when margin requirements are met",
     ],
     validity_months: 12,
   },
@@ -523,6 +532,172 @@ export const AUTO_FUND_AMOUNT_OPTIONS = [50, 100, 200, 350, 500, 1000];
 
 export function getAutoFundConfig(amount: number): AutoFundAmountConfig | null {
   return AUTO_FUND_AMOUNTS[amount] || null;
+}
+
+// ┌────────────────────────────────────────────────────────────────────────────
+// ARRIV AUTO-FUND VIP BENEFITS — $1,000 tier only
+// ─────────────────────────────────────────────────────────────────────────────
+// Three benefits, each with an explicit limit. Deliberately EXCLUDED: guaranteed
+// turnaround times, unlimited revisions, complimentary services, and uncapped
+// discounts. Every VIP term is disclosed to the customer at enrollment.
+
+/** Only the $1,000 Auto-Fund tier carries VIP benefits. */
+export const AUTO_FUND_VIP_AMOUNT = 1000;
+
+/** Required contribution margin. A VIP add-on discount is granted ONLY when the
+ *  post-discount add-on contribution still meets this margin. */
+export const TARGET_CONTRIBUTION_MARGIN_PCT = 10;
+
+export const VIP_PRIORITY_SCHEDULING = {
+  enabled: true,
+  disclosure:
+    "VIP priority scheduling: your booking request is sequenced ahead of standard requests in the scheduling queue.",
+  constraint:
+    "Subject to specialist availability. Priority scheduling does not guarantee a specific date, time, or specialist, and does not guarantee a faster delivery turnaround.",
+};
+
+export const VIP_ENHANCED_SUPPORT = {
+  enabled: true,
+  disclosure:
+    "VIP enhanced support: Arriv Assist routing is prioritised and human-support escalation carries the highest priority available on the support queue.",
+  constraint:
+    "Support priority places your request ahead of standard requests in the queue. It does not provide a dedicated agent, a guaranteed response time, or 24/7 coverage.",
+};
+
+export const VIP_ADDON_DISCOUNT_PCT = 10;
+export const VIP_ADDON_DISCOUNT_CAP_PER_BOOKING = 25;
+/** Selected add-ons only — VIP preferred pricing is not site-wide. */
+export const VIP_ADDON_ELIGIBLE_IDS = ["drone", "3d_tour", "twilight", "ai_staging", "vertical_reel"];
+export const VIP_ADDON_EXCLUDED_IDS = ["rush_delivery"];
+
+/** Estimated incremental fulfillment cost per add-on redemption. Used ONLY for
+ *  the margin guard and the financial stress model — never charged to a customer. */
+export const VIP_ADDON_ESTIMATED_FULFILLMENT_COST: Record<string, number> = {
+  drone: 35,
+  "3d_tour": 45,
+  twilight: 30,
+  ai_staging: 10,
+  vertical_reel: 12,
+};
+
+export const VIP_ADDON_PRICING_DISCLOSURE =
+  "VIP preferred pricing: 10% off selected add-ons, capped at $25 per booking, applied only when the discounted price still meets Arriv's required contribution margin. Add-ons that cannot meet the margin receive no discount. Not cumulative with other add-on promotions.";
+
+export const VIP_EXCLUSIONS = [
+  "No guaranteed turnaround times.",
+  "No unlimited revisions.",
+  "No complimentary services.",
+  "No uncapped discounts.",
+];
+
+/** VIP incremental cost assumptions — ESTIMATES used for the financial model only. */
+export const VIP_INCREMENTAL_COST_ASSUMPTIONS = {
+  enhanced_support_per_subscriber_per_month: 6,
+  priority_scheduling_cost_per_priority_booking: 25,
+  note:
+    "Estimates for financial modelling only. Priority scheduling cost reflects occasional incremental specialist travel/coordination when priority placement requires a specialist outside the standard coverage radius.",
+};
+
+export function isVipAutoFundTier(amount: number): boolean {
+  return amount === AUTO_FUND_VIP_AMOUNT;
+}
+
+export interface VipAddOnDiscountResult {
+  addon_id: string;
+  eligible: boolean;
+  base_price: number;
+  discount: number;
+  vip_price: number;
+  estimated_fulfillment_cost: number;
+  contribution: number;
+  margin_pct: number;
+  reason: string;
+}
+
+/**
+ * Resolve VIP preferred pricing for ONE add-on redemption.
+ * Grants a discount ONLY when the post-discount price still yields at least
+ * TARGET_CONTRIBUTION_MARGIN_PCT contribution margin. Fails closed to no discount.
+ */
+export function resolveVipAddOnDiscount(addonId: string, basePrice: number): VipAddOnDiscountResult {
+  const cost = VIP_ADDON_ESTIMATED_FULFILLMENT_COST[addonId] ?? 0;
+  const withheld = (reason: string): VipAddOnDiscountResult => ({
+    addon_id: addonId,
+    eligible: false,
+    base_price: round2(basePrice),
+    discount: 0,
+    vip_price: round2(basePrice),
+    estimated_fulfillment_cost: cost,
+    contribution: round2(basePrice - cost),
+    margin_pct: basePrice > 0 ? round2(((basePrice - cost) / basePrice) * 100) : 0,
+    reason,
+  });
+
+  if (!VIP_ADDON_ELIGIBLE_IDS.includes(addonId)) {
+    return withheld('Add-on is not included in VIP preferred pricing.');
+  }
+  if (!basePrice || basePrice <= 0) return withheld('Invalid add-on price.');
+
+  const discount = Math.min(round2(basePrice * (VIP_ADDON_DISCOUNT_PCT / 100)), VIP_ADDON_DISCOUNT_CAP_PER_BOOKING);
+  const vipPrice = round2(basePrice - discount);
+  const contribution = round2(vipPrice - cost);
+  const marginPct = round2((contribution / vipPrice) * 100);
+
+  if (marginPct < TARGET_CONTRIBUTION_MARGIN_PCT) {
+    return withheld(
+      `Discount withheld: post-discount margin ${marginPct}% is below the required ${TARGET_CONTRIBUTION_MARGIN_PCT}%.`
+    );
+  }
+
+  return {
+    addon_id: addonId,
+    eligible: true,
+    base_price: round2(basePrice),
+    discount,
+    vip_price: vipPrice,
+    estimated_fulfillment_cost: cost,
+    contribution,
+    margin_pct: marginPct,
+    reason: 'Discount applied — margin requirement met.',
+  };
+}
+
+export interface AutoFundVipTerms {
+  amount: number;
+  vip: boolean;
+  priority_scheduling: { enabled: boolean; disclosure: string; constraint: string };
+  enhanced_support: { enabled: boolean; disclosure: string; constraint: string };
+  preferred_addon_pricing: {
+    enabled: boolean;
+    discount_pct: number;
+    cap_per_booking: number;
+    eligible_addon_ids: string[];
+    excluded_addon_ids: string[];
+    margin_guard_pct: number;
+    disclosure: string;
+  };
+  exclusions: string[];
+}
+
+/** Full customer-facing VIP terms for a tier — null when the tier is not VIP. */
+export function getAutoFundVipTerms(amount: number): AutoFundVipTerms | null {
+  if (!isVipAutoFundTier(amount)) return null;
+  return {
+    amount,
+    vip: true,
+    priority_scheduling: { ...VIP_PRIORITY_SCHEDULING },
+    enhanced_support: { ...VIP_ENHANCED_SUPPORT },
+    preferred_addon_pricing: {
+      enabled: true,
+      discount_pct: VIP_ADDON_DISCOUNT_PCT,
+      cap_per_booking: VIP_ADDON_DISCOUNT_CAP_PER_BOOKING,
+      eligible_addon_ids: [...VIP_ADDON_ELIGIBLE_IDS],
+      excluded_addon_ids: [...VIP_ADDON_EXCLUDED_IDS],
+      margin_guard_pct: TARGET_CONTRIBUTION_MARGIN_PCT,
+      disclosure: VIP_ADDON_PRICING_DISCLOSURE,
+    },
+    exclusions: [...VIP_EXCLUSIONS],
+  };
 }
 
 /** Auto-Fund commission: 10% of actual cash collected, same as prepaid. */

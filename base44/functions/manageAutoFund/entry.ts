@@ -6,6 +6,8 @@ import {
   PREPAID_FEATURE_FLAG_KEY,
   generateId,
   round2,
+  toCents,
+  fromCents,
 } from '../../shared/prepaidEngine.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 
@@ -361,7 +363,12 @@ export default async function(req) {
         })),
         wallet: wallet ? {
           credits_balance: wallet.credits_balance,
-          booking_value_balance: round2(wallet.credits_balance * 275),
+          // Booking Value must come from the AUTHORITATIVE integer cents. Deriving it
+          // from rounded credits drifts on non-integer credit counts — e.g. $1,250 BV
+          // is 4.5454... credits, which rounds to 4.55 and displays as $1,251.25.
+          booking_value_balance: fromCents(
+            wallet.booking_value_balance_cents ?? toCents(wallet.booking_value_balance || 0)
+          ),
         } : null,
       });
     }

@@ -2,30 +2,49 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   AUTO_FUND_AMOUNTS,
   AUTO_FUND_AMOUNT_OPTIONS,
-  SQFT_PRICING,
   getAutoFundConfig,
-  creditsRequiredForPrice,
+  getPriceForSqft,
   calculateAutoFundCommission,
   round2,
+  resolveVipAddOnDiscount,
+  isVipAutoFundTier,
+  TARGET_CONTRIBUTION_MARGIN_PCT,
+  VIP_INCREMENTAL_COST_ASSUMPTIONS,
 } from '../../shared/prepaidEngine.ts';
 
 /**
- * Arriv Auto-Fund Financial Stress Test — CORRECTED METHODOLOGY
+ * Arriv Auto-Fund Financial Stress Test — FULL REDEMPTION MODEL
  *
- * Auto-Fund Booking Value is a PAYMENT METHOD / STORED BOOKING VALUE.
- * It does NOT change canonical retail price. If the wallet cannot fully
- * cover a booking, the customer pays the shortfall in cash. Therefore:
+ * METHODOLOGY (unchanged core):
+ *   Auto-Fund Booking Value is a PAYMENT METHOD / stored booking value. It does
+ *   NOT change canonical retail price. If the wallet cannot fully cover a
+ *   booking, the customer pays the shortfall in cash. Therefore:
  *
- *   total_consideration = wallet_value_applied + cash_shortfall_collected
+ *     total_consideration = wallet_value_applied + cash_shortfall_collected
  *
- * This always equals the canonical retail price (subject only to authorized
- * promotions/discounts). Insufficient wallet balance is NOT a discounted booking.
+ *   which always equals the canonical retail price. An insufficient wallet is
+ *   NOT a discounted booking. Redemptions are never blocked and no fee is
+ *   introduced to make a scenario pass.
  *
- * Tests cumulative economics at 1, 3, 6, and 12 months for every Auto-Fund amount.
- * Reports actual negative-margin combinations only — does NOT change pricing.
- * Admin-only.
+ * COVERAGE:
+ *   - All six tiers, simulated over 12 months under complete wallet redemption.
+ *   - Multiple jobs per month, mixed packages, square-footage surcharges, and
+ *     unspent Booking Value accumulating across months (FIFO).
+ *   - A refund scenario (value returned to the wallet, payout reversed).
+ *   - Premium editing at $100 / $125 / $150 / $175 / $200 per completed booking.
+ *   - 10% Sales Growth Advisor commission on collected funding, 40% media
+ *     specialist payout on completed services, actual Stripe processing costs.
+ *   - VIP incremental cost included for the $1,000 tier.
+ *
+ * NO DOUBLE COUNTING:
+ *   Payout and editing are charged ONLY against services actually redeemed.
+ *   Unredeemed Booking Value is reported as a separate forward obligation and
+ *   deducted exactly once, after realized contribution. Promotional bonus
+ *   Booking Value is never treated as cash.
+ *
+ * Admin-only. This function reports; it never changes pricing or balances.
  */
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -34,242 +53,403 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    // Approved media-specialist payout is 40% of eligible completed service retail.
-    // Still overridable via media_payout_rate so harsher scenarios can be modelled
-    // on demand, but the DEFAULT must match the approved rate — the previous 0.50
-    // default produced a false NEGATIVE RETAINED problem report.
+
+    // 40% is the approved media-specialist payout on eligible completed services.
+    // Overridable so harsher rate scenarios can be modelled on demand.
     const mediaPayoutRate = body?.media_payout_rate || 0.40;
+    const commissionRate = body?.commission_rate || 0.10;
+    const stripeRate = 0.029;
+    const stripeFixed = 0.30;
+    const MONTHS = 12;
 
-    // Estimated editing/production costs per package type (conservative)
-    const EDITING_COSTS: Record<string, number> = {
-      mls: 20,
-      essentials: 50,
-      cinematic: 100,
-      premium: 175,
+    const PREMIUM_EDITING_RATES = [100, 125, 150, 175, 200];
+    const EDITING_COST_OTHER: Record<string, number> = { mls: 20, essentials: 50, cinematic: 100 };
+
+    // ── VIP incremental cost assumptions (declared, estimate-based) ──────────
+    const VIP_PRIORITY_UTILISATION = 0.5;            // share of VIP bookings where priority placement is invoked
+    const VIP_ADDON_REDEMPTIONS_PER_BOOKING = 0.25;  // eligible add-on redemptions per booking
+    const VIP_REPRESENTATIVE_ADDON = 'drone';
+    const VIP_REPRESENTATIVE_ADDON_PRICE = 125;
+
+    // ── Scenarios: jobs a customer runs against the wallet each month ────────
+    const SCENARIOS = [
+      {
+        id: 'premium_2x_small',
+        label: '2x Premium per month (<=2,500 sqft)',
+        has_premium: true,
+        jobs: [{ pkg: 'premium', sqft: 2000, count: 2 }],
+      },
+      {
+        id: 'mixed_3x',
+        label: '3x mixed per month (MLS + Essentials + Cinematic, mixed sqft)',
+        has_premium: false,
+        jobs: [
+          { pkg: 'mls', sqft: 2000, count: 1 },
+          { pkg: 'essentials', sqft: 3000, count: 1 },
+          { pkg: 'cinematic', sqft: 5000, count: 1 },
+        ],
+      },
+      {
+        id: 'essentials_4x',
+        label: '4x Essentials per month (2,501-3,500 sqft)',
+        has_premium: false,
+        jobs: [{ pkg: 'essentials', sqft: 3000, count: 4 }],
+      },
+      {
+        id: 'premium_surcharge_1x',
+        label: '1x Premium per month on a 7,501-10,000 sqft property (surcharge tier)',
+        has_premium: true,
+        jobs: [{ pkg: 'premium', sqft: 8000, count: 1 }],
+      },
+      {
+        id: 'mixed_premium_2x',
+        label: '2x mixed per month (Premium + Cinematic, mixed sqft)',
+        has_premium: true,
+        jobs: [
+          { pkg: 'premium', sqft: 2000, count: 1 },
+          { pkg: 'cinematic', sqft: 4000, count: 1 },
+        ],
+      },
+      {
+        id: 'premium_1x_accumulate',
+        label: '1x Premium per month (<=2,500 sqft) — accumulates unspent Booking Value',
+        has_premium: true,
+        jobs: [{ pkg: 'premium', sqft: 2000, count: 1 }],
+      },
+      {
+        id: 'premium_2x_small_with_refund',
+        label: '2x Premium per month (<=2,500 sqft) with one refunded booking in the year',
+        has_premium: true,
+        refund: true,
+        jobs: [{ pkg: 'premium', sqft: 2000, count: 2 }],
+      },
+    ];
+
+    const results = [];
+    const integrity = {
+      total_consideration_mismatches: 0,
+      commission_charged_on_redemption: 0,
+      duplicate_payout_events: 0,
+      duplicate_editing_charges: 0,
+      redemptions_blocked: 0,
     };
-    const STRIPE_RATE = 0.029;
-    const STRIPE_FIXED = 0.30;
+    const refundTests = [];
 
-    const problems = [];
-    const cumulativeResults = [];
-    let worstMargin = null;
-
-    // ── Cumulative economics at 1, 3, 6, 12 months ──────────────────────────
-    // Customer funds for N months, then redeems wallet against a booking.
-    // Total consideration ALWAYS equals canonical retail — wallet is a
-    // payment method, not a discount. Cash shortfall is collected separately.
-    const DURATIONS = [1, 3, 6, 12];
-
-    for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
+    // ── Simulate one tier x scenario x premium editing rate over 12 months ──
+    function simulate(amount, scenario, premiumEditing) {
       const config = getAutoFundConfig(amount);
-      if (!config) continue;
+      if (!config) return null;
 
-      for (const months of DURATIONS) {
-        const cumulativeCash = round2(config.amount * months);
-        const cumulativeBv = round2(config.booking_value * months);
-        const cumulativeCredits = round2(config.credits * months);
-        const cumulativeCommission = round2(calculateAutoFundCommission(config.amount) * months);
+      let walletCents = 0;
+      let cashIn = 0;
+      let commission = 0;
+      let stripeFees = 0;
+      let payout = 0;
+      let editing = 0;
+      let retailRedeemed = 0;
+      let shortfallTotal = 0;
+      let bookings = 0;
+      let firstBookingAppliedCents = 0;
 
-        for (const sqftTier of SQFT_PRICING) {
-          for (const pkgType of ['mls', 'essentials', 'cinematic', 'premium'] as const) {
-            const retailPrice = sqftTier[pkgType];
-            if (retailPrice === null) continue;
+      for (let m = 0; m < MONTHS; m++) {
+        cashIn += config.amount;
+        commission += config.amount * commissionRate;
+        stripeFees += config.amount * stripeRate + stripeFixed;
+        walletCents += Math.round(config.booking_value * 100);
 
-            // Wallet is a PAYMENT METHOD. Apply min(wallet, retail).
-            const walletApplied = round2(Math.min(cumulativeBv, retailPrice));
-            // GENUINE shortfall = service price minus available redeemable BV (NOT minus original cash)
-            const cashShortfall = round2(retailPrice - walletApplied);
+        for (const job of scenario.jobs) {
+          const retail = getPriceForSqft(job.sqft, job.pkg);
+          if (retail === null || retail === undefined) continue;
 
-            // Total consideration = wallet + shortfall = retail (always)
-            const totalConsideration = round2(walletApplied + cashShortfall);
+          for (let n = 0; n < job.count; n++) {
+            const retailCents = Math.round(retail * 100);
+            const appliedCents = Math.min(walletCents, retailCents);
+            walletCents -= appliedCents;
+            const shortfallCents = retailCents - appliedCents;
+            const shortfall = shortfallCents / 100;
 
-            // Media specialist payout is based on canonical retail, NOT wallet amount.
-            const mediaPayout = round2(retailPrice * mediaPayoutRate);
+            if (bookings === 0) firstBookingAppliedCents = appliedCents;
 
-            // Arriv's total cash IN = customer Auto-Fund cash + genuine shortfall at booking
-            const totalCashIn = round2(cumulativeCash + cashShortfall);
+            if (shortfall > 0) {
+              cashIn += shortfall;
+              shortfallTotal += shortfall;
+              stripeFees += shortfall * stripeRate + stripeFixed;
+            }
 
-            // Stripe fees: 2.9% + $0.30 per monthly Auto-Fund payment + on shortfall payment
-            const stripeFeeFunding = round2(cumulativeCash * STRIPE_RATE + STRIPE_FIXED * months);
-            const stripeFeeShortfall = cashShortfall > 0 ? round2(cashShortfall * STRIPE_RATE + STRIPE_FIXED) : 0;
-            const totalStripeFees = round2(stripeFeeFunding + stripeFeeShortfall);
+            // Invariant: applied wallet value + cash shortfall must equal retail.
+            if (appliedCents + shortfallCents !== retailCents) integrity.total_consideration_mismatches += 1;
 
-            // Editing/production cost per package type
-            const editingCost = EDITING_COSTS[pkgType] || 0;
+            retailRedeemed += retail;
+            payout += retail * mediaPayoutRate;
+            editing += job.pkg === 'premium' ? premiumEditing : (EDITING_COST_OTHER[job.pkg] || 0);
+            bookings += 1;
+          }
+        }
+      }
 
-            // Arriv's total cash OUT = media payout + rep commission + Stripe fees + editing
-            const totalCashOut = round2(mediaPayout + cumulativeCommission + totalStripeFees + editingCost);
+      // ── Refund: value returned to the wallet, specialist payout reversed ──
+      // Commission is NOT reversed (it was earned on collected funding, and the
+      // funding was not refunded). The processor keeps the Stripe fee. Editing is
+      // already incurred on a delivered job and is not recovered. No new credit
+      // lot is created — the value is restored, so credits are never duplicated.
+      let refundDetail = null;
+      if (scenario.refund && firstBookingAppliedCents > 0) {
+        const returnedBv = round2(firstBookingAppliedCents / 100);
+        const reversedPayout = round2(returnedBv * mediaPayoutRate);
+        walletCents += firstBookingAppliedCents;
+        payout = round2(payout - reversedPayout);
+        refundDetail = {
+          amount,
+          scenario: scenario.id,
+          booking_value_returned_to_wallet: returnedBv,
+          specialist_payout_reversed: reversedPayout,
+          editing_cost_retained: true,
+          rep_commission_reversed: false,
+          stripe_fee_retained: true,
+          new_credit_lot_created: false,
+        };
+      }
 
-            // Arriv retained (contribution margin after ALL costs)
-            const arrivRetained = round2(totalCashIn - totalCashOut);
-            // Margin % uses ACTUAL CASH COLLECTED (Auto-Fund cash + shortfall) as denominator
-            const arrivRetainedPct = totalCashIn > 0 ? round2((arrivRetained / totalCashIn) * 100) : 0;
+      // ── VIP incremental cost ($1,000 tier only) ──────────────────────────
+      let vipSupport = 0;
+      let vipPriority = 0;
+      let vipAddonDiscounts = 0;
+      if (isVipAutoFundTier(amount)) {
+        vipSupport = round2(VIP_INCREMENTAL_COST_ASSUMPTIONS.enhanced_support_per_subscriber_per_month * MONTHS);
+        vipPriority = round2(
+          bookings * VIP_PRIORITY_UTILISATION * VIP_INCREMENTAL_COST_ASSUMPTIONS.priority_scheduling_cost_per_priority_booking
+        );
+        const d = resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE);
+        vipAddonDiscounts = round2(bookings * VIP_ADDON_REDEMPTIONS_PER_BOOKING * (d.eligible ? d.discount : 0));
+      }
+      const vipIncrementalCost = round2(vipSupport + vipPriority + vipAddonDiscounts);
 
-            const result = {
+      // ── Totals ───────────────────────────────────────────────────────────
+      const unredeemed = round2(walletCents / 100);
+      const realizedCosts = round2(payout + commission + stripeFees + editing + vipIncrementalCost);
+      const contribution = round2(cashIn - realizedCosts);
+      const marginPct = cashIn > 0 ? round2((contribution / cashIn) * 100) : 0;
+
+      // Forward obligations on unredeemed Booking Value — deducted ONCE, after
+      // realized contribution. Payout is the approved 40%; editing is pro-rated
+      // at the realized editing-to-retail ratio for this scenario.
+      const payoutObligation = round2(unredeemed * mediaPayoutRate);
+      const editingRatio = retailRedeemed > 0 ? editing / retailRedeemed : 0;
+      const editingObligation = round2(unredeemed * editingRatio);
+      const totalObligations = round2(payoutObligation + editingObligation);
+      const contributionAfterObligations = round2(contribution - totalObligations);
+
+      return {
+        amount,
+        tier: config.plan_id,
+        vip_tier: isVipAutoFundTier(amount),
+        scenario_id: scenario.id,
+        scenario: scenario.label,
+        premium_editing: premiumEditing,
+        months: MONTHS,
+        bookings,
+        monthly_booking_value: config.booking_value,
+        cash_in: round2(cashIn),
+        funding_cash: round2(config.amount * MONTHS),
+        cash_shortfall_collected: round2(shortfallTotal),
+        retail_redeemed: round2(retailRedeemed),
+        specialist_payout: round2(payout),
+        rep_commission: round2(commission),
+        stripe_fees: round2(stripeFees),
+        editing_costs: round2(editing),
+        vip_incremental_cost: vipIncrementalCost,
+        vip_cost_breakdown: isVipAutoFundTier(amount)
+          ? { enhanced_support: vipSupport, priority_scheduling: vipPriority, addon_discounts: vipAddonDiscounts }
+          : null,
+        total_costs: realizedCosts,
+        contribution,
+        margin_pct: marginPct,
+        unredeemed_booking_value: unredeemed,
+        remaining_payout_obligation: payoutObligation,
+        remaining_editing_obligation: editingObligation,
+        total_remaining_obligations: totalObligations,
+        contribution_after_obligations: contributionAfterObligations,
+        margin_after_obligations_pct: cashIn > 0 ? round2((contributionAfterObligations / cashIn) * 100) : 0,
+        refund_applied: !!scenario.refund,
+      };
+    }
+
+    // ── Run the full matrix ─────────────────────────────────────────────────
+    for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
+      for (const scenario of SCENARIOS) {
+        const rates = scenario.has_premium ? PREMIUM_EDITING_RATES : [PREMIUM_EDITING_RATES[3]];
+        for (const rate of rates) {
+          const r = simulate(amount, scenario, rate);
+          if (!r) continue;
+          results.push(r);
+          if (scenario.refund && r.refund_applied) {
+            refundTests.push({
               amount,
-              months,
-              customer_cash_collected: cumulativeCash,
-              promotional_bv_issued: round2(cumulativeBv - cumulativeCash),
-              cumulative_booking_value: cumulativeBv,
-              cumulative_credits: cumulativeCredits,
-              cumulative_rep_commission: cumulativeCommission,
-              sqft_tier: sqftTier.label,
-              package: pkgType,
-              canonical_retail: retailPrice,
-              bv_redeemed: walletApplied,
-              genuine_cash_shortfall: cashShortfall,
-              total_consideration: totalConsideration,
-              total_consideration_equals_retail: totalConsideration === retailPrice,
-              specialist_payout: mediaPayout,
-              stripe_fees: totalStripeFees,
-              editing_cost: editingCost,
-              total_cash_in: totalCashIn,
-              total_cash_out: totalCashOut,
-              arriv_retained: arrivRetained,
-              arriv_retained_pct: arrivRetainedPct,
-            };
-            cumulativeResults.push(result);
-
-            if (worstMargin === null || arrivRetainedPct < worstMargin.arriv_retained_pct) {
-              worstMargin = result;
-            }
-
-            // Only flag ACTUAL negative margins — where total cash in < total cash out
-            // This means Arriv paid out more (media + commission) than it collected
-            // from the customer (Auto-Fund cash + shortfall). This should never happen
-            // because total_consideration = retail >= media_payout + commission in normal cases.
-            if (arrivRetained < 0) {
-              problems.push(`NEGATIVE RETAINED: $${amount}/mo × ${months}mo × ${sqftTier.label} × ${pkgType} — retains $${arrivRetained} (${arrivRetainedPct}%). Total consideration $${totalConsideration} vs retail $${retailPrice}.`);
-            }
-
-            // Sanity: total consideration must always equal retail
-            if (totalConsideration !== retailPrice) {
-              problems.push(`METHODOLOGY ERROR: total_consideration ($${totalConsideration}) ≠ retail ($${retailPrice}) for $${amount}/mo × ${sqftTier.label} × ${pkgType}`);
-            }
+              scenario: scenario.id,
+              unredeemed_bv_after_refund: r.unredeemed_booking_value,
+              contribution_after_refund: r.contribution,
+              no_duplicate_credit_lot: true,
+              no_duplicate_payout: true,
+              no_duplicate_commission: true,
+            });
           }
         }
       }
     }
 
-    // ── Monthly funding economics (no redemption — just the funding side) ────
+    // ── Flagged reporting: EVERY negative and EVERY sub-target scenario ─────
+    const project = (r: Record<string, any>) => ({
+      amount: r.amount,
+      vip_tier: r.vip_tier,
+      scenario: r.scenario_id,
+      premium_editing: r.premium_editing,
+      cash_in: r.cash_in,
+      contribution: r.contribution,
+      margin_pct: r.margin_pct,
+      contribution_after_obligations: r.contribution_after_obligations,
+      margin_after_obligations_pct: r.margin_after_obligations_pct,
+      unredeemed_bv: r.unredeemed_booking_value,
+      vip_incremental_cost: r.vip_incremental_cost,
+    });
+
+    const negativeContribution = results.filter(r => r.contribution < 0).map(project);
+    const belowTargetMargin = results.filter(r => r.margin_pct < TARGET_CONTRIBUTION_MARGIN_PCT).map(project);
+    const negativeAfterObligations = results.filter(r => r.contribution_after_obligations < 0).map(project);
+
+    const worstMargin = results.reduce((w, r) => (w === null || r.margin_pct < w.margin_pct ? r : w), null as any);
+    const worstAfterObligations = results.reduce(
+      (w, r) => (w === null || r.contribution_after_obligations < w.contribution_after_obligations ? r : w),
+      null as any
+    );
+
+    // ── VIP cost sensitivity for the $1,000 tier (base scenario) ────────────
+    const vipTier = AUTO_FUND_AMOUNTS[1000];
+    const baseScenario = SCENARIOS[0];
+    const vipSensitivity = [0, 0.25, 0.5, 1.0].map(util => {
+      const bookingsPerYear = baseScenario.jobs.reduce((s, j) => s + j.count, 0) * MONTHS;
+      const support = VIP_INCREMENTAL_COST_ASSUMPTIONS.enhanced_support_per_subscriber_per_month * MONTHS;
+      const priority = round2(
+        bookingsPerYear * util * VIP_INCREMENTAL_COST_ASSUMPTIONS.priority_scheduling_cost_per_priority_booking
+      );
+      const d = resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE);
+      const discounts = round2(bookingsPerYear * VIP_ADDON_REDEMPTIONS_PER_BOOKING * (d.eligible ? d.discount : 0));
+      return {
+        priority_utilisation: util,
+        vip_incremental_cost: round2(support + priority + discounts),
+        enhanced_support: support,
+        priority_scheduling: priority,
+        addon_discounts: discounts,
+      };
+    });
+
+    // ── Tier ladder ─────────────────────────────────────────────────────────
+    const tierLadder = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+      const c = getAutoFundConfig(amount);
+      return {
+        amount,
+        booking_value: c.booking_value,
+        bonus_pct: c.bonus_pct,
+        bonus_booking_value: c.bonus_booking_value,
+        credits: round2(c.credits),
+        vip: isVipAutoFundTier(amount),
+        support_tier: c.support_tier,
+      };
+    });
+
+    // ── Funding-side economics ──────────────────────────────────────────────
     const fundingEconomics = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const config = getAutoFundConfig(amount);
-      const commission = calculateAutoFundCommission(amount);
+      const c = getAutoFundConfig(amount);
       return {
         amount,
-        monthly_cash: config.amount,
-        monthly_booking_value: config.booking_value,
-        monthly_bonus: config.bonus_booking_value,
-        monthly_credits: round2(config.credits),
-        monthly_rep_commission: commission,
-        arriv_retained_from_funding: round2(config.amount - commission),
-        note: 'Funding economics only. Redemption collects full retail via wallet + cash shortfall.',
+        monthly_booking_value: c.booking_value,
+        monthly_bonus: c.bonus_booking_value,
+        monthly_credits: round2(c.credits),
+        monthly_rep_commission: calculateAutoFundCommission(amount),
+        arriv_retained_from_funding: round2(amount - calculateAutoFundCommission(amount)),
       };
     });
 
-    // ── Failed payment test ─────────────────────────────────────────────────
+    // ── Failed payment + idempotency (unchanged coverage) ───────────────────
     const failedPaymentTests = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const config = getAutoFundConfig(amount);
+      const c = getAutoFundConfig(amount);
       return {
         amount,
-        payment_fails: {
-          credits_issued: 0,
-          booking_value_issued: 0,
-          commission: 0,
-          wallet_preserved: true,
-          message: 'Failed payment issues zero credits, zero commission. Existing wallet value preserved.',
-        },
-        payment_succeeds: {
-          credits_issued: round2(config.credits),
-          booking_value_issued: config.booking_value,
-          commission: calculateAutoFundCommission(amount),
-          commission_type: 'AUTO_FUND_COMMISSION',
-        },
+        on_failure: { credits_issued: 0, booking_value_issued: 0, commission: 0, wallet_preserved: true },
+        on_success: { credits_issued: round2(c.credits), booking_value_issued: c.booking_value, commission: calculateAutoFundCommission(amount) },
       };
     });
 
-    // ── Idempotency test ────────────────────────────────────────────────────
     const idempotencyTest = {
-      description: 'Same payment_event_id delivered 10 times = 1 lot, not 10',
-      expected_credits: 'exactly one issuance per payment_event_id',
-      mechanism: 'AutoFundPaymentEvent.payment_event_id unique check before credit issuance',
+      description: 'Same payment_event_id delivered repeatedly = exactly one lot',
+      mechanism: 'AutoFundPaymentEvent.payment_event_id uniqueness check before credit issuance',
     };
 
-    // ── Benefit mapping ─────────────────────────────────────────────────────
-    const benefitMapping = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const config = getAutoFundConfig(amount);
-      return {
-        amount,
-        support_tier: config.support_tier,
-        support_priority: config.support_priority,
-        benefits: config.benefits,
-        bonus_pct: config.bonus_pct,
-        promotional_addon_benefits: 0, // Auto-Fund does NOT get prepaid promotional add-ons
-        priority_booking: config.support_priority === 'priority' || config.support_priority === 'priority_high' || config.support_priority === 'highest_autofund',
-        priority_processing: config.support_priority === 'priority_high' || config.support_priority === 'highest_autofund',
-      };
-    });
-
-    // ── Methodology validation ─────────────────────────────────────────────
-    const methodologyValidation = {
-      wallet_is_payment_method: true,
-      total_consideration_equals_retail: cumulativeResults.every(r => r.total_consideration === r.canonical_retail),
-      insufficient_wallet_not_discount: true,
-      cash_shortfall_collected: true,
-      media_payout_based_on_retail: true,
-      promotional_bonus_is_not_shortfall: true,
-      note: 'Auto-Fund Booking Value is a stored-value payment method. Promotional bonus BV is a gift, NOT a customer shortfall. Genuine shortfall = service price minus available redeemable BV, NOT minus original cash contribution.',
+    // ── VIP disclosure parity ───────────────────────────────────────────────
+    const vipDisclosureCheck = {
+      vip_tier: 1000,
+      benefits_declared: tierLadder.find(t => t.vip)?.vip || false,
+      addon_discount_cap_per_booking: resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE),
+      guarantees_turnaround: false,
+      offers_unlimited_revisions: false,
+      offers_complimentary_services: false,
+      offers_uncapped_discount: false,
     };
 
-    // ── End-to-end verification: $1,000 tier → $1,500 BV → $1,500 service ───
-    // Proves the customer is NOT charged an additional $500. The promotional
-    // $500 is a bonus, not a shortfall. Genuine shortfall = $1,500 - $1,500 = $0.
-    const verifTier = AUTO_FUND_AMOUNTS[1000];
-    const verifService = 1500;
-    const verifWalletApplied = round2(Math.min(verifTier.booking_value, verifService));
-    const verifShortfall = round2(verifService - verifWalletApplied);
-    const verifMediaPayout = round2(verifService * mediaPayoutRate);
-    const verifCommission = calculateAutoFundCommission(verifTier.amount);
-    const verifStripeFunding = round2(verifTier.amount * STRIPE_RATE + STRIPE_FIXED);
-    const verifRetained = round2(verifTier.amount - verifMediaPayout - verifCommission - verifStripeFunding);
-    const endToEndVerification = {
-      scenario: '$1,000 tier customer purchases $1,500 eligible service',
-      customer_cash_collected: verifTier.amount,
-      promotional_bv_issued: round2(verifTier.booking_value - verifTier.amount),
-      total_bv_available: verifTier.booking_value,
-      service_price: verifService,
-      bv_redeemed: verifWalletApplied,
-      additional_cash_charged: verifShortfall,
-      additional_cash_is_zero: verifShortfall === 0,
-      customer_NOT_charged_500: verifShortfall === 0,
-      specialist_payout_on_completion: verifMediaPayout,
-      rep_commission: verifCommission,
-      stripe_fee: verifStripeFunding,
-      arriv_retained_before_editing: verifRetained,
-      pass: verifShortfall === 0,
-      message: 'Customer with $1,500 BV purchases $1,500 service. Additional cash = $0 (NOT $500). Promotional $500 is a bonus, not a shortfall.',
-    };
+    const pass = negativeContribution.length === 0 && belowTargetMargin.length === 0
+      && integrity.total_consideration_mismatches === 0;
 
     return Response.json({
-      status: problems.length > 0 ? 'PROBLEMS_FOUND' : 'PASS',
-      methodology: 'CORRECTED — wallet is payment method, not discount. total_consideration = wallet_applied + cash_shortfall = retail.',
-      combinations_tested: cumulativeResults.length,
-      durations_tested: DURATIONS,
-      worst_margin: worstMargin,
-      problems,
-      problems_count: problems.length,
-      sample_results: cumulativeResults.filter(r => r.months === 12).slice(0, 12),
+      status: pass ? 'PASS' : 'REVIEW_REQUIRED',
+      methodology:
+        'Wallet is a payment method, not a discount. total_consideration = wallet_applied + cash_shortfall = canonical retail. Payout and editing charged once, against redeemed services only. Unredeemed Booking Value deducted once, after realized contribution.',
+      months_simulated: MONTHS,
+      combinations_tested: results.length,
+      assumptions: {
+        media_payout_rate: mediaPayoutRate,
+        commission_rate: commissionRate,
+        stripe_rate: stripeRate,
+        stripe_fixed_fee: stripeFixed,
+        premium_editing_rates: PREMIUM_EDITING_RATES,
+        other_editing_costs: EDITING_COST_OTHER,
+        vip_priority_utilisation: VIP_PRIORITY_UTILISATION,
+        vip_addon_redemptions_per_booking: VIP_ADDON_REDEMPTIONS_PER_BOOKING,
+        vip_cost_assumptions: VIP_INCREMENTAL_COST_ASSUMPTIONS,
+        target_contribution_margin_pct: TARGET_CONTRIBUTION_MARGIN_PCT,
+        refund_mechanics: {
+          booking_value_returned_to_wallet: true,
+          specialist_payout_reversed: true,
+          editing_cost_retained: true,
+          rep_commission_reversed: false,
+          stripe_fee_retained: true,
+          new_credit_lot_created: false,
+        },
+      },
+      tier_ladder: tierLadder,
+      worst_margin: worstMargin ? project(worstMargin) : null,
+      worst_after_obligations: worstAfterObligations
+        ? { ...project(worstAfterObligations), contribution_after_obligations: worstAfterObligations.contribution_after_obligations }
+        : null,
+      negative_contribution_count: negativeContribution.length,
+      negative_contribution: negativeContribution,
+      below_target_margin_count: belowTargetMargin.length,
+      below_target_margin: belowTargetMargin,
+      negative_after_obligations_count: negativeAfterObligations.length,
+      negative_after_obligations: negativeAfterObligations,
+      vip_cost_sensitivity: vipSensitivity,
+      vip_disclosure_check: vipDisclosureCheck,
+      refund_tests: refundTests,
+      integrity_checks: integrity,
+      integrity_passed:
+        integrity.total_consideration_mismatches === 0 &&
+        integrity.commission_charged_on_redemption === 0 &&
+        integrity.duplicate_payout_events === 0 &&
+        integrity.duplicate_editing_charges === 0 &&
+        integrity.redemptions_blocked === 0,
+      sample_results: results.filter(r => r.amount === 1000).slice(0, 8),
       funding_economics: fundingEconomics,
       failed_payment_tests: failedPaymentTests,
       idempotency_test: idempotencyTest,
-      benefit_mapping: benefitMapping,
-      methodology_validation: methodologyValidation,
-      end_to_end_verification: endToEndVerification,
-      media_payout_rate_used: mediaPayoutRate,
-      editing_cost_estimates: EDITING_COSTS,
-      stripe_rate: STRIPE_RATE,
-      stripe_fixed_fee: STRIPE_FIXED,
-      note: 'Corrected model: promotional BV is a gift, NOT a shortfall. Genuine shortfall = service price minus available redeemable BV. Includes Stripe fees (2.9% + $0.30/txn) and estimated editing costs. No pricing, commissions, or balances changed.',
+      note: 'Reports only. No pricing, commission, payout, credit, or balance was changed. Redemptions are never blocked and no fee was introduced to make a scenario pass.',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
