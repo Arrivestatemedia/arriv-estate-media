@@ -36,6 +36,16 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const mediaPayoutRate = body?.media_payout_rate || 0.50;
 
+    // Estimated editing/production costs per package type (conservative)
+    const EDITING_COSTS: Record<string, number> = {
+      mls: 20,
+      essentials: 50,
+      cinematic: 100,
+      premium: 175,
+    };
+    const STRIPE_RATE = 0.029;
+    const STRIPE_FIXED = 0.30;
+
     const problems = [];
     const cumulativeResults = [];
     let worstMargin = null;
@@ -63,6 +73,7 @@ export default async function(req) {
 
             // Wallet is a PAYMENT METHOD. Apply min(wallet, retail).
             const walletApplied = round2(Math.min(cumulativeBv, retailPrice));
+            // GENUINE shortfall = service price minus available redeemable BV (NOT minus original cash)
             const cashShortfall = round2(retailPrice - walletApplied);
 
             // Total consideration = wallet + shortfall = retail (always)
@@ -71,32 +82,44 @@ export default async function(req) {
             // Media specialist payout is based on canonical retail, NOT wallet amount.
             const mediaPayout = round2(retailPrice * mediaPayoutRate);
 
-            // Arriv's total cash IN = customer Auto-Fund cash + cash shortfall at booking
+            // Arriv's total cash IN = customer Auto-Fund cash + genuine shortfall at booking
             const totalCashIn = round2(cumulativeCash + cashShortfall);
 
-            // Arriv's total cash OUT = media payout + rep commission
-            const totalCashOut = round2(mediaPayout + cumulativeCommission);
+            // Stripe fees: 2.9% + $0.30 per monthly Auto-Fund payment + on shortfall payment
+            const stripeFeeFunding = round2(cumulativeCash * STRIPE_RATE + STRIPE_FIXED * months);
+            const stripeFeeShortfall = cashShortfall > 0 ? round2(cashShortfall * STRIPE_RATE + STRIPE_FIXED) : 0;
+            const totalStripeFees = round2(stripeFeeFunding + stripeFeeShortfall);
 
-            // Arriv retained
+            // Editing/production cost per package type
+            const editingCost = EDITING_COSTS[pkgType] || 0;
+
+            // Arriv's total cash OUT = media payout + rep commission + Stripe fees + editing
+            const totalCashOut = round2(mediaPayout + cumulativeCommission + totalStripeFees + editingCost);
+
+            // Arriv retained (contribution margin after ALL costs)
             const arrivRetained = round2(totalCashIn - totalCashOut);
             const arrivRetainedPct = cumulativeCash > 0 ? round2((arrivRetained / cumulativeCash) * 100) : 0;
 
             const result = {
               amount,
               months,
-              cumulative_cash: cumulativeCash,
+              customer_cash_collected: cumulativeCash,
+              promotional_bv_issued: round2(cumulativeBv - cumulativeCash),
               cumulative_booking_value: cumulativeBv,
               cumulative_credits: cumulativeCredits,
               cumulative_rep_commission: cumulativeCommission,
               sqft_tier: sqftTier.label,
               package: pkgType,
               canonical_retail: retailPrice,
-              wallet_applied: walletApplied,
-              cash_shortfall_collected: cashShortfall,
+              bv_redeemed: walletApplied,
+              genuine_cash_shortfall: cashShortfall,
               total_consideration: totalConsideration,
               total_consideration_equals_retail: totalConsideration === retailPrice,
-              media_payout: mediaPayout,
+              specialist_payout: mediaPayout,
+              stripe_fees: totalStripeFees,
+              editing_cost: editingCost,
               total_cash_in: totalCashIn,
+              total_cash_out: totalCashOut,
               arriv_retained: arrivRetained,
               arriv_retained_pct: arrivRetainedPct,
             };
@@ -189,7 +212,37 @@ export default async function(req) {
       insufficient_wallet_not_discount: true,
       cash_shortfall_collected: true,
       media_payout_based_on_retail: true,
-      note: 'Auto-Fund Booking Value is a stored-value payment method. Insufficient wallet balance triggers cash shortfall collection, NOT a discounted booking.',
+      promotional_bonus_is_not_shortfall: true,
+      note: 'Auto-Fund Booking Value is a stored-value payment method. Promotional bonus BV is a gift, NOT a customer shortfall. Genuine shortfall = service price minus available redeemable BV, NOT minus original cash contribution.',
+    };
+
+    // ── End-to-end verification: $1,000 tier → $1,500 BV → $1,500 service ───
+    // Proves the customer is NOT charged an additional $500. The promotional
+    // $500 is a bonus, not a shortfall. Genuine shortfall = $1,500 - $1,500 = $0.
+    const verifTier = AUTO_FUND_AMOUNTS[1000];
+    const verifService = 1500;
+    const verifWalletApplied = round2(Math.min(verifTier.booking_value, verifService));
+    const verifShortfall = round2(verifService - verifWalletApplied);
+    const verifMediaPayout = round2(verifService * mediaPayoutRate);
+    const verifCommission = calculateAutoFundCommission(verifTier.amount);
+    const verifStripeFunding = round2(verifTier.amount * STRIPE_RATE + STRIPE_FIXED);
+    const verifRetained = round2(verifTier.amount - verifMediaPayout - verifCommission - verifStripeFunding);
+    const endToEndVerification = {
+      scenario: '$1,000 tier customer purchases $1,500 eligible service',
+      customer_cash_collected: verifTier.amount,
+      promotional_bv_issued: round2(verifTier.booking_value - verifTier.amount),
+      total_bv_available: verifTier.booking_value,
+      service_price: verifService,
+      bv_redeemed: verifWalletApplied,
+      additional_cash_charged: verifShortfall,
+      additional_cash_is_zero: verifShortfall === 0,
+      customer_NOT_charged_500: verifShortfall === 0,
+      specialist_payout_on_completion: verifMediaPayout,
+      rep_commission: verifCommission,
+      stripe_fee: verifStripeFunding,
+      arriv_retained_before_editing: verifRetained,
+      pass: verifShortfall === 0,
+      message: 'Customer with $1,500 BV purchases $1,500 service. Additional cash = $0 (NOT $500). Promotional $500 is a bonus, not a shortfall.',
     };
 
     return Response.json({
@@ -206,8 +259,12 @@ export default async function(req) {
       idempotency_test: idempotencyTest,
       benefit_mapping: benefitMapping,
       methodology_validation: methodologyValidation,
+      end_to_end_verification: endToEndVerification,
       media_payout_rate_used: mediaPayoutRate,
-      note: 'Auto-Fund economics tested with corrected methodology. No pricing or compensation changed. Insufficient wallet balance is NOT treated as negative margin — cash shortfall is collected.',
+      editing_cost_estimates: EDITING_COSTS,
+      stripe_rate: STRIPE_RATE,
+      stripe_fixed_fee: STRIPE_FIXED,
+      note: 'Corrected model: promotional BV is a gift, NOT a shortfall. Genuine shortfall = service price minus available redeemable BV. Includes Stripe fees (2.9% + $0.30/txn) and estimated editing costs. No pricing, commissions, or balances changed.',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
