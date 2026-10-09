@@ -22,6 +22,7 @@ export default async function(req) {
     } = await import('../../shared/b2bDelinquencyEngine.ts');
 
     const { buildB2BNotification } = await import('../../shared/b2bNotificationEngine.ts');
+    const { isSyntheticRecord } = await import('../../shared/certificationMode.ts');
 
     // Helper: send notification via Brevo (SendEmail) — only in production mode
     async function sendNotification(type, org, invoice, recipientEmail) {
@@ -76,7 +77,7 @@ export default async function(req) {
       (inv.invoice_type === 'b2b_annual_contract' ||
        inv.invoice_type === 'b2b_implementation' ||
        inv.invoice_type === 'b2b_approved_overage') &&
-      (certificationMode || !inv.certification_mode) // Skip cert fixtures in production scan
+      (certificationMode || !isSyntheticRecord(inv)) // Skip cert fixtures in production scan (robust: checks certification_mode field AND cert_ prefix)
     );
 
     const processed = [];

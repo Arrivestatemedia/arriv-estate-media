@@ -142,11 +142,35 @@ export function evaluateCertificationBypass(ctx: CertificationContext): Certific
  * Check whether an existing entity record is synthetic (cert_-prefixed).
  * Used to keep certification data out of production analytics/payroll.
  */
-export function isCertificationRecord(record: { source_event_id?: string; payment_event_id?: string; transaction_id?: string; customer_id?: string; customer_email?: string } | null | undefined): boolean {
+export function isCertificationRecord(record: { source_event_id?: string; payment_event_id?: string; transaction_id?: string; customer_id?: string; customer_email?: string; lot_id?: string; organization_id?: string } | null | undefined): boolean {
   if (!record) return false;
   return isCertificationId(record.source_event_id) ||
     isCertificationId(record.payment_event_id) ||
     isCertificationId(record.transaction_id) ||
     isCertificationId(record.customer_id) ||
-    isCertificationId(record.customer_email);
+    isCertificationId(record.customer_email) ||
+    isCertificationId(record.lot_id) ||
+    isCertificationId(record.organization_id);
+}
+
+/**
+ * Robust synthetic record detection for production workflow filtering.
+ * Checks BOTH the certification_mode boolean field AND cert_ prefix on
+ * key identifiers. Use this in production workflows to safely exclude
+ * cert fixtures that may lack the certification_mode field (created by
+ * older test runs) — without deleting or modifying financial history.
+ */
+export function isSyntheticRecord(record: {
+  certification_mode?: boolean;
+  source_event_id?: string;
+  payment_event_id?: string;
+  transaction_id?: string;
+  customer_id?: string;
+  customer_email?: string;
+  lot_id?: string;
+  organization_id?: string;
+} | null | undefined): boolean {
+  if (!record) return false;
+  if (record.certification_mode === true) return true;
+  return isCertificationRecord(record);
 }
