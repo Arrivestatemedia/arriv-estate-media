@@ -9,6 +9,7 @@ import {
   verifyCleanupComplete,
 } from '../../shared/certFixtures.ts';
 import { isCertificationId } from '../../shared/certificationMode.ts';
+import { getAutoFundConfig } from '../../shared/prepaidEngine.ts';
 
 /**
  * Deployed Payment Contract Certification Suite
@@ -593,13 +594,22 @@ export default async function(req) {
 
     // ═══════════════════════════════════════════════════════════════════════
     // TEST 11b: PARTIAL REFUND WITH COMMISSION (DEPLOYED_HTTP)
-    // $200 payment with rep → $210 BV (21000¢), $20 commission.
-    // Partial refund $100 (50%) → $10 commission reversal + 10500¢ wallet reversal.
+    // $200 payment with rep → Booking Value and commission at the CANONICAL rates.
+    // Partial refund $100 (50%) → proportional commission reversal + 50% wallet reversal.
+    // Expected Booking Value is DERIVED FROM the canonical Auto-Fund tier config
+    // (never hardcoded) so a tier change cannot silently invalidate this assertion.
     // Verifies proportional commission reversal, original commission linkage,
     // wallet adjustment, CreditLot adjustment, and no duplicate reversal.
     // ═══════════════════════════════════════════════════════════════════════
     let partialCommissionPaymentEventId = '';
     let partialCommissionEventId = '';
+    // Canonical expectations, derived from the Auto-Fund tier configuration.
+    // For $200 the canonical tier issues $220 Booking Value (22000¢).
+    const partialTier = getAutoFundConfig(200);
+    const partialIssuedCents = Math.round((partialTier?.booking_value || 0) * 100);
+    const refundFraction = 0.5; // $100 refunded of $200 charged
+    const partialReversalCents = Math.round(partialIssuedCents * refundFraction);
+    const partialLotRemainingCents = partialIssuedCents - partialReversalCents;
     try {
       // Step 1: Create commission-attributed payment ($200 recurring with rep)
       partialCommissionPaymentEventId = `${TEST_RUN_ID}_partial_comm_200`;
@@ -645,14 +655,14 @@ export default async function(req) {
       const origCommArr = Array.isArray(originalCommissions) ? originalCommissions : (originalCommissions?.data || []);
       const originalCommission = origCommArr[0];
 
-      // Verify wallet refund adjustment (50% of 21000 = 10500¢)
+      // Verify wallet refund adjustment (refunded proportion of canonical BV)
       const refundTxns = await b.entities.WalletTransaction.filter({
         transaction_id: `refund_${partialCommRefundId}`,
       });
       const refundTxnArr = Array.isArray(refundTxns) ? refundTxns : (refundTxns?.data || []);
       const refundTxn = refundTxnArr[0];
 
-      // Verify CreditLot adjustment (50% remaining = 10500¢)
+      // Verify CreditLot adjustment (canonical BV less the reversed proportion)
       const originalEvent = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: partialCommissionPaymentEventId }, undefined, 1);
       const origEvtArr = Array.isArray(originalEvent) ? originalEvent : (originalEvent?.data || []);
       const lotId = origEvtArr[0]?.lot_id;
@@ -665,17 +675,19 @@ export default async function(req) {
         status === 200 &&
         data.status === 'processed' &&
         data.reversals_created === 1 &&
+        payResult.data?.booking_value_issued_cents === partialIssuedCents && // live issue matches canonical tier
         !!originalCommission && originalCommission.commission_amount > 0 && // original preserved
-        data.total_reversal_amount === Math.round(originalCommission.commission_amount * 50) / 100 && // 50% of original commission
+        data.total_reversal_amount === Math.round(originalCommission.commission_amount * refundFraction * 100) / 100 && // proportional share of original commission
         revArr.length === 1 &&
         revArr[0].commission_amount === -data.total_reversal_amount && // proportional reversal
         revArr[0].reverses_source_event_id === partialCommissionEventId && // linked to original
         data.wallet_refund?.status === 'processed' &&
-        data.wallet_refund?.refund_bv_cents_actual === 10500 && // 50% of 21000
+        data.wallet_refund?.refund_bv_cents_actual === partialReversalCents && // refunded proportion of canonical BV
         refundTxn?.type === 'REFUND_REVERSAL' &&
-        refundTxn?.booking_value_cents === -10500 &&
-        lot?.booking_value_remaining_cents === 10500, // 21000 - 10500
-        `http=${status}, reversals=${data.reversals_created}, amount=${data.total_reversal_amount}, rev_amount=${revArr[0]?.commission_amount}, linked=${revArr[0]?.reverses_source_event_id === partialCommissionEventId}, orig_comm=${originalCommission?.commission_amount}, wallet=${data.wallet_refund?.refund_bv_cents_actual}, txn_bv=${refundTxn?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}`);
+        refundTxn?.booking_value_cents === -partialReversalCents &&
+        lot?.booking_value_issued_cents === partialIssuedCents && // lot funded at canonical BV
+        lot?.booking_value_remaining_cents === partialLotRemainingCents,
+        `http=${status}, reversals=${data.reversals_created}, amount=${data.total_reversal_amount}, rev_amount=${revArr[0]?.commission_amount}, linked=${revArr[0]?.reverses_source_event_id === partialCommissionEventId}, issued=${payResult.data?.booking_value_issued_cents}, expect_issued=${partialIssuedCents}, orig_comm=${originalCommission?.commission_amount}, wallet=${data.wallet_refund?.refund_bv_cents_actual}, expect_wallet=${partialReversalCents}, txn_bv=${refundTxn?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}, expect_lot_remaining=${partialLotRemainingCents}`);
     } catch (e) {
       check('PARTIAL_REFUND_COMMISSION_HTTP: proportional commission + wallet + lot via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
