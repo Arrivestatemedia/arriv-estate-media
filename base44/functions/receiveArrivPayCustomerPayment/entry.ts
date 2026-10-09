@@ -325,7 +325,21 @@ export default async function(req) {
     let retryable: boolean | null = null;
     if (result.status === 'error') {
       const errLower = (result.error || '').toLowerCase();
-      if (errLower.includes('not found')) {
+      if (result.error_code) {
+        // Authoritative path: the processor now returns a machine-readable code
+        // and an explicit retryable flag, so permanence is never inferred from
+        // message text. Retryable = bounded redelivery is safe; permanent = the
+        // request can never succeed and must not be retried.
+        if (result.retryable === true) {
+          httpStatus = 404;
+          errorCode = result.error_code;
+          retryable = true;
+        } else {
+          httpStatus = 403;
+          errorCode = result.error_code;
+          retryable = false;
+        }
+      } else if (errLower.includes('not found')) {
         // The event's customer/wallet pair does not resolve. Rejected before any
         // mutation, so a bounded redelivery is safe while enrollment settles.
         httpStatus = 404;

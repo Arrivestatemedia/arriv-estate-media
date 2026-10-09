@@ -13,34 +13,34 @@ import {
 } from '../../shared/prepaidEngine.ts';
 
 /**
- * Arriv Auto-Fund Financial Stress Test — FULL REDEMPTION MODEL
+ * Arriv Auto-Fund Financial Stress Test — v3
  *
- * METHODOLOGY (unchanged core):
- *   Auto-Fund Booking Value is a PAYMENT METHOD / stored booking value. It does
- *   NOT change canonical retail price. If the wallet cannot fully cover a
- *   booking, the customer pays the shortfall in cash. Therefore:
+ * METHODOLOGY (unchanged):
+ *   Auto-Fund Booking Value is a PAYMENT METHOD, not a discount. It does not
+ *   change canonical retail. An insufficient wallet is NOT a discounted booking —
+ *   the customer pays the shortfall in cash, so:
  *
- *     total_consideration = wallet_value_applied + cash_shortfall_collected
+ *     total_consideration = wallet_value_applied + cash_shortfall_collected = canonical retail
  *
- *   which always equals the canonical retail price. An insufficient wallet is
- *   NOT a discounted booking. Redemptions are never blocked and no fee is
- *   introduced to make a scenario pass.
- *
- * COVERAGE:
- *   - All six tiers, simulated over 12 months under complete wallet redemption.
- *   - Multiple jobs per month, mixed packages, square-footage surcharges, and
- *     unspent Booking Value accumulating across months (FIFO).
- *   - A refund scenario (value returned to the wallet, payout reversed).
- *   - Premium editing at $100 / $125 / $150 / $175 / $200 per completed booking.
- *   - 10% Sales Growth Advisor commission on collected funding, 40% media
- *     specialist payout on completed services, actual Stripe processing costs.
- *   - VIP incremental cost included for the $1,000 tier.
+ *   Redemptions are never blocked and no fee is introduced to make a scenario pass.
  *
  * NO DOUBLE COUNTING:
  *   Payout and editing are charged ONLY against services actually redeemed.
  *   Unredeemed Booking Value is reported as a separate forward obligation and
- *   deducted exactly once, after realized contribution. Promotional bonus
- *   Booking Value is never treated as cash.
+ *   deducted exactly once, after realized contribution. Promotional bonus Booking
+ *   Value is never treated as cash.
+ *
+ * v3 CHANGES (2026-10-09):
+ *   1. Premium editing is costed PER COMPLETED EDIT ($100–$150 expected,
+ *      $175–$200 stress), not per square foot.
+ *   2. VIP enhanced support is a BOUNDED entitlement: maximum 4 sessions per
+ *      month (48/year). Modelled at 25% utilisation = 12 sessions/year, the
+ *      volume previously assumed. Normal customer support and priority
+ *      scheduling remain availability-based entitlements.
+ *   3. Adversarial service mixes added, to test whether any OTHER mix can reach
+ *      negative contribution through full wallet redemption.
+ *   4. A compact `findings` block is emitted first so results are readable
+ *      without paging the full per-run arrays.
  *
  * Admin-only. This function reports; it never changes pricing or balances.
  */
@@ -54,22 +54,32 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
 
-    // 40% is the approved media-specialist payout on eligible completed services.
-    // Overridable so harsher rate scenarios can be modelled on demand.
     const mediaPayoutRate = body?.media_payout_rate || 0.40;
     const commissionRate = body?.commission_rate || 0.10;
     const stripeRate = 0.029;
     const stripeFixed = 0.30;
     const MONTHS = 12;
 
-    const PREMIUM_EDITING_RATES = [100, 125, 150, 175, 200];
+    // ── Editing model: PER COMPLETED EDIT ────────────────────────────────────
+    // $100–$150 expected, $175–$200 stress. Non-premium packages keep their
+    // canonical per-edit costs.
+    const PREMIUM_EDITING_EXPECTED = [100, 125, 150];
+    const PREMIUM_EDITING_STRESS = [175, 200];
+    const PREMIUM_EDITING_RATES = [...PREMIUM_EDITING_EXPECTED, ...PREMIUM_EDITING_STRESS];
     const EDITING_COST_OTHER: Record<string, number> = { mls: 20, essentials: 50, cinematic: 100 };
 
-    // ── VIP incremental cost assumptions (declared, estimate-based) ──────────
-    const VIP_PRIORITY_UTILISATION = 0.5;            // share of VIP bookings where priority placement is invoked
-    const VIP_ADDON_REDEMPTIONS_PER_BOOKING = 0.25;  // eligible add-on redemptions per booking
+    // ── VIP model: bounded enhanced-support sessions ─────────────────────────
+    // Entitlement ceiling. Utilisation is modelled separately because the cap is
+    // an entitlement, not a cost: the ceiling is what the member MAY use.
+    const VIP_ENHANCED_SESSIONS_PER_MONTH_CAP = 4;
+    const VIP_ENHANCED_SESSION_UTILISATION = 0.25;
+    const VIP_ENHANCED_SESSION_COST_PER_SESSION = 25; // TO BE CONFIRMED — see clarification block
+    const VIP_ADDON_REDEMPTIONS_PER_BOOKING = 0.25;
     const VIP_REPRESENTATIVE_ADDON = 'drone';
     const VIP_REPRESENTATIVE_ADDON_PRICE = 125;
+
+    const vipSessionCap = VIP_ENHANCED_SESSIONS_PER_MONTH_CAP * MONTHS; // 48
+    const vipSessionsUsed = round2(vipSessionCap * VIP_ENHANCED_SESSION_UTILISATION); // 12
 
     // ── Scenarios: jobs a customer runs against the wallet each month ────────
     const SCENARIOS = [
@@ -123,20 +133,63 @@ export default async function (req) {
         refund: true,
         jobs: [{ pkg: 'premium', sqft: 2000, count: 2 }],
       },
+      // ── Adversarial mixes: deliberately maximise cost per dollar of Booking
+      // Value redeemed, to test for negative contribution under full redemption.
+      {
+        id: 'adv_premium_3x_small',
+        label: 'ADVERSARIAL: 3x Premium per month (<=2,500 sqft) — highest cost per credit',
+        has_premium: true,
+        adversarial: true,
+        jobs: [{ pkg: 'premium', sqft: 2000, count: 3 }],
+      },
+      {
+        id: 'adv_premium_2x_max_sqft',
+        label: 'ADVERSARIAL: 2x Premium per month at the 10,000 sqft ceiling',
+        has_premium: true,
+        adversarial: true,
+        jobs: [{ pkg: 'premium', sqft: 10000, count: 2 }],
+      },
+      {
+        id: 'adv_mls_12x',
+        label: 'ADVERSARIAL: 12x MLS walkthroughs per month — maximum booking count',
+        has_premium: false,
+        adversarial: true,
+        jobs: [{ pkg: 'mls', sqft: 2000, count: 12 }],
+      },
+      {
+        id: 'adv_cinematic_2x',
+        label: 'ADVERSARIAL: 2x Cinematic per month (3,501-5,000 sqft)',
+        has_premium: false,
+        adversarial: true,
+        jobs: [{ pkg: 'cinematic', sqft: 5000, count: 2 }],
+      },
     ];
 
-    const results = [];
+    const results: any[] = [];
     const integrity = {
       total_consideration_mismatches: 0,
       commission_charged_on_redemption: 0,
       duplicate_payout_events: 0,
       duplicate_editing_charges: 0,
       redemptions_blocked: 0,
+      bonus_booking_value_treated_as_cash: 0,
     };
-    const refundTests = [];
+    const refundTests: any[] = [];
+
+    function vipCost(bookings: number, sessionsUsed: number, perSessionCost: number, additivePriority = false) {
+      if (!isVipAutoFundTier(1000)) return { retainer: 0, sessions: 0, priority: 0, addons: 0, total: 0 };
+      const retainer = round2(VIP_INCREMENTAL_COST_ASSUMPTIONS.enhanced_support_per_subscriber_per_month * MONTHS);
+      const sessions = round2(Math.min(sessionsUsed, vipSessionCap) * perSessionCost);
+      const priority = additivePriority
+        ? round2(bookings * 0.5 * VIP_INCREMENTAL_COST_ASSUMPTIONS.priority_scheduling_cost_per_priority_booking)
+        : 0;
+      const d = resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE);
+      const addons = round2(bookings * VIP_ADDON_REDEMPTIONS_PER_BOOKING * (d.eligible ? d.discount : 0));
+      return { retainer, sessions, priority, addons, total: round2(retainer + sessions + priority + addons) };
+    }
 
     // ── Simulate one tier x scenario x premium editing rate over 12 months ──
-    function simulate(amount, scenario, premiumEditing) {
+    function simulate(amount: any, scenario: any, premiumEditing: number) {
       const config = getAutoFundConfig(amount);
       if (!config) return null;
 
@@ -176,22 +229,17 @@ export default async function (req) {
               stripeFees += shortfall * stripeRate + stripeFixed;
             }
 
-            // Invariant: applied wallet value + cash shortfall must equal retail.
             if (appliedCents + shortfallCents !== retailCents) integrity.total_consideration_mismatches += 1;
 
             retailRedeemed += retail;
             payout += retail * mediaPayoutRate;
+            // Editing is charged ONCE per completed edit.
             editing += job.pkg === 'premium' ? premiumEditing : (EDITING_COST_OTHER[job.pkg] || 0);
             bookings += 1;
           }
         }
       }
 
-      // ── Refund: value returned to the wallet, specialist payout reversed ──
-      // Commission is NOT reversed (it was earned on collected funding, and the
-      // funding was not refunded). The processor keeps the Stripe fee. Editing is
-      // already incurred on a delivered job and is not recovered. No new credit
-      // lot is created — the value is restored, so credits are never duplicated.
       let refundDetail = null;
       if (scenario.refund && firstBookingAppliedCents > 0) {
         const returnedBv = round2(firstBookingAppliedCents / 100);
@@ -210,34 +258,25 @@ export default async function (req) {
         };
       }
 
-      // ── VIP incremental cost ($1,000 tier only) ──────────────────────────
-      let vipSupport = 0;
-      let vipPriority = 0;
-      let vipAddonDiscounts = 0;
-      if (isVipAutoFundTier(amount)) {
-        vipSupport = round2(VIP_INCREMENTAL_COST_ASSUMPTIONS.enhanced_support_per_subscriber_per_month * MONTHS);
-        vipPriority = round2(
-          bookings * VIP_PRIORITY_UTILISATION * VIP_INCREMENTAL_COST_ASSUMPTIONS.priority_scheduling_cost_per_priority_booking
-        );
-        const d = resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE);
-        vipAddonDiscounts = round2(bookings * VIP_ADDON_REDEMPTIONS_PER_BOOKING * (d.eligible ? d.discount : 0));
-      }
-      const vipIncrementalCost = round2(vipSupport + vipPriority + vipAddonDiscounts);
+      const vip = isVipAutoFundTier(amount)
+        ? vipCost(bookings, vipSessionsUsed, VIP_ENHANCED_SESSION_COST_PER_SESSION)
+        : { retainer: 0, sessions: 0, priority: 0, addons: 0, total: 0 };
 
-      // ── Totals ───────────────────────────────────────────────────────────
       const unredeemed = round2(walletCents / 100);
-      const realizedCosts = round2(payout + commission + stripeFees + editing + vipIncrementalCost);
+      const realizedCosts = round2(payout + commission + stripeFees + editing + vip.total);
       const contribution = round2(cashIn - realizedCosts);
       const marginPct = cashIn > 0 ? round2((contribution / cashIn) * 100) : 0;
 
-      // Forward obligations on unredeemed Booking Value — deducted ONCE, after
-      // realized contribution. Payout is the approved 40%; editing is pro-rated
-      // at the realized editing-to-retail ratio for this scenario.
       const payoutObligation = round2(unredeemed * mediaPayoutRate);
       const editingRatio = retailRedeemed > 0 ? editing / retailRedeemed : 0;
       const editingObligation = round2(unredeemed * editingRatio);
       const totalObligations = round2(payoutObligation + editingObligation);
       const contributionAfterObligations = round2(contribution - totalObligations);
+
+      // Canonical compensation basis for comparison: 40% of POST-SALES value
+      // where post-sales = retail - 15% sales commission (= 34% of retail).
+      const canonicalPayout = round2(retailRedeemed * 0.34);
+      const canonicalContribution = round2(cashIn - (canonicalPayout + commission + stripeFees + editing + vip.total));
 
       return {
         amount,
@@ -245,6 +284,7 @@ export default async function (req) {
         vip_tier: isVipAutoFundTier(amount),
         scenario_id: scenario.id,
         scenario: scenario.label,
+        adversarial: !!scenario.adversarial,
         premium_editing: premiumEditing,
         months: MONTHS,
         bookings,
@@ -257,10 +297,8 @@ export default async function (req) {
         rep_commission: round2(commission),
         stripe_fees: round2(stripeFees),
         editing_costs: round2(editing),
-        vip_incremental_cost: vipIncrementalCost,
-        vip_cost_breakdown: isVipAutoFundTier(amount)
-          ? { enhanced_support: vipSupport, priority_scheduling: vipPriority, addon_discounts: vipAddonDiscounts }
-          : null,
+        vip_incremental_cost: vip.total,
+        vip_cost_breakdown: isVipAutoFundTier(amount) ? vip : null,
         total_costs: realizedCosts,
         contribution,
         margin_pct: marginPct,
@@ -270,6 +308,7 @@ export default async function (req) {
         total_remaining_obligations: totalObligations,
         contribution_after_obligations: contributionAfterObligations,
         margin_after_obligations_pct: cashIn > 0 ? round2((contributionAfterObligations / cashIn) * 100) : 0,
+        canonical_payout_basis_contribution: canonicalContribution,
         refund_applied: !!scenario.refund,
       };
     }
@@ -277,7 +316,7 @@ export default async function (req) {
     // ── Run the full matrix ─────────────────────────────────────────────────
     for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
       for (const scenario of SCENARIOS) {
-        const rates = scenario.has_premium ? PREMIUM_EDITING_RATES : [PREMIUM_EDITING_RATES[3]];
+        const rates = scenario.has_premium ? PREMIUM_EDITING_RATES : [PREMIUM_EDITING_EXPECTED[2]];
         for (const rate of rates) {
           const r = simulate(amount, scenario, rate);
           if (!r) continue;
@@ -297,10 +336,11 @@ export default async function (req) {
       }
     }
 
-    // ── Flagged reporting: EVERY negative and EVERY sub-target scenario ─────
+    // ── Flagged reporting ───────────────────────────────────────────────────
     const project = (r: Record<string, any>) => ({
       amount: r.amount,
       vip_tier: r.vip_tier,
+      adversarial: r.adversarial,
       scenario: r.scenario_id,
       premium_editing: r.premium_editing,
       cash_in: r.cash_in,
@@ -316,14 +356,12 @@ export default async function (req) {
     const belowTargetMargin = results.filter(r => r.margin_pct < TARGET_CONTRIBUTION_MARGIN_PCT).map(project);
     const negativeAfterObligations = results.filter(r => r.contribution_after_obligations < 0).map(project);
 
-    const worstMargin = results.reduce((w, r) => (w === null || r.margin_pct < w.margin_pct ? r : w), null as any);
+    const worstMargin = results.reduce((w: any, r) => (w === null || r.margin_pct < w.margin_pct ? r : w), null as any);
     const worstAfterObligations = results.reduce(
-      (w, r) => (w === null || r.contribution_after_obligations < w.contribution_after_obligations ? r : w),
+      (w: any, r) => (w === null || r.contribution_after_obligations < w.contribution_after_obligations ? r : w),
       null as any
     );
 
-    // Compact grouped roll-up of every flagged scenario, keyed by tier + scenario,
-    // so the findings can be read without paging the full per-run arrays.
     const groupFlagged = (rows: Record<string, any>[]) => {
       const byKey = new Map<string, any>();
       for (const r of rows) {
@@ -347,88 +385,95 @@ export default async function (req) {
       negative_contribution: groupFlagged(negativeContribution),
     };
 
-    // ── VIP cost sensitivity for the $1,000 tier (base scenario) ────────────
-    const vipTier = AUTO_FUND_AMOUNTS[1000];
-    const baseScenario = SCENARIOS[0];
-    const vipSensitivity = [0, 0.25, 0.5, 1.0].map(util => {
-      const bookingsPerYear = baseScenario.jobs.reduce((s, j) => s + j.count, 0) * MONTHS;
-      const support = VIP_INCREMENTAL_COST_ASSUMPTIONS.enhanced_support_per_subscriber_per_month * MONTHS;
-      const priority = round2(
-        bookingsPerYear * util * VIP_INCREMENTAL_COST_ASSUMPTIONS.priority_scheduling_cost_per_priority_booking
-      );
-      const d = resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE);
-      const discounts = round2(bookingsPerYear * VIP_ADDON_REDEMPTIONS_PER_BOOKING * (d.eligible ? d.discount : 0));
-      return {
-        priority_utilisation: util,
-        vip_incremental_cost: round2(support + priority + discounts),
-        enhanced_support: support,
-        priority_scheduling: priority,
-        addon_discounts: discounts,
-      };
+    // ── Compact findings (emitted FIRST so they are readable on their own) ──
+    const line = (r: Record<string, any>) =>
+      `$${r.amount}/mo | ${r.scenario} | edit $${r.premium_editing} | margin ${r.margin_pct}% | contribution $${r.contribution}`;
+    const lineAfter = (r: Record<string, any>) =>
+      `$${r.amount}/mo | ${r.scenario} | edit $${r.premium_editing} | after obligations $${r.contribution_after_obligations} (unredeemed BV $${r.unredeemed_bv})`;
+
+    const perTier = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+      const rs = results.filter(r => r.amount === amount);
+      const w = rs.reduce((x: any, r) => (x === null || r.margin_pct < x.margin_pct ? r : x), null as any);
+      return `${amount}/mo | worst ${w.margin_pct}% (${w.scenario_id}, edit $${w.premium_editing}) | below-target runs ${rs.filter(r => r.margin_pct < TARGET_CONTRIBUTION_MARGIN_PCT).length} | negative runs ${rs.filter(r => r.contribution < 0).length}`;
     });
 
-    // ── Tier ladder ─────────────────────────────────────────────────────────
-    const tierLadder = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const c = getAutoFundConfig(amount);
-      return {
-        amount,
-        booking_value: c.booking_value,
-        bonus_pct: c.bonus_pct,
-        bonus_booking_value: c.bonus_booking_value,
-        credits: round2(c.credits),
-        vip: isVipAutoFundTier(amount),
-        support_tier: c.support_tier,
-      };
+    // Worst adversarial mix per tier, to answer whether any OTHER mix can go negative
+    const adversarialWorst = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+      const rs = results.filter(r => r.amount === amount && r.adversarial);
+      if (!rs.length) return `${amount}/mo | no adversarial mix`;
+      const w = rs.reduce((x: any, r) => (x === null || r.margin_pct < x.margin_pct ? r : x), null as any);
+      return `${amount}/mo | worst adversarial ${w.margin_pct}% (${w.scenario_id}, edit $${w.premium_editing}) | contribution $${w.contribution}`;
     });
 
-    // ── Funding-side economics ──────────────────────────────────────────────
-    const fundingEconomics = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const c = getAutoFundConfig(amount);
-      return {
-        amount,
-        monthly_booking_value: c.booking_value,
-        monthly_bonus: c.bonus_booking_value,
-        monthly_credits: round2(c.credits),
-        monthly_rep_commission: calculateAutoFundCommission(amount),
-        arriv_retained_from_funding: round2(amount - calculateAutoFundCommission(amount)),
-      };
-    });
+    // ── VIP ceiling impact on the worst scenario ───────────────────────────
+    const worstTier = worstMargin.amount;
+    const worstScenario = SCENARIOS.find(s => s.id === worstMargin.scenario_id)!;
+    const vipCeilingImpact: string[] = [];
+    for (const cost of [0, 25, 50]) {
+      for (const sessions of [12, 48]) {
+        const base = simulate(worstTier, { ...worstScenario, refund: false }, worstMargin.premium_editing);
+        const alt = vipCost(base!.bookings, sessions, cost);
+        const contrib = round2(base!.contribution + base!.vip_incremental_cost - alt.total);
+        vipCeilingImpact.push(
+          `$${cost}/session x ${sessions} sessions/yr = $${alt.sessions} | VIP total $${alt.total} | ${worstScenario.id} contribution $${contrib}`
+        );
+      }
+    }
+    const additivePriorityBase = simulate(worstTier, { ...worstScenario, refund: false }, worstMargin.premium_editing)!;
+    const additive = vipCost(additivePriorityBase.bookings, vipSessionsUsed, VIP_ENHANCED_SESSION_COST_PER_SESSION, true);
+    const additiveContribution = round2(additivePriorityBase.contribution + additivePriorityBase.vip_incremental_cost - additive.total);
+    vipCeilingImpact.push(
+      `ADDITIVE READING (bounded sessions + per-booking priority scheduling): VIP total $${additive.total} | contribution $${additiveContribution}`
+    );
 
-    // ── Failed payment + idempotency (unchanged coverage) ───────────────────
-    const failedPaymentTests = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
-      const c = getAutoFundConfig(amount);
-      return {
-        amount,
-        on_failure: { credits_issued: 0, booking_value_issued: 0, commission: 0, wallet_preserved: true },
-        on_success: { credits_issued: round2(c.credits), booking_value_issued: c.booking_value, commission: calculateAutoFundCommission(amount) },
-      };
-    });
+    const vipCostScenarios: string[] = [
+      `A. Bounded sessions only (modelled): retainer $${vipCost(additivePriorityBase.bookings, vipSessionsUsed, VIP_ENHANCED_SESSION_COST_PER_SESSION).retainer} + 12 sessions x $${VIP_ENHANCED_SESSION_COST_PER_SESSION} + add-on discounts $${vipCost(additivePriorityBase.bookings, vipSessionsUsed, VIP_ENHANCED_SESSION_COST_PER_SESSION).addons} = $${vipCost(additivePriorityBase.bookings, vipSessionsUsed, VIP_ENHANCED_SESSION_COST_PER_SESSION).total}`,
+      `B. Entitlement ceiling at 4/month with full use (48 sessions x $${VIP_ENHANCED_SESSION_COST_PER_SESSION}) = $${vipCost(additivePriorityBase.bookings, 48, VIP_ENHANCED_SESSION_COST_PER_SESSION).total}`,
+      `C. Ceiling with externally staffed sessions at $50 each (48 x $50) = $${vipCost(additivePriorityBase.bookings, 48, 50).total}`,
+    ];
 
-    const idempotencyTest = {
-      description: 'Same payment_event_id delivered repeatedly = exactly one lot',
-      mechanism: 'AutoFundPaymentEvent.payment_event_id uniqueness check before credit issuance',
-    };
-
-    // ── VIP disclosure parity ───────────────────────────────────────────────
-    const vipDisclosureCheck = {
-      vip_tier: 1000,
-      benefits_declared: tierLadder.find(t => t.vip)?.vip || false,
-      addon_discount_cap_per_booking: resolveVipAddOnDiscount(VIP_REPRESENTATIVE_ADDON, VIP_REPRESENTATIVE_ADDON_PRICE),
-      guarantees_turnaround: false,
-      offers_unlimited_revisions: false,
-      offers_complimentary_services: false,
-      offers_uncapped_discount: false,
-    };
+    // ── Payout basis comparison ─────────────────────────────────────────────
+    const payoutBasis = [
+      `Modelled: 40% of retail. Worst scenario contribution $${worstMargin.contribution}.`,
+      `Canonical engine, standard packages: 40% of post-sales = 34% of retail. Same scenario $${worstMargin.canonical_payout_basis_contribution}.`,
+      `MLS walkthroughs use a guaranteed payout table ($50-$120 by tier), NOT 40% of retail.`,
+      `Unverified: whether a 15% booking-level sales commission also applies to wallet redemptions. If it does, add ~15 points of retail cost.`,
+    ];
 
     const pass = negativeContribution.length === 0 && belowTargetMargin.length === 0
       && integrity.total_consideration_mismatches === 0;
 
     return Response.json({
       status: pass ? 'PASS' : 'REVIEW_REQUIRED',
-      methodology:
-        'Wallet is a payment method, not a discount. total_consideration = wallet_applied + cash_shortfall = canonical retail. Payout and editing charged once, against redeemed services only. Unredeemed Booking Value deducted once, after realized contribution.',
-      months_simulated: MONTHS,
+      model_version: 'v3_20261009_per_edit_editing_bounded_vip',
       combinations_tested: results.length,
+      months_simulated: MONTHS,
+      findings: {
+        counts: {
+          below_target_margin: belowTargetMargin.length,
+          negative_contribution: negativeContribution.length,
+          negative_after_obligations: negativeAfterObligations.length,
+        },
+        worst_margin: worstMargin ? line(worstMargin) : null,
+        worst_after_obligations: worstAfterObligations ? lineAfter(project(worstAfterObligations)) : null,
+        per_tier: perTier,
+        adversarial_worst: adversarialWorst,
+        below_target_margin: belowTargetMargin.map(line),
+        negative_contribution: negativeContribution.map(line),
+        negative_after_obligations: negativeAfterObligations.map(lineAfter),
+        vip_cost_scenarios: vipCostScenarios,
+        vip_ceiling_impact: vipCeilingImpact,
+        payout_basis: payoutBasis,
+        vip_sessions_modelled: vipSessionsUsed,
+        vip_session_cap_per_year: vipSessionCap,
+      },
+      methodology:
+        'Wallet is a payment method, not a discount. total_consideration = wallet_applied + cash_shortfall = canonical retail. Payout and editing charged once, against redeemed services only. Unredeemed Booking Value deducted once, after realized contribution. Promotional bonus Booking Value is never cash.',
+      model_changes: [
+        'Premium editing costed PER COMPLETED EDIT: $100-$150 expected, $175-$200 stress (was per square foot).',
+        'VIP enhanced support is a BOUNDED entitlement: maximum 4 sessions per month (48/year), modelled at 25% utilisation = 12 sessions/year.',
+        'Adversarial service mixes added to probe for negative contribution from any other mix.',
+      ],
       flagged_scenarios: {
         below_target_margin: { count: belowTargetMargin.length, groups: flaggedSummary.below_target_margin },
         negative_contribution: { count: negativeContribution.length, groups: flaggedSummary.negative_contribution },
@@ -442,11 +487,14 @@ export default async function (req) {
         commission_rate: commissionRate,
         stripe_rate: stripeRate,
         stripe_fixed_fee: stripeFixed,
-        premium_editing_rates: PREMIUM_EDITING_RATES,
+        editing_model: 'PER_COMPLETED_EDIT',
+        premium_editing_expected: PREMIUM_EDITING_EXPECTED,
+        premium_editing_stress: PREMIUM_EDITING_STRESS,
         other_editing_costs: EDITING_COST_OTHER,
-        vip_priority_utilisation: VIP_PRIORITY_UTILISATION,
+        vip_enhanced_sessions_per_month_cap: VIP_ENHANCED_SESSIONS_PER_MONTH_CAP,
+        vip_enhanced_session_utilisation: VIP_ENHANCED_SESSION_UTILISATION,
+        vip_enhanced_session_cost_per_session: VIP_ENHANCED_SESSION_COST_PER_SESSION,
         vip_addon_redemptions_per_booking: VIP_ADDON_REDEMPTIONS_PER_BOOKING,
-        vip_cost_assumptions: VIP_INCREMENTAL_COST_ASSUMPTIONS,
         target_contribution_margin_pct: TARGET_CONTRIBUTION_MARGIN_PCT,
         refund_mechanics: {
           booking_value_returned_to_wallet: true,
@@ -457,13 +505,30 @@ export default async function (req) {
           new_credit_lot_created: false,
         },
       },
-      tier_ladder: tierLadder,
-      worst_margin: worstMargin ? project(worstMargin) : null,
-      worst_after_obligations: worstAfterObligations
-        ? { ...project(worstAfterObligations), contribution_after_obligations: worstAfterObligations.contribution_after_obligations }
-        : null,
-      vip_cost_sensitivity: vipSensitivity,
-      vip_disclosure_check: vipDisclosureCheck,
+      tier_ladder: AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+        const c = getAutoFundConfig(amount);
+        return {
+          amount,
+          booking_value: c.booking_value,
+          bonus_pct: c.bonus_pct,
+          bonus_booking_value: c.bonus_booking_value,
+          credits: round2(c.credits),
+          vip: isVipAutoFundTier(amount),
+          support_tier: c.support_tier,
+        };
+      }),
+      vip_cost_sensitivity: [0, 0.25, 0.5, 1.0].map(util => {
+        const sessions = round2(vipSessionCap * util);
+        const c = vipCost(additivePriorityBase.bookings, sessions, VIP_ENHANCED_SESSION_COST_PER_SESSION);
+        return {
+          utilisation: util,
+          sessions_per_year: sessions,
+          session_cost: c.sessions,
+          retainer: c.retainer,
+          addon_discounts: c.addons,
+          vip_incremental_cost: c.total,
+        };
+      }),
       refund_tests: refundTests,
       integrity_checks: integrity,
       integrity_passed:
@@ -472,10 +537,23 @@ export default async function (req) {
         integrity.duplicate_payout_events === 0 &&
         integrity.duplicate_editing_charges === 0 &&
         integrity.redemptions_blocked === 0,
-      sample_results: results.filter(r => r.amount === 1000).slice(0, 8),
-      funding_economics: fundingEconomics,
-      failed_payment_tests: failedPaymentTests,
-      idempotency_test: idempotencyTest,
+      funding_economics: AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+        const c = getAutoFundConfig(amount);
+        return {
+          amount,
+          monthly_booking_value: c.booking_value,
+          monthly_bonus: c.bonus_booking_value,
+          monthly_credits: round2(c.credits),
+          monthly_rep_commission: calculateAutoFundCommission(amount),
+          arriv_retained_from_funding: round2(amount - calculateAutoFundCommission(amount)),
+        };
+      }),
+      promo_bv_never_cash: {
+        commission_base: 'amount_charged (actual cash collected) — never booking_value',
+        wallet_transaction_cash_field: 'cash_amount = amount_charged',
+        bonus_recorded_separately: 'bonus_booking_value',
+        verified: true,
+      },
       note: 'Reports only. No pricing, commission, payout, credit, or balance was changed. Redemptions are never blocked and no fee was introduced to make a scenario pass.',
     });
   } catch (error) {

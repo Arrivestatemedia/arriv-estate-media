@@ -132,6 +132,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       return {
         status: 'error',
         error: 'customer_id is required to retrieve the wallet',
+        error_code: 'INVALID_REQUEST',
+        retryable: false,
         payment_event_id: data.payment_event_id,
       };
     }
@@ -147,6 +149,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       return {
         status: 'error',
         error: `PrepaidWallet not found for wallet_id: ${data.wallet_id}`,
+        error_code: 'WALLET_NOT_FOUND',
+        retryable: true,
         payment_event_id: data.payment_event_id,
       };
     }
@@ -154,6 +158,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       return {
         status: 'error',
         error: `Multiple PrepaidWallets found for wallet_id: ${data.wallet_id} — data integrity issue`,
+        error_code: 'DATA_INTEGRITY_MULTIPLE_WALLETS',
+        retryable: false,
         payment_event_id: data.payment_event_id,
       };
     }
@@ -174,6 +180,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       return {
         status: 'error',
         error: 'Wallet ownership mismatch — wallet.customer_id does not match event customer_id',
+        error_code: 'WALLET_OWNERSHIP_MISMATCH',
+        retryable: false,
         payment_event_id: data.payment_event_id,
       };
     }
@@ -181,6 +189,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       return {
         status: 'error',
         error: 'Wallet email mismatch — wallet.customer_email does not match event customer_email',
+        error_code: 'WALLET_EMAIL_MISMATCH',
+        retryable: false,
         payment_event_id: data.payment_event_id,
       };
     }
@@ -189,6 +199,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
         return {
           status: 'error',
           error: 'Certification mode requires cert_-prefixed customer_email in the event payload',
+          error_code: 'CERT_SYNTHETIC_IDENTITY_REQUIRED',
+          retryable: false,
           payment_event_id: data.payment_event_id,
         };
       }
@@ -196,6 +208,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
         return {
           status: 'error',
           error: 'Certification mode cannot operate on a production wallet — wallet customer_email is not cert_-prefixed',
+          error_code: 'CERT_PRODUCTION_WALLET_BLOCKED',
+          retryable: false,
           payment_event_id: data.payment_event_id,
         };
       }
@@ -205,6 +219,8 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
         return {
           status: 'error',
           error: 'Production event cannot operate on a certification wallet — mixed synthetic/production identity rejected',
+          error_code: 'MIXED_IDENTITY_REJECTED',
+          retryable: false,
           payment_event_id: data.payment_event_id,
         };
       }
