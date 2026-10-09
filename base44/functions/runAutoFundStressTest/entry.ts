@@ -34,7 +34,11 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const mediaPayoutRate = body?.media_payout_rate || 0.50;
+    // Approved media-specialist payout is 40% of eligible completed service retail.
+    // Still overridable via media_payout_rate so harsher scenarios can be modelled
+    // on demand, but the DEFAULT must match the approved rate — the previous 0.50
+    // default produced a false NEGATIVE RETAINED problem report.
+    const mediaPayoutRate = body?.media_payout_rate || 0.40;
 
     // Estimated editing/production costs per package type (conservative)
     const EDITING_COSTS: Record<string, number> = {
