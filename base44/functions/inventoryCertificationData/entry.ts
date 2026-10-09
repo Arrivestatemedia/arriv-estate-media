@@ -164,8 +164,8 @@ export default async function (req) {
         if (!groups.has(token)) groups.set(token, { count: 0, sample_ids: [], identifiers: [] });
         const g = groups.get(token)!;
         g.count += 1;
-        if (g.sample_ids.length < 3) g.sample_ids.push(r.id);
-        if (g.identifiers.length < 5 && !g.identifiers.includes(idValue)) g.identifiers.push(idValue);
+        if (g.sample_ids.length < 2) g.sample_ids.push(r.id);
+        if (g.identifiers.length < 2 && !g.identifiers.includes(idValue)) g.identifiers.push(idValue);
       }
 
       const entityTotal = await totalOf(spec.name);
@@ -180,10 +180,10 @@ export default async function (req) {
         identified_by: spec.fields.map(f => `${f} ^${CERT_PREFIX}`),
         run_groups: [...groups.entries()]
           .sort((a, c) => c[1].count - a[1].count)
-          .slice(0, 25)
-          .map(([run_id, g]) => ({ run_id, count: g.count, sample_record_ids: g.sample_ids, sample_identifiers: g.identifiers })),
+          .slice(0, 15)
+          .map(([run_id, g]) => ({ run_id, count: g.count, sample_identifiers: g.identifiers })),
         run_group_count: groups.size,
-        groups_truncated: groups.size > 25,
+        groups_truncated: groups.size > 15,
         load: loadMeta[spec.name],
       });
     }

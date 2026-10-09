@@ -27,8 +27,6 @@ import { isCertificationId } from '../../shared/certificationMode.ts';
  * totals are snapshotted before/after to prove they are untouched.
  */
 
-const TEST_RUN_ID = `cert_booking_${Date.now()}`;
-
 const PACKAGE_PRICE = 675; // premium_bundle fallback price, used only if the pricing engine is unavailable
 
 interface TestResult {
@@ -60,6 +58,10 @@ export default async function (req) {
     const tracked: { entity: string; id: string }[] = [];
     let snapshotBefore: any = null;
     let snapshotAfter: any = null;
+
+    // Per-invocation run id: a module-level constant is evaluated once per Deno
+    // isolate, so a later invocation would silently reuse the earlier run id.
+    const TEST_RUN_ID = `cert_booking_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const contactEmail = `${TEST_RUN_ID}_booking@cert.test`;
     const repEmail = `${TEST_RUN_ID}_rep@cert.test`;
@@ -384,11 +386,31 @@ export default async function (req) {
       snapshotDiff.unchanged ? 'all production counts and balances unchanged' : `diffs: ${snapshotDiff.diffs.join(', ')}`);
 
     const cleanupErrors: string[] = [];
+    const certBookingIds = tracked.filter(x => x.entity === 'Booking').map(x => x.id);
+    const certInvoiceIds = tracked.filter(x => x.entity === 'Invoice').map(x => x.id);
+
+    // Both commission paths create records keyed to this run's own bookings and
+    // invoices, so they are swept by those exact keys — never by a broad match.
+    for (const dealId of certBookingIds) {
+      try {
+        for (const rec of arr(await b.entities.Commission.filter({ deal_id: dealId }))) {
+          await b.entities.Commission.delete(rec.id);
+        }
+      } catch (e) { cleanupErrors.push(`Commission sweep: ${e.message}`); }
+    }
+    for (const invoiceId of certInvoiceIds) {
+      try {
+        for (const rec of arr(await b.entities.CommissionSourceRecord.filter({ customer_invoice_id: invoiceId }))) {
+          await b.entities.CommissionSourceRecord.delete(rec.id);
+        }
+      } catch (e) { cleanupErrors.push(`CommissionSourceRecord sweep: ${e.message}`); }
+    }
+
     // Booking children created inside handleBookingSubmission.
-    for (const t of tracked.filter(x => x.entity === 'Booking')) {
+    for (const bookingId of certBookingIds) {
       for (const entity of ['Job', 'PricingSnapshot']) {
         try {
-          for (const rec of arr(await b.entities[entity].filter({ booking_id: t.id }))) {
+          for (const rec of arr(await b.entities[entity].filter({ booking_id: bookingId }))) {
             await b.entities[entity].delete(rec.id);
           }
         } catch (e) { cleanupErrors.push(`${entity}: ${e.message}`); }
