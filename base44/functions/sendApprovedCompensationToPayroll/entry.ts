@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { signPayload } from "../../shared/payrollCrypto.ts";
 import { getPayrollConfig, setPayrollSetting } from "../../shared/payrollSettings.ts";
+import { checkDeliveryGuard } from "../../shared/certificationDeliveryGuard.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -23,6 +24,14 @@ Deno.serve(async (req) => {
 
     if (commission.approval_status !== "owner_approved") {
       return Response.json({ error: "Only owner-approved compensation may be sent to payroll" }, { status: 400 });
+    }
+
+    // ── UNCONDITIONAL CERTIFICATION GUARD ──────────────────────────────────
+    // Synthetic records can never reach real Arriv Payroll, regardless of
+    // feature flags, retries, or manual execution.
+    const guard = checkDeliveryGuard(commission);
+    if (guard.blocked) {
+      return Response.json({ error: guard.reason, blocked: true }, { status: 403 });
     }
 
     // Idempotency: never send a second time if already accepted / scheduled / processed / paid

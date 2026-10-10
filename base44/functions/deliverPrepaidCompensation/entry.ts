@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 import { signRequest, isNonRetryableError, backoffDelayMs } from '../../shared/payrollCrypto.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
-import { isCertificationId } from '../../shared/certificationMode.ts';
+import { checkDeliveryGuard, partitionByDeliveryGuard } from '../../shared/certificationDeliveryGuard.ts';
 
 /**
  * Prepaid Compensation Delivery Pipeline
@@ -10,17 +10,21 @@ import { isCertificationId } from '../../shared/certificationMode.ts';
  * Delivers approved PrepaidCompensationEvents to Arriv Pay's compensation
  * endpoint. Estate Media owns commission calculation; Arriv Pay owns payroll.
  *
- * Outbound auth: ARRIV_PAYROLL_API_SECRET using canonical 4-field signing
- * (body\ntimestamp\nrequestId\nsourceAppId) — matches Arriv Pay's receiver.
+ * UNCONDITIONAL CERTIFICATION EXCLUSION:
+ *   Synthetic certification records (cert_ prefix or certification_mode=true)
+ *   are NEVER delivered to real Arriv Pay/Payroll endpoints, regardless of
+ *   feature flags, batch processing, retries, or manual execution. The guard
+ *   is evaluated before any HTTP request or state transition. Synthetic
+ *   records are skipped and reported as BLOCKED — no network call is made,
+ *   no delivery_status change occurs.
+ *
+ * Outbound auth: ARRIV_PAYROLL_API_SECRET using canonical 4-field signing.
  *
  * Delivery states:
  *   PENDING → DELIVERED (request sent) → ACKNOWLEDGED (Pay confirms)
  *   temporary transport failure → RETRYING
  *   terminal/validation issue → FAILED or REVIEW_REQUIRED
- *
- * Idempotency: Arriv Pay deduplicates by sourceSystem + sourceEventId.
- * Estate Media safely handles duplicate acknowledgments without creating
- * new local events.
+ *   synthetic record → BLOCKED (no HTTP, no state change)
  *
  * This function is admin-gated and processes events in batches.
  */
@@ -34,33 +38,15 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const { action, event_id, max_batch } = body;
 
-    // ── Certification bypass for cert_-prefixed synthetic events ────────────
-    // A cert_-prefixed source_event_id bypasses the prepaid_enabled feature
-    // flag so Arriv Pay can complete certification while production stays OFF.
-    // This bypass is scoped to synthetic records only — the admin is still
-    // authenticated, and all financial/ledger validation remains enforced.
-    let isCertEvent = false;
-    if (event_id) {
-      try {
-        const event = await base44.asServiceRole.entities.PrepaidCompensationEvent.get(event_id);
-        if (event && isCertificationId(event.source_event_id)) {
-          isCertEvent = true;
-        }
-      } catch {}
-    }
-
-    // Feature flag check (bypassed for cert_ synthetic events)
-    if (!isCertEvent) {
-      const flagRecords = await base44.asServiceRole.entities.AppSetting.filter(
-        { key: PREPAID_FEATURE_FLAG_KEY },
-        undefined,
-        1
-      );
-      const flagArr = Array.isArray(flagRecords) ? flagRecords : (flagRecords?.data || []);
-      const globalEnabled = flagArr.length > 0 ? flagArr[0].value === 'true' : false;
-      if (!globalEnabled) {
-        return Response.json({ error: 'Prepaid feature is not enabled' }, { status: 503 });
-      }
+    // ── Feature flag check (no certification bypass — synthetic events
+    //    are unconditionally blocked from real delivery by the guard) ──────
+    const flagRecords = await base44.asServiceRole.entities.AppSetting.filter(
+      { key: PREPAID_FEATURE_FLAG_KEY }, undefined, 1
+    );
+    const flagArr = Array.isArray(flagRecords) ? flagRecords : (flagRecords?.data || []);
+    const globalEnabled = flagArr.length > 0 ? flagArr[0].value === 'true' : false;
+    if (!globalEnabled) {
+      return Response.json({ error: 'Prepaid feature is not enabled' }, { status: 503 });
     }
 
     // ── Deliver a single event by ID ────────────────────────────────────────
@@ -72,36 +58,30 @@ export default async function(req) {
     // ── Deliver all PENDING/RETRYING events in batch ────────────────────────
     const batchSize = Math.min(max_batch || 50, 100);
 
-    // Fetch PENDING and RETRYING events.
-    // When the production feature flag is OFF, only cert_-prefixed synthetic
-    // events are eligible for delivery (certification mode isolation).
     const pendingResp = await base44.asServiceRole.entities.PrepaidCompensationEvent.filter(
       { delivery_status: { $in: ['PENDING', 'RETRYING'] }, status: 'APPROVED' },
       '-earned_at',
       batchSize
     );
-    let pendingEvents = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
+    const pendingEvents = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
 
-    // If feature flag is off, filter to cert_ events only
-    if (!isCertEvent) {
-      // Re-check flag for batch path (isCertEvent was only set for deliver_one)
-      const flagRecords2 = await base44.asServiceRole.entities.AppSetting.filter(
-        { key: PREPAID_FEATURE_FLAG_KEY }, undefined, 1
-      );
-      const flagArr2 = Array.isArray(flagRecords2) ? flagRecords2 : (flagRecords2?.data || []);
-      const globalEnabled2 = flagArr2.length > 0 ? flagArr2[0].value === 'true' : false;
-      if (!globalEnabled2) {
-        pendingEvents = pendingEvents.filter(e => isCertificationId(e.source_event_id));
-      }
-    }
+    // Unconditionally partition: synthetic events are NEVER delivered to
+    // real payroll, regardless of feature flag state.
+    const { deliverable, blocked: blockedEvents } = partitionByDeliveryGuard(pendingEvents);
 
     const results = [];
     let delivered = 0;
     let acknowledged = 0;
     let failed = 0;
     let reviewRequired = 0;
+    const blockedResults = blockedEvents.map(e => ({
+      event_id: e.id,
+      source_event_id: e.source_event_id,
+      status: 'BLOCKED',
+      reason: 'Synthetic certification record excluded from real payroll delivery',
+    }));
 
-    for (const event of pendingEvents) {
+    for (const event of deliverable) {
       const result = await deliverOneEvent(base44.asServiceRole, event.id, event);
       results.push({ event_id: event.id, source_event_id: event.source_event_id, ...result });
       if (result.status === 'ACKNOWLEDGED') acknowledged++;
@@ -113,11 +93,13 @@ export default async function(req) {
     return Response.json({
       status: 'batch_complete',
       processed: results.length,
+      skipped_synthetic: blockedResults.length,
       acknowledged,
       delivered,
       failed,
       review_required: reviewRequired,
       results,
+      blocked: blockedResults,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -127,9 +109,11 @@ export default async function(req) {
 /**
  * Deliver a single PrepaidCompensationEvent to Arriv Pay.
  * Updates delivery_status based on the response.
+ *
+ * UNCONDITIONAL GUARD: synthetic records are blocked before any HTTP request
+ * or state transition. No network call is made, no delivery_status change occurs.
  */
 async function deliverOneEvent(base44, eventId, existingEvent = null) {
-  // Fetch the event if not provided
   let event = existingEvent;
   if (!event) {
     try {
@@ -139,6 +123,19 @@ async function deliverOneEvent(base44, eventId, existingEvent = null) {
     }
   }
   if (!event) return { error: 'Event not found', status: 'FAILED' };
+
+  // ── UNCONDITIONAL CERTIFICATION GUARD ──────────────────────────────────
+  // Evaluated before any HTTP request, state transition, or retry. Synthetic
+  // records can never reach real Arriv Pay/Payroll endpoints.
+  const guard = checkDeliveryGuard(event);
+  if (guard.blocked) {
+    return {
+      status: 'BLOCKED',
+      source_event_id: event.source_event_id,
+      reason: guard.reason,
+      http_attempted: false,
+    };
+  }
 
   // Skip if already acknowledged
   if (event.delivery_status === 'ACKNOWLEDGED') {
@@ -181,15 +178,10 @@ async function deliverOneEvent(base44, eventId, existingEvent = null) {
   const requestId = 'req_' + crypto.randomUUID();
   const sourceAppId = 'arriv_estate_media';
 
-  // Sign with canonical 4-field format
   const signature = await signRequest(apiSecret, {
-    body: bodyStr,
-    timestamp,
-    requestId,
-    sourceAppId,
+    body: bodyStr, timestamp, requestId, sourceAppId,
   });
 
-  // Construct the Arriv Pay compensation endpoint URL
   const base = payEndpoint.replace(/\/functions\/.*$/i, '').replace(/\/$/, '');
   const url = base + '/functions/receiveEstateMediaCompensation';
 
@@ -217,7 +209,6 @@ async function deliverOneEvent(base44, eventId, existingEvent = null) {
     });
     respData = await resp.json().catch(() => ({}));
   } catch (err) {
-    // Transport failure → RETRYING with exponential backoff
     const nextAttempt = (event.delivery_attempts || 0) + 1;
     await base44.entities.PrepaidCompensationEvent.update(eventId, {
       delivery_status: 'RETRYING',

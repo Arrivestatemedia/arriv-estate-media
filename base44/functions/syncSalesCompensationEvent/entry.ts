@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { getPayrollConfig, callPayrollApi, listPendingSync, retryFailedSync } from "../../shared/contractorPayoutShared.ts";
+import { checkDeliveryGuard } from "../../shared/certificationDeliveryGuard.ts";
 
 // Sends eligible sales events to Arriv Payroll so it can calculate the
 // sales representative's compensation (salary, commission, bonuses, etc.).
@@ -70,6 +71,12 @@ async function syncEvent(base44, params) {
       sync_status: "not_synced",
       compensation_version: 1,
     });
+  }
+
+  // ── UNCONDITIONAL CERTIFICATION GUARD ──────────────────────────────────
+  const guard = checkDeliveryGuard(event);
+  if (guard.blocked) {
+    return Response.json({ success: false, error: guard.reason, blocked: true, event });
   }
 
   // Push to Arriv Payroll
