@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Camera } from "lucide-react";
+import BrandedFileLink from "@/components/shared/BrandedFileLink";
 
 export default function ApplicationPreview() {
   const [data, setData] = useState(null);
@@ -60,7 +61,7 @@ export default function ApplicationPreview() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {data.photos.map((url, i) => (
-                  <a
+                  <BrandedFileLink
                     key={i}
                     href={url}
                     target="_blank"
@@ -75,7 +76,7 @@ export default function ApplicationPreview() {
                         e.currentTarget.style.display = "none";
                       }}
                     />
-                  </a>
+                  </BrandedFileLink>
                 ))}
               </div>
             )}

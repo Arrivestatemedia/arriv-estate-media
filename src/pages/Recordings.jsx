@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Film, Download, Trash2, Loader2, Play, User, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BrandedFileLink from "@/components/shared/BrandedFileLink";
 
 const GOLD = "#B8956A";
 const CREAM = "#FFFBF5";
@@ -234,11 +235,11 @@ export default function Recordings() {
                       Play
                     </Button>
                   ) : (
-                    <a href={rec.file_url} download className="flex-1">
+                    <BrandedFileLink href={rec.file_url} download className="flex-1">
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs">
                         <Download className="w-3.5 h-3.5 mr-1" /> Download
                       </Button>
-                    </a>
+                    </BrandedFileLink>
                   )}
                   {rec.sourceType === "video_recording" && (
                     <Button

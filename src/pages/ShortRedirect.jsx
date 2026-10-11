@@ -1,20 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { isPlatformFileUrl } from "@/lib/brandedLinks";
+import BrandedFileViewer from "@/components/shared/BrandedFileViewer";
 
+/**
+ * Resolves a /r/<code> link. Platform-hosted files are opened inside this page so
+ * the visitor stays on our own domain; any other address (property-access guides,
+ * Drive folders) keeps its direct redirect.
+ */
 export default function ShortRedirect() {
   const { code } = useParams();
+  const [fileUrl, setFileUrl] = useState("");
   const [error, setError] = useState(false);
+  const download = new URLSearchParams(window.location.search).get("dl") === "1";
 
   useEffect(() => {
     if (!code) return;
     base44.entities.ShortLink.filter({ short_code: code })
-      .then((results) => {
-        if (results && results.length > 0) {
-          window.location.replace(results[0].target_url);
-        } else {
+      .then((rows) => {
+        const target = rows?.[0]?.target_url;
+        if (!target) {
           setError(true);
+          return;
         }
+        if (isPlatformFileUrl(target)) setFileUrl(target);
+        else window.location.replace(target);
       })
       .catch(() => setError(true));
   }, [code]);
@@ -26,6 +37,8 @@ export default function ShortRedirect() {
       </div>
     );
   }
+
+  if (fileUrl) return <BrandedFileViewer url={fileUrl} download={download} />;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">

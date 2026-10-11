@@ -11,6 +11,7 @@ import HireHandoffSection from "@/components/hireiq/HireHandoffSection";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 import CandidateRecordings from "@/components/hireiq/CandidateRecordings";
 import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
+import BrandedFileLink from "@/components/shared/BrandedFileLink";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -193,12 +194,12 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
           </div>
           {candidate?.resume_url && (
             <div className="flex gap-2">
-              <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
+              <BrandedFileLink href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><FileText className="w-4 h-4 mr-2" /> View Resume</Button>
-              </a>
-              <a href={candidate.resume_url} download>
+              </BrandedFileLink>
+              <BrandedFileLink href={candidate.resume_url} download>
                 <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Download className="w-4 h-4 mr-2" /> Download</Button>
-              </a>
+              </BrandedFileLink>
             </div>
           )}
         </div>
