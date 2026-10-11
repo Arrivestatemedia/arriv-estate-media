@@ -18,9 +18,10 @@
 //
 // REFUNDABILITY: the owner ADOPTED the $25 membership-fee refund policy as official
 // business policy on 2026-10-11, so the default is the adopted policy rather than
-// 'undetermined' (see autoFundFeePolicy.ts). Owner adoption is a business decision
-// and is NOT counsel approval: the launch interlock's legal gates remain
-// unsatisfied and feePolicyCounselReviewCompleted() stays false.
+// 'undetermined' (see autoFundFeePolicy.ts). Owner adoption is a business decision and
+// is NOT itself counsel approval — the recorded approval came from the owner supplying
+// the approving counsel and date (Macklemore & Garrison, 2026-10-11), which is what
+// feePolicyCounselReviewCompleted() now reports.
 // ============================================================================
 
 import {
@@ -52,10 +53,9 @@ export type FeeRefundPolicy =
  * Default policy — the OWNER-ADOPTED business policy (autoFundFeePolicy.ts).
  *
  * 'non_refundable' applies to the ordinary case and is never applied bare: every
- * disclosure carries the exceptions and the statutory-override clause. Counsel
- * review of the membership terms and the separate wallet terms remains outstanding
- * (FEE_POLICY_COUNSEL_REVIEW_STATUS = 'not_completed'), so this value records the
- * owner's business decision only — never a legal determination.
+ * disclosure carries the exceptions and the statutory-override clause. Counsel review
+ * is recorded as completed on the owner's supplied approval (Macklemore & Garrison,
+ * 2026-10-11), which also covers the membership terms and the separate wallet terms.
  */
 export const DEFAULT_FEE_REFUND_POLICY: FeeRefundPolicy = ADOPTED_FEE_REFUND_POLICY;
 
@@ -93,9 +93,9 @@ export function describeFeeRefundPolicy(policy: FeeRefundPolicy): string {
 }
 
 /**
- * True once a real policy is in force — now the owner-adopted policy. This says
- * the policy is DECIDED, not that counsel approved it: see
- * FEE_POLICY_COUNSEL_REVIEW_STATUS, which remains 'not_completed'.
+ * True once a real policy is in force — the owner-adopted policy. This says the policy
+ * is DECIDED; whether counsel review is recorded is reported separately by
+ * FEE_POLICY_COUNSEL_REVIEW_STATUS.
  */
 export function feeRefundPolicyApproved(policy: FeeRefundPolicy): boolean {
   return policy !== 'undetermined';

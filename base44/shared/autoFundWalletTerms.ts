@@ -13,8 +13,18 @@
 // invented here. If it is not implemented, it is listed as unresolved.
 // ============================================================================
 
-/** All wallet disclosure text is provisional until counsel approves it. */
-export const WALLET_TERMS_STATUS = 'pending_legal_review' as const;
+/**
+ * Counsel review status of the wallet disclosure.
+ *
+ * APPROVED 2026-10-11: the owner supplied the approving counsel — Tommy Garrison,
+ * Macklemore & Garrison — and the approval date, and the decision was recorded through
+ * manageAutoFundLaunch with that counsel reference, scoped to Wallet Agreement v1
+ * (autofund_wallet_v1). The wallet wording below is therefore no longer provisional.
+ *
+ * The UNRESOLVED questions further down are NOT answered by that approval: they remain
+ * open determinations, are still surfaced, and are still never turned into customer copy.
+ */
+export const WALLET_TERMS_STATUS = 'counsel_approved' as const;
 
 /**
  * FACT — verified in autoFundProcessor.ts: every funding lot (Auto-Fund recurring

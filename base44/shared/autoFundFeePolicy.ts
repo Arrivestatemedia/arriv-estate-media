@@ -11,11 +11,13 @@
 // set the company's refund policy. It resolves the "refundability is undetermined"
 // launch blocker in the enrollment interlock.
 //
-// WHAT THIS IS NOT: legal advice, and NOT counsel approval. COUNSEL_REVIEW_STATUS
-// below is deliberately 'not_completed'. Nothing in this module may record or imply
-// that external counsel approved the membership terms, the separate wallet terms or
-// the jurisdiction-specific renewal requirements. The launch interlock still gates
-// on those approvals, and adopting this policy does not satisfy them.
+// WHAT THIS IS NOT: legal advice. COUNSEL_REVIEW_STATUS below records counsel review
+// of this policy and the agreement it sits in, and was changed to 'completed' ONLY
+// when the owner supplied the approving counsel and date (Tommy Garrison, Macklemore &
+// Garrison, 2026-10-11) and the decision was recorded through manageAutoFundLaunch with
+// that counsel reference. That is the sole basis for it, and the value is never set
+// without a recorded approval behind it. Jurisdiction-specific renewal requirements
+// remain a separate matter that this module does not speak to.
 // ============================================================================
 
 /**
@@ -37,12 +39,18 @@ export const FEE_POLICY_ADOPTED_ON = '2026-10-11';
 export const FEE_POLICY_ADOPTED_BY = 'owner';
 
 /**
- * External counsel review — MUST remain 'not_completed' until counsel genuinely
- * signs off. The owner cannot record it on counsel's behalf, and neither may this
- * system. This is the single value that would claim legal approval, so it is never
- * changed without the real approval behind it.
+ * External counsel review — 'completed' from 2026-10-11, on the owner's supplied record:
+ * approving counsel Tommy Garrison of Macklemore & Garrison, approving on 2026-10-11
+ * Membership Terms v2 (autofund_membership_v2), Wallet Agreement v1 (autofund_wallet_v1),
+ * the final membership fees and recurring charges, the applicable disclosures and this
+ * refund policy (autofund_fee_policy_v2). The decision is recorded in the system
+ * (manageAutoFundLaunch, action record_legal_decision, with that counsel_reference), and
+ * the clearance record is ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.
+ *
+ * This is the single value that claims legal approval, so it stays 'not_completed'
+ * unless that kind of record exists — never on an assertion alone.
  */
-export const FEE_POLICY_COUNSEL_REVIEW_STATUS = 'not_completed' as const;
+export const FEE_POLICY_COUNSEL_REVIEW_STATUS = 'completed' as const;
 
 export function feePolicyCounselReviewCompleted(): boolean {
   return FEE_POLICY_COUNSEL_REVIEW_STATUS === 'completed';
@@ -97,7 +105,7 @@ export function feePolicyAuditRecord() {
     adopted_by: FEE_POLICY_ADOPTED_BY,
     counsel_review_status: FEE_POLICY_COUNSEL_REVIEW_STATUS,
     counsel_review_note:
-      'The owner attests (2026-10-11) that external counsel has reviewed and approved the Auto-Fund program for launch. No approving counsel, approval date or approved document versions were supplied, so this module does NOT record counsel approval and FEE_POLICY_COUNSEL_REVIEW_STATUS stays not_completed. The recorded clearance, and the material fee-schedule change counsel must confirm, are set out in ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.',
+      'Counsel approval is RECORDED (2026-10-11). Approving counsel: Tommy Garrison, Macklemore & Garrison. Approved: Membership Terms v2 (autofund_membership_v2), Wallet Agreement v1 (autofund_wallet_v1), the final membership fees and recurring charges ($5.99/$10/$25/$27/$30; totals $155.99/$260/$375/$527/$1,030), the applicable membership disclosures and this refund policy (autofund_fee_policy_v2). Recorded through manageAutoFundLaunch, action record_legal_decision, with that counsel reference; the clearance record is ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.',
     refund_policy_encoded: ADOPTED_FEE_REFUND_POLICY,
     clauses: FEE_POLICY_CLAUSES,
     enforcement_map: FEE_POLICY_ENFORCEMENT,

@@ -134,13 +134,13 @@ export default async function (req) {
 
     // ══ 7. Refundability: OWNER-ADOPTED policy, counsel review NOT completed ══
     const liveFeeRefund = buildFeeRefundDisclosure();
-    check('fee refund policy is the owner-adopted policy and is not recorded as legally approved',
+    check('fee refund policy is the owner-adopted policy with counsel approval recorded',
       DEFAULT_FEE_REFUND_POLICY === 'non_refundable' &&
       liveFeeRefund.is_approved === true &&
       liveFeeRefund.exceptions.length > 0 &&
-      FEE_POLICY_COUNSEL_REVIEW_STATUS === 'not_completed' &&
+      FEE_POLICY_COUNSEL_REVIEW_STATUS === 'completed' &&
       typeof FEE_REFUND_POLICY_DISCLOSURE.refundable_full === 'string',
-      `policy = ${DEFAULT_FEE_REFUND_POLICY} (owner-adopted, ${liveFeeRefund.exceptions.length} statutory exceptions); counsel review = ${FEE_POLICY_COUNSEL_REVIEW_STATUS}`);
+      `policy = ${DEFAULT_FEE_REFUND_POLICY} (owner-adopted, ${liveFeeRefund.exceptions.length} statutory exceptions); counsel = ${FEE_POLICY_COUNSEL_REVIEW_STATUS} (Macklemore & Garrison, 2026-10-11)`);
 
     // ══ 8. Salesperson cannot alter money — tampered quotes are rejected ═══
     check('tampered fee quote rejected', feeMatchesApprovedTable(500, 27) === true && feeMatchesApprovedTable(500, 5) === false,

@@ -212,15 +212,14 @@ export default async function (req) {
 
     // ── The REAL configuration, not the declared one ─────────────────────────
     // Everything from A4 onward runs against the DECLARED launch configuration. This
-    // asserts what the system does in its REAL state, which is what any production
-    // route would meet: enrollment is refused, so the enrollment/billing sequencing
-    // hazard cannot be reached at all.
+    // asserts what the system does in its REAL state, which is what any production route
+    // meets: the configuration is complete and enrollment is authorized (owner final
+    // authorization, 2026-10-11). The refusal side is proved separately — A2 covers a
+    // closed configuration, and the interlock suite injects every unmet requirement.
     const realEvaluation = evaluateLaunchInterlock(await readLaunchConfiguration(svc));
-    check('A8 · Real configuration refuses enrollment until launch prerequisites are met',
-      realEvaluation.permitted === false
-        && realEvaluation.blockers.some(b => b.code === 'ENROLLMENT_NOT_ENABLED')
-        && realEvaluation.blockers.some(b => b.code === 'LEGAL_TERMS_NOT_APPROVED'),
-      `${realEvaluation.blockers.length} unmet launch requirement(s): ${realEvaluation.blockers.map(b => b.code).join(', ')}`);
+    check('A8 · Real configuration permits enrollment, with the legal approvals recorded',
+      realEvaluation.permitted === true && realEvaluation.blockers.length === 0,
+      `${realEvaluation.blockers.length} unmet launch requirement(s): ${realEvaluation.blockers.map(b => b.code).join(', ') || 'none'} — terms and wallet approvals RECORDED 2026-10-11`);
 
     // ─────────────────────────────────────────────────────────────────────
     // B. PRE-AUTHORIZATION DISCLOSURES
@@ -285,13 +284,13 @@ export default async function (req) {
       `${LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS.length} exceptions incl. statutory override`);
 
     const liveRefund = buildFeeRefundDisclosure();
-    check('B9 · Live refund policy is the OWNER-ADOPTED policy and is NOT counsel-approved',
+    check('B9 · Live refund policy is the OWNER-ADOPTED policy, counsel approval recorded',
       liveRefund.policy === 'non_refundable'
         && DEFAULT_FEE_REFUND_POLICY === 'non_refundable'
         && liveRefund.is_approved === true
-        && FEE_POLICY_COUNSEL_REVIEW_STATUS === 'not_completed'
-        && !feePolicyCounselReviewCompleted(),
-      `live default=${liveRefund.policy}, policy_decided=${liveRefund.is_approved}, counsel_review=${FEE_POLICY_COUNSEL_REVIEW_STATUS}`);
+        && FEE_POLICY_COUNSEL_REVIEW_STATUS === 'completed'
+        && feePolicyCounselReviewCompleted(),
+      `live default=${liveRefund.policy}, policy_decided=${liveRefund.is_approved}, counsel_review=${FEE_POLICY_COUNSEL_REVIEW_STATUS} (Macklemore & Garrison, 2026-10-11)`);
 
     const wallet = buildWalletTermsDisclosure();
     check('B10 · Wallet terms state only verified behaviour',
@@ -301,9 +300,9 @@ export default async function (req) {
         && wallet.verified_statements.some(s => /does not currently offer cash withdrawal/i.test(s)),
       'preservation stated · 12-month lot validity stated · no cash-out promised');
 
-    check('B11 · Wallet terms flagged pending legal review',
-      wallet.status === 'pending_legal_review' && wallet.unresolved_questions.length >= 4,
-      `${wallet.unresolved_questions.length} unresolved wallet questions surfaced`);
+    check('B11 · Wallet terms counsel-approved, with every unresolved question still surfaced',
+      wallet.status === 'counsel_approved' && wallet.unresolved_questions.length >= 4,
+      `${wallet.unresolved_questions.length} unresolved wallet questions still surfaced; wallet status ${wallet.status}`);
 
     const vip = disclosures.find(d => d.tier_amount === 1000);
     const starter = disclosures.find(d => d.tier_amount === 150);
