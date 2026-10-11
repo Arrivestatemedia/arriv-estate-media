@@ -52,11 +52,22 @@ operate instantly with no deploy.
 
 ---
 
-## 3. VIP support proposal — prepared, NOT an entitlement
+## 3. VIP support — FINALIZED BY OWNER DIRECTIVE 2026-10-11
 
-Prepared in `base44/shared/autoFundVipSupportProposal.ts`
-(`autofund_vip_support_v1`), status `PROPOSED_AWAITING_OWNER_APPROVAL`,
-`is_contractual_entitlement: false`. Publication as an entitlement is blocked.
+The 12-session proposal is **superseded**. `base44/shared/autoFundVipSupportProposal.ts`
+(`autofund_vip_support_v1`) stays in place as the record of what was considered and
+rejected. The finalized benefit now lives in `base44/shared/autoFundVipSupport.ts`
+(`autofund_vip_support_v2_finalized`):
+
+> VIP members receive priority access to Arriv Assist, including automated assistance
+> and escalation to a human support representative when necessary to resolve
+> qualifying service-related issues.
+
+No number of human sessions, no hours, no response-time guarantee and no dedicated
+agent is promised, and existing support rights are unchanged. Delivery uses queues that
+already exist (`support_tier` priority routing plus the existing Arriv Assist escalation
+path), so no new headcount, tooling or booking process is introduced. The prohibited
+claims are enumerated in the module and asserted against the benefit text.
 
 Prepared text (subject to final terms):
 
@@ -90,6 +101,38 @@ tiers are negative under the existing full contractual support obligation too).
 a settled lower cost per session, a lower session count on Premier/VIP, or a higher
 membership fee on those tiers. Approving it as drafted on all tiers is not
 financially supportable.
+
+### The FINALIZED benefit, priced — verified 2026-10-11
+
+Contribution per VIP member-year at the **owner-approved V2 MLS price ($120)**, with the
+membership fee collected and full eventual redemption of all cash-funded and promotional
+Booking Value:
+
+| Basis | Contribution | Escalation events absorbed at $25 |
+| --- | --- | --- |
+| Planning (expected cost basis) | **+$50.13** | 2 |
+| Measured (high cost basis) | **−$14.66** | 0 |
+
+**Exact shortfall: $14.66 per VIP member-year** on the measured cost basis — about
+$1.22 per month, and 0.12% of the $12,300 collected per VIP member-year.
+
+**Smallest corrective option:** raise the VIP membership fee from $25 to **$27/month**
+(+$24/year). That clears the $14.66 with $9.34 of margin and applies to VIP only.
+Equivalent alternatives: reduce the priority-support retainer from $6.00 to $4.78/month
+(trims the cost assumption rather than adding revenue), or a further increment on the
+MLS base price (shared by every tier, so it is the bluntest of the three).
+
+**The price basis matters more than anything else here.** At today's $100 the same
+finalized benefit loses $631.04 per VIP member-year on the planning basis and $1,590.70
+on the measured basis; at $120 it gains $50.13 and loses only $14.66. Activating the
+approved V2 ladder is what makes the finalized benefit viable, and the residual is
+$14.66 — not the $931 to $1,891 the rejected 12-session proposal cost.
+
+Under the retained 48-event stress ceiling (not an entitlement): −$49.87 planning at
+$120, against −$1,831.04 at $100.
+
+Tier $500 Premier carries the finalized benefit positively on **both** cost bases
+(+$72.19 planning, +$34.88 measured) at the approved price.
 
 ---
 
