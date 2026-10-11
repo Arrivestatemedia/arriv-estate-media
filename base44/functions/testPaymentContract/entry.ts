@@ -8,7 +8,7 @@ import { setupCertFixtures, cleanupCertFixtures } from '../../shared/certFixture
  *
  * Verifies the canonical Arriv Pay → Estate Media payment contract:
  *   - Prepaid funding ($500 → 55,000 cents BV → 2 credits)
- *   - Auto-Fund funding ($100 → 10,500 cents BV)
+ *   - Auto-Fund funding ($150 → 15,750 cents BV)
  *   - Idempotency (10 duplicate deliveries = 1 funding event)
  *   - Failed/pending payments produce no funding
  *   - Refund (full, partial, chargeback) commission reversal
@@ -144,7 +144,7 @@ export default async function(req) {
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // AUTO-FUND FUNDING: $100 → 10,500 cents BV
+    // AUTO-FUND FUNDING: $150 → 15,750 cents BV
     // ════════════════════════════════════════════════════════════════════
     try {
       const afEventId = `${TEST_RUN_ID}_autofund_150`;
@@ -155,7 +155,7 @@ export default async function(req) {
         customer_id: afContactId,
         customer_email: afEmail,
         wallet_id: afWalletId,
-        amount_charged: 100, // $100
+        amount_charged: 150, // $150
         status: 'succeeded',
         event_type: 'recurring',
         cert_mode: true,
@@ -170,21 +170,21 @@ export default async function(req) {
       const afEventArr = Array.isArray(afEvents) ? afEvents : (afEvents?.data || []);
 
       check(
-        'AUTO_FUND_FUNDING: $100 → 10,500 cents BV',
+        'AUTO_FUND_FUNDING: $150 → 15,750 cents BV',
         afResult.status === 'processed' &&
-        afResult.booking_value_issued_cents === 10500 &&
-        afWallet.booking_value_balance_cents === 10500 &&
+        afResult.booking_value_issued_cents === 15750 &&
+        afWallet.booking_value_balance_cents === 15750 &&
         afLotArr.length === 1 &&
-        afLotArr[0].booking_value_issued_cents === 10500 &&
-        afLotArr[0].booking_value_remaining_cents === 10500 &&
+        afLotArr[0].booking_value_issued_cents === 15750 &&
+        afLotArr[0].booking_value_remaining_cents === 15750 &&
         afTxnArr.length === 1 &&
-        afTxnArr[0].booking_value_cents === 10500 &&
+        afTxnArr[0].booking_value_cents === 15750 &&
         afEventArr.length === 1 &&
-        afEventArr[0].booking_value_issued_cents === 10500,
+        afEventArr[0].booking_value_issued_cents === 15750,
         `status=${afResult.status}, bv_cents=${afWallet.booking_value_balance_cents}, lots=${afLotArr.length}, txns=${afTxnArr.length}, events=${afEventArr.length}`
       );
     } catch (e) {
-      check('AUTO_FUND_FUNDING: $100 → 10,500 cents BV', false, e.message);
+      check('AUTO_FUND_FUNDING: $150 → 15,750 cents BV', false, e.message);
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -202,7 +202,7 @@ export default async function(req) {
           customer_id: afContactId,
           customer_email: afEmail,
           wallet_id: afWalletId,
-          amount_charged: 100,
+          amount_charged: 150,
           status: 'succeeded',
           event_type: 'recurring',
           cert_mode: true,
@@ -222,7 +222,7 @@ export default async function(req) {
         afProcessed === 1 && afDuplicate === 9 &&
         afDupArr.length === 1 &&
         afDupLotArr.length === 2 && // original + one duplicate
-        afDupWallet.booking_value_balance_cents === 21000, // 10500 + 10500
+        afDupWallet.booking_value_balance_cents === 31500, // 15750 + 15750
         `processed=${afProcessed}, duplicates=${afDuplicate}, events=${afDupArr.length}, lots=${afDupLotArr.length}, balance_cents=${afDupWallet.booking_value_balance_cents}`
       );
     } catch (e) {
@@ -331,13 +331,13 @@ export default async function(req) {
     // REFUND: full refund commission reversal
     // ════════════════════════════════════════════════════════════════════
     try {
-      // The auto-fund $100 payment created no commission (no sales_rep_id).
+      // The auto-fund $150 payment created no commission (no sales_rep_id).
       // So a full refund should return 'no_commission'.
       const fullRefundResult = await processCommissionReversal({
         base44: b,
         refund_event_id: `${TEST_RUN_ID}_refund_full`,
         original_payment_event_id: `${TEST_RUN_ID}_autofund_150`,
-        refunded_commissionable_amount: 100,
+        refunded_commissionable_amount: 150,
         reason: 'customer_refund',
         actor: 'arriv_pay',
         cert_mode: true,
@@ -395,8 +395,8 @@ export default async function(req) {
       const afLotsFinal = await b.entities.CreditLot.filter({ wallet_id: afWalletId });
       const afLotsArr = Array.isArray(afLotsFinal) ? afLotsFinal : (afLotsFinal?.data || []);
 
-      // After: 1 successful $100 + 1 duplicate $100 + 1 failed (no BV)
-      // Balance should be exactly 21000 cents (10500 + 10500)
+      // After: 1 successful $150 + 1 duplicate $150 + 1 failed (no BV)
+      // Balance should be exactly 31500 cents (15750 + 15750)
       // No floating-point drift
       const allCentsExact = afLotsArr.every(l =>
         l.booking_value_issued_cents % 1 === 0 &&
@@ -405,8 +405,8 @@ export default async function(req) {
 
       check(
         'CREDIT_PRECISION: integer cents exact, no float drift',
-        afWalletFinal.booking_value_balance_cents === 21000 &&
-        afWalletFinal.booking_value_balance === 210 && // display
+        afWalletFinal.booking_value_balance_cents === 31500 &&
+        afWalletFinal.booking_value_balance === 315 && // display
         allCentsExact,
         `balance_cents=${afWalletFinal.booking_value_balance_cents}, balance_display=${afWalletFinal.booking_value_balance}, all_cents_exact=${allCentsExact}`
       );

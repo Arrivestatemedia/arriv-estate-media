@@ -7,8 +7,8 @@ import { toCents, fromCents, creditsFromCents, PREPAID_CREDIT_VALUE } from '../.
  * in exact integer cents with no floating-point loss.
  *
  * Tests:
- *   1. Single $100 Auto-Fund → exactly 10500 cents ($105.00) redeemable
- *   2. Three $100 Auto-Fund deposits → exactly 31500 cents ($315.00) redeemable
+ *   1. Single $150 Auto-Fund → exactly 15750 cents ($157.50) redeemable
+ *   2. Three $150 Auto-Fund deposits → exactly 47250 cents ($472.50) redeemable
  *   3. $500 Prepaid Starter → exactly 55000 cents ($550.00) and 2 credits
  *   4. Five repeated deliveries of same event → one funding (idempotency)
  *   5. Correct attributed commission on funded cash
@@ -50,7 +50,7 @@ export default async function(req) {
       created_date: nowIso,
     });
 
-    // ── TEST 1: Single $100 Auto-Fund → exactly 10500 cents ─────────────
+    // ── TEST 1: Single $150 Auto-Fund → exactly 15750 cents ─────────────
     const wallet1 = await b.entities.PrepaidWallet.create({
       customer_id: contact.id,
       customer_email: certEmail,
@@ -86,7 +86,7 @@ export default async function(req) {
       customer_id: contact.id,
       customer_email: certEmail,
       wallet_id: wallet1.id,
-      amount_charged: 100,
+      amount_charged: 150,
       status: 'succeeded',
       event_type: 'recurring',
       sales_rep_id: rep.id,
@@ -101,27 +101,27 @@ export default async function(req) {
     const lot1 = lots1[0];
     const wallet1After = await b.entities.PrepaidWallet.get(wallet1.id);
 
-    results['single_100_precision'] = {
+    results['single_150_precision'] = {
       status: (
         r1.status === 'processed' &&
-        r1.booking_value_issued === 105 &&
-        r1.booking_value_issued_cents === 10500 &&
-        lot1.booking_value_issued_cents === 10500 &&
-        lot1.booking_value_remaining_cents === 10500 &&
-        wallet1After.booking_value_balance_cents === 10500
+        r1.booking_value_issued === 157.5 &&
+        r1.booking_value_issued_cents === 15750 &&
+        lot1.booking_value_issued_cents === 15750 &&
+        lot1.booking_value_remaining_cents === 15750 &&
+        wallet1After.booking_value_balance_cents === 15750
       ) ? 'PASS' : 'FAIL',
       booking_value_issued: r1.booking_value_issued,
       booking_value_issued_cents: r1.booking_value_issued_cents,
-      expected_cents: 10500,
+      expected_cents: 15750,
       lot_cents: lot1.booking_value_issued_cents,
       lot_remaining_cents: lot1.booking_value_remaining_cents,
       wallet_balance_cents: wallet1After.booking_value_balance_cents,
       wallet_balance_display: wallet1After.booking_value_balance,
       credits_display: wallet1After.credits_balance,
-      note: 'Old rounded system would store 0.38 credits = $104.50 (10450 cents). New system stores 10500 cents = $105.00 exact.',
+      note: 'Old rounded system would store 0.57 credits = $156.75 (15675 cents). New system stores 15750 cents = $157.50 exact.',
     };
 
-    // ── TEST 2: Three $100 deposits → exactly 31500 cents ($315.00) ─────
+    // ── TEST 2: Three $150 deposits → exactly 47250 cents ($472.50) ─────
     const wallet2 = await b.entities.PrepaidWallet.create({
       customer_id: contact.id,
       customer_email: certEmail,
@@ -158,7 +158,7 @@ export default async function(req) {
         customer_id: contact.id,
         customer_email: certEmail,
         wallet_id: wallet2.id,
-        amount_charged: 100,
+        amount_charged: 150,
         status: 'succeeded',
         event_type: 'recurring',
         sales_rep_id: rep.id,
@@ -172,19 +172,19 @@ export default async function(req) {
     const lots2Resp = await b.entities.CreditLot.filter({ wallet_id: wallet2.id }, 'fifo_order', 10);
     const lots2 = Array.isArray(lots2Resp) ? lots2Resp : (lots2Resp?.data || []);
 
-    results['three_100_precision'] = {
+    results['three_150_precision'] = {
       status: (
-        wallet2After.booking_value_balance_cents === 31500 &&
+        wallet2After.booking_value_balance_cents === 47250 &&
         lots2.length === 3 &&
-        lots2.every(l => l.booking_value_remaining_cents === 10500)
+        lots2.every(l => l.booking_value_remaining_cents === 15750)
       ) ? 'PASS' : 'FAIL',
       wallet_balance_cents: wallet2After.booking_value_balance_cents,
-      expected_cents: 31500,
+      expected_cents: 47250,
       wallet_balance_display: wallet2After.booking_value_balance,
-      expected_display: 315,
+      expected_display: 472.5,
       lot_count: lots2.length,
       lot_cents: lots2.map(l => l.booking_value_remaining_cents),
-      note: 'Old rounded system: 3 × 0.38 credits = 1.14 credits × $275 = $313.50 (31350 cents). New system: 3 × 10500 = 31500 cents = $315.00 exact.',
+      note: 'Old rounded system: 3 × 0.57 credits = 1.71 credits × $275 = $470.25 (47025 cents). New system: 3 × 15750 = 47250 cents = $472.50 exact.',
     };
 
     // ── TEST 3: $500 Prepaid Starter → 55000 cents and 2 credits ───────
@@ -239,7 +239,7 @@ export default async function(req) {
         customer_id: contact.id,
         customer_email: certEmail,
         wallet_id: wallet3.id,
-        amount_charged: 100,
+        amount_charged: 150,
         status: 'succeeded',
         event_type: 'recurring',
         sales_rep_id: rep.id,
@@ -255,13 +255,13 @@ export default async function(req) {
     const dupAfArr = Array.isArray(dupAfResp) ? dupAfResp : (dupAfResp?.data || []);
 
     results['idempotency_5x'] = {
-      status: (dupProcessed === 1 && dupAfArr.length === 1 && wallet3After.booking_value_balance_cents === 10500) ? 'PASS' : 'FAIL',
+      status: (dupProcessed === 1 && dupAfArr.length === 1 && wallet3After.booking_value_balance_cents === 15750) ? 'PASS' : 'FAIL',
       processed_count: dupProcessed,
       expected: 1,
       event_records: dupAfArr.length,
       expected_records: 1,
       wallet_balance_cents: wallet3After.booking_value_balance_cents,
-      expected_cents: 10500,
+      expected_cents: 15750,
     };
 
     // ── TEST 5: Correct attributed commission on funded cash ────────────
@@ -273,12 +273,12 @@ export default async function(req) {
     const commission = commissionArr[0];
 
     results['commission_attribution'] = {
-      status: (commission && commission.commission_amount === 15 && commission.gross_customer_cash === 100) ? 'PASS' : 'FAIL',
+      status: (commission && commission.commission_amount === 22.5 && commission.gross_customer_cash === 150) ? 'PASS' : 'FAIL',
       commission_amount: commission?.commission_amount,
-      expected: 15,
+      expected: 22.5,
       gross_cash: commission?.gross_customer_cash,
-      expected_cash: 100,
-      note: '15% first-payment acquisition on $100 cash = $15. Commission uses actual funded cash, not $105 booking value.',
+      expected_cash: 150,
+      note: '15% first-payment acquisition on $150 cash = $22.50. Commission uses actual funded cash, not $157.50 booking value.',
     };
 
     // ── TEST 6: No commission without eligible rep ──────────────────────
@@ -315,7 +315,7 @@ export default async function(req) {
       customer_id: contact.id,
       customer_email: certEmail,
       wallet_id: wallet4.id,
-      amount_charged: 100,
+      amount_charged: 150,
       status: 'succeeded',
       event_type: 'recurring',
       sales_rep_id: '',
