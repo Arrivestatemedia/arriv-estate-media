@@ -2,64 +2,66 @@
 
 **Date:** 2026-10-11
 **Trigger:** Owner-authorized controlled payment-processor deployment
-**Verdict:** **SOURCE RELEASE COMPLETE AND VERIFIED — DEPLOYMENT NOT YET PROPAGATED. ONE OUTSTANDING BLOCKER.**
+**Verdict:** **DEPLOYMENT VERIFIED AND CLOSED. ONE OUTSTANDING BLOCKER (LEGAL). LAUNCH STILL NOT AUTHORIZED.**
 
-> Deployment of corrected code is **not** approval to launch Auto-Fund. Enrollment remains closed and this report does not open it.
-
----
-
-## 1. OUTSTANDING BLOCKERS (only these)
-
-### BLOCKER 1 — The live app still runs the old processor bundle
-
-**Verified, not inferred.** A deployment-version assertion was added to the deployed suite and executed against the live endpoint:
-
-```
-DEPLOYED_PROCESSOR_VERSION: corrected five-tier bundle live via deployed HTTP
-  → FAIL
-  webhook_version = v2_prepaid_20261009   (expected v3_five_tier_20261011)
-  amount = 250, issued_cents = 25000
-```
-
-The live function identifies itself as `v2_prepaid_20261009` — the pre-correction bundle. Consequences, all still live in production:
-
-| Effect | Live behaviour | Required behaviour |
-|---|---|---|
-| $250 Growth tier funding | issues **25,000¢ ($250.00)**, no bonus | 27,500¢ ($275.00) — **$25 short every month, per customer** |
-| Tier table | old six-tier table | approved five tiers |
-
-**Why the code fix alone did not clear it:** the corrected source is written and saved, but the deployed artefact has not been rebuilt. This is a publish/propagation step, not a code defect. **Required action: use the Publish button at the top of the app editor.** Until the live bundle reports `v3_five_tier_20261011`, Blocker 1 stands and no $250-tier customer can be funded correctly.
-
-### BLOCKER 2 — Membership-fee refund policy is unresolved (legal)
-
-`fee_refund_policy` correctly defaults to **`undetermined`** — the system does not assume fees are non-refundable. This is the right fail-safe posture, but it means the fee's refundability is **undecided**. It must be set by the owner/legal before any fee is collected. No fee can be charged while this is open, and `membership_fee_enabled` is `false`, so nothing is at risk today.
+> Deployment is verified but is **not** approval to launch Auto-Fund. Enrollment remains closed.
 
 ---
 
-## 2. WHAT WAS VERIFIED THIS ROUND
+## 1. DEPLOYMENT — CLOSED
 
-### 2a. Legacy tier audit — ZERO legacy subscriptions
+The corrected processor is live and the version was confirmed against the running endpoint, not assumed from the source:
 
-A live query of every `AutoFundSubscription` record returned **0 records total**. Therefore:
+```
+DEPLOYED_PROCESSOR_VERSION: corrected five-tier bundle live via deployed HTTP  → PASS
+  webhook_version = v3_five_tier_20261011   (was v2_prepaid_20261009)
+  amount = 250, issued_cents = 27500
+```
 
-- **Active legacy subscriptions: 0**
-- **Paused legacy subscriptions: 0**
-- **Cancelled legacy subscriptions: 0**
+**Live deployed suite: 26 / 26 PASS.** `production_balances_unchanged: true`. Cleanup verified clean with zero remaining certification records.
 
-Cross-checks confirming no hidden legacy exposure:
+### Five-tier bonus schedule — verified live, end to end
 
-| Check | Result |
+Every approved tier was funded through the published endpoint and the exact issued Booking Value asserted against the **owner-approved schedule, hardcoded in the test** (so a future tier drift fails the suite rather than silently validating itself):
+
+| Tier | Bonus | Booking Value | Live result |
+|---|---|---|---|
+| $150 Starter | 5% | $157.50 (15,750¢) | **PASS** |
+| $250 Growth | 10% | $275.00 (27,500¢) | **PASS** |
+| $350 Professional | 15% | $402.50 (40,250¢) | **PASS** |
+| $500 Premier | 20% | $600.00 (60,000¢) | **PASS** |
+| $1,000 VIP | 25% | $1,250.00 (125,000¢) | **PASS** |
+
+Legacy grandfathering verified live alongside it: **$100 → 10,500¢ ($105, 5% bonus)**.
+
+Also verified live: prepaid $500 → 55,000¢ + 2 credits; standard top-up $500 → 50,000¢ with no bonus; separate membership-fee accounting; commission calculation and idempotency (full refund, partial refund with proportional commission reversal, duplicate chargeback, refund idempotency, 10× payment idempotency, commission reversal attribution); HMAC signature and stale-timestamp rejection; certification isolation; and integer-cent precision across wallets and lots.
+
+---
+
+## 2. OUTSTANDING BLOCKER (only one)
+
+### BLOCKER — Membership-fee refund policy is unresolved (legal)
+
+`fee_refund_policy` correctly defaults to **`undetermined`** — the system deliberately does not assume fees are non-refundable. This is the right fail-safe posture, but the fee's refundability is **undecided** and must be set by the owner/legal before any fee is collected.
+
+Also still open in the same legal review: the launch **terms version** and the customer authorization record (`terms_version`, `terms_accepted_by`) must be finalised before any enrollment.
+
+**No fee can be charged while this is open, and `membership_fee_enabled` is `false`, so nothing is at risk today.**
+
+---
+
+## 3. LEGACY TIER AUDIT — ZERO LEGACY SUBSCRIPTIONS
+
+A live query of every `AutoFundSubscription` record returned **0 records total**. Active: 0. Paused: 0. Cancelled: 0.
+
+| Cross-check | Result |
 |---|---|
-| Real (non-synthetic) customer wallets | **0 of 147** — all 147 are certification fixtures (132 `cert_*`, 15 `isolation_prod_*` / `prod_test_cert_*`), every one at $0.00 balance |
-| `$50` payment events | 5 found — all `cert_*` fixtures, `event_type: topup` at 5,000¢ (1:1, no bonus). Not legacy tier funding. |
-| `$100` payment events | all `cert_*` fixtures from earlier certification runs |
+| Real (non-synthetic) customer wallets | **0 of 147** — all 147 are certification fixtures (132 `cert_*`, 15 `isolation_prod_*` / `prod_test_cert_*`), every one at $0.00 |
+| `$50` payment events | 5 — all `cert_*`, `event_type: topup` at 5,000¢ (1:1). Not legacy tier funding. |
+| `$100` payment events | all `cert_*` fixtures |
 | `$200` payment events | 0 |
 
-**Conclusion: there are no existing customers on a retired tier and no legacy balances.** Per the owner's instruction, the legacy configuration is preserved **for historical compatibility only, with no migration records created.**
-
-### 2b. Legacy grandfathering terms (owner-confirmed) preserved
-
-Implemented in `prepaidEngine.ts` as `AUTO_FUND_LEGACY_AMOUNTS`, exactly as confirmed:
+### Grandfathering terms preserved (owner-confirmed)
 
 | Deposit | Bonus | Booking Value | plan_id |
 |---|---|---|---|
@@ -67,78 +69,48 @@ Implemented in `prepaidEngine.ts` as `AUTO_FUND_LEGACY_AMOUNTS`, exactly as conf
 | $100 | 5% | $105.00 | `autofund_100_legacy` |
 | $200 | 10% | $220.00 | `autofund_200_legacy` |
 
-Design guarantees:
+- **Not enrollable** — held deliberately outside `AUTO_FUND_AMOUNT_OPTIONS`, the only list iterated by enrollment, tier display, allowance and financial-model code.
+- **Still resolvable** — `getAutoFundConfig()` falls back to the legacy map, so any legacy recurring payment funds at its contracted terms.
+- **Latent defect closed** — the webhook previously classified a legacy amount only against the five enrollable tiers, so integer-cents input on a retired tier could have been misread as dollars. The normaliser now accepts enrollable **and** retired amounts.
+- **No record created, migrated, rewritten or removed.** Earned Booking Value untouched.
 
-- **Not enrollable.** The legacy tiers are deliberately kept **out of `AUTO_FUND_AMOUNT_OPTIONS`** — the only list iterated by enrollment, tier display, promotional-allowance and financial-model code. A new customer cannot reach them.
-- **Still resolvable.** `getAutoFundConfig()` falls back to the legacy map, so an existing legacy subscription's recurring payment would still fund at its contracted terms.
-- **Legacy cents-normalisation fixed.** The webhook previously classified a legacy amount only against the five enrollable tiers, so integer-cents input for a retired tier could have been misread as dollars. The normaliser now accepts enrollable **and** retired amounts. This was a latent defect for the legacy path and is closed.
-- **No record is created, migrated, rewritten or removed.** Earned Booking Value is untouched.
+**Scope note:** with zero legacy subscriptions, only the owner-confirmed bonus table could be verified. No customer record exists against which to verify any *other* historical benefit. If a legacy entitlement is later discovered outside this system, it must be verified against that contract before being encoded.
 
-**Honest scope note:** with zero legacy subscriptions, only the owner-confirmed bonus table could be confirmed. No customer record exists against which to verify any *other* historical benefit or condition. If a legacy entitlement is later discovered outside this system, it must be verified against that contract before being encoded here.
+---
 
-### 2c. Release contents (exact, verified)
+## 4. RELEASE CONTENTS AND SAFETY GATES
 
 ```
-base44/shared/prepaidEngine.ts                        +95  (legacy tier map + fallback resolver)
-base44/shared/autoFundFinalConfig.ts                  +28  (grandfathering terms + audit note)
-base44/functions/receiveArrivPayCustomerPayment/entry.ts +14 (legacy normalisation, version marker)
-3 files changed, 133 insertions(+), 4 deletions(-)
+base44/shared/prepaidEngine.ts                          +95  legacy tier map + fallback resolver
+base44/shared/autoFundFinalConfig.ts                    +28  grandfathering terms + audit note
+base44/functions/receiveArrivPayCustomerPayment/entry.ts +14 legacy normalisation, version marker
+base44/functions/testDeployedPaymentContract/entry.ts   +40  version marker + five-tier live schedule
+3 files changed, plus the deployed verification suite
 ```
-
-All safety gates re-confirmed in the released source:
 
 | Gate | Verified |
 |---|---|
-| `enrollment_enabled` | `false` — enrollment stays closed |
-| `membership_fee_enabled` | `false` — no fee charged, billed or recorded |
+| `enrollment_enabled` | **`false`** — enrollment stays closed |
+| `membership_fee_enabled` | **`false`** — no fee charged, billed or recorded |
 | `vip_mls_promo_restriction_enabled` | `false` (unchanged, independent of this release) |
-| Pricing activation | **None.** The release path does not reference `MediaPricingConfig` at all — live retail pricing is untouched |
-| Rollback readiness | Release is additive and self-contained in 3 files; reverting the legacy map and the version marker restores prior behaviour with no data migration |
-
-### 2d. Suite status (local, current source)
-
-| Suite | Result |
-|---|---|
-| `testPaymentContract` | **11 / 11 PASS** |
-| `testCreditPrecision` | **6 / 6 PASS** |
-| `certifyAutoFundEnrollment` | 22 / 22 PASS |
-| `testAutoFundMlsAllowance` | 22 / 22 PASS |
-| `testBookingCommissionSuppression` | 10 / 10 PASS |
-| `testDeployedPaymentContract` (live endpoint) | **19 / 21** — both failures are Blocker 1 |
-
-The two live failures are the **same single cause**: the old bundle is still serving. They are not independent defects.
+| Pricing activation | **None.** The release path never references `MediaPricingConfig` — live retail pricing is untouched |
+| Existing customer contracts / balances | **Unchanged** — `production_balances_unchanged: true` |
+| Rollback readiness | Additive and self-contained; reverting the legacy map and version marker restores prior behaviour with no data migration |
 
 ---
 
-## 3. POST-DEPLOYMENT VERIFICATION PLAN (runs immediately after Publish)
+## 5. LAUNCH READINESS — NOT YET COMPLETED
 
-The deployed suite now performs all of the owner's post-deployment checks in one run. Expected result: **21 / 21**.
-
-| Owner requirement | Check | Status now |
-|---|---|---|
-| Verify deployed processor version | `DEPLOYED_PROCESSOR_VERSION` | **FAIL** — v2 bundle |
-| $250 Growth → $25 bonus → $275 total | `PARTIAL_REFUND_COMMISSION_HTTP` (`issued` = 27,500¢) | **FAIL** — 25,000¢ |
-| Other four tiers → exact approved bonuses | STARTER $500 → 55,000¢ **PASS**; legacy $100 → 10,500¢ **PASS**; $250 **FAIL**; $350 / $1,000 not yet asserted against the live endpoint | partial |
-| Separate membership-fee accounting | 22/22 enrollment certification | PASS (logic level) |
-| Commission calculations + idempotency | `FULL_REFUND`, `DUPLICATE_CHARGEBACK_HTTP`, `REFUND_IDEMPOTENCY`, `PAYMENT_IDEMPOTENCY`, `COMMISSION_REVERSAL_WITH_ATTRIBUTION` | PASS |
-| No existing customer funds/records changed | `PRODUCTION_BALANCES_UNCHANGED` + `SYNTHETIC_CLEANUP` | **PASS** — `production_balances_unchanged: true`, cleanup verified clean, zero remaining cert records |
-
-**Gap to close after deployment:** the live suite asserts the exact bonus for $250, $500 and legacy $100, but not for **$350 and $1,000**. Those must be added and passing before launch sign-off — the owner asked for all five tier mappings verified against the live endpoint, and that cannot currently be claimed.
-
----
-
-## 4. LAUNCH READINESS NOT YET COMPLETED
-
-These were requested for after the controlled deployment. They are **pending** because they depend on it, and are listed so nothing is assumed done:
+These were to follow the controlled deployment and remain **pending**. Listed so nothing is assumed done:
 
 1. **Five-tier enrollment page** — not verified end-to-end with enrollment open.
-2. **Self-service and sales-assisted checkout** — not verified end-to-end (cannot be exercised while enrollment is closed and the processor is stale).
+2. **Self-service and sales-assisted checkout** — not verified end-to-end (cannot be exercised while the enrollment gate is closed).
 3. **Membership dashboard management** — not verified end-to-end.
-4. **Isolated end-to-end payment testing** — blocked on Blocker 1. Logic-level certification passes; live-path end-to-end is not complete.
-5. **Membership-fee disclosures** — disclosure content is certified (22/22), but Blocker 2 (refundability) is unresolved.
-6. **Unresolved legal review items** — Blocker 2. Also unresolved: the launch terms version and the customer authorization record (`terms_version`, `terms_accepted_by`) must be finalised before any enrollment.
+4. **Isolated end-to-end payment testing** — processor path now live-verified (26/26 above); the full customer-facing enrollment → checkout → funding journey is not.
+5. **Membership-fee disclosures** — disclosure content certified (22/22); blocked on the refundability decision.
+6. **Unresolved legal review items** — §2.
 
-### Launch gate — remains closed, correctly
+### Launch gate — closed, correctly
 
 | Gate | State |
 |---|---|
@@ -149,12 +121,10 @@ These were requested for after the controlled deployment. They are **pending** b
 
 ---
 
-## 5. REQUIRED NEXT ACTIONS
+## 6. REQUIRED NEXT ACTIONS
 
-1. **Publish the app from the editor** to propagate the corrected processor — Blocker 1.
-2. Re-run the live deployed suite; it must report **21 / 21** with `webhook_version = v3_five_tier_20261011`. **Enrollment stays closed until that is seen.**
-3. Resolve membership-fee refundability with legal — Blocker 2.
-4. Add live assertions for the **$350 and $1,000** tier bonuses.
-5. Only then: authorize opening the enrollment gate and re-verify items in §4.
+1. **Resolve membership-fee refundability, terms version and customer-authorization terms with legal** — the sole blocker.
+2. Re-verify items in §5 against the live endpoint once the enrollment gate can be opened.
+3. Only then: authorize opening enrollment.
 
 *No pricing, enrollment, fee, contract or balance was activated or changed by this work.*

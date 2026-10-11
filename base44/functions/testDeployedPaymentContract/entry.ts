@@ -959,14 +959,14 @@ export default async function(req) {
     // would pass even if the table drifted). Any tier drift fails here.
     // ═══════════════════════════════════════════════════════════════════════
     const APPROVED_TIER_SCHEDULE = [
-      { amount: 150, bonus_pct: 5, bonus: 7.5, cents: 15750 },
-      { amount: 250, bonus_pct: 10, bonus: 25, cents: 27500 },
-      { amount: 350, bonus_pct: 15, bonus: 52.5, cents: 40250 },
-      { amount: 500, bonus_pct: 20, bonus: 100, cents: 60000 },
-      { amount: 1000, bonus_pct: 25, bonus: 250, cents: 125000 },
+      { amount: 150, bonus_pct: 5, bonus: 7.5, bv_cents: 15750 },
+      { amount: 250, bonus_pct: 10, bonus: 25, bv_cents: 27500 },
+      { amount: 350, bonus_pct: 15, bonus: 52.5, bv_cents: 40250 },
+      { amount: 500, bonus_pct: 20, bonus: 100, bv_cents: 60000 },
+      { amount: 1000, bonus_pct: 25, bonus: 250, bv_cents: 125000 },
     ];
     for (const tier of APPROVED_TIER_SCHEDULE) {
-      const tierLabel = `TIER_SCHEDULE_${tier.amount}: $${tier.amount} → ${tier.bonus_pct}% bonus → ${tier.cents}¢ BV via deployed HTTP`;
+      const tierLabel = `TIER_SCHEDULE_${tier.amount}: $${tier.amount} → ${tier.bonus_pct}% bonus → ${tier.bv_cents}¢ BV via deployed HTTP`;
       try {
         const { data } = await sendPaymentEvent({
           payment_event_id: `${TEST_RUN_ID}_tier_${tier.amount}`,
@@ -975,17 +975,20 @@ export default async function(req) {
           customer_email: afEmail,
           wallet_id: afWalletId,
           amount_charged: tier.amount,
-          amount_charged_cents: tier.cents,
+          // CASH charged, in cents — NOT the booking value. The endpoint reads
+          // this to resolve the tier, so sending BV here resolves no tier and
+          // funds 1:1 with no bonus, which looks like a processor defect.
+          amount_charged_cents: tier.amount * 100,
           status: 'succeeded',
           event_type: 'recurring',
           certification: true,
         });
         check(tierLabel,
           'DEPLOYED_HTTP',
-          data.booking_value_issued_cents === tier.cents &&
+          data.booking_value_issued_cents === tier.bv_cents &&
           data.bonus_booking_value === tier.bonus &&
           data.status === 'processed',
-          `amount=$${tier.amount}, status=${data.status}, issued=${data.booking_value_issued_cents}, expect=${tier.cents}, bonus=${data.bonus_booking_value}, expect_bonus=${tier.bonus}`);
+          `amount=$${tier.amount}, status=${data.status}, issued=${data.booking_value_issued_cents}, expect=${tier.bv_cents}, bonus=${data.bonus_booking_value}, expect_bonus=${tier.bonus}`);
       } catch (e) {
         check(tierLabel, 'DEPLOYED_HTTP', false, e.message);
       }
