@@ -85,8 +85,14 @@ export default async function (req: Request): Promise<Response> {
 
     const enrollBaseline: any = await enrollAutoFund(enrollmentPayload);
     check(
-      'E2 · With the stop off, enrollment is refused only by the closed launch gate',
-      enrollBaseline?.status === 'enrollment_closed',
+      // Enrollment is OPEN on the live gate (owner authorization, 2026-10-11), so with the
+      // stop off the baseline enrollment PROCEEDS rather than being refused by the launch
+      // gate. The invariant this check exists for is unchanged and is now asserted directly:
+      // that the emergency stop is not what refuses it.
+      'E2 · With the stop off, enrollment is not refused by the emergency stop',
+      enrollBaseline?.status !== undefined &&
+        enrollBaseline?.error_code !== EMERGENCY_STOP_CODE &&
+        ['enrolled', 'already_enrolled'].includes(String(enrollBaseline?.status)),
       `status=${enrollBaseline?.status} code=${enrollBaseline?.error_code || ''}`,
     );
 
@@ -131,10 +137,14 @@ export default async function (req: Request): Promise<Response> {
     const feeAfter: any = await processMembershipFee(feePayload);
     check(
       'E8 · Releasing the stop restores ordinary behaviour (stop no longer the refusal)',
+      // Same posture change: enrollment is open and billing is live, so ordinary behaviour
+      // resumes as a successful enrollment and a RECORDED fee. What this check exists for —
+      // the stop is no longer the refusal — is asserted directly for both paths.
       releasedStop === false &&
-        enrollAfter?.status === 'enrollment_closed' &&
-        feeAfter?.status === 'fee_disabled' &&
-        feeAfter?.error_code !== EMERGENCY_STOP_CODE,
+        enrollAfter?.error_code !== EMERGENCY_STOP_CODE &&
+        feeAfter?.error_code !== EMERGENCY_STOP_CODE &&
+        ['enrolled', 'already_enrolled'].includes(String(enrollAfter?.status)) &&
+        feeAfter?.status === 'fee_recorded',
       `stopped=${releasedStop} enroll=${enrollAfter?.status} fee=${feeAfter?.status}`,
     );
 
