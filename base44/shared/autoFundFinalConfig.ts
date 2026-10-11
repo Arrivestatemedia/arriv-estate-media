@@ -35,6 +35,19 @@ export const AUTOFUND_FINAL_FLAGS = {
   vip_mls_promo_restriction_enabled: false,
 } as const;
 
+/**
+ * AppSetting key that must ALSO be explicitly 'true' before any customer can be
+ * enrolled. Absent or false means enrollment is closed. This is the owner's
+ * launch gate and is independent of the pre-existing prepaid/Auto-Fund
+ * enablement flag, so enrollment cannot reopen by accident.
+ */
+export const AUTOFUND_ENROLLMENT_FLAG_KEY = 'autofund_enrollment_enabled';
+
+/** Enrollment is open only when BOTH the code flag and the AppSetting switch are on. */
+export function isEnrollmentOpen(appSettingValue: string | null | undefined): boolean {
+  return AUTOFUND_FINAL_FLAGS.enrollment_enabled && appSettingValue === 'true';
+}
+
 /** Approved monthly membership fee by deposit amount. */
 export const AUTOFUND_MEMBERSHIP_FEE: Record<number, number> = {
   50: 0, 100: 0, 200: 0, 350: 25, 500: 25, 1000: 25,

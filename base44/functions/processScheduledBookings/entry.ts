@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { getActivePricingConfig } from '../../shared/mediaConfigLoader.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -12,8 +13,17 @@ Deno.serve(async (req) => {
 
     for (const sb of due) {
       try {
-        const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
-        const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+        // Prices come from the EFFECTIVE pricing config, never a hardcoded table.
+        // Scheduled bookings carry no property square footage, so they price on the
+        // standard (TIER_1) column — the same tier the previous hardcoded $100
+        // represented. Historical bookings keep the price recorded on their own
+        // pricing snapshot; this only affects bookings submitted from now on.
+        const pricingConfig = await getActivePricingConfig(base44);
+        const standardTier = (pricingConfig.tier_prices || []).find(t => t.tier === 'TIER_1');
+        const packagePrices = standardTier?.prices || {};
+        const addOnPrices = Object.fromEntries(
+          (pricingConfig.add_ons || []).filter(a => a.active).map(a => [a.id, a.customer_price])
+        );
         const pkgPrice = sb.custom_package_price != null ? sb.custom_package_price : (packagePrices[sb.package_id] || 0);
         const addOnsTotal = (sb.add_on_ids || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
         const totalPrice = pkgPrice + addOnsTotal;

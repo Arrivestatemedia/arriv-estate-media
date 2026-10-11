@@ -10,6 +10,7 @@ import {
   fromCents,
 } from '../../shared/prepaidEngine.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
+import { AUTOFUND_ENROLLMENT_FLAG_KEY, isEnrollmentOpen } from '../../shared/autoFundFinalConfig.ts';
 
 export default async function(req) {
   try {
@@ -43,6 +44,24 @@ export default async function(req) {
     // ENROLL — create Auto-Fund subscription + link to wallet
     // ════════════════════════════════════════════════════════════════════════
     if (action === 'enroll') {
+      // ── Owner launch gate ──────────────────────────────────────────────────
+      // Enrollment stays closed until the code flag AND the AppSetting switch are
+      // both explicitly on. An absent switch reads as closed, so enrollment cannot
+      // reopen as a side effect of any other flag.
+      const enrollFlagRecords = await base44.asServiceRole.entities.AppSetting.filter(
+        { key: AUTOFUND_ENROLLMENT_FLAG_KEY },
+        undefined,
+        1
+      );
+      const enrollFlagArr = Array.isArray(enrollFlagRecords) ? enrollFlagRecords : (enrollFlagRecords?.data || []);
+      const enrollmentOpen = isEnrollmentOpen(enrollFlagArr.length > 0 ? enrollFlagArr[0].value : null);
+      if (!enrollmentOpen) {
+        return Response.json({
+          error: 'Auto-Fund enrollment is closed pending owner launch authorization.',
+          enrollment_open: false,
+        }, { status: 403 });
+      }
+
       const { customer_email, customer_name, customer_phone, amount, sales_rep_id, stripe_subscription_id, stripe_customer_id, billing_day } = body;
       const config = getAutoFundConfig(amount);
       if (!config) return Response.json({ error: 'Invalid amount. Must be one of: ' + AUTO_FUND_AMOUNT_OPTIONS.join(', ') }, { status: 400 });

@@ -46,6 +46,7 @@ import {
   AUTO_FUND_AMOUNT_OPTIONS,
   round2,
 } from './prepaidEngine.ts';
+import { MLS_PRICE_STANDARD_APPROVED, MLS_PRICE_STANDARD_LIVE } from './mlsPricing.ts';
 
 export const MLS_ALLOWANCE_RULES_VERSION = 'mls_full_redemption_v2_20261011';
 
@@ -143,15 +144,18 @@ export const MLS_ALLOWANCE_DERIVATION: Record<number, MlsAllowanceDerivation> = 
 };
 
 // ── Canonical service unit economics ────────────────────────────────────────
-// Owner-approved standard MLS Walkthrough price, 2026-10-10, is $120 (V2). The
-// Auto-Fund program is valued against the approved price, so bundle-margin and
-// disclosure math use $120. The live retail price remains governed by the active
-// MediaPricingConfig record until the owner activates the V2 config.
-export const MLS_RETAIL = 120;
+// Single-sourced from mlsPricing.ts. The Auto-Fund program is valued against the
+// OWNER-APPROVED price, so bundle-margin and disclosure math use $120. The live
+// retail price stays $100 until the owner activates the V2 pricing config.
+export const MLS_RETAIL = MLS_PRICE_STANDARD_APPROVED;
 /** The price that remains live for retail customers until V2 is activated. */
-export const MLS_RETAIL_LIVE = 100;
+export const MLS_RETAIL_LIVE = MLS_PRICE_STANDARD_LIVE;
 export const MLS_PAYOUT = 50;
-export const MLS_EDITING = 20;
+// Owner-approved planning assumption (2026-10-10): $18/hour x 60 active minutes
+// = $18.00 editing labour, plus 15% employer payroll burden ($2.70) and $5.00
+// quality control = $25.70 combined editing and QC cost per Walkthrough.
+// Previously $20.00, which understated fulfilment cost in the bundle guard.
+export const MLS_EDITING = 25.70;
 const SPECIALIST_PAYOUT_RATE = 0.34;
 const EDITING_COST_OTHER: Record<string, number> = { essentials: 50, cinematic: 100, premium: 150 };
 

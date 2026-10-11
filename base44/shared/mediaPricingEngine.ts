@@ -27,6 +27,16 @@ import { computeTenureBand, LifecyclePricingConfig, DEFAULT_LIFECYCLE_CONFIG } f
 
 // --- Versioned Configuration Types ---
 
+import {
+  MLS_PRICE_V1_BY_TIER,
+  MLS_PRICE_V2_BY_TIER,
+  MLS_PRICING_VERSION_V2,
+} from "./mlsPricing.ts";
+
+// Re-exported so existing consumers keep working while there is only ONE
+// definition of the MLS ladder (see mlsPricing.ts).
+export { MLS_PRICE_V2_BY_TIER };
+
 export interface PackageTierPrice {
   tier: string; // TIER_1, TIER_2, ..., CUSTOM
   prices: Record<string, number>; // package_id -> price in DOLLARS
@@ -254,23 +264,23 @@ export const DEFAULT_PRICING_CONFIG: MediaPricingConfig = {
   tier_prices: [
     {
       tier: "TIER_1",
-      prices: { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 },
+      prices: { mls_walkthrough: MLS_PRICE_V1_BY_TIER.TIER_1, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 },
     },
     {
       tier: "TIER_2",
-      prices: { mls_walkthrough: 125, photo_essentials: 325, photo_cinematic: 525, premium_bundle: 750 },
+      prices: { mls_walkthrough: MLS_PRICE_V1_BY_TIER.TIER_2, photo_essentials: 325, photo_cinematic: 525, premium_bundle: 750 },
     },
     {
       tier: "TIER_3",
-      prices: { mls_walkthrough: 150, photo_essentials: 375, photo_cinematic: 575, premium_bundle: 825 },
+      prices: { mls_walkthrough: MLS_PRICE_V1_BY_TIER.TIER_3, photo_essentials: 375, photo_cinematic: 575, premium_bundle: 825 },
     },
     {
       tier: "TIER_4",
-      prices: { mls_walkthrough: 200, photo_essentials: 450, photo_cinematic: 650, premium_bundle: 950 },
+      prices: { mls_walkthrough: MLS_PRICE_V1_BY_TIER.TIER_4, photo_essentials: 450, photo_cinematic: 650, premium_bundle: 950 },
     },
     {
       tier: "TIER_5",
-      prices: { mls_walkthrough: 275, photo_essentials: 575, photo_cinematic: 775, premium_bundle: 1100 },
+      prices: { mls_walkthrough: MLS_PRICE_V1_BY_TIER.TIER_5, photo_essentials: 575, photo_cinematic: 775, premium_bundle: 1100 },
     },
   ],
   add_ons: [
@@ -314,14 +324,7 @@ export const MLS_PRICE_STANDARD_CURRENT = 100;
 /** Square-footage increments carried over unchanged from the V1 ladder. */
 export const MLS_SQFT_ADJUSTMENTS = [0, 25, 25, 50, 75] as const;
 
-/** The approved V2 MLS column, keyed by tier. */
-export const MLS_PRICE_V2_BY_TIER: Record<string, number> = {
-  TIER_1: 120,
-  TIER_2: 145,
-  TIER_3: 170,
-  TIER_4: 220,
-  TIER_5: 295,
-};
+// MLS_PRICE_V2_BY_TIER is defined once in mlsPricing.ts and imported above.
 
 /**
  * The complete approved V2 pricing config: identical to V1 in every respect

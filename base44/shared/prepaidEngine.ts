@@ -349,11 +349,11 @@ export interface SqftTier {
 }
 
 export const SQFT_PRICING: SqftTier[] = [
-  { label: "≤2,500", min: 0, max: 2500, mls: 100, essentials: 275, cinematic: 475, premium: 675 },
-  { label: "2,501–3,500", min: 2501, max: 3500, mls: 125, essentials: 325, cinematic: 525, premium: 750 },
-  { label: "3,501–5,000", min: 3501, max: 5000, mls: 150, essentials: 375, cinematic: 575, premium: 825 },
-  { label: "5,001–7,500", min: 5001, max: 7500, mls: 200, essentials: 450, cinematic: 650, premium: 950 },
-  { label: "7,501–10,000", min: 7501, max: 10000, mls: 275, essentials: 575, cinematic: 775, premium: 1100 },
+  { label: "≤2,500", min: 0, max: 2500, mls: MLS_PRICE_V1_BY_TIER.TIER_1, essentials: 275, cinematic: 475, premium: 675 },
+  { label: "2,501–3,500", min: 2501, max: 3500, mls: MLS_PRICE_V1_BY_TIER.TIER_2, essentials: 325, cinematic: 525, premium: 750 },
+  { label: "3,501–5,000", min: 3501, max: 5000, mls: MLS_PRICE_V1_BY_TIER.TIER_3, essentials: 375, cinematic: 575, premium: 825 },
+  { label: "5,001–7,500", min: 5001, max: 7500, mls: MLS_PRICE_V1_BY_TIER.TIER_4, essentials: 450, cinematic: 650, premium: 950 },
+  { label: "7,501–10,000", min: 7501, max: 10000, mls: MLS_PRICE_V1_BY_TIER.TIER_5, essentials: 575, cinematic: 775, premium: 1100 },
   { label: "10,001+", min: 10001, max: Infinity, mls: null, essentials: null, cinematic: null, premium: null },
 ];
 
@@ -527,6 +527,8 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
     validity_months: 12,
   },
 };
+
+import { MLS_PRICE_V1_BY_TIER } from './mlsPricing.ts';
 
 export const AUTO_FUND_AMOUNT_OPTIONS = [50, 100, 200, 350, 500, 1000];
 
