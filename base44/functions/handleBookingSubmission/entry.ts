@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { resolveMarketplaceSalesRep } from '../../shared/payoutV2.ts';
+import { assertVipWalletRedemption } from '../../shared/autoFundVipEnforcement.ts';
 
 // Determine which funding program backs the wallet balance being redeemed.
 // Auto-Fund issues 'reload' credit lots; Prepaid purchases issue 'purchase' lots.
@@ -47,6 +48,30 @@ Deno.serve(async (req) => {
     const walletFundingSource = isWalletFunded
       ? await resolveWalletFundingSource(base44, walletInput.wallet_id)
       : 'none';
+
+    // ── VIP promotional-credit enforcement (authoritative, server-side) ──────
+    // A VIP member's PROMOTIONAL Booking Value may not pay for a standalone MLS
+    // Walkthrough. Cash-funded Booking Value remains fully usable there, and
+    // photography, video, premium packages and qualifying bundles keep full
+    // promotional access. Enforced HERE, on the booking transaction itself, so it
+    // cannot be bypassed by a direct API call, a booking edit, a payment shortfall,
+    // or a UI change. No booking-count cap is applied.
+    if (isWalletFunded) {
+      const vipDecision = await assertVipWalletRedemption({
+        base44: base44.asServiceRole,
+        wallet_id: walletInput.wallet_id,
+        applied_cents: walletAppliedCents,
+        package_id: booking.package,
+      });
+      if (!vipDecision.allowed) {
+        return Response.json({
+          error: vipDecision.reason,
+          error_code: vipDecision.code,
+          promotional_remaining_cents: vipDecision.promotional_remaining_cents,
+          cash_funded_usable_cents: vipDecision.cash_funded_usable_cents,
+        }, { status: 409 });
+      }
+    }
 
     // Create booking in database — auto-approve past shoots
     const { wallet: _walletInput, ...bookingFields } = booking;

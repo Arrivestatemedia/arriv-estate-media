@@ -21,6 +21,20 @@
       "type": "number",
       "description": "Cash charged to customer"
     },
+    "charge_component": {
+      "type": "string",
+      "enum": [
+        "wallet_funding",
+        "membership_fee"
+      ],
+      "default": "wallet_funding",
+      "description": "Which part of the customer's recurring charge this event represents. wallet_funding issues Booking Value; membership_fee is collected revenue that issues nothing. Kept separate so fees are never mistaken for wallet funding."
+    },
+    "membership_fee_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Membership fee portion of this charge. Always 0 for wallet-funding events."
+    },
     "booking_value_issued": {
       "type": "number",
       "description": "Booking value issued to wallet (display). Derived from booking_value_issued_cents."
@@ -28,15 +42,15 @@
     "booking_value_issued_cents": {
       "type": "integer",
       "default": 0,
-      "description": "Booking value issued in integer cents. Authoritative \u2014 no floating-point loss."
+      "description": "Booking value issued in integer cents. Authoritative \u2014 no floating-point loss. ALWAYS 0 on a membership-fee event, which is what structurally prevents a fee from becoming a wallet liability."
     },
     "bonus_booking_value": {
       "type": "number",
-      "description": "Bonus portion of booking value (0 for $50 plan or failed payments)"
+      "description": "Bonus portion of booking value (0 for $50 plan, failed payments, or any membership fee)"
     },
     "credits_issued": {
       "type": "number",
-      "description": "Credits issued (display). Derived from booking_value_issued_cents / 27500. 0 if failed."
+      "description": "Credits issued (display). Derived from booking_value_issued_cents / 27500. 0 if failed or if this is a membership fee."
     },
     "status": {
       "type": "string",
@@ -55,9 +69,34 @@
         "recurring",
         "topup",
         "retry",
-        "prepaid_purchase"
+        "prepaid_purchase",
+        "membership_fee"
       ],
-      "description": "Whether this was a recurring charge, one-time top-up, retry, or canonical prepaid tier purchase"
+      "description": "Whether this was a recurring charge, one-time top-up, retry, canonical prepaid tier purchase, or a membership-fee charge."
+    },
+    "refund_policy": {
+      "type": "string",
+      "enum": [
+        "undetermined",
+        "non_refundable",
+        "refundable_full",
+        "refundable_prorated"
+      ],
+      "default": "undetermined",
+      "description": "Refundability policy that applied to a membership fee when it was charged. Deliberately defaults to 'undetermined' \u2014 the system does not assume fees are non-refundable. Set by the owner before launch."
+    },
+    "refunded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a membership fee was refunded or reversed"
+    },
+    "refund_amount_cents": {
+      "type": "integer",
+      "description": "Refunded membership-fee amount in integer cents"
+    },
+    "refund_reason": {
+      "type": "string",
+      "description": "Reason for the membership-fee refund or reversal"
     },
     "stripe_invoice_id": {
       "type": "string"
@@ -67,15 +106,15 @@
     },
     "wallet_transaction_id": {
       "type": "string",
-      "description": "Linked WalletTransaction ID (empty if failed)"
+      "description": "Linked WalletTransaction ID (empty if failed or if this is a membership fee)"
     },
     "lot_id": {
       "type": "string",
-      "description": "Linked CreditLot ID (empty if failed)"
+      "description": "Linked CreditLot ID (empty if failed or if this is a membership fee)"
     },
     "commission_event_id": {
       "type": "string",
-      "description": "Linked PrepaidCompensationEvent source_event_id (empty if failed or no rep)"
+      "description": "Linked PrepaidCompensationEvent source_event_id (empty if failed, no rep, or if this is a membership fee \u2014 fees never generate commission)"
     },
     "failure_reason": {
       "type": "string",
@@ -96,7 +135,7 @@
     },
     "idempotency_key": {
       "type": "string",
-      "description": "Same as payment_event_id \u2014 prevents duplicate credit issuance"
+      "description": "Same as payment_event_id \u2014 prevents duplicate charges, duplicate credit issuance and duplicate fee recording"
     },
     "raw_event": {
       "type": "string",

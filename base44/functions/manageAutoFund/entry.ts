@@ -10,7 +10,14 @@ import {
   fromCents,
 } from '../../shared/prepaidEngine.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
-import { AUTOFUND_ENROLLMENT_FLAG_KEY, isEnrollmentOpen } from '../../shared/autoFundFinalConfig.ts';
+import {
+  AUTOFUND_ENROLLMENT_FLAG_KEY,
+  isEnrollmentOpen,
+  getMembershipFee,
+  getTotalMonthlyCharge,
+} from '../../shared/autoFundFinalConfig.ts';
+import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
+import { buildBillingHistory, buildChargeDisclosure } from '../../shared/autoFundMembershipBilling.ts';
 
 export default async function(req) {
   try {
@@ -43,135 +50,85 @@ export default async function(req) {
     // ════════════════════════════════════════════════════════════════════════
     // ENROLL — create Auto-Fund subscription + link to wallet
     // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════
+    // ENROLL — admin / sales-assisted provisioning (shared enrollment engine)
+    // ════════════════════════════════════════════════════════════════════════
+    // Pricing, benefits and disclosure are resolved INSIDE the shared engine from
+    // the canonical configuration. No financial value is accepted from the caller,
+    // so an advisor cannot modify a bonus, a membership fee or a tier price.
     if (action === 'enroll') {
-      // ── Owner launch gate ──────────────────────────────────────────────────
-      // Enrollment stays closed until the code flag AND the AppSetting switch are
-      // both explicitly on. An absent switch reads as closed, so enrollment cannot
-      // reopen as a side effect of any other flag.
-      const enrollFlagRecords = await base44.asServiceRole.entities.AppSetting.filter(
-        { key: AUTOFUND_ENROLLMENT_FLAG_KEY },
-        undefined,
-        1
-      );
-      const enrollFlagArr = Array.isArray(enrollFlagRecords) ? enrollFlagRecords : (enrollFlagRecords?.data || []);
-      const enrollmentOpen = isEnrollmentOpen(enrollFlagArr.length > 0 ? enrollFlagArr[0].value : null);
-      if (!enrollmentOpen) {
-        return Response.json({
-          error: 'Auto-Fund enrollment is closed pending owner launch authorization.',
-          enrollment_open: false,
-        }, { status: 403 });
-      }
+      const {
+        customer_email, customer_name, customer_phone, amount,
+        sales_rep_id, attribution_source, terms_accepted, terms_accepted_by,
+        stripe_subscription_id, stripe_customer_id, billing_day, fee_refund_policy,
+      } = body;
 
-      const { customer_email, customer_name, customer_phone, amount, sales_rep_id, stripe_subscription_id, stripe_customer_id, billing_day } = body;
-      const config = getAutoFundConfig(amount);
-      if (!config) return Response.json({ error: 'Invalid amount. Must be one of: ' + AUTO_FUND_AMOUNT_OPTIONS.join(', ') }, { status: 400 });
-      if (!customer_email) return Response.json({ error: 'customer_email is required' }, { status: 400 });
-
-      // Find or create Contact (Customer 360)
-      const existingContacts = await base44.asServiceRole.entities.Contact.filter({ email: customer_email }, undefined, 1);
-      const contactArr = Array.isArray(existingContacts) ? existingContacts : (existingContacts?.data || []);
-      let contact = contactArr[0];
-      if (!contact) {
-        const nameParts = (customer_name || '').trim().split(/\s+/);
-        contact = await base44.asServiceRole.entities.Contact.create({
-          email: customer_email,
-          firstname: nameParts[0] || customer_name || '',
-          lastname: nameParts.slice(1).join(' ') || '',
-          phone: customer_phone || '',
-          lifecycle_stage: 'customer',
-          lead_status: 'CONNECTED',
-          sales_member_id: sales_rep_id || '',
-        });
-      }
-
-      // Check for existing active Auto-Fund subscription
-      const existingSubs = await base44.asServiceRole.entities.AutoFundSubscription.filter(
-        { customer_id: contact.id, status: { $in: ['active', 'paused'] } },
-        undefined,
-        1
-      );
-      const subArr = Array.isArray(existingSubs) ? existingSubs : (existingSubs?.data || []);
-      if (subArr.length > 0) {
-        return Response.json({ error: 'Customer already has an active Auto-Fund subscription', subscription_id: subArr[0].id }, { status: 409 });
-      }
-
-      // Find or create wallet
-      const existingWallets = await base44.asServiceRole.entities.PrepaidWallet.filter({ customer_id: contact.id }, undefined, 1);
-      const walletArr = Array.isArray(existingWallets) ? existingWallets : (existingWallets?.data || []);
-      let wallet = walletArr[0];
-      const nowIso = new Date().toISOString();
-
-      if (!wallet) {
-        wallet = await base44.asServiceRole.entities.PrepaidWallet.create({
-          customer_id: contact.id,
-          customer_email: contact.email,
-          customer_name: customer_name || `${contact.firstname || ''} ${contact.lastname || ''}`.trim(),
-          tier: 'STARTER',
-          support_tier: config.support_tier,
-          credits_balance: 0,
-          booking_value_balance: 0,
-          total_credits_issued: 0,
-          total_booking_value_issued: 0,
-          total_credits_redeemed: 0,
-          total_booking_value_redeemed: 0,
-          total_credits_expired: 0,
-          total_booking_value_expired: 0,
-          promotional_benefits_available: 0,
-          promotional_benefits_used: 0,
-          sales_rep_id: sales_rep_id || '',
-          sales_rep_email: '',
-          status: 'active',
-          feature_flag_enabled: true,
-          created_at: nowIso,
-          updated_at: nowIso,
-        });
-      }
-
-      // Resolve rep email
-      let repEmail = '';
-      if (sales_rep_id) {
-        try {
-          const rep = await base44.asServiceRole.entities.SalesTeamMember.get(sales_rep_id);
-          if (rep) repEmail = rep.email || '';
-        } catch {}
-      }
-
-      const billingDay = billing_day || new Date().getDate();
-      const nextBilling = new Date();
-      nextBilling.setDate(billingDay);
-      if (nextBilling <= new Date()) nextBilling.setMonth(nextBilling.getMonth() + 1);
-
-      const subscription = await base44.asServiceRole.entities.AutoFundSubscription.create({
-        customer_id: contact.id,
-        customer_email: contact.email,
-        customer_name: customer_name || wallet.customer_name || '',
-        wallet_id: wallet.id,
-        amount: config.amount,
-        plan_id: config.plan_id,
-        status: 'active',
-        stripe_subscription_id: stripe_subscription_id || '',
-        stripe_customer_id: stripe_customer_id || '',
-        sales_rep_id: sales_rep_id || '',
-        sales_rep_email: repEmail,
-        billing_day_of_month: billingDay,
-        next_billing_date: nextBilling.toISOString(),
-        feature_flag_enabled: true,
-        created_at: nowIso,
-        updated_at: nowIso,
+      const result = await enrollAutoFund({
+        base44: base44.asServiceRole,
+        channel: attribution_source === 'advisor_enrolled' ? 'sales_assisted' : 'admin',
+        tier_amount: amount,
+        customer_email,
+        customer_name,
+        customer_phone,
+        sales_rep_id,
+        attribution_source: attribution_source === 'advisor_enrolled' ? 'advisor_enrolled' : 'admin_assigned',
+        terms_accepted: terms_accepted === true,
+        terms_accepted_by,
+        fee_refund_policy,
+        stripe_subscription_id,
+        stripe_customer_id,
+        billing_day,
+        actor: user?.email || 'admin',
       });
 
-      return Response.json({
-        status: 'success',
-        subscription_id: subscription.id,
-        wallet_id: wallet.id,
-        contact_id: contact.id,
-        amount: config.amount,
-        plan_id: config.plan_id,
-        booking_value_per_cycle: config.booking_value,
-        next_billing_date: nextBilling.toISOString(),
-        benefits: config.benefits,
-        support_tier: config.support_tier,
+      if (result.status !== 'enrolled') {
+        const code = result.status === 'enrollment_closed' ? 403 : (result.status === 'already_enrolled' ? 409 : 400);
+        return Response.json(result, { status: code });
+      }
+      return Response.json(result);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SELF_SERVICE_ENROLL — the customer enrolls themselves from the website
+    // ════════════════════════════════════════════════════════════════════════
+    // Same engine, same pricing, same disclosure as the assisted channel. The
+    // customer accepts the recurring-charge terms themselves. A self-service
+    // enrollment with no VERIFIED advisor involvement generates NO commission.
+    if (action === 'self_service_enroll') {
+      if (!user) return Response.json({ error: 'Sign in to enroll in Auto-Fund.' }, { status: 401 });
+      if (!globalEnabled) {
+        return Response.json({ error: 'Auto-Fund is not available.' }, { status: 403 });
+      }
+
+      const {
+        amount, customer_name, customer_phone, sales_rep_id,
+        attribution_source, terms_accepted, fee_refund_policy, billing_day,
+      } = body;
+
+      const result = await enrollAutoFund({
+        base44: base44.asServiceRole,
+        channel: 'self_service',
+        tier_amount: amount,
+        // The enrolled customer is the SIGNED-IN user — never a caller-supplied
+        // address, so one customer cannot enroll another.
+        customer_email: user.email,
+        customer_name: customer_name || user.full_name || '',
+        customer_phone,
+        sales_rep_id,
+        // Only a deliberate customer choice may carry attribution on this channel.
+        attribution_source: attribution_source === 'customer_selected_advisor' ? 'customer_selected_advisor' : '',
+        terms_accepted: terms_accepted === true,
+        terms_accepted_by: terms_accepted ? user.email : '',
+        fee_refund_policy,
+        billing_day,
+        actor: user.email,
       });
+
+      if (result.status !== 'enrolled') {
+        const code = result.status === 'enrollment_closed' ? 403 : (result.status === 'already_enrolled' ? 409 : 400);
+        return Response.json(result, { status: code });
+      }
+      return Response.json(result);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -188,9 +145,14 @@ export default async function(req) {
       if (sub.status === 'cancelled') return Response.json({ error: 'Cannot change amount on a cancelled subscription' }, { status: 400 });
 
       const nowIso = new Date().toISOString();
+      // The membership fee follows the tier: a change that crosses a fee boundary
+      // changes the recurring charge too. Both values are re-read from the
+      // canonical configuration, never from the request.
       await base44.asServiceRole.entities.AutoFundSubscription.update(sub.id, {
         amount: config.amount,
         plan_id: config.plan_id,
+        membership_fee: getMembershipFee(config.amount),
+        total_monthly_charge: getTotalMonthlyCharge(config.amount),
         updated_at: nowIso,
       });
 
@@ -203,6 +165,7 @@ export default async function(req) {
         effective: 'next billing cycle',
         benefits: config.benefits,
         support_tier: config.support_tier,
+        charges: buildChargeDisclosure(config.amount),
       });
     }
 
@@ -371,15 +334,30 @@ export default async function(req) {
           support_priority: config?.support_priority || 'standard',
           next_booking_value: config?.booking_value || sub.amount,
         },
-        payment_history: payments.map(p => ({
-          payment_event_id: p.payment_event_id,
-          date: p.processed_at,
-          amount: p.amount_charged,
-          status: p.status,
-          event_type: p.event_type,
-          booking_value_added: p.booking_value_issued,
-          failure_reason: p.failure_reason || '',
-        })),
+        // Billing history keeps wallet funding and membership fees visibly SEPARATE,
+        // which is the customer-facing counterpart of the ledger separation.
+        payment_history: buildBillingHistory(payments),
+        charges: buildChargeDisclosure(sub.amount),
+        billing_summary: {
+          membership_fee_total_collected: round2(
+            payments
+              .filter(p => (p.charge_component === 'membership_fee' || p.event_type === 'membership_fee') && p.status === 'succeeded')
+              .reduce((sum, p) => sum + (p.membership_fee_amount || p.amount_charged || 0), 0)
+          ),
+          wallet_funding_total_collected: round2(
+            payments
+              .filter(p => p.charge_component !== 'membership_fee' && p.event_type !== 'membership_fee' && (p.status === 'succeeded' || p.status === 'retry_succeeded'))
+              .reduce((sum, p) => sum + (p.amount_charged || 0), 0)
+          ),
+          note: 'Membership fees are collected revenue. They are never spendable Booking Value and never generate promotional credit or sales commission.',
+        },
+        enrollment: {
+          channel: sub.enrollment_channel || 'admin',
+          attribution_verified: sub.attribution_verified === true,
+          advisor: sub.attribution_verified ? (sub.sales_rep_email || '') : '',
+          terms_accepted_at: sub.terms_accepted_at || '',
+          terms_version: sub.terms_version || '',
+        },
         wallet: wallet ? {
           credits_balance: wallet.credits_balance,
           // Booking Value must come from the AUTHORITATIVE integer cents. Deriving it

@@ -27,7 +27,16 @@
         500,
         1000
       ],
-      "description": "Monthly Auto-Fund amount in dollars"
+      "description": "Monthly Auto-Fund wallet funding amount in dollars. This is the DEPOSIT only \u2014 the membership fee is separate."
+    },
+    "membership_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Approved monthly membership fee for this tier ($25 at $350/$500/$1,000; $0 below). Collected revenue: not spendable, no promotional credit, no commission."
+    },
+    "total_monthly_charge": {
+      "type": "number",
+      "description": "The full recurring charge the customer authorized: wallet funding amount plus membership fee."
     },
     "plan_id": {
       "type": "string",
@@ -43,6 +52,84 @@
       ],
       "default": "active"
     },
+    "enrollment_channel": {
+      "type": "string",
+      "enum": [
+        "self_service",
+        "sales_assisted",
+        "admin"
+      ],
+      "default": "admin",
+      "description": "How this membership was enrolled. Determines whether sales compensation may be attributed."
+    },
+    "attribution_source": {
+      "type": "string",
+      "enum": [
+        "",
+        "customer_selected_advisor",
+        "advisor_enrolled",
+        "admin_assigned"
+      ],
+      "default": "",
+      "description": "How the attributed advisor was established. Empty means no verified attribution, so no commission is generated. Never inferred from an advisor merely being available or from a general contact-link click."
+    },
+    "attribution_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when advisor attribution was deliberately verified at enrollment. Self-service enrollment with no verified advisor stays false and generates no commission."
+    },
+    "attribution_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "terms_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the CUSTOMER authorized the recurring charge and its terms. A salesperson can never supply this on the customer's behalf."
+    },
+    "terms_accepted_by": {
+      "type": "string",
+      "description": "Email of the customer who authorized the recurring payment terms."
+    },
+    "terms_version": {
+      "type": "string",
+      "description": "Version label of the recurring-charge terms the customer accepted"
+    },
+    "fee_refund_policy": {
+      "type": "string",
+      "enum": [
+        "undetermined",
+        "non_refundable",
+        "refundable_full",
+        "refundable_prorated"
+      ],
+      "default": "undetermined",
+      "description": "Refundability policy applied to this membership's fee. Disclosed to the customer before enrollment."
+    },
+    "last_fee_charged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the most recent membership fee was successfully collected"
+    },
+    "last_fee_status": {
+      "type": "string",
+      "enum": [
+        "",
+        "succeeded",
+        "failed"
+      ],
+      "default": "",
+      "description": "Outcome of the most recent membership-fee attempt"
+    },
+    "last_fee_failure_reason": {
+      "type": "string",
+      "description": "Safe failure reason for the most recent fee attempt (no card data)"
+    },
+    "consecutive_fee_failures": {
+      "type": "integer",
+      "default": 0,
+      "description": "Consecutive failed membership-fee attempts. Reset to 0 on a successful fee. Tracked separately from wallet-funding failures so a failed fee cannot be mistaken for failed funding."
+    },
     "stripe_subscription_id": {
       "type": "string",
       "description": "Stripe subscription ID (Arriv Pay manages billing)"
@@ -52,7 +139,7 @@
     },
     "sales_rep_id": {
       "type": "string",
-      "description": "Attributed Sales Growth Advisor ID"
+      "description": "Attributed Sales Growth Advisor ID. Funded commission only \u2014 never a commission on the membership fee."
     },
     "sales_rep_email": {
       "type": "string"
@@ -89,12 +176,12 @@
     "consecutive_failed_attempts": {
       "type": "integer",
       "default": 0,
-      "description": "Consecutive failed billing attempts. Reset to 0 on successful payment."
+      "description": "Consecutive failed WALLET FUNDING attempts. Reset to 0 on success. Membership-fee failures are tracked separately."
     },
     "last_failure_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the most recent payment failure occurred"
+      "description": "When the most recent wallet-funding payment failure occurred"
     },
     "last_failure_reason": {
       "type": "string",

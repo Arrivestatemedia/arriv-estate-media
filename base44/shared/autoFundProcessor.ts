@@ -26,6 +26,8 @@ import {
 } from './prepaidEngine.ts';
 import { isCertificationId } from './certificationMode.ts';
 
+import { AUTOFUND_FINAL_FLAGS } from './autoFundFinalConfig.ts';
+
 export interface ProcessPaymentParams {
   base44: any;
   payment_event_id: string;
@@ -268,30 +270,56 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
       }
     }
 
-    // ── Create credit lot (12-month validity, FIFO) ────────────────────────
+    // ── Create credit lot(s) (12-month validity, FIFO) ─────────────────────
+    // The Auto-Fund promotional bonus is issued as its OWN lot (source
+    // 'promotional') when the VIP promotional restriction is active, so promotional
+    // value is separable from cash-funded value at redemption. Without this the
+    // bonus merges into the cash lot and the VIP restriction could not be enforced
+    // at the payment layer. Wallet BALANCE TOTALS are identical either way — only
+    // the composition of the lots changes.
+    //
+    // Prepaid purchases and ordinary top-ups are unaffected: they keep one lot at
+    // their own source, so the Prepaid program is unchanged.
     lotId = idPrefix + generateId('lot');
     const expiresAt = addMonths(new Date(), 12).toISOString();
+    const fifoBase = Date.now();
 
-    const lotRecord = await base44.entities.CreditLot.create({
-      wallet_id: data.wallet_id,
-      customer_id: data.customer_id,
-      customer_email: data.customer_email,
-      lot_id: lotId,
-      source: lotSource,
-      source_transaction_id: '',
-      tier: lotTier,
-      credits_issued: credits,
-      credits_remaining: credits,
-      booking_value_issued: fromCents(bookingValueCents),
-      booking_value_remaining: fromCents(bookingValueCents),
-      booking_value_issued_cents: bookingValueCents,
-      booking_value_remaining_cents: bookingValueCents,
-      expires_at: expiresAt,
-      expired: false,
-      fifo_order: Date.now(),
-      stripe_transaction_id: data.stripe_charge_id || data.stripe_invoice_id || '',
-      created_at: nowIso,
-    });
+    const createLot = async (id: string, source: string, cents: number, fifo: number) =>
+      base44.entities.CreditLot.create({
+        wallet_id: data.wallet_id,
+        customer_id: data.customer_id,
+        customer_email: data.customer_email,
+        lot_id: id,
+        source,
+        source_transaction_id: '',
+        tier: lotTier,
+        credits_issued: creditsFromCents(cents),
+        credits_remaining: creditsFromCents(cents),
+        booking_value_issued: fromCents(cents),
+        booking_value_remaining: fromCents(cents),
+        booking_value_issued_cents: cents,
+        booking_value_remaining_cents: cents,
+        expires_at: expiresAt,
+        expired: false,
+        fifo_order: fifo,
+        stripe_transaction_id: data.stripe_charge_id || data.stripe_invoice_id || '',
+        created_at: nowIso,
+      });
+
+    const bonusCents = toCents(round2(bonusBv));
+    const splitPromotional =
+      !isPrepaidPurchase && !isTopup &&
+      AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled &&
+      bonusCents > 0 && bonusCents < bookingValueCents;
+
+    let lotRecord;
+    if (splitPromotional) {
+      const cashCents = bookingValueCents - bonusCents;
+      lotRecord = await createLot(lotId, lotSource, cashCents, fifoBase);
+      await createLot(idPrefix + generateId('lot'), 'promotional', bonusCents, fifoBase + 1);
+    } else {
+      lotRecord = await createLot(lotId, lotSource, bookingValueCents, fifoBase);
+    }
 
     // ── Create wallet transaction ──────────────────────────────────────────
     walletTxnId = idPrefix + generateId('ptxn');

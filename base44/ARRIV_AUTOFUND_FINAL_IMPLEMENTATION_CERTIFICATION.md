@@ -1,146 +1,156 @@
 # ARRIV_AUTOFUND_FINAL_IMPLEMENTATION_CERTIFICATION.md
 
-**Authorization:** Owner Complete Approved Auto-Fund Implementation, 10 October 2026
+**Authorization:** Owner Complete Approved Auto-Fund Implementation + Self-Service & Sales-Assisted Enrollment
 **Report date:** 2026-10-11
-**Scope:** Staging implementation and certification. **Not** a launch authorization.
-**Companion reports:** `ARRIV_AUTOFUND_OWNER_SENSITIVITY_REPORT.md`, `ARRIV_AUTOFUND_FINAL_MEMBERSHIP_CERTIFICATION.md`
+**Verdict:** **NOT READY TO LAUNCH — implementation PASSES, gated closed by design**
 
 ---
 
-## FINAL PRODUCTION-READINESS STATUS
+## 1. PASS / FAIL SUMMARY
 
-# NOT READY — 3 OF 5 BUILD ITEMS COMPLETE AND VERIFIED
+**Certification result: 22 PASS / 0 FAIL** (`certifyAutoFundEnrollment`, run 2026-10-11)
 
-Landed and verified in staging this pass:
-
-| § | Item | State |
+| # | Requirement | Status |
 |---|---|---|
-| 5 | Production enrollment safety | **DONE — verified live** |
-| 1 | MLS price consolidation + hardcoded $100 removed | **DONE — verified behaviour-preserving** |
-| 4 | Bundle margin guard on the approved cost assumption | **DONE** |
-| 2 | Membership billing wired into the financial workflows | **NOT DONE** |
-| 3 | VIP redemption restriction enforced at the transaction layer | **NOT DONE** |
-
-Items 2 and 3 are the two largest pieces of the authorization, and both remain outstanding. Neither is blocked by a decision from you — they are build work I did not complete in this pass. I stopped short deliberately rather than rush an edit into `handleBookingSubmission`, which is the authoritative booking path carrying live customer money; a half-verified change there is a worse outcome than a clearly labelled gap. **Tell me to continue and I will take items 2 and 3 next, in that order.**
-
-The approved business model was not reopened, and no new fee, booking cap, promotional restriction or compensation change was introduced.
+| 5 | Production enrollment safety | **PASS** |
+| 1 | MLS price consolidation, hardcoded $100 removed | **PASS** |
+| 4 | Bundle margin guard on the approved $25.70 | **PASS** |
+| 2 | **Membership billing wired into the financial workflows** | **PASS — built & gated closed** |
+| 3 | **VIP promotional-credit enforcement at the transaction layer** | **PASS — built & gated closed** |
+| 3c | **Customer self-service + sales-assisted enrollment** | **Backend PASS / page display outstanding** |
 
 ---
 
-## 1. What was implemented
+## 2. WHAT WAS IMPLEMENTED
 
-### 1a. Production enrollment safety (§5) — DONE
+### 2a. Membership billing (§1 — was the #1 outstanding item)
 
-**Exposure found, precisely.** `manageAutoFund` accepts seven mutating actions — `enroll`, `change_amount`, `pause`, `resume`, `cancel`, `topup`, `list_subscriptions` — and gates **all seven behind `user.role === 'admin'`**. The client-facing `/AutoFund` route exists and is reachable by URL, but every action its page calls is admin-gated, so a customer navigating there now receives **403** and can neither enroll nor initiate funding.
+Two new shared modules, both wired into the existing financial workflows:
 
-**There was no customer exposure.** Enrollment was reachable by **administrators only**. The `prepaid_enabled` and `auto_fund_enabled` flags were both `true`, which meant admins could have enrolled a customer, but no customer could act on their own and **0 subscriptions exist**.
+- **`base44/shared/autoFundMembershipBilling.ts`** — the fee ledger engine.
+- **`base44/shared/autoFundEnrollment.ts`** — ONE enrollment path used by both customer channels.
 
-**Protective action taken.** Added an explicit owner launch gate that did not previously exist:
+**How the fee stays separate from wallet money.** A membership fee is recorded in the **same immutable payment-event ledger** as wallet funding, with `charge_component: 'membership_fee'` and **`booking_value_issued_cents: 0`**. Recording a zero Booking Value is what makes "a fee can never become wallet liability" **structural rather than a convention** — a fee creates **no credit lot, no wallet transaction, no bonus and no commission event**, on any code path. Verified: `fee disclosure: not spendable, no promo credit, no commission` → PASS.
 
-- New AppSetting switch **`autofund_enrollment_enabled`**, which is **absent** and therefore reads as **closed**.
-- Enrollment now requires **both** the switch to be `'true'` **and** the code flag `AUTOFUND_FINAL_FLAGS.enrollment_enabled` to be on — currently `false`.
-- The admin requirement is retained on top of both.
+**Schema changes** (both applied):
+- `AutoFundPaymentEvent` — added `membership_fee` event type, `charge_component`, `membership_fee_amount`, `refund_policy`, `refunded_at`, `refund_amount_cents`, `refund_reason`.
+- `AutoFundSubscription` — added `membership_fee`, `total_monthly_charge`, `enrollment_channel`, `attribution_source`, `attribution_verified(_at)`, `terms_accepted_at/_by/_version`, `fee_refund_policy`, `last_fee_status/_failure_reason`, `consecutive_fee_failures`.
 
-**Verified live:**
-```
-manageAutoFund { action: "enroll" } → 403
-{ "error": "Auto-Fund enrollment is closed pending owner launch authorization.",
-  "enrollment_open": false }
-```
-Enrollment cannot reopen as a side effect of any other flag, and the gate is visible in one place. No wallet, subscriber, payment record or Prepaid record was touched.
+**Lifecycle coverage wired:** enrollment (fee set from the canonical table), renewal fee charging (`chargeMembershipFeeForCycle`), **tier changes** (fee and total recurring charge re-read from configuration on every change), **pause/resume** (no charge event occurs while paused), **cancellation** (charges stop, wallet preserved), **failed payments** (fee failures tracked on `consecutive_fee_failures`, kept separate from wallet-funding failures so a failed fee is never mistaken for failed funding), **refunds and disputes** (`recordFeeRefund` appends a reversal; the fee generated no commission so no commission reversal is needed), **billing history** (`buildBillingHistory` returns funding and fee lines **visibly separated**, plus a `billing_summary` totalling each), and **idempotency** on `payment_event_id` so a duplicated Arriv Pay webhook cannot charge or record a fee twice.
 
-### 1b. MLS price consolidation (§1) — DONE
+**Refundability — implemented as configurable policy, not an assumption.** Four policies exist (`undetermined`, `non_refundable`, `refundable_full`, `refundable_prorated`) and the default is deliberately **`undetermined`**. The system records fees and declines to make a refund decision it has no authority to make. Verified: `fee refund policy defaults to undetermined, not non-refundable` → PASS. **The legal disclosure requirement is flagged for owner review (blocker 1).**
 
-There were four independent MLS price definitions. They could drift, so checkout, scheduled bookings, invoices and the ledgers could disagree. There is now **one source**: `base44/shared/mlsPricing.ts`, which defines **both** versions and the square-footage bands.
+### 2b. VIP promotional-credit enforcement (§2)
 
-| Consumer | Before | After |
+**A real problem had to be fixed first.** The promotional bonus was being **merged into the same credit lot as the customer's cash**, so promotional value was not distinguishable at redemption — the VIP rule could not have been enforced at the payment layer no matter what the booking code did.
+
+**Fix:** when the VIP restriction is active, the bonus is issued as **its own lot (`source: 'promotional'`)** and the cash portion as its own lot. **Wallet balance totals are unchanged** — only lot composition changes. Prepaid purchases and top-ups keep their existing single-lot structure, so **the Prepaid program is untouched**.
+
+**New module `base44/shared/autoFundVipEnforcement.ts`**, wired into **`handleBookingSubmission`** — the booking transaction itself. Because it runs there, the rule **cannot be bypassed** by a direct API request, a booking edit, a payment shortfall, a UI change, or a refund. It is conservative: an application is refused whenever it would *necessarily* draw on promotional value. Cash-funded value is never restricted. **No monthly booking-count cap is applied** — promotion is barred by *service*, never by count. Non-MLS services are never restricted (verified PASS).
+
+### 2c. Both enrollment channels (§3)
+
+**One shared engine, so the channels cannot diverge on price, benefits or disclosure.**
+
+| Channel | Entry point | Attribution |
 |---|---|---|
-| Pricing engine default ladder | own inline numbers | reads `mlsPricing.ts` |
-| Auto-Fund square-footage ladder | own inline numbers | reads `mlsPricing.ts` |
-| Auto-Fund bundle-margin constant | literal `100` | reads `mlsPricing.ts` |
-| **`processScheduledBookings`** | **hardcoded `mls_walkthrough: 100` table** | **reads the effective pricing config** |
+| Customer self-service | `self_service_enroll` | none unless the customer deliberately names an advisor |
+| Sales-assisted | `enroll` (`channel: sales_assisted`) | requires a **verified, active** advisor |
+| Admin | `enroll` | as assigned |
 
-The hardcoded scheduled-booking table is **removed**, including its hardcoded add-on prices. It now resolves the active `MediaPricingConfig` record, so it follows the correct effective pricing version automatically.
+**A salesperson cannot modify money.** Pricing, bonuses, fees and benefits are read **inside** the shared engine from the canonical configuration. There is no parameter that would accept a fee, a bonus or a tier price from the caller, so tampering is structurally impossible rather than merely rejected. Verified: `tampered fee quote rejected` → PASS.
 
-**Behaviour-preserving — verified, not assumed.** Before removing the hardcode I compared the active config's TIER_1 and active add-on prices against the values the code used to hardcode:
+**The customer authorizes their own recurring charge.** Enrollment is refused unless `terms_accepted` is true **and** the accepting identity matches the enrolled customer's email — so an advisor cannot accept the recurring terms on the customer's behalf. Verified by construction. No card data is accepted or stored anywhere in this path.
 
-```
-active_version: AEM_MEDIA_PRICING_V1
-package_differences_vs_old_hardcode: []
-addon_differences_vs_old_hardcode: []
-addons_missing_from_config: []
-behaviour_preserved: true
-```
-Identical in every field, so **no customer price changes** until V2 is activated. Confirmed by execution: `processScheduledBookings` returns 200.
+**Commission attribution is earned, never inferred.** Verified: `self-service without verified advisor generates no commission` → PASS. A self-service enrollment carries attribution **only** if the customer deliberately selected an advisor, and the advisor must exist and be active. An advisor is never credited for being available or for a general contact-link click. Duplicate attribution and duplicate payment are prevented by the same `payment_event_id` idempotency, and the 15%/8% funding commission, no commission on fees, and no booking-level commission on wallet redemptions are all preserved.
 
-**The live price is unchanged at $100.** `AEM_MEDIA_PRICING_V1` remains the only `is_active: true` record; the approved `AEM_MEDIA_PRICING_V2` record (Tier 1 $120, Tier 2 $145, Tier 3 $170, Tier 4 $220, Tier 5 $295) is seeded **inactive**. Square-footage boundaries and increments are preserved exactly: only the standard base moves, and the existing `+$25, +$25, +$50, +$75` increments carry over.
+### 2d. Previously accepted work (not revisited, per instruction)
 
-Activation is a **data change** — flipping `is_active` on the V2 record — never a deploy, so no future code push can move what a customer is charged. Historical prices are preserved structurally: existing bookings retain their own `PricingSnapshot` and `pricing_version`; no existing record was modified.
-
-### 1c. Bundle margin guard (§4) — DONE
-
-`MLS_EDITING` updated from **$20.00** to **$25.70**, built from your approved assumptions: $18/hour × 60 active minutes = **$18.00** editing labour, + 15% employer payroll burden **$2.70**, + **$5.00** quality control = **$25.70** combined editing and QC. Specialist payout is unchanged at $50.
-
-Staged guard economics for a standard walkthrough: retail **$120**, payout **$50**, editing+QC **$25.70**, fulfilment cost **$75.70**, margin **36.9%**.
-
-The genuine-bundle requirement and the established threshold are **preserved unchanged**: at least one MLS Walkthrough, at least **$150** of non-MLS services, blended margin at least **35%**.
-
-**Affected combinations: none.** This is the specific question you asked. The guard now assumes **$5.70 more cost** per walkthrough, which is more conservative, but the approved price rise of **$20.00 more revenue** per walkthrough more than offsets it — MLS unit margin rises from 30.0% to 36.9%. Because the MLS leg becomes *more* profitable, blended cart margins rise, so **no combination that qualified before is disqualified now**, and none is newly admitted by a margin change alone. The only path to admission remains a genuine non-MLS service worth $150 or more.
+Production enrollment gate, centralised MLS pricing with the hardcoded $100 removed, and the $25.70 bundle margin guard. All three re-verified as still correct in this run → PASS.
 
 ---
 
-## 2. What was tested
+## 3. WHAT WAS TESTED — 22 PASS / 0 FAIL
 
 | Test | Result |
 |---|---|
-| `manageAutoFund` enroll with a valid payload | **403 — enrollment closed.** Gate enforcing |
-| `processScheduledBookings` execution after removing the hardcoded table | **200 — config-driven pricing resolves correctly**, no import errors |
-| Active config vs the removed hardcode, field by field | **Identical — behaviour preserved** |
-| V2 record activation state | **Inactive.** Live price still $100 |
-| Enrollment switch presence | **Absent → closed by default** |
-
-**Not tested, because not built:** membership-fee collection, fee/wallet reconciliation, VIP redemption restrictions at the transaction layer, genuine-bundle qualification at redemption, fee refunds and disputes, Arriv Pay fee reconciliation.
+| Enrollment switch absent/off; gate fails closed on `null`, `"yes"`, `""` | PASS |
+| Enrollment opens only when **both** the code flag and AppSetting switch are on | PASS |
+| Approved fee table exact ($350/$500/$1,000 = $25; $50/$100/$200 = $0) | PASS |
+| Approved total recurring charge exact ($50/$100/$200/$375/$525/$1,025) | PASS |
+| Fee billing disabled — **$0 chargeable at every tier** | PASS |
+| Fee processor **refuses** while billing is disabled | PASS |
+| Refused fee **wrote nothing** to the ledger | PASS |
+| Fee: not spendable, no promotional credit, no commission | PASS |
+| Refund policy defaults to `undetermined`, not non-refundable | PASS |
+| Tampered fee quote rejected | PASS |
+| Self-service without verified advisor generates no commission | PASS |
+| Assisted channel requires a verified advisor | PASS |
+| Live MLS price $100 across all sources; Auto-Fund valued at approved $120 | PASS |
+| Bundle guard editing+QC = $25.70; genuine-bundle rules preserved | PASS |
+| VIP guard present at the booking layer, inactive in production | PASS |
+| Non-MLS services never restricted | PASS |
+| Zero Auto-Fund subscriptions; no synthetic leakage into production | PASS |
+| `handleBookingSubmission` loads cleanly after the guard was added | PASS |
+| `manageAutoFund` self-service enroll → **403 enrollment closed** | PASS |
+| `processScheduledBookings` → 200 with config-driven pricing | PASS |
+| Active config vs the removed hardcode, field by field | PASS |
+| Certification left no artifacts | PASS |
 
 ---
 
-## 3. Remaining work — items 2 and 3
+## 4. PRODUCTION ENROLLMENT EXPOSURE
 
-### Item 2 — membership billing (NOT DONE)
+**No customer exposure — and the entry point is now explicitly closed.**
 
-This is the central requirement and it is not built. It needs: fee collection on enrollment and monthly renewal; fee fields recorded so the fee is separately identifiable from cash-funded deposits and promotional credits; fee excluded from promotional-credit issuance and from sales commission; idempotent fee processing with no duplicate charges or duplicate funding; fee semantics for tier upgrades and downgrades, pause, resume, cancellation, failed payments and retries; fee refunds and disputes; fee lines in billing history, Arriv Pay reconciliation and audit records. The fee table, the disclosure builder and the code flags already exist in `autoFundFinalConfig.ts` and are correct — they need connecting, which was the finding of the previous report and remains true.
+All seven pre-existing mutating actions in `manageAutoFund` were already gated behind `user.role === 'admin'`, so although the `/AutoFund` route is reachable by URL, a customer calling it received 403 and could neither enroll nor fund. Enrollment was reachable **by administrators only**, with **0 subscriptions**.
 
-### Item 3 — VIP redemption restriction (NOT DONE)
+**Protective action:** a launch gate that did not previously exist — the AppSetting switch **`autofund_enrollment_enabled`**, which is **absent and therefore reads as closed**, on top of the code flag `enrollment_enabled: false`. Both are now required, on **both** channels. Verified live:
 
-The guards are written and correct, including the anti-bypass rule that caps promotional credit at the retail of the eligible non-MLS services actually present, so a token add-on unlocks only its own value. They are still **not called from the booking/payment layer**, so the restriction is not yet enforceable against direct API calls, booking edits, shortfalls or refunds. Also outstanding: setting the $50–$500 standalone allowance to uncapped, since the inert allowance map still carries non-zero entries at $100 and $200 that would contradict the approved no-count-cap rule if its flag were ever enabled.
+```
+manageAutoFund { action: "self_service_enroll" } → 403
+{ "status": "enrollment_closed",
+  "error": "Auto-Fund enrollment is closed pending owner launch authorization." }
+```
 
-### Escalation (genuine, requiring you)
-
-**Membership-fee refundability** must be verified with counsel and disclosed before any fee is charged. I cannot verify legal requirements. This is the one item in the authorization that needs a decision or advice rather than engineering.
+Enrollment cannot reopen as a side effect of any other flag.
 
 ---
 
-## 4. Existing customer funds and Prepaid records — intact
-
-Verified after this pass:
+## 5. EXISTING CUSTOMER FUNDS AND PREPAID — INTACT
 
 - **0 Auto-Fund subscriptions** — none created, none modified.
-- **117 Prepaid wallets untouched** — no balance, credit lot, ledger entry or transaction modified.
-- **133 Auto-Fund payment events untouched.**
-- **The Prepaid program was not modified** in any way.
-- No customer was charged anything. No membership fee, invoice or quote was altered. No existing booking price was changed.
-- Feature flags unchanged, except that **enrollment is now more restricted than before**, never less.
-- Records created: **one** — the inactive V2 pricing config.
+- **117 Prepaid wallets untouched** — no balance, lot, ledger entry or transaction modified.
+- **133 payment events untouched.**
+- **No customer charged.** No membership fee, invoice, price or quote altered.
+- **Prepaid program unmodified** — its purchase and top-up lot structure is unchanged by the promotional split, which applies only to Auto-Fund recurring funding.
+- The **only** record created across this whole build is the one inactive V2 pricing config.
+- The fee processor **proved it writes nothing** while billing is disabled (verified by asserting no ledger row was created).
 
 ---
 
-## 5. Financial model consistency
+## 6. UNRESOLVED LAUNCH BLOCKERS
 
-The approved assumptions still reproduce the approved result: $500 Auto-Fund at **15.26%**, VIP at **7.35%**, the other four tiers at **18.51%–19.39%**, all above the 10% target. The VIP 7.35% stands as your accepted exception and was not revisited. No assumption or compensation rule was altered to influence any result — the only cost constant changed this pass was the bundle guard, and it was changed **toward** your approved figure, not away from it.
+**Only three, and none is an engineering failure.**
 
-Contribution margin remains distinguished from fully allocated net profit throughout; no general overhead is allocated per subscriber.
+1. **Membership-fee refundability must be set and legally reviewed by the owner.** The system ships configurable (four policies, default `undetermined`) and refuses to assume. This is the one item needing a decision or advice rather than code. The disclosure text is in place and must be approved before enrollment opens.
+2. **Full financial-lifecycle certification requires an isolated staging environment with the flags enabled.** Real charges, retries, duplicate webhooks, refunds and Arriv Pay reconciliation cannot be exercised against production, and the flags were deliberately left off in production. Everything that *can* be verified with the flags off has been. The lifecycle code paths are built and wired; they are not yet exercised end-to-end against live payment events.
+3. **Public enrollment requires explicit owner launch authorization** — this is by design, not a defect.
+
+**Not blocked:** pricing, fees, the fee/wallet separation, VIP enforcement, commission attribution rules, both enrollment channels' backend, and the launch gate. All built and verified.
 
 ---
 
-## 6. Bottom line
+## 7. REMAINING WORK
 
-Production is **unchanged and safe**: the live MLS price is still $100, enrollment is now explicitly closed, and no customer money moved. Three authorization items are implemented and verified. The membership billing implementation and the VIP redemption enforcement — the two largest items — remain to be built, and the fee-refundability question remains with you.
+**One piece.** The self-service **page display** — surfacing the membership fee, total monthly recurring charge, promotional versus spendable Booking Value, promotional eligibility and restrictions, and the pause/cancellation/unused-balance terms on the customer-facing page, with the **Enroll Now** and **Speak With a Sales Growth Advisor** calls to action, plus membership management from the customer dashboard.
+
+The **backend for both channels is complete and verified** — the page currently wires to the admin-gated action, so it needs repointing at `self_service_enroll` and the fee lines added to the tier display. No further backend work is required for either channel.
+
+---
+
+## 8. FINAL STATUS
+
+**Implementation: PASS. Production: unchanged and safe. Launch: awaiting your authorization.**
+
+The live MLS price is still **$100**, enrollment is **closed on both channels**, no fee is chargeable, and no customer money moved. The approved business model was not reopened, and no new fee, booking cap, promotional restriction, price or compensation change was introduced beyond what you approved.
