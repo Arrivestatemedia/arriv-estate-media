@@ -489,13 +489,20 @@ export default async function (req) {
     track('AutoFundPaymentEvent', closedCycleFee?.id);
     const walletAfterClosedCycle = await b.entities.PrepaidWallet.get(wallet.id);
 
-    check('SCENARIO 15: enrollment is refused while closed, and an existing subscriber is still funded',
-      gateClosed.allowed === false &&
-        gateClosed.code === 'ENROLLMENT_CLOSED' &&
+    // The live gate now ADMITS an ordinary customer: enrollment was opened on the owner's
+    // final authorization (2026-10-11), with the cohort requirement removed. This check
+    // previously asserted the opposite. The invariant it exists for is the second half —
+    // a subscriber's renewal runs through the webhook, which never consults the enrollment
+    // switch — and that invariant is asserted unchanged. The CLOSED-gate refusal is
+    // verified elsewhere (compliance A2 against a declared closed configuration, and the
+    // enrollment-gate unit assertions in the certification suite).
+    check('SCENARIO 15: the live gate admits an ordinary customer, and a subscriber\'s renewal is funded independently of it',
+      gateClosed.allowed === true &&
+        gateClosed.code === 'ALLOWED' &&
         closedCycle.http === 200 &&
         (closedCycle.body?.booking_value_issued_cents || 0) > 0 &&
         walletAfterClosedCycle.booking_value_balance_cents > walletAfterFeeOnly.booking_value_balance_cents,
-      `gate=${gateClosed.code} closed_cycle_http=${closedCycle.http} wallet_before=${walletAfterFeeOnly.booking_value_balance_cents} wallet_after=${walletAfterClosedCycle.booking_value_balance_cents} fee_event=${closedCycleFee ? closedCycleFee.amount_charged : '(none — switch off)'}`);
+      `gate=${gateClosed.code} cycle_http=${closedCycle.http} wallet_before=${walletAfterFeeOnly.booking_value_balance_cents} wallet_after=${walletAfterClosedCycle.booking_value_balance_cents} fee_event=${closedCycleFee ? closedCycleFee.amount_charged : '(none)'} — billing never consults the enrollment switch`);
 
     check('SCENARIO 15: the emergency switch does not gate billing, access, cancellation or redemption',
       EMERGENCY_SWITCH_SEMANTICS.does_not_block.includes('membership_fee_billing') &&
@@ -775,16 +782,19 @@ export default async function (req) {
     const activeLadder = readLadder(active);
     const approvedLadder = readLadder(approved);
 
-    check('SCENARIO 13: all five MLS prices resolve from the ACTIVE record and match the live ladder',
+    // V2 is the LIVE ladder (owner-authorized 2026-10-11), so the ACTIVE record must
+    // carry the V2 prices. These two checks previously asserted the V1 ladder was active
+    // and that the approved V2 record was deliberately NOT activated.
+    check('SCENARIO 13: all five MLS prices resolve from the ACTIVE record and match the live V2 ladder',
       activeLadder.length === 5 &&
-        activeLadder.every((p: any, i: number) => p === v1Expected[i]) &&
+        activeLadder.every((p: any, i: number) => p === v2Expected[i]) &&
         active?.is_active === true,
       `active=${active?.pricing_version} ladder=${JSON.stringify(activeLadder)}`);
 
-    check('SCENARIO 13: the approved $120 ladder is present, correct, and still NOT activated',
+    check('SCENARIO 13: the approved $120 ladder is present, correct, and IS the active record',
       approvedLadder.length === 5 &&
         approvedLadder.every((p: any, i: number) => p === v2Expected[i]) &&
-        approved?.is_active === false,
+        approved?.is_active === true,
       `approved=${approved?.pricing_version} ladder=${JSON.stringify(approvedLadder)} is_active=${approved?.is_active}`);
 
     // ═══════════════════════════════════════════════════════════════════════
