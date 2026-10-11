@@ -2,9 +2,10 @@
 // ARRIV AUTO-FUND — FINAL APPROVED STRUCTURE (STAGING ONLY)
 // ============================================================================
 // Implements the owner-approved Auto-Fund restructure. EVERY behaviour change is
-// gated by a feature flag that is DISABLED. While the flags are off this module
-// reports a zero membership fee and no promotional restriction, so the existing
-// production financial ecosystem is untouched.
+// gated by a feature flag. Membership-fee billing and the VIP promotional-credit
+// MLS restriction were ENABLED on 2026-10-11 under explicit owner authorization.
+// The enrollment gate stays CLOSED: no customer can be enrolled, and therefore no
+// customer can be charged, until the legal record and the cohort gate are satisfied.
 //
 // Approved structure:
 //
@@ -34,13 +35,28 @@
 // cash-funded Booking Value remains fully usable there.
 // ============================================================================
 
+/**
+ * ACTIVATION RECORD — 2026-10-11, explicit owner authorization.
+ *
+ * ENABLED: membership-fee billing at the final approved schedule
+ *          ($5.99 / $10 / $25 / $27 / $30; totals $155.99 / $260 / $375 / $527 / $1,030)
+ *          and the VIP promotional-credit standalone-MLS restriction.
+ * CLOSED:  the enrollment gate — the legal approval carries no recorded counsel
+ *          reference and the controlled-launch cohort is empty, so enrollment cannot
+ *          open. With enrollment closed, no customer can be enrolled and therefore
+ *          none can be charged, funded or billed.
+ *
+ * The fee switch ships with the fee schedule: the interlock refuses any fee-bearing
+ * tier while billing is off, and with the final schedule every tier bears a fee, so
+ * enrollment is refused entirely while this switch is off.
+ */
 export const AUTOFUND_FINAL_FLAGS = {
   /** Master switch. While false, Auto-Fund enrollment stays closed. */
   enrollment_enabled: false,
   /** While false, no membership fee is charged, billed, or recorded. */
-  membership_fee_enabled: false,
+  membership_fee_enabled: true,
   /** While false, VIP promotional credit may still be used on standalone MLS. */
-  vip_mls_promo_restriction_enabled: false,
+  vip_mls_promo_restriction_enabled: true,
 } as const;
 
 /**

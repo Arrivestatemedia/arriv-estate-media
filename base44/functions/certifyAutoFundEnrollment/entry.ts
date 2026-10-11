@@ -32,7 +32,7 @@ import {
   BUNDLE_MIN_MARGIN_PCT,
   BUNDLE_MIN_NON_MLS_RETAIL,
 } from '../../shared/autoFundMlsAllowance.ts';
-import { assertVipWalletRedemption } from '../../shared/autoFundVipEnforcement.ts';
+import { assertVipWalletRedemption, VIP_ENFORCEMENT_IS_AUTHORITATIVE } from '../../shared/autoFundVipEnforcement.ts';
 import { getActivePricingConfig } from '../../shared/mediaConfigLoader.ts';
 
 export default async function (req) {
@@ -90,22 +90,35 @@ export default async function (req) {
 
     // ══ 4. No fee is chargeable while billing is switched off ═════════════
     const chargeable = [150, 250, 350, 500, 1000].map(a => getMembershipFee(a));
-    check('fee billing disabled — zero chargeable at every tier',
-      AUTOFUND_FINAL_FLAGS.membership_fee_enabled === false && chargeable.every(f => f === 0),
-      `charged set = [${chargeable.join(', ')}]`);
+    // ACTIVATED 2026-10-11 under explicit owner authorization: membership-fee billing is
+    // ON, so every tier's chargeable fee must equal its approved amount. What must never
+    // change — the fee is collected revenue, not wallet value — is asserted in check 6,
+    // and that no tier outside the schedule attracts a fee is asserted in check 5.
+    check('fee billing enabled — chargeable fee equals the approved schedule at every tier',
+      AUTOFUND_FINAL_FLAGS.membership_fee_enabled === true
+        && chargeTiers.every((a, i) => chargeable[i] === approved[a]),
+      `charged set = [${chargeable.join(', ')}] (fee switch ${AUTOFUND_FINAL_FLAGS.membership_fee_enabled ? 'ON' : 'OFF'})`);
 
     // ══ 5. Fee processing refuses to write while billing is off ════════════
+    // A tier with NO approved fee can never attract one: the retired $50 tier is the
+    // probe, and it must be refused as 'no_fee_due' with the ledger untouched, now that
+    // billing is live. This suite must never write a fee into the real ledger; approved-
+    // tier billing is certified end-to-end in testAutoFundBillingEndToEnd.
+    // The fee amount resolves from the CONTRACTED subscription amount (tier_amount is only
+    // the fallback), so the probe must itself be a tier with no approved fee — the retired
+    // $50 tier. Passing an approved amount here would make the probe record a real fee row.
+    const probeEventId = 'cert_fee_no_approved_fee_probe';
     const refused = await processMembershipFee({
       base44: sr,
-      payment_event_id: 'cert_fee_should_not_exist',
-      subscription: { id: '', amount: 500, customer_id: '', customer_email: '' },
+      payment_event_id: probeEventId,
+      subscription: { id: '', amount: 50, customer_id: '', customer_email: '' },
       status: 'succeeded',
-      tier_amount: 500,
+      tier_amount: 50,
       cert_mode: true,
     });
-    check('fee processor refuses while billing disabled', refused.status === 'fee_disabled',
+    check('fee processor charges no fee for a tier with no approved fee', refused.status === 'no_fee_due',
       `status = ${refused.status}`);
-    const orphan = await sr.entities.AutoFundPaymentEvent.filter({ payment_event_id: 'cert_fee_should_not_exist' }, undefined, 1);
+    const orphan = await sr.entities.AutoFundPaymentEvent.filter({ payment_event_id: probeEventId }, undefined, 1);
     const orphanArr = Array.isArray(orphan) ? orphan : (orphan?.data || []);
     check('refused fee wrote nothing to the ledger', orphanArr.length === 0,
       `${orphanArr.length} matching fee events recorded`);
@@ -140,11 +153,22 @@ export default async function (req) {
       'attribution must be explicit, never inferred from availability');
 
     // ══ 10. MLS price single source ════════════════════════════════════════
-    const activeCfg = await getActivePricingConfig(sr);
+    // Pass the REQUEST CLIENT, not the service-role client: the loader reads through
+    // `client.asServiceRole.entities`, so handing it `sr` threw and silently fell back to
+    // the built-in default — which made this check report the live engine as $100 while
+    // the active record was already V2. It now compares the loader's answer (the path the
+    // booking, scheduled-booking and B2B surfaces use) with the active record and constants.
+    const activeCfg = await getActivePricingConfig(base44);
     const tier1 = (activeCfg.tier_prices || []).find(t => t.tier === 'TIER_1')?.prices?.mls_walkthrough;
-    check('live MLS price is consistent across pricing sources',
-      MLS_RETAIL_LIVE === mlsStandardPrice(MLS_PRICING_VERSION_LIVE) && tier1 === MLS_RETAIL_LIVE,
-      `mlsPricing live (${MLS_PRICING_VERSION_LIVE}) = $${MLS_RETAIL_LIVE}; active engine TIER_1 = $${tier1}`);
+    const activeRowsRes = await sr.entities.MediaPricingConfig.filter({ is_active: true }, '-effective_date', 5);
+    const activeRows = Array.isArray(activeRowsRes) ? activeRowsRes : (activeRowsRes?.items || activeRowsRes?.data || []);
+    const recordPrice = (JSON.parse(activeRows[0]?.config_json || '{}')?.tier_prices || [])
+      .find(t => t.tier === 'TIER_1')?.prices?.mls_walkthrough;
+    check('live MLS price is consistent across the loader, the active record and the constants',
+      MLS_RETAIL_LIVE === mlsStandardPrice(MLS_PRICING_VERSION_LIVE)
+        && tier1 === MLS_RETAIL_LIVE
+        && recordPrice === MLS_RETAIL_LIVE,
+      `constants (${MLS_PRICING_VERSION_LIVE}) = $${MLS_RETAIL_LIVE}; loader = $${tier1}; active record = $${recordPrice}`);
     check('Auto-fund program is valued at the owner-approved V2 ladder',
       MLS_RETAIL === MLS_PRICE_STANDARD_APPROVED && MLS_RETAIL === MLS_PRICE_V2_BY_TIER.TIER_1,
       `Auto-Fund MLS retail = $${MLS_RETAIL} (approved V2 standard = $${MLS_PRICE_STANDARD_APPROVED})`);
@@ -160,9 +184,15 @@ export default async function (req) {
     const vipOff = await assertVipWalletRedemption({
       base44: sr, wallet_id: 'cert_nonexistent_wallet', applied_cents: 12000, package_id: 'mls_walkthrough',
     });
-    check('VIP guard present at the booking layer and inactive in production',
-      vipOff.allowed === true && vipOff.code === 'RESTRICTION_INACTIVE',
-      `flag = ${AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled}; code = ${vipOff.code}`);
+    // ACTIVATED 2026-10-11 by owner authorization: the guard is LIVE at the booking layer.
+    // It must stay authoritative, and it must still fail open for a wallet with no VIP
+    // membership. The VIP refusal itself is certified in testAutoFundMlsAllowance (check 4:
+    // VIP promotional value barred from a standalone MLS Walkthrough, cash-funded path open).
+    check('VIP guard active at the booking layer and fail-open for non-VIP wallets',
+      AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled === true
+        && VIP_ENFORCEMENT_IS_AUTHORITATIVE === true
+        && vipOff.allowed === true,
+      `flag = true; enforcement authoritative = ${VIP_ENFORCEMENT_IS_AUTHORITATIVE}; non-VIP code = ${vipOff.code}`);
     const nonMls = await assertVipWalletRedemption({
       base44: sr, wallet_id: 'cert_nonexistent_wallet', applied_cents: 12000, package_id: 'photo_essentials',
     });
@@ -187,7 +217,7 @@ export default async function (req) {
       flags: AUTOFUND_FINAL_FLAGS,
       launch_blockers: [
         'Membership-fee refund policy is OWNER-ADOPTED (ordinarily nonrefundable, with statutory and error exceptions). External counsel review of the membership and wallet terms is NOT completed, so enrollment stays closed.',
-        'Full financial-lifecycle certification (real charges, retries, refunds, Arriv Pay reconciliation) requires the staging flags to be enabled in an isolated environment; production flags were deliberately left off.',
+        'Membership-fee billing and the VIP promotional-credit MLS restriction were enabled on 2026-10-11 under explicit owner authorization, and MLS V2 pricing is live. Enrollment remains closed: it requires the recorded legal decisions (terms and wallet terms, each with a counsel_reference) and the owner-controlled sales-assisted cohort.',
         'Public enrollment requires explicit owner launch authorization.',
       ],
       production_untouched: true,

@@ -83,17 +83,19 @@ export default async function (req) {
     // K1. THE REAL CONFIGURATION REFUSES
     // ─────────────────────────────────────────────────────────────────────
     const realCodes = real.blockers.map(b => b.code);
-    check('K1 · The real configuration refuses enrollment and names every unmet requirement',
+    check('K1 · The real configuration refuses enrollment and names every remaining unmet requirement',
       real.permitted === false
         && realCodes.includes('ENROLLMENT_NOT_ENABLED')
-        && realCodes.includes('FEE_NOT_ENABLED')
         && realCodes.includes('LEGAL_TERMS_NOT_APPROVED')
         && realCodes.includes('WALLET_TERMS_NOT_APPROVED')
-        && realCodes.includes('VIP_RESTRICTION_INACTIVE')
-        // The fee refund policy is now OWNER-ADOPTED, so that gate is satisfied and
-        // must no longer appear as a blocker. Its failure mode stays injectable (K5d).
-        && !realCodes.includes('FEE_REFUND_POLICY_UNDETERMINED'),
-      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')} — fee refund policy is OWNER-ADOPTED (satisfied); the legal approvals remain unmet`);
+        // Satisfied prerequisites must NOT appear as blockers: the fee refund policy is
+        // OWNER-ADOPTED, and the membership-fee switch and the VIP MLS promo restriction
+        // were activated on 2026-10-11 under owner authorization (activation STEP 6). Each
+        // failure mode stays injectable — K5a, K5d and K5f cover them.
+        && !realCodes.includes('FEE_REFUND_POLICY_UNDETERMINED')
+        && !realCodes.includes('FEE_NOT_ENABLED')
+        && !realCodes.includes('VIP_RESTRICTION_INACTIVE'),
+      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')} — fee billing and the VIP restriction are LIVE; the legal approvals and the enrollment gate are the remaining blockers`);
 
     const realRefusal = track(await enrollCert({
       email: 'cert_interlock_real@example.com',

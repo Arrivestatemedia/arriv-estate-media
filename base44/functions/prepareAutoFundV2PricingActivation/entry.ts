@@ -126,8 +126,17 @@ export default async function (req: Request): Promise<Response> {
     const v2Record = records.find((r: any) => String(r.pricing_version || '') === MLS_PRICING_VERSION_V2) || null;
 
     check('1 · The approved V2 pricing record exists', !!v2Record, v2Record ? `id ${v2Record.id}, effective ${v2Record.effective_date}` : 'NOT FOUND');
-    check('2 · The approved V2 record is present but NOT active (nothing activated)', !!v2Record && v2Record.is_active === false, `is_active=${v2Record?.is_active}`);
-    check('3 · The V1 record is the active record today', !!active && String(active.pricing_version) === MLS_PRICING_VERSION_V1, `active=${active?.pricing_version} at $${mlsFromJson(active).TIER_1}`);
+    // State-aware: this endpoint is the activation's own verifier, so it must hold BEFORE
+    // and AFTER activation. What it asserts is COHERENCE — the active record and the live
+    // code version must always agree — rather than "nothing is activated", which became
+    // false the moment the owner authorized activation on 2026-10-11.
+    const v2IsActive = v2Record?.is_active === true;
+    check('2 · The active pricing record matches the live code version',
+      v2IsActive === (MLS_PRICING_VERSION_LIVE === 'V2') && !!active,
+      `active record = ${active?.pricing_version} at $${mlsFromJson(active).TIER_1} · code = ${MLS_PRICING_VERSION_LIVE}`);
+    check('3 · The V1 record is retained and inactive',
+      !!v1Record && v1Record.is_active === false,
+      `V1 is_active=${v1Record?.is_active} · $${mlsFromJson(v1Record).TIER_1}`);
 
     const v2Ladder = v2Record ? mlsFromJson(v2Record) : {};
     const ladderMatches = Object.keys(MLS_PRICE_V2_BY_TIER).every((k) => v2Ladder[k] === MLS_PRICE_V2_BY_TIER[k]);
@@ -205,13 +214,15 @@ export default async function (req: Request): Promise<Response> {
       membership_fee_enabled: AUTOFUND_FINAL_FLAGS.membership_fee_enabled,
       vip_promo_restriction_enabled: AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled,
     };
-    check('13 · Nothing is activated: V2 inactive, master gate, self-service, fee billing and the VIP restriction all off',
-      controlState.v2_record_active === false
-        && controlState.code_live_version === 'V1'
-        && controlState.master_enrollment_gate !== 'true'
+    // The protection posture that must hold at ALL times: enrollment closed on both
+    // channels, emergency stop available, and the pricing record in step with the code.
+    // Pricing, fee billing and the VIP restriction follow the owner's authorization; the
+    // enrollment gate does not.
+    check('13 · Enrollment and self-service stay closed, emergency stop available, record and code in step',
+      controlState.master_enrollment_gate !== 'true'
         && controlState.public_self_service !== 'true'
-        && controlState.membership_fee_enabled === false
-        && controlState.vip_promo_restriction_enabled === false,
+        && controlState.emergency_stop !== 'true'
+        && controlState.v2_record_active === (controlState.code_live_version === 'V2'),
       JSON.stringify(controlState));
     check('14 · Public self-service enrollment remains disabled', controlState.public_self_service !== 'true',
       `autofund_self_service=${controlState.public_self_service ?? 'absent'}`);
@@ -219,7 +230,9 @@ export default async function (req: Request): Promise<Response> {
     const failed = checks.filter((c) => !c.ok);
 
     return Response.json({
-      status: 'V2_ACTIVATION_PREPARED_NOT_ACTIVATED',
+      status: failed.length === 0
+        ? (MLS_PRICING_VERSION_LIVE === 'V2' ? 'V2_ACTIVATION_LIVE' : 'V2_ACTIVATION_PREPARED_NOT_ACTIVATED')
+        : 'V2_ACTIVATION_INCONSISTENT',
       prepared: failed.length === 0,
       read_only: true,
       wrote_anything: false,
@@ -245,7 +258,7 @@ export default async function (req: Request): Promise<Response> {
       activation_sequence: ACTIVATION_SEQUENCE,
       monitoring_plan: MONITORING,
       legal_gate_note:
-        'COORDINATED ACTIVATION PREPARED — NOTHING ACTIVATED. This endpoint verifies the V2 pricing half and reports the full coordinated sequence for pricing, membership-fee billing and sales-assisted enrollment. Every switch is still off: V2 is inactive, fee billing is off, the master enrollment gate is unset, public self-service is disabled and the emergency stop is inactive. Enrollment still requires the recorded legal clearance (terms and wallet terms, each with its counsel_reference) plus the owner activation gates; none of it is touched by this endpoint.',
+        `MLS V2 PRICING: ${MLS_PRICING_VERSION_LIVE === 'V2' ? 'LIVE' : 'not activated'}. Membership-fee billing and the VIP promotional-credit MLS restriction: ${AUTOFUND_FINAL_FLAGS.membership_fee_enabled && AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled ? 'ENABLED (owner authorization, 2026-10-11)' : 'off'}. ENROLLMENT: CLOSED — it still requires the recorded legal decisions (terms and wallet terms, each with its counsel_reference) and the owner-controlled sales-assisted cohort, and the public self-service switch stays off regardless. This endpoint activates nothing.`,
       note: 'Read-only preparation. No price, record, flag, fee, tier or customer record was changed.',
     });
   } catch (error: any) {

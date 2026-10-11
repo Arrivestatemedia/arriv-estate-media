@@ -10,12 +10,13 @@
 //
 // Two versions exist and BOTH are defined here:
 //
-//   V1 — AEM_MEDIA_PRICING_V1 — the price that is LIVE today.
-//   V2 — AEM_MEDIA_PRICING_V2 — the price the owner approved on 2026-10-10.
+//   V1 — AEM_MEDIA_PRICING_V1 — $100 standard; live until 2026-10-11.
+//   V2 — AEM_MEDIA_PRICING_V2 — $120 standard; approved 2026-10-10, ACTIVATED 2026-10-11.
 //
 // The live price is whichever MediaPricingConfig record has `is_active: true`.
-// V1 is the active record, so the live standard price remains $100. Activating
-// V2 is a coordinated change with TWO halves that must land together:
+// V2 is the active record and MLS_PRICING_VERSION_LIVE is 'V2', so the live
+// standard price is $120. Activating V2 is a coordinated change with TWO halves
+// that land together:
 //
 //   1. the DATA change — the active record (what every booking path reads), and
 //   2. the CODE change — MLS_PRICING_VERSION_LIVE below, which the
@@ -38,8 +39,12 @@ export type MlsPriceVersion = 'V1' | 'V2';
 export const MLS_PRICING_VERSION_V1 = 'AEM_MEDIA_PRICING_V1';
 export const MLS_PRICING_VERSION_V2 = 'AEM_MEDIA_PRICING_V2';
 
-/** The version whose prices are live until the owner activates V2. */
-export const MLS_PRICING_VERSION_LIVE: MlsPriceVersion = 'V1';
+/**
+ * The version whose prices are live. ACTIVATED to V2 on 2026-10-11 under explicit
+ * owner authorization ($120 / $145 / $170 / $220 / $295). Must stay in step with the
+ * active MediaPricingConfig record — the activation check compares the two.
+ */
+export const MLS_PRICING_VERSION_LIVE: MlsPriceVersion = 'V2';
 
 export const MLS_PRICE_V1_BY_TIER: Record<string, number> = {
   TIER_1: 100,

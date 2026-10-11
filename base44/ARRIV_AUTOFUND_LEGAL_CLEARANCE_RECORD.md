@@ -15,14 +15,14 @@
 
 | Field | Value |
 | --- | --- |
-| Counsel review and approval | **ASSERTED BY THE OWNER** — "legal counsel has reviewed and approved the Auto-Fund program for launch" |
-| Source of the assertion | Owner directive, 2026-10-11 |
-| Scope asserted | The Auto-Fund program, for launch |
+| Counsel review and approval | **ASSERTED BY THE OWNER** — counsel has reviewed and approved the Auto-Fund program for launch |
+| Source of the assertion | Owner directive, 2026-10-11; **restated and scoped to v2** on 2026-10-11 |
+| Scope asserted | The Auto-Fund program, for launch. The second confirmation names **Membership Terms v2**, **Wallet Agreement v1**, the final fee schedule **$5.99 / $10 / $25 / $27 / $30** and the final recurring charges **$155.99 / $260 / $375 / $527 / $1,030** |
 | **Approving counsel (name / firm)** | **NOT SUPPLIED — REQUIRED** |
 | **Approval date** | **NOT SUPPLIED — REQUIRED** |
-| **Approved document versions** | **NOT SUPPLIED — REQUIRED** (see §3) |
-| Recorded in the system as a launch approval | **NO** — no `counsel_reference` exists, and the recording mechanism refuses an approval with no basis |
-| Effect on enrollment | **NONE** — enrollment stays closed |
+| Approved document versions | Asserted by the owner to be v2 / v1 / the final amounts; not independently identified by counsel |
+| Recorded in the system as a launch approval | **NO** — the recording mechanism requires a `counsel_reference` and refuses a decision without one. Nothing has been recorded on counsel's behalf, and no reference has been invented. |
+| Effect on enrollment | **NONE** — enrollment stays closed (§7) |
 
 Nothing in this record, in `autoFundFeePolicy.ts`, or anywhere else in the system asserts
 that counsel approved a specific document version, because no version was identified.
@@ -67,9 +67,11 @@ unchanged). The customer-facing terms, the disclosures, the acknowledgment notic
 every fee-bearing surface resolve their amounts from the approved schedule, so all of them
 now state the v2 amounts.
 
-**What is required:** confirmation that the approval covers the **final v2 amounts**
-above, naming the approved document versions. This requires no engineering change; it is a
-confirmation against the versions listed in §4.
+**What is required:** the owner has confirmed that the approval covers the **final v2
+amounts** above, Membership Terms **v2** and Wallet Agreement **v1**. Two facts remain
+missing and cannot be supplied by engineering: the **approving counsel (name and firm)** and
+the **approval date**. Until both are supplied, the launch gate records no approval and
+enrollment cannot be enabled. Supplying them is one admin action, and it charges nobody.
 
 ---
 
@@ -112,9 +114,10 @@ Activation is a separate, owner-authorized step (see the activation sequence in
 
 ## 6. Confirmation request — ready to send to counsel
 
-The record above stays incomplete until the version-match is confirmed in writing. This is
-the exact confirmation needed; it asks nothing new, only whether the approval already given
-covers the final amounts.
+The version-match has now been confirmed by the owner: Membership Terms v2, Wallet Agreement
+v1 and the final amounts. The record stays incomplete until the **approving counsel (name
+and firm)** and the **approval date** are supplied in writing against the versions and
+amounts below.
 
 > We need written confirmation that your review and approval of the Arriv Auto-Fund program
 > covers the **final** documents below, and specifically the recurring amounts stated in
