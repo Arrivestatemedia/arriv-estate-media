@@ -951,6 +951,47 @@ export default async function(req) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // TEST 19: FIVE-TIER BONUS SCHEDULE (DEPLOYED_HTTP)
+    // Funds each approved Auto-Fund tier through the published endpoint and
+    // asserts the EXACT issued Booking Value. Expectations are hardcoded from
+    // the owner-approved schedule on purpose: the test must verify the live
+    // table against the approval, not against the table's own config (which
+    // would pass even if the table drifted). Any tier drift fails here.
+    // ═══════════════════════════════════════════════════════════════════════
+    const APPROVED_TIER_SCHEDULE = [
+      { amount: 150, bonus_pct: 5, bonus: 7.5, cents: 15750 },
+      { amount: 250, bonus_pct: 10, bonus: 25, cents: 27500 },
+      { amount: 350, bonus_pct: 15, bonus: 52.5, cents: 40250 },
+      { amount: 500, bonus_pct: 20, bonus: 100, cents: 60000 },
+      { amount: 1000, bonus_pct: 25, bonus: 250, cents: 125000 },
+    ];
+    for (const tier of APPROVED_TIER_SCHEDULE) {
+      const tierLabel = `TIER_SCHEDULE_${tier.amount}: $${tier.amount} → ${tier.bonus_pct}% bonus → ${tier.cents}¢ BV via deployed HTTP`;
+      try {
+        const { data } = await sendPaymentEvent({
+          payment_event_id: `${TEST_RUN_ID}_tier_${tier.amount}`,
+          subscription_id: `cert_sub_tier_${tier.amount}_${TEST_RUN_ID}`,
+          customer_id: afContactId,
+          customer_email: afEmail,
+          wallet_id: afWalletId,
+          amount_charged: tier.amount,
+          amount_charged_cents: tier.cents,
+          status: 'succeeded',
+          event_type: 'recurring',
+          certification: true,
+        });
+        check(tierLabel,
+          'DEPLOYED_HTTP',
+          data.booking_value_issued_cents === tier.cents &&
+          data.bonus_booking_value === tier.bonus &&
+          data.status === 'processed',
+          `amount=$${tier.amount}, status=${data.status}, issued=${data.booking_value_issued_cents}, expect=${tier.cents}, bonus=${data.bonus_booking_value}, expect_bonus=${tier.bonus}`);
+      } catch (e) {
+        check(tierLabel, 'DEPLOYED_HTTP', false, e.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SNAPSHOT PRODUCTION FINANCIALS (AFTER)
     // ═══════════════════════════════════════════════════════════════════════
     prodSnapshotAfter = await snapshotProductionFinancials(b);
