@@ -229,8 +229,12 @@ export default async function (req: Request): Promise<Response> {
     const tiers = ALL_TIERS.map((tier) => {
       const cfg = getAutoFundConfig(tier)!;
       const fee = scheduledFeeFor(tier);
+      // The two sensitivities are measured SEPARATELY, then combined, so no result
+      // attributes a cost movement to a support-utilisation movement or vice versa.
       const expected = worstCase(tier, LIVE_PRICE, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, true);
-      const conservative = worstCase(tier, LIVE_PRICE, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, true);
+      const conservative = worstCase(tier, LIVE_PRICE, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, true);
+      const maxSupport = worstCase(tier, LIVE_PRICE, EXPECTED_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, true);
+      const combinedWorst = worstCase(tier, LIVE_PRICE, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, true);
 
       return {
         tier,
@@ -249,7 +253,9 @@ export default async function (req: Request): Promise<Response> {
           ? 'VIP — promotional Booking Value permitted on standalone MLS up to 7 per cycle (owner-stated policy); cash-funded value unlimited'
           : 'No standalone-MLS booking-count cap — the available balance is the only bound',
         expected_case: summarize(expected.worst, tier),
-        conservative_case: summarize(conservative.worst, tier),
+        conservative_cost_case_max_support: summarize(combinedWorst.worst, tier),
+        conservative_cost_case_expected_support: summarize(conservative.worst, tier),
+        expected_cost_case_max_support: summarize(maxSupport.worst, tier),
         chargeback_stress_expected: [2, 4].map((n) => chargebackStress(expected.worst, tier, n, expected.worst.active_months)),
         failing_pattern_count_expected: expected.failing.length,
         failing_pattern_count_conservative: conservative.failing.length,
@@ -270,10 +276,41 @@ export default async function (req: Request): Promise<Response> {
         verdict: {
           expected: expected.worst.margin_lifetime_pct >= thresholdFor(tier) ? 'PASS' : 'FAIL',
           conservative: conservative.worst.margin_lifetime_pct >= thresholdFor(tier) ? 'PASS' : 'FAIL',
+          max_support: maxSupport.worst.margin_lifetime_pct >= thresholdFor(tier) ? 'PASS' : 'FAIL',
+          combined_worst: combinedWorst.worst.margin_lifetime_pct >= thresholdFor(tier) ? 'PASS' : 'FAIL',
           worst_case_of_the_two: Math.min(
             expected.worst.margin_lifetime_pct,
-            conservative.worst.margin_lifetime_pct,
+            combinedWorst.worst.margin_lifetime_pct,
           ) >= thresholdFor(tier) ? 'PASS' : 'FAIL',
+        },
+      };
+    });
+
+    // ═══ VIP SUPPORT UTILISATION — expected vs maximum contractual ══════════
+    // Reported on BOTH bases: all patterns, and the patterns that actually stay
+    // active for the full twelve months. Support cost accrues pro-rata to active
+    // months, so a churned pattern understates the support sensitivity.
+    const vipSupportUtilization = [12, 24, 48].map((sessions) => {
+      const support = { sessions_per_year: sessions, cost_per_session: 25 };
+      const all = worstCase(1000, LIVE_PRICE, EXPECTED_BASIS, support, true);
+      const fullYearRuns = all.runs.filter((r: any) => r.active_months === 12);
+      const worstFullYear = fullYearRuns.reduce(
+        (w: any, r: any) => (w === null || r.margin_lifetime_pct < w.margin_lifetime_pct ? r : w), null,
+      );
+      return {
+        sessions_per_year: sessions,
+        share_of_contractual_entitlement_pct: round2((sessions / 48) * 100),
+        annual_support_cost_per_member: round2(VIP_PRIORITY_SUPPORT_COST * 12 + sessions * 25),
+        worst_all_patterns: {
+          persona: all.worst.persona,
+          margin_pct: all.worst.margin_lifetime_pct,
+          contribution: all.worst.contribution_lifetime,
+        },
+        worst_twelve_month_active_patterns: {
+          persona: worstFullYear.persona,
+          margin_pct: worstFullYear.margin_lifetime_pct,
+          contribution: worstFullYear.contribution_lifetime,
+          vip_support_cost_charged: worstFullYear.vip_cost,
         },
       };
     });
@@ -416,10 +453,16 @@ export default async function (req: Request): Promise<Response> {
       counts: {
         tiers_verified: ALL_TIERS.length,
         tiers_failing_at_live_price_expected: tiers.filter((t) => t.expected_case.meets_threshold === false && REQUIRED_TIERS.includes(t.tier)).map((t) => t.tier),
-        tiers_failing_at_live_price_conservative: tiers.filter((t) => t.conservative_case.meets_threshold === false && REQUIRED_TIERS.includes(t.tier)).map((t) => t.tier),
+        tiers_failing_at_live_price_conservative: tiers.filter((t) => t.conservative_cost_case_expected_support.meets_threshold === false && REQUIRED_TIERS.includes(t.tier)).map((t) => t.tier),
+        tiers_failing_at_live_price_combined_worst: tiers.filter((t) => t.conservative_cost_case_max_support.meets_threshold === false && REQUIRED_TIERS.includes(t.tier)).map((t) => t.tier),
+        vip_support_utilization_cost_of_full_entitlement_pct_points: round2(
+          tiers.find((t) => t.tier === 1000)!.expected_case.lifetime_margin_pct -
+          tiers.find((t) => t.tier === 1000)!.expected_cost_case_max_support.lifetime_margin_pct,
+        ),
         loss_making_pattern_count: anyLoss.length,
       },
       tiers,
+      vip_support_utilization: vipSupportUtilization,
       vip_allowance_check: vipAllowanceCheck,
       corrective_action_evidence: {
         note: 'Evidence only. No price was changed. A change to the MLS Walkthrough price reaches every retail customer, not only Auto-Fund members, and is the owner\'s decision.',
