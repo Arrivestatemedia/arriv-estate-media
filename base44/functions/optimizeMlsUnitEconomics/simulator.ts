@@ -69,6 +69,16 @@ export interface Economics {
    * and to the MLS component of a bundle. Defaults to 0.
    */
   mls_qc?: number;
+  /**
+   * Provider payout rate for non-MLS packages, as a share of post-sales value.
+   * 0.40 is the authoritative standard partner rate (mediaCompensationEngine).
+   * Post-sales value is CSV less the sales commission, so a standard marketplace
+   * booking pays 0.40 x 0.85 = 0.34 of retail — but a wallet-funded Auto-Fund
+   * booking carries ZERO booking commission, so its post-sales value equals retail
+   * and the payout is a full 0.40 of retail. Defaults to 0.34 so the earlier
+   * analysis reproduces exactly.
+   */
+  partner_rate?: number;
 }
 
 /** A standalone-MLS promotional allowance so large it never binds. */
@@ -95,23 +105,31 @@ interface Svc {
   standalone: boolean;
   /** True when this service includes an MLS Walkthrough (so QC applies). */
   has_mls: boolean;
+  /**
+   * Retail of the services in this cart that are NOT MLS Walkthroughs. When a tier
+   * has the MLS promotional restriction, promotional credit may be applied only up
+   * to this amount — which is also the anti-bypass guard, because a token add-on
+   * unlocks only its own retail value.
+   */
+  eligible_retail: number;
 }
 
 export function serviceCatalog(e: Economics): Record<string, Svc> {
   const ess = getPriceForSqft(PROPERTY_SQFT, 'essentials') as number;
   const cin = getPriceForSqft(PROPERTY_SQFT, 'cinematic') as number;
-  const essPayout = round2(ess * SPECIALIST_RATE);
-  const cinPayout = round2(cin * SPECIALIST_RATE);
+  const pr = e.partner_rate ?? SPECIALIST_RATE;
+  const essPayout = round2(ess * pr);
+  const cinPayout = round2(cin * pr);
   // Editing is payroll labour: gross editing cost plus employer burden. QC is a
   // separate per-walkthrough expense on any cart carrying an MLS Walkthrough.
   const bur = 1 + (e.editing_burden_rate ?? 0);
   const qc = e.mls_qc ?? 0;
   const ed = (gross: number, hasMls: boolean) => round2(gross * bur + (hasMls ? qc : 0));
   return {
-    S: { retail: e.mls_price, payout: e.mls_payout, editing: ed(e.mls_editing, true), standalone: true, has_mls: true },
-    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, editing: ed(e.mls_editing + 50, true), standalone: false, has_mls: true },
-    E: { retail: ess, payout: essPayout, editing: ed(50, false), standalone: false, has_mls: false },
-    C: { retail: cin, payout: cinPayout, editing: ed(100, false), standalone: false, has_mls: false },
+    S: { retail: e.mls_price, payout: e.mls_payout, editing: ed(e.mls_editing, true), standalone: true, has_mls: true, eligible_retail: 0 },
+    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, editing: ed(e.mls_editing + 50, true), standalone: false, has_mls: true, eligible_retail: ess },
+    E: { retail: ess, payout: essPayout, editing: ed(50, false), standalone: false, has_mls: false, eligible_retail: ess },
+    C: { retail: cin, payout: cinPayout, editing: ed(100, false), standalone: false, has_mls: false, eligible_retail: cin },
   };
 }
 
@@ -147,7 +165,26 @@ export const PERSONA_DESCRIPTIONS: Record<string, string> = {
   accumulator: '1 walkthrough / month for 6 months, then 15 / month',
   refunds: '6 walkthroughs / month with 2 refunded bookings',
   pause_resume: '6 walkthroughs / month, paused 3 months',
+  churn_after_4: 'funds 4 months then cancels; every remaining balance still redeemable',
 };
+
+/** Certification persona set: the base patterns plus an explicit churn pattern. */
+export const CERT_PERSONAS = [...PERSONAS, 'churn_after_4'];
+
+/**
+ * Options for a certification run. All default to the earlier behaviour so the
+ * original analysis is reproduced exactly.
+ */
+export interface SimOptions {
+  /** Monthly membership fee in dollars. Not spendable, not a wallet liability. */
+  membership_fee?: number;
+  /** Incremental monthly cost of delivering the membership benefits (priority support etc). */
+  membership_benefit_cost?: number;
+  /** When false, promotional credit may not pay for a standalone MLS Walkthrough. */
+  vip_promo_on_standalone?: boolean;
+  /** Cost ratio to use when closing out outstanding promotional credit. */
+  promo_closeout_ratio?: number;
+}
 
 const rep = (k: string, n: number) => Array.from({ length: n }, () => k);
 
@@ -168,11 +205,12 @@ function monthlyPlan(persona: string, m: number): string[] | null {
     case 'accumulator': return m < 6 ? rep('S', 1) : rep('S', 15);
     case 'refunds': return rep('S', 6);
     case 'pause_resume': return PAUSE_MONTHS.includes(m) ? [] : rep('S', 6);
+    case 'churn_after_4': return m < 4 ? rep('S', 6) : [];
     default: return [];
   }
 }
 
-export function simulate(tier: number, allowance: number, persona: string, e: Economics, vip: VipCost = VIP_BASE) {
+export function simulate(tier: number, allowance: number, persona: string, e: Economics, vip: VipCost = VIP_BASE, opts: SimOptions = {}) {
   const cfg = getAutoFundConfig(tier);
   if (!cfg) return null;
   const cat = serviceCatalog(e);
@@ -180,6 +218,11 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
   const isVip = isVipAutoFundTier(tier);
   const addon = resolveVipAddOnDiscount('drone', 125);
   const vipAddonDiscount = addon.eligible ? addon.discount : 0;
+  // The MLS promotional restriction: on a restricted tier, promotional credit may
+  // not pay for the MLS Walkthrough itself.
+  const vipPromoRestricted = isVip && opts.vip_promo_on_standalone === false;
+  const monthlyFee = opts.membership_fee ?? 0;
+  const monthlyBenefitCost = opts.membership_benefit_cost ?? 0;
 
   let cashPool = 0;  // cents of cash-funded Booking Value
   let promoPool = 0; // cents of promotional Booking Value
@@ -187,9 +230,11 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
   let payout = 0, editing = 0, retailDelivered = 0;
   let directPaid = 0, topups = 0, promoOnStandalone = 0, promoElsewhere = 0, cashBvUsed = 0;
   let activeMonths = 0, payments = 0, bookings = 0, nonMlsBookings = 0, refunds = 0;
+  let membershipRevenue = 0, membershipProcessing = 0;
 
   for (let m = 0; m < MONTHS; m++) {
     if (persona === 'pause_resume' && PAUSE_MONTHS.includes(m)) continue;
+    if (persona === 'churn_after_4' && m >= 4) continue;
     activeMonths++;
 
     cashIn += cfg.amount;
@@ -198,6 +243,15 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
     stripe += cfg.amount * STRIPE_RATE + STRIPE_FIXED;
     cashPool += Math.round(cfg.amount * 100);
     promoPool += Math.round(cfg.bonus_booking_value * 100);
+
+    // Membership fee: collected revenue, NOT wallet liability and NOT promotional credit.
+    if (monthlyFee > 0) {
+      cashIn += monthlyFee;
+      membershipRevenue += monthlyFee;
+      const feeProcessing = monthlyFee * STRIPE_RATE + STRIPE_FIXED;
+      stripe += feeProcessing;
+      membershipProcessing += feeProcessing;
+    }
 
     if (persona === 'cash_topup' && m === TOPUP_MONTH) {
       cashIn += TOPUP_AMOUNT;
@@ -213,10 +267,16 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
     const book = (key: string) => {
       const s = cat[key];
       const priceC = Math.round(s.retail * 100);
+      // Promotional-credit cap. On a restricted tier promotional credit may not pay
+      // for the MLS Walkthrough, so a standalone walkthrough has a cap of zero and a
+      // bundle is capped at its eligible non-MLS portion.
+      const promoCapC = vipPromoRestricted
+        ? (s.standalone ? 0 : Math.round(s.eligible_retail * 100))
+        : priceC;
       let promo = 0, cash = 0, consumed = false;
       const promoEligible = s.standalone ? allowanceUsed < allowance : true;
-      if (promoEligible && promoPool > 0) {
-        promo = Math.min(promoPool, priceC);
+      if (promoEligible && promoPool > 0 && promoCapC > 0) {
+        promo = Math.min(promoPool, promoCapC);
         promoPool -= promo;
         if (s.standalone) { allowanceUsed++; consumed = true; }
       }
@@ -246,7 +306,9 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
     if (plan === null) {
       const priceC = Math.round(cat.S.retail * 100);
       let guard = 0;
-      while (cashPool + (allowanceUsed < allowance ? promoPool : 0) >= priceC && guard < 60) {
+      // Promotional credit is only usable toward this booking when the tier permits it.
+      const usablePromo = vipPromoRestricted ? 0 : (allowanceUsed < allowance ? promoPool : 0);
+      while (cashPool + usablePromo >= priceC && guard < 60) {
         book('S');
         guard++;
       }
@@ -278,14 +340,15 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
     vipCost = retainer + sessions + nonMlsBookings * 0.25 * vipAddonDiscount;
   }
 
-  const realizedCosts = payout + editing + fundingCommission + bookingCommission + stripe + vipCost;
+  const realizedCosts = payout + editing + fundingCommission + bookingCommission + stripe + vipCost + monthlyBenefitCost * activeMonths;
   const contribution12 = cashIn - realizedCosts;
 
   const mlsRatio = (cat.S.payout + cat.S.editing) / cat.S.retail;
   const personaRatio = retailDelivered > 0 ? (payout + editing) / retailDelivered : mlsRatio;
   const outstandingPromo = promoPool / 100;
   const outstandingCash = cashPool / 100;
-  const closeout = outstandingPromo * bundleRatio + outstandingCash * personaRatio;
+  const promoRatio = opts.promo_closeout_ratio ?? bundleRatio;
+  const closeout = outstandingPromo * promoRatio + outstandingCash * personaRatio;
   const lifetime = contribution12 - closeout;
 
   const lifetimePct = cashIn > 0 ? (lifetime / cashIn) * 100 : 0;
@@ -309,6 +372,11 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
     booking_commission: round2(bookingCommission),
     stripe: round2(stripe),
     vip_cost: round2(vipCost),
+    membership_revenue: round2(membershipRevenue),
+    membership_processing: round2(membershipProcessing),
+    membership_benefit_cost: round2(monthlyBenefitCost * activeMonths),
+    active_months: activeMonths,
+    promo_closeout_ratio_used: round2(promoRatio),
     contribution_12m: round2(contribution12),
     margin_12m_pct: cashIn > 0 ? round2((contribution12 / cashIn) * 100) : 0,
     outstanding_promo: round2(outstandingPromo),
