@@ -1,6 +1,8 @@
 # Auto-Fund MLS Walkthrough — Hybrid Promotional-Credit Model
 ## Design, Staging Implementation, and Certification Report
 
+> **SUPERSEDED — 2026-10-11.** The owner corrected the model: the monthly MLS allowance is strictly a **booking-count limit**, and every walkthrough inside it may be covered **in full (100%)** by promotional credits, with no dollar cap, percentage cap, minimum cash contribution, or mandatory split. This report also treated promotional Booking Value beyond the allowance as *neither obligation nor profit*, which is too generous. The authoritative figures are in **`AUTOFUND_MLS_FULL_REDEMPTION_MODEL.md`**; the numbers here are retained only as history.
+
 **Date:** 2026-10-11
 **Status:** Implemented in staging. **NOT enabled for customer enrollment.** No production changes made. Awaiting explicit owner authorization.
 **Rules version:** `mls_hybrid_v1_20261011`

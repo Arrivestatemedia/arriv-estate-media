@@ -64,7 +64,7 @@ export default function MlsAllowanceCounter({ customerEmail, onBuildBundle, onAd
               <p className="text-sm font-medium text-[#1A1A1A]">MLS Promotional Benefits</p>
               <p className="text-xs text-[#1A1A1A]/60 break-words">
                 {granted > 0
-                  ? `${used} of ${granted} used — ${remaining} remaining this billing cycle.`
+                  ? `${used} of ${granted} used — ${remaining} remaining this billing cycle, each payable in full with promotional credits.`
                   : "Promotional Booking Value applies to qualifying bundles. Standalone MLS Walkthroughs use cash-funded value or direct payment."}
               </p>
             </div>
@@ -126,8 +126,10 @@ export default function MlsAllowanceCounter({ customerEmail, onBuildBundle, onAd
           <div className="flex items-start gap-1.5 pt-2 border-t border-[#B8956A]/15">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#B8956A] mt-0.5 shrink-0" />
             <p className="text-xs text-[#1A1A1A]/60">
-              This is not a limit on how many MLS Walkthroughs you can book. Unlimited further walkthroughs
-              are available with cash-funded Booking Value or by direct payment.
+              Each of these walkthroughs may be paid in full — up to the entire walkthrough price — with your
+              available Booking Value, including promotional bonus credits. This is not a limit on how many MLS
+              Walkthroughs you can book: unlimited further walkthroughs are available with cash-funded Booking
+              Value, additional deposits, or by direct payment.
             </p>
           </div>
         )}

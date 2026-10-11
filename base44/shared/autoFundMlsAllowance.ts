@@ -17,10 +17,27 @@
  * The allowance is NOT a cap on how many MLS Walkthroughs a customer may book —
  * only on how many standalone bookings may draw on promotional Booking Value.
  *
- * FINANCIAL BASIS (see designAutoFundMlsAllowances / AUTOFUND_MLS_HYBRID_MODEL.md):
- *   target 10% lifetime contribution margin. Allowances below are the largest that
- *   hold that target across all tested customer profiles at the approved tier
- *   promotional bonuses.
+ * REDEMPTION MECHANICS — FULL MLS CREDIT REDEMPTION (owner correction, 2026-10-11)
+ *   The allowance is a BOOKING-COUNT limit only. It is NOT a dollar-value limit.
+ *   For every standalone MLS Walkthrough inside the allowance the FULL walkthrough
+ *   price may be covered by Booking Value including promotional bonus credits —
+ *   up to 100%. There are NO promotional-dollar caps, NO percentage caps, NO
+ *   minimum cash contribution and NO mandatory split payment. One eligible
+ *   standalone walkthrough consumes one allowance unit when promotional credits
+ *   are used. Beyond the allowance the customer may keep booking standalone MLS
+ *   Walkthroughs with cash-funded Booking Value, additional deposits, or direct
+ *   payment.
+ *
+ * FINANCIAL BASIS (see designAutoFundMlsAllowances /
+ * AUTOFUND_MLS_FULL_REDEMPTION_MODEL.md):
+ *   target 10% LIFETIME contribution margin. Every tier's allowance is derived on
+ *   full redemption: the full monthly allowance is used on standalone MLS, ALL
+ *   remaining promotional Booking Value is redeemed through qualifying bundles,
+ *   and all cash-funded Booking Value is redeemed over the lifetime. Allowances in
+ *   MLS_PROMOTIONAL_ALLOWANCE are the largest that hold that target — see
+ *   MLS_ALLOWANCE_DERIVATION for each tier's binding constraint. No zero is
+ *   assigned silently: every zero carries its reason and its exact annual
+ *   shortfall.
  */
 
 import {
@@ -30,7 +47,7 @@ import {
   round2,
 } from './prepaidEngine.ts';
 
-export const MLS_ALLOWANCE_RULES_VERSION = 'mls_hybrid_v1_20261011';
+export const MLS_ALLOWANCE_RULES_VERSION = 'mls_full_redemption_v2_20261011';
 
 /** Feature flag key in the AppSetting entity. Distinct from `prepaid_enabled`. */
 export const MLS_ALLOWANCE_FEATURE_FLAG_KEY = 'mls_promotional_allowance_enabled';
@@ -51,6 +68,79 @@ export const MLS_PROMOTIONAL_ALLOWANCE: Record<number, number> = {
 export function getMlsPromotionalAllowance(tierAmount: number): number {
   return MLS_PROMOTIONAL_ALLOWANCE[tierAmount] ?? 0;
 }
+
+// ── Full-redemption mechanics ────────────────────────────────────────────────
+/**
+ * A standalone MLS Walkthrough inside the allowance may be paid in full from
+ * available Booking Value, promotional bonus credits included. There is no
+ * dollar cap, no percentage cap, no minimum cash contribution and no mandatory
+ * split payment. When the promotional balance does not cover the whole price,
+ * cash-funded Booking Value covers the remainder — the customer is never
+ * required to split, and never blocked for doing so.
+ */
+export const MLS_PROMOTIONAL_COVERAGE_PCT = 100;
+export const MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY = true;
+export const MLS_ALLOWANCE_MECHANICS = {
+  coverage_pct_of_walkthrough_price: MLS_PROMOTIONAL_COVERAGE_PCT,
+  dollar_value_cap: null,
+  percentage_cap: null,
+  minimum_cash_contribution: null,
+  mandatory_split_payment: false,
+  consumption_rule: 'one eligible standalone walkthrough consumes one monthly allowance unit when promotional credits are used',
+} as const;
+
+/**
+ * Per-tier derivation. A zero allowance is NEVER silent — it carries the binding
+ * constraint and, where the tier's own economics fall short, the exact annual
+ * shortfall against the 10% lifetime target.
+ */
+export type MlsAllowanceReason =
+  | 'NO_PROMOTIONAL_CREDITS'
+  | 'POOL_LIMITED'
+  | 'ALLOWANCE_HEADROOM_EXHAUSTED'
+  | 'BASELINE_BELOW_TARGET';
+
+export interface MlsAllowanceDerivation {
+  max_sustainable_allowance: number | null;
+  allowance_binds: boolean;
+  reason: MlsAllowanceReason;
+  lifetime_margin_at_allowance_1_pct: number | null;
+  annual_shortfall_at_allowance_1: number | null;
+  note: string;
+}
+
+export const MLS_ALLOWANCE_DERIVATION: Record<number, MlsAllowanceDerivation> = {
+  50: {
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'NO_PROMOTIONAL_CREDITS',
+    lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
+    note: 'This tier grants no promotional Booking Value, so no walkthrough can ever be promotional-funded. The allowance is not the constraint.',
+  },
+  100: {
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
+    lifetime_margin_at_allowance_1_pct: 14.72, annual_shortfall_at_allowance_1: null,
+    note: 'Financially safe at any allowance — the $5/month promotional pool ($60/year) is the real constraint, not the count. Verified 14.72% lifetime margin with the full pool spent on standalone MLS.',
+  },
+  200: {
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
+    lifetime_margin_at_allowance_1_pct: 11.37, annual_shortfall_at_allowance_1: null,
+    note: 'Financially safe at any allowance — the $20/month promotional pool ($240/year) is the real constraint. Verified 11.37% lifetime margin with the full pool spent on standalone MLS.',
+  },
+  350: {
+    max_sustainable_allowance: 0, allowance_binds: true, reason: 'ALLOWANCE_HEADROOM_EXHAUSTED',
+    lifetime_margin_at_allowance_1_pct: 7.93, annual_shortfall_at_allowance_1: 86.9,
+    note: 'Baseline clears the target at 10.30% with only $12.42 of annual headroom. Moving the $630/year promotional pool onto standalone MLS adds $99.32 of delivery cost, taking the margin to 7.93% — $86.90 below target. Owner decision required.',
+  },
+  500: {
+    max_sustainable_allowance: 0, allowance_binds: true, reason: 'BASELINE_BELOW_TARGET',
+    lifetime_margin_at_allowance_1_pct: 4.46, annual_shortfall_at_allowance_1: 332.6,
+    note: 'Below target even at a zero allowance (7.61%, $143.42 short per year) — the shortfall is the 20% promotional bonus meeting the 30% MLS margin, not the allowance. At an allowance of 1 the margin is 4.46%, $332.60 below target. Owner decision required.',
+  },
+  1000: {
+    max_sustainable_allowance: 0, allowance_binds: true, reason: 'BASELINE_BELOW_TARGET',
+    lifetime_margin_at_allowance_1_pct: 0.25, annual_shortfall_at_allowance_1: 1169.84,
+    note: 'Below target even at a zero allowance (1.83%, $980.66 short per year). At an allowance of 1 the margin is 0.25%, $1,169.84 below target. The VIP tier only clears the target when cash-funded value is also redeemed through bundles (17.59%). Owner decision required.',
+  },
+};
 
 // ── Canonical service unit economics ────────────────────────────────────────
 export const MLS_RETAIL = 100;
@@ -208,8 +298,11 @@ export function describeAllowance(tierAmount: number): string {
   const n = getMlsPromotionalAllowance(tierAmount);
   const config = getAutoFundConfig(tierAmount);
   if (!config) return 'No Auto-Fund tier configured.';
-  if (n === 0) {
-    return `Your ${tierAmount === 1000 ? 'VIP ' : ''}$${tierAmount}/month Auto-Fund plan applies promotional Booking Value to qualifying bundles. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value or by direct payment.`;
+  if (config.bonus_booking_value === 0) {
+    return `Your $${tierAmount}/month Auto-Fund plan includes no promotional Booking Value. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value, additional deposits, or direct payment. Unlimited MLS Walkthroughs are always available.`;
   }
-  return `Your $${tierAmount}/month Auto-Fund plan includes ${n} standalone MLS Walkthrough${n === 1 ? '' : 's'} per billing cycle that may use promotional Booking Value. Unlimited further MLS Walkthroughs are available with cash-funded Booking Value or by direct payment.`;
+  if (n === 0) {
+    return `Your ${tierAmount === 1000 ? 'VIP ' : ''}$${tierAmount}/month Auto-Fund plan applies promotional Booking Value to qualifying bundles. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value, additional deposits, or direct payment. Unlimited MLS Walkthroughs are always available.`;
+  }
+  return `Your $${tierAmount}/month Auto-Fund plan includes ${n} standalone MLS Walkthrough${n === 1 ? '' : 's'} per billing cycle that may be paid IN FULL — up to the entire walkthrough price — with your available Booking Value, including promotional bonus credits. If your promotional balance does not cover the whole price, your cash-funded Booking Value tops it up automatically; you are never required to split the payment. Unlimited further MLS Walkthroughs are available with cash-funded Booking Value, additional deposits, or by direct payment.`;
 }

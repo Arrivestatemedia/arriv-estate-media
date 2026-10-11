@@ -10,6 +10,10 @@ import {
   BUNDLE_MIN_MARGIN_PCT,
   MLS_ALLOWANCE_RULES_VERSION,
   MLS_ALLOWANCE_FEATURE_FLAG_KEY,
+  MLS_PROMOTIONAL_COVERAGE_PCT,
+  MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY,
+  MLS_ALLOWANCE_MECHANICS,
+  MLS_ALLOWANCE_DERIVATION,
 } from '../../shared/autoFundMlsAllowance.ts';
 
 /**
@@ -249,6 +253,48 @@ export default async function (req) {
     const flagValue = flagArr.length ? flagArr[0].value : 'unset';
     check('21. Production enrollment gate', flagValue !== 'true',
       `Feature flag "${MLS_ALLOWANCE_FEATURE_FLAG_KEY}" = ${flagValue} (must not be "true" without owner authorization).`);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 22. FULL MLS CREDIT REDEMPTION — 100% coverage, no caps, no split
+    // ═══════════════════════════════════════════════════════════════════════
+    const fullCoverageOk =
+      MLS_PROMOTIONAL_COVERAGE_PCT === 100 &&
+      MLS_ALLOWANCE_MECHANICS.dollar_value_cap === null &&
+      MLS_ALLOWANCE_MECHANICS.percentage_cap === null &&
+      MLS_ALLOWANCE_MECHANICS.minimum_cash_contribution === null &&
+      MLS_ALLOWANCE_MECHANICS.mandatory_split_payment === false;
+    check('22. Full promotional coverage of the walkthrough price (no dollar cap, no percentage cap, no minimum cash, no mandatory split)',
+      fullCoverageOk,
+      `coverage=${MLS_PROMOTIONAL_COVERAGE_PCT}% dollar_cap=${MLS_ALLOWANCE_MECHANICS.dollar_value_cap} pct_cap=${MLS_ALLOWANCE_MECHANICS.percentage_cap} min_cash=${MLS_ALLOWANCE_MECHANICS.minimum_cash_contribution} mandatory_split=${MLS_ALLOWANCE_MECHANICS.mandatory_split_payment}`);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 23. THE ALLOWANCE IS A BOOKING-COUNT LIMIT ONLY, NOT A DOLLAR LIMIT
+    // ═══════════════════════════════════════════════════════════════════════
+    check('23. Allowance is a booking-count limit only',
+      MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY === true && MLS_ALLOWANCE_MECHANICS.dollar_value_cap === null,
+      'One eligible standalone walkthrough consumes one allowance unit regardless of how much of its price promotional credits cover.');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 24. NO SILENT ZEROS — every zero carries its reason and exact shortfall
+    // ═══════════════════════════════════════════════════════════════════════
+    const zeroTiers = Object.entries(MLS_PROMOTIONAL_ALLOWANCE)
+      .filter(([, v]) => v === 0)
+      .map(([k]) => Number(k));
+    const documented = zeroTiers.every(tier => {
+      const d = MLS_ALLOWANCE_DERIVATION[tier];
+      if (!d?.reason) return false;
+      if (d.reason === 'BASELINE_BELOW_TARGET' || d.reason === 'ALLOWANCE_HEADROOM_EXHAUSTED') {
+        return typeof d.annual_shortfall_at_allowance_1 === 'number' && d.annual_shortfall_at_allowance_1 > 0;
+      }
+      return true;
+    });
+    check('24. No silent zeros — each zero documented with its reason and shortfall',
+      documented,
+      zeroTiers.map(t => {
+        const d = MLS_ALLOWANCE_DERIVATION[t];
+        const sf = d?.annual_shortfall_at_allowance_1;
+        return `$${t}:${d?.reason}${sf != null ? ` ($${sf}/yr short)` : ''}`;
+      }).join(' '));
 
     // ═══════════════════════════════════════════════════════════════════════
     // CLEANUP — remove every synthetic fixture
