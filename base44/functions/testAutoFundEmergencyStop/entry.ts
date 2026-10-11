@@ -8,7 +8,7 @@ import {
 import { processMembershipFee, recordFeeRefund } from '../../shared/autoFundMembershipBilling.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
-import { cleanupCertRun } from '../../shared/certRunCleanup.ts';
+import { cleanupCertRun, sweepStaleCertRuns } from '../../shared/certRunCleanup.ts';
 
 /**
  * ADMIN-ONLY CERTIFICATION — AUTO-FUND EMERGENCY STOP.
@@ -37,6 +37,9 @@ export default async function (req: Request): Promise<Response> {
 
     const b = base44.asServiceRole;
     const results: { name: string; passed: boolean; details: any }[] = [];
+
+    // Reconcile fixtures from an earlier INTERRUPTED run before creating this run's own.
+    await sweepStaleCertRuns(b, 30);
     const check = (name: string, passed: boolean, details: any = '') =>
       results.push({ name, passed: !!passed, details: typeof details === 'string' ? details : JSON.stringify(details) });
 

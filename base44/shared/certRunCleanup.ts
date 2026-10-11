@@ -184,3 +184,82 @@ export async function cleanupCertRun(
   }
   return result;
 }
+
+/**
+ * Reconcile synthetic records left behind by INTERRUPTED certification runs.
+ *
+ * In-process teardown cannot cover every failure: if the platform kills the function
+ * mid-run (timeout, cold-start eviction), no catch or finally block ever executes and
+ * the fixtures stay. This discovers runs from the synthetic records themselves and
+ * removes them, so cleanup holds for success, failure, interruption and retry alike.
+ *
+ * AGE GUARD: only records older than `olderThanMinutes` are considered, so a suite that
+ * is still running never has its fixtures pulled out from under it.
+ */
+export async function sweepStaleCertRuns(client: any, olderThanMinutes = 30) {
+  const cutoff = Date.now() - olderThanMinutes * 60 * 1000;
+  const isStale = (record: any) => {
+    const stamp = Date.parse(record?.created_date || record?.created_at || record?.authorized_at || '');
+    return Number.isNaN(stamp) ? true : stamp <= cutoff;
+  };
+
+  const runIds = new Set<string>();
+  const probes: { entity: string; field: string }[] = [
+    { entity: 'AutoFundPaymentEvent', field: 'payment_event_id' },
+    { entity: 'AutoFundConsentRecord', field: 'consent_record_id' },
+    { entity: 'AutoFundSubscription', field: 'subscription_id' },
+    { entity: 'EmployeeSyncQueue', field: 'sync_id' },
+    { entity: 'AutoFundJurisdictionAudit', field: 'audit_id' },
+    { entity: 'AutoFundDisputeCase', field: 'dispute_reference' },
+    { entity: 'AutoFundMembershipNotice', field: 'notice_id' },
+    { entity: 'PaymentRecoveryNotification', field: 'notification_id' },
+    // An interrupted run can leave ONLY its contact behind (its own teardown removed
+    // everything else before the process was killed), so the contact is a run source too.
+    { entity: 'Contact', field: 'email' },
+  ];
+  for (const probe of probes) {
+    const entity = client.entities?.[probe.entity];
+    if (!entity) continue;
+    try {
+      const res = await entity.filter({ [probe.field]: { $regex: '^cert_' } }, '-created_date', 200);
+      const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
+      for (const row of rows) {
+        if (!isStale(row)) continue;
+        const raw = String(row[probe.field] || '');
+        // cert_emstop_1791749232667_fee -> cert_emstop_1791749232667 ; cert_179..._customer -> cert_179...
+        const m = raw.match(/^(cert_[a-z0-9]*_?\d+)/i);
+        if (m && m[1].startsWith('cert_')) runIds.add(m[1]);
+      }
+    } catch { /* probe is best effort */ }
+  }
+
+  const results: CertCleanupResult[] = [];
+  for (const runId of runIds) results.push(await cleanupCertRun(client, runId));
+
+  // Standalone synthetic identities that carry no run id (a suite that simulates a
+  // production customer, or a fixture keyed only by a marker). Marker- and age-guarded.
+  let standalone = 0;
+  const standaloneErrors: string[] = [];
+  for (const [entity, field] of [['Contact', 'email'], ['PrepaidWallet', 'customer_email'], ['CreditLot', 'customer_email'], ['WalletTransaction', 'customer_email'], ['AutoFundPaymentEvent', 'customer_email']]) {
+    const api = client.entities?.[entity];
+    if (!api) continue;
+    try {
+      const res = await api.filter({ [field]: { $regex: '^(isolation_prod_|prod_test_)' } }, '-created_date', 200);
+      const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
+      for (const row of rows) {
+        if (!isStale(row) || !isSyntheticMarker(row[field])) continue;
+        try { await api.delete(row.id); standalone++; }
+        catch (e: any) { standaloneErrors.push(`${entity}.${row.id}: ${e.message}`); }
+      }
+    } catch { /* best effort */ }
+  }
+
+  return {
+    runs_swept: results.length,
+    run_ids: [...runIds],
+    deleted: results.reduce((n, r) => n + r.deleted.length, 0) + standalone,
+    remaining: results.reduce((n, r) => n + r.remaining, 0),
+    errors: [...results.flatMap((r) => r.errors), ...standaloneErrors],
+    older_than_minutes: olderThanMinutes,
+  };
+}

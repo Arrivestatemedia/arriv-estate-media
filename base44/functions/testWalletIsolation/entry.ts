@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { isCertificationId } from '../../shared/certificationMode.ts';
 import { generateId } from '../../shared/prepaidEngine.ts';
-import { cleanupCertRun } from '../../shared/certRunCleanup.ts';
+import { cleanupCertRun, sweepStaleCertRuns } from '../../shared/certRunCleanup.ts';
 
 /**
  * Wallet Isolation Test — verifies that certification events cannot
@@ -35,6 +35,10 @@ export default async function(req) {
     const b = base44.asServiceRole;
     const nowIso = new Date().toISOString();
     const results = {};
+
+    // Reconcile fixtures from an earlier INTERRUPTED run (a killed function never reaches
+    // its teardown) before this run creates its own.
+    await sweepStaleCertRuns(b, 30);
     const certContact = await b.entities.Contact.create({
       email: certEmail,
       firstname: 'CertTest',
