@@ -8,7 +8,7 @@ import {
   PERSONA_DESCRIPTIONS,
   VIP_BASE,
   TARGET_PCT,
-} from './simulator.ts';
+} from '../../shared/autoFundSimulator.ts';
 import { analyzeSimplifiedPolicy } from './simplifiedPolicy.ts';
 import { runFinalCertification } from './finalCertification.ts';
 import { runOwnerSensitivity } from './ownerSensitivity.ts';

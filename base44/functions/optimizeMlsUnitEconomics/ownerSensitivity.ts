@@ -9,7 +9,7 @@ import {
   VIP_BASE,
   TARGET_PCT,
   UNLIMITED,
-} from './simulator.ts';
+} from '../../shared/autoFundSimulator.ts';
 
 /**
  * ARRIV AUTO-FUND — OWNER-REQUESTED OPERATING-COST SENSITIVITY

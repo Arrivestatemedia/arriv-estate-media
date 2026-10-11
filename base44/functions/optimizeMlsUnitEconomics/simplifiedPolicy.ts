@@ -11,7 +11,7 @@ import {
   VIP_BASE,
   TARGET_PCT,
   UNLIMITED,
-} from './simulator.ts';
+} from '../../shared/autoFundSimulator.ts';
 
 /**
  * SIMPLIFIED AUTO-FUND MLS POLICY — PASS/FAIL under full cost realism.

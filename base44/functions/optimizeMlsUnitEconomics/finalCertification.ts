@@ -8,7 +8,7 @@ import {
   VIP_BASE,
   TARGET_PCT,
   UNLIMITED,
-} from './simulator.ts';
+} from '../../shared/autoFundSimulator.ts';
 
 /**
  * ARRIV ESTATE MEDIA — FINAL AUTO-FUND MEMBERSHIP CERTIFICATION
