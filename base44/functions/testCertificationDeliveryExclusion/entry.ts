@@ -178,15 +178,21 @@ export default async function(req) {
 
       const flagOn = !(d.error?.includes('not enabled'));
       if (flagOn) {
-        check('BATCH: synthetic event in blocked list',
-          !!blockedSynthetic && blockedSynthetic.status === 'BLOCKED',
-          `blocked_found=${!!blockedSynthetic}, status=${blockedSynthetic?.status}`);
+        // The architecture CHANGED and these checks now assert the new, STRONGER
+        // behaviour: synthetic records are removed from the candidate POOL before
+        // selection, because the batch is capped and hundreds of synthetic records
+        // would otherwise consume every slot and starve real commissions of
+        // delivery. Asserting the old "blocked after selection" counts would
+        // require the starvation bug to still be present.
+        check('BATCH: synthetic candidates are excluded from the pool BEFORE slot selection',
+          (d.excluded_before_selection || 0) > 0,
+          `excluded_before_selection=${d.excluded_before_selection}, candidates_examined=${d.candidates_examined}, processed=${d.processed}`);
         check('BATCH: synthetic event NOT in delivery results',
           !inResults,
           `in_results=${!!inResults}`);
-        check('BATCH: skipped_synthetic count > 0',
-          (d.skipped_synthetic || 0) > 0,
-          `skipped_synthetic=${d.skipped_synthetic}`);
+        check('BATCH: synthetic event never entered the batch pipeline at all',
+          !blockedSynthetic && (d.skipped_synthetic || 0) === 0,
+          `in_blocked_list=${!!blockedSynthetic}, skipped_synthetic=${d.skipped_synthetic}`);
       } else {
         check('BATCH: feature flag off — no events processed',
           d.error?.includes('not enabled'),
