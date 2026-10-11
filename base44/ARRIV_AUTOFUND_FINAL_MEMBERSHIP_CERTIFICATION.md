@@ -5,6 +5,8 @@
 **Scope:** one consolidated certification of the approved final structure. No further redesign.
 **Status:** ANALYSIS ONLY. Staging only. Enrollment disabled. Production price, pricing, compensation, and every live ledger unchanged.
 
+> **OWNER DECISION RECORDED 2026-10-11.** The VIP lifetime contribution margin of **5.48%** is **accepted** as an intentional, documented exception to the 10% minimum. The VIP membership fee is **not** raised beyond $25. The 25% promotional bonus is **not** reduced. The membership and promotional redemption structure is **preserved**. The 10% minimum is **retained** for the other five tiers, and is met. Live MLS pricing, enrollment and fee collection are **unchanged**. The $79 remedy below stays on the record as **tested and declined**, not recommended. **See section G for the decision and section H for every loss-making scenario.**
+
 ---
 
 ## F. FINAL VERDICT — read this first
@@ -209,3 +211,122 @@ At $100 no fee adjustment can succeed, because the failing tiers include the thr
 - Churn, refunds, chargebacks, rollover, unused balances, and full eventual redemption all modelled.
 - The lowest-margin permitted service used for every promotional close-out.
 - Production unchanged, enrollment disabled, no fee collected.
+
+---
+
+## G. Owner decision — recorded 2026-10-11
+
+| Decision | Status |
+|---|---|
+| VIP lifetime contribution margin of **5.48%** at $120 | **ACCEPTED** as an intentional, documented exception to the 10% minimum |
+| VIP membership fee raised above $25 | **Declined** — the $79 remedy remains on the record as tested, not recommended |
+| 25% VIP promotional bonus reduced | **Declined** — preserved unchanged |
+| Membership and promotional redemption structure | **Preserved** — see the structure note below |
+| 10% minimum for the other five tiers | **Retained and met** under full realism |
+| Live MLS price, enrollment, fee collection | **Unchanged** — all three feature flags remain off. Staging only. |
+
+Feature flags as certified: `enrollment_enabled: false`, `membership_fee_enabled: false`, `vip_mls_promo_restriction_enabled: false`.
+
+### Which structure actually produces 5.48%
+
+This matters, because two different structures have both carried the label "simplified" and they do **not** produce the same VIP result.
+
+| Structure | VIP promotional credit on a standalone MLS Walkthrough | VIP margin at $120, full realism |
+|---|---|---|
+| **Final approved structure** (`autoFundFinalConfig.ts`) | **Barred** | **5.48%** — the accepted figure |
+| Earlier "Simplified (owner proposal)" policy | Allowed, capped at **7 per cycle** | **3.30%** |
+
+The accepted 5.48% is produced **only** by the final approved structure, in which VIP promotional credit cannot be spent on a standalone MLS Walkthrough. Replace that restriction with a 7-per-cycle cap and VIP falls to **3.30%**; under the conservative cost basis (R2) five VIP patterns then turn **negative**, the worst at **−0.98%**.
+
+The promotional restriction is therefore **load-bearing for the accepted number**. It is retained, and this is flagged for a one-line confirmation rather than assumed.
+
+---
+
+## H. Modeled scenarios with a negative contribution margin
+
+**At $120 under the final approved structure: none.** Every tier and all fifteen customer patterns return a positive lifetime contribution, under both full realism (R1) and the conservative basis (R2). The lowest is the accepted VIP churn pattern at **+5.48% ($224.70)**.
+
+**At the live $100 price: 21 patterns are loss-making**, across two tiers.
+
+| Tier | Pattern | Margin | Contribution |
+|---|---|---|---|
+| $1,000 VIP | refunds | **−6.84%** | **−$841.90** |
+| $1,000 VIP | churn after 4 months | −7.20% | −$295.30 |
+| $1,000 VIP | paused 3 months | −6.25% | −$576.93 |
+| $1,000 VIP | 1, 3 and 6 walkthroughs; wallet-matched; accumulator | −6.06% | −$745.90 each |
+| $1,000 VIP | 6 walkthroughs + $500 top-up | −5.40% | −$690.70 |
+| $1,000 VIP | 12 walkthroughs | −4.45% | −$654.70 |
+| $1,000 VIP | mixed realistic | −2.39% | −$293.72 |
+| $1,000 VIP | 20 walkthroughs | −1.19% | −$289.90 |
+| $1,000 VIP | alternating | −0.61% | −$75.40 |
+| $500 | churn after 4 months | −2.59% | −$54.30 |
+| $500 | refunds | −2.39% | −$150.50 |
+| $500 | paused 3 months | −1.66% | −$78.43 |
+| $500 | 1, 3 and 6 walkthroughs | −1.47% | −$92.90 each |
+| $500 | 6 walkthroughs + $500 top-up | −0.55% | −$37.70 |
+| $500 | accumulator | −0.02% | −$1.70 |
+
+The $50, $100, $200 and $350 tiers stay positive at $100 but well below target (2.57%–4.64%).
+
+**Every loss-making scenario is a property of the live $100 price alone.** None survives at $120. That is the second, independent reason the MLS price must reach $120 before any activation.
+
+---
+
+## I. Cost integrity — what the 5.48% contains, and what it does not
+
+### Carried in the accepted result
+
+| Cost line | Basis | Status |
+|---|---|---|
+| MLS specialist payout — $50 flat | MLS guaranteed payout table, ≤2,500 sqft | **Verified** — contractual, code-verified |
+| Non-MLS provider payout — 40% of post-sales value | `mediaCompensationEngine`, `STANDARD_40_PERCENT_AFTER_SALES` | **Verified** — code-verified, matches production |
+| Funding commission — 15% first payment, 8% recurring and top-ups | `prepaidEngine` | **Verified** — configured |
+| Booking commission — 0% wallet-funded, 15% marketplace | Booking classification | **Verified** — code-verified |
+| Refunds | 2 refunds per month on the 6-walkthrough pattern; editing and Stripe retained | **Estimated** — a stress pattern, not a measured refund rate |
+| Accumulated promotional liability | Full eventual redemption of every outstanding balance at the **lowest-margin permitted** service | **Conservative by construction** |
+| Rollover and unused-balance close-out | Every balance eventually redeemed; nothing counted as profit | **Conservative by construction** |
+| VIP support | $72 retainer + 12 sessions × $25 = $372/year | **Estimated** |
+| Non-VIP priority support | $6/month, same basis as VIP enhanced support | **Estimated** |
+| Stripe — 2.9% + $0.30 on every funding charge, top-up and direct payment | Published standard rate | **Estimated** — assumed, not observed on this account |
+| Editing labour, MLS — $20 | 52 minutes × $23/hr mean editor wage | **Estimated — UNVERIFIED** |
+| Employer payroll burden — 15% (R1) / 20% (R2) | Modelled | **Estimated — no observed value** |
+| Editing quality control — $5 (R1) / $8 (R2) per walkthrough | Modelled | **Estimated — no observed value** |
+| Churn | Funds 4 months, then stops | **Estimated** — a stress pattern, not a measured churn rate |
+
+The three unverified lines have **no observed value anywhere in the system**. `inventoryCertificationData` reports **0 MLS jobs, 0 MLS editing tasks, 0 tracked editing minutes and 0 MLS compensation snapshots**, against one active editor at $23/hr. No MLS Walkthrough has ever been produced.
+
+Wallet-funded walkthrough cost at $120: **$78** under full realism (65% of price), **$82** under the conservative basis (68.33%).
+
+### Not modelled at all
+
+- **Customer acquisition and marketing cost** — the most material omission.
+- Chargebacks and disputes beyond the refund allowance.
+- Media specialist no-show, standby and backup-dispatch cost.
+- Payment-recovery and delinquency handling.
+- General overhead and staffing beyond the $6/month benefit line.
+- SMS notifications, calendar invites, file storage and support time. The model states its own floor: *"small but unmeasured, so $70 is a floor, not a ceiling."*
+
+### Which missing numbers could change the answer
+
+| Missing figure | Why it is material |
+|---|---|
+| **Acquisition cost per VIP member** | The accepted VIP margin leaves **$224.70 of lifetime contribution** against $4,100 of cash in. Any unmodelled per-member acquisition, onboarding or servicing cost consumes it. This is the most likely way the accepted 5.48% becomes a loss. |
+| **Actual MLS editing minutes and cost** | Every tier moves with it. At $120 a standalone Walkthrough reaches a 10% margin only if editing takes **26 minutes**, against the 52 assumed — the assumption is exactly double the level the margin requires. |
+| **True payroll burden and QC cost** | These decide the **$500 tier**. At 15% + $5 it returns 13.09% and passes; at 20% + $8 it returns **9.25% and fails**, with 5 of 15 patterns below target. The $50, $100, $200 and $350 tiers hold either way. |
+| **Real refund rate** | The refunds pattern is the worst case at $100, $200 and $500. A rate above the modelled 2-in-6 consumes the entry tiers' margin. |
+| **Negotiated Stripe rate** | Small per transaction, but the standard rate is assumed rather than observed. |
+
+### Requested from the owner — one consolidated list
+
+1. Actual or estimated **MLS editing minutes per Walkthrough**, and the editor cost basis (hourly or per file).
+2. **Employer payroll burden** percentage to apply to editing labour.
+3. **Quality-control cost per Walkthrough**, and what it covers.
+4. Real **refund and cancellation rate** on completed work.
+5. Real monthly **churn rate** on subscription wallets.
+6. **VIP support**: cost per session, and expected sessions per VIP member per year.
+7. **Acquisition / marketing cost per new Auto-Fund member**, plus any onboarding cost.
+8. **Chargeback, no-show and standby-dispatch cost** per job, if tracked.
+9. Confirmation that the **Stripe rate** in use is 2.9% + $0.30 and not a negotiated rate.
+10. Any **general overhead or staffing allocation** to apply per subscriber per month.
+
+Items 1–3 and 7 are the ones that can move a tier across the 10% line. **Item 7 is the only one that can turn the accepted VIP result negative.**
