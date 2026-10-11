@@ -154,17 +154,20 @@ function worstCase(
 /** Chargeback overlay. Documented, transparent, applied to a computed run. */
 function chargebackStress(run: any, tier: number, count: number, activeMonths: number) {
   const amount = getAutoFundConfig(tier)!.amount;
-  const share = activeMonths > 0 ? count / activeMonths : 0;
-  const cashReversed = round2(amount * count);
+  // A chargeback can only reverse a charge that was actually made.
+  const disputes = Math.max(0, Math.min(count, activeMonths));
+  const share = activeMonths > 0 ? disputes / activeMonths : 0;
+  const cashReversed = round2(amount * disputes);
   // The disputed funding is voided, so the Booking Value it created stops being a
   // liability. Credited back pro-rata: conservative, because most value is already
   // redeemed in the worst-case patterns and nothing is assumed to be recovered.
   const liabilitiesVoided = round2(share * (run.outstanding_promo + run.outstanding_cash));
-  const disputeFees = round2(DISPUTE_FEE * count);
+  const disputeFees = round2(DISPUTE_FEE * disputes);
   const contribution = round2(run.contribution_lifetime - cashReversed + liabilitiesVoided - disputeFees);
   const cashIn = round2(run.cash_in - cashReversed);
   return {
     chargebacks_per_year: count,
+    disputes_actually_applied: disputes,
     funding_cash_reversed: cashReversed,
     liabilities_voided: liabilitiesVoided,
     dispute_fees: disputeFees,
@@ -235,6 +238,13 @@ export default async function (req: Request): Promise<Response> {
       const conservative = worstCase(tier, LIVE_PRICE, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, true);
       const maxSupport = worstCase(tier, LIVE_PRICE, EXPECTED_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, true);
       const combinedWorst = worstCase(tier, LIVE_PRICE, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, true);
+      // The no-churn view: the weakest pattern that actually stays subscribed for
+      // the full twelve months. Reported alongside the churn headline so a failure
+      // is never attributed to the early-termination stress alone.
+      const fullYearRuns = expected.runs.filter((r: any) => r.active_months === 12);
+      const worstFullYear = fullYearRuns.reduce(
+        (w: any, r: any) => (w === null || r.margin_lifetime_pct < w.margin_lifetime_pct ? r : w), null,
+      );
 
       return {
         tier,
@@ -257,6 +267,8 @@ export default async function (req: Request): Promise<Response> {
         conservative_cost_case_expected_support: summarize(conservative.worst, tier),
         expected_cost_case_max_support: summarize(maxSupport.worst, tier),
         chargeback_stress_expected: [2, 4].map((n) => chargebackStress(expected.worst, tier, n, expected.worst.active_months)),
+        worst_twelve_month_active_case: summarize(worstFullYear, tier),
+        chargeback_stress_full_year_basis: [2, 4].map((n) => chargebackStress(worstFullYear, tier, n, 12)),
         failing_pattern_count_expected: expected.failing.length,
         failing_pattern_count_conservative: conservative.failing.length,
         loss_making_patterns_expected: expected.lossMaking.map((r: any) => ({
