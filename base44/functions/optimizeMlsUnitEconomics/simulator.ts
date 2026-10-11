@@ -1,4 +1,5 @@
 import {
+  AUTO_FUND_AMOUNT_OPTIONS,
   getAutoFundConfig,
   getPriceForSqft,
   AUTO_FUND_FIRST_PAYMENT_RATE,
@@ -56,6 +57,28 @@ export interface Economics {
   mls_price: number;
   mls_payout: number;
   mls_editing: number;
+  /**
+   * Employer payroll burden on EDITING labour (0.15 = 15%). Editing is performed by
+   * Arriv payroll editors, so employer taxes and administration apply. Capture
+   * specialists are independent contractors and carry no employer burden.
+   * Defaults to 0 so every earlier result is reproduced exactly.
+   */
+  editing_burden_rate?: number;
+  /**
+   * Quality-control expense per MLS Walkthrough — applied to a standalone walkthrough
+   * and to the MLS component of a bundle. Defaults to 0.
+   */
+  mls_qc?: number;
+}
+
+/** A standalone-MLS promotional allowance so large it never binds. */
+export const UNLIMITED = 999;
+
+export interface PolicySpec {
+  id: string;
+  label: string;
+  /** Standalone-MLS promotional allowance per billing cycle, by tier. UNLIMITED = no cap. */
+  allowances: Record<number, number>;
 }
 
 export interface VipCost {
@@ -70,6 +93,8 @@ interface Svc {
   payout: number;
   editing: number;
   standalone: boolean;
+  /** True when this service includes an MLS Walkthrough (so QC applies). */
+  has_mls: boolean;
 }
 
 export function serviceCatalog(e: Economics): Record<string, Svc> {
@@ -77,11 +102,16 @@ export function serviceCatalog(e: Economics): Record<string, Svc> {
   const cin = getPriceForSqft(PROPERTY_SQFT, 'cinematic') as number;
   const essPayout = round2(ess * SPECIALIST_RATE);
   const cinPayout = round2(cin * SPECIALIST_RATE);
+  // Editing is payroll labour: gross editing cost plus employer burden. QC is a
+  // separate per-walkthrough expense on any cart carrying an MLS Walkthrough.
+  const bur = 1 + (e.editing_burden_rate ?? 0);
+  const qc = e.mls_qc ?? 0;
+  const ed = (gross: number, hasMls: boolean) => round2(gross * bur + (hasMls ? qc : 0));
   return {
-    S: { retail: e.mls_price, payout: e.mls_payout, editing: e.mls_editing, standalone: true },
-    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, editing: e.mls_editing + 50, standalone: false },
-    E: { retail: ess, payout: essPayout, editing: 50, standalone: false },
-    C: { retail: cin, payout: cinPayout, editing: 100, standalone: false },
+    S: { retail: e.mls_price, payout: e.mls_payout, editing: ed(e.mls_editing, true), standalone: true, has_mls: true },
+    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, editing: ed(e.mls_editing + 50, true), standalone: false, has_mls: true },
+    E: { retail: ess, payout: essPayout, editing: ed(50, false), standalone: false, has_mls: false },
+    C: { retail: cin, payout: cinPayout, editing: ed(100, false), standalone: false, has_mls: false },
   };
 }
 
@@ -313,4 +343,68 @@ export function maxSustainable(tier: number, e: Economics, vip: VipCost = VIP_BA
     break;
   }
   return { max_sustainable: best, first_failure: firstFailure };
+}
+
+// ── Simplified-policy helpers ────────────────────────────────────────────────
+
+export function policyAllowance(tier: number, spec: PolicySpec): number {
+  return spec.allowances[tier] ?? UNLIMITED;
+}
+
+export interface PolicyTierResult {
+  tier: number;
+  allowance: number;
+  passes: boolean;
+  worst_persona: string;
+  worst_lifetime_contribution: number;
+  worst_lifetime_pct: number;
+  worst_cash_in: number;
+  shortfall_dollars: number;
+  failing_personas: { persona: string; description: string; margin_pct: number; contribution: number; cash_in: number }[];
+}
+
+/** Exact test of a policy: every persona, at the tier's own allowance, must clear the target. */
+export function evaluatePolicy(tier: number, spec: PolicySpec, e: Economics, vip: VipCost = VIP_BASE): PolicyTierResult {
+  const allowance = policyAllowance(tier, spec);
+  const runs = PERSONAS.map(p => simulate(tier, allowance, p, e, vip)!).filter(Boolean);
+  const worst = runs.reduce((w, r) => (w === null || r.margin_lifetime_pct < w.margin_lifetime_pct ? r : w), null as any);
+  const failing = runs.filter(r => !r.meets_target).sort((a, b) => a.margin_lifetime_pct - b.margin_lifetime_pct);
+  return {
+    tier,
+    allowance,
+    passes: failing.length === 0,
+    worst_persona: worst.persona,
+    worst_lifetime_contribution: worst.contribution_lifetime,
+    worst_lifetime_pct: worst.margin_lifetime_pct,
+    worst_cash_in: worst.cash_in,
+    shortfall_dollars: round2((TARGET_PCT / 100) * worst.cash_in - worst.contribution_lifetime),
+    failing_personas: failing.map(f => ({
+      persona: f.persona,
+      description: PERSONA_DESCRIPTIONS[f.persona],
+      margin_pct: f.margin_lifetime_pct,
+      contribution: f.contribution_lifetime,
+      cash_in: f.cash_in,
+    })),
+  };
+}
+
+export function evaluatePolicyAllTiers(spec: PolicySpec, e: Economics, vip: VipCost = VIP_BASE) {
+  const tiers = AUTO_FUND_AMOUNT_OPTIONS.map(t => evaluatePolicy(t, spec, e, vip));
+  return { tiers, passes: tiers.every(t => t.passes) };
+}
+
+/** Smallest whole-dollar price at which the policy clears the target for every tier and persona. */
+export function minPriceForPolicy(
+  spec: PolicySpec,
+  base: { mls_payout: number; mls_editing: number; editing_burden_rate?: number; mls_qc?: number },
+  vip: VipCost = VIP_BASE,
+  from = 100,
+  to = 200,
+) {
+  for (let price = from; price <= to; price++) {
+    const e: Economics = { id: `P${price}`, label: '', mls_price: price, ...base };
+    const r = evaluatePolicyAllTiers(spec, e, vip);
+    if (r.passes) return { price, tiers: r.tiers };
+  }
+  return null;
 }

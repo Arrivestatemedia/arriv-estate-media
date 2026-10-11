@@ -9,6 +9,7 @@ import {
   VIP_BASE,
   TARGET_PCT,
 } from './simulator.ts';
+import { analyzeSimplifiedPolicy } from './simplifiedPolicy.ts';
 
 type Economics = { id: string; label: string; mls_price: number; mls_payout: number; mls_editing: number };
 
@@ -269,6 +270,7 @@ export default async function (req: Request): Promise<Response> {
 
     return Response.json({
       status: 'ANALYSIS_COMPLETE',
+      phase6_simplified_policy: analyzeSimplifiedPolicy(),
       model_version: 'mls_unit_economics_v3_20261011',
       target_lifetime_margin_pct: TARGET_PCT,
       personas: PERSONA_DESCRIPTIONS,
