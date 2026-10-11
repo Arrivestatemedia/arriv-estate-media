@@ -12,6 +12,8 @@
 // Setting a lead time here does NOT claim statutory compliance.
 // ============================================================================
 
+import { normalizeJurisdictionState } from './autoFundJurisdiction.ts';
+
 export interface RenewalNoticeRule {
   /** Rule identifier recorded on every notice for audit. */
   rule_id: string;
@@ -59,7 +61,16 @@ export const AUTOFUND_RENEWAL_RULES: Record<string, RenewalNoticeRule> = {
   },
 };
 
-/** Resolve the rule for a state, falling back to the conservative default. */
+/**
+ * Resolve the rule for a KNOWN jurisdiction, falling back to the conservative
+ * default for a state that has no specific rule yet.
+ *
+ * This is NOT a substitute for capturing jurisdiction. An absent or invalid
+ * state must resolve to nothing and be corrected, never defaulted here —
+ * callers validate the jurisdiction first (see `isRenewalNoticeDue`). The
+ * default below applies only once a state IS known and simply has no specific
+ * rule of its own.
+ */
 export function resolveRenewalNoticeRule(state?: string | null): RenewalNoticeRule {
   const key = (state || '').toUpperCase().trim();
   return AUTOFUND_RENEWAL_RULES[key] || AUTOFUND_RENEWAL_RULES.DEFAULT;
@@ -88,7 +99,8 @@ export interface RenewalDueInput {
 export interface RenewalDueResult {
   due: boolean;
   reason: string;
-  rule: RenewalNoticeRule;
+  /** Null when the jurisdiction is missing or invalid — no rule can be applied. */
+  rule: RenewalNoticeRule | null;
   renewal_date: string;
   notice_due_date: string;
 }
@@ -106,8 +118,26 @@ export interface RenewalDueResult {
  * by the recovery notification flow instead.
  */
 export function isRenewalNoticeDue(sub: RenewalDueInput, now: Date = new Date()): RenewalDueResult {
-  const rule = resolveRenewalNoticeRule((sub as any)?.jurisdiction_state);
   const renewalIso = sub?.next_billing_date || '';
+
+  // ── Jurisdiction is REQUIRED. No silent default. ──────────────────────────
+  // A missing or invalid jurisdiction means the applicable cadence is unknown.
+  // Sending a generic 7-day reminder anyway would look like compliance while
+  // being none, so the system sends NOTHING and the subscription is flagged for
+  // correction instead.
+  const state = normalizeJurisdictionState((sub as any)?.jurisdiction_state);
+  if (!state) {
+    return {
+      due: false,
+      reason:
+        'Jurisdiction is missing or invalid — no renewal notice sent. Correct the billing jurisdiction; the subscription is flagged for review.',
+      rule: null,
+      renewal_date: renewalIso,
+      notice_due_date: '',
+    };
+  }
+
+  const rule = resolveRenewalNoticeRule(state);
   const base: RenewalDueResult = {
     due: false,
     reason: '',

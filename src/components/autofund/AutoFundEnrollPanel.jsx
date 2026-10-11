@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Phone } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Phone, MapPin } from "lucide-react";
 import AutoFundDisclosureList from "@/components/autofund/AutoFundDisclosureList";
+import { US_STATES } from "@/lib/usStates";
 
 /**
  * AutoFundEnrollPanel — the two customer actions.
@@ -21,6 +23,11 @@ import AutoFundDisclosureList from "@/components/autofund/AutoFundDisclosureList
  * and disclosure cannot differ between them. Nothing here sends a price or a fee —
  * the server resolves every financial value from the canonical tier configuration.
  *
+ * BILLING ADDRESS IS REQUIRED. The renewal-notice rules that apply to the
+ * membership depend on the customer's billing jurisdiction, so enrollment cannot
+ * be submitted without it. It is NOT derived from IP address, phone number or any
+ * advisor's location, and the customer is told why it is being asked for.
+ *
  * Every material disclosure comes from the backend's compliance package and is
  * shown in full above the authorization control. The authorization control is
  * UNCHECKED by default: consent is affirmative, never pre-filled.
@@ -28,6 +35,10 @@ import AutoFundDisclosureList from "@/components/autofund/AutoFundDisclosureList
 export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [phone, setPhone] = useState("");
+  const [line1, setLine1] = useState("");
+  const [city, setCity] = useState("");
+  const [stateCode, setStateCode] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(null);
@@ -41,6 +52,14 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
   const totalCharge = tier.total_monthly_charge;
   const disclosure = tier.compliance_disclosure || null;
 
+  const addressComplete =
+    line1.trim().length > 0 &&
+    city.trim().length > 0 &&
+    postalCode.trim().length > 0 &&
+    stateCode.length === 2;
+
+  const canEnroll = termsAccepted && addressComplete && enrollmentOpen;
+
   const enroll = async () => {
     setLoading(true); setError(null);
     try {
@@ -49,6 +68,13 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
         amount: tier.amount,
         customer_phone: phone || undefined,
         terms_accepted: true,
+        billing_address: {
+          line1: line1.trim(),
+          city: city.trim(),
+          state: stateCode,
+          postal_code: postalCode.trim(),
+          country: "US",
+        },
       });
       const data = res?.data || res;
       if (data?.status === "enrolled" || data?.status === "success") {
@@ -85,6 +111,7 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
 
   if (done) {
     const notice = done.enrollment_notice;
+    const jurisdiction = done.jurisdiction;
     return (
       <Card className="border-[#B8956A]/30 bg-[#B8956A]/5">
         <CardContent className="pt-6 space-y-2">
@@ -98,6 +125,19 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
               : `$${tier.amount} funds your wallet every month and $${tier.booking_value} lands as Booking Value. Your total recurring charge is $${totalCharge}.`}{" "}
             You can pause or cancel any time from this dashboard.
           </p>
+          {jurisdiction?.state && (
+            <p className="text-xs text-[#1A1A1A]/60">
+              Billing jurisdiction recorded: {jurisdiction.state}. This is what determines which renewal-notice rules
+              apply to your membership.
+            </p>
+          )}
+          {jurisdiction?.needs_review && (
+            <p className="text-xs text-amber-800">
+              Your billing details have been flagged for a quick review, because your billing state and your payment
+              method did not agree. This does not stop your membership, but our team will confirm which jurisdiction
+              applies.
+            </p>
+          )}
           <p className="text-xs text-[#1A1A1A]/60">
             {notice?.delivery_status === "sent"
               ? "A confirmation email with your tier, recurring charge, billing date, refund policy and cancellation instructions is on its way."
@@ -129,9 +169,50 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
 
         <AutoFundDisclosureList disclosure={disclosure} />
 
-        <div className="space-y-1.5">
-          <Label className="text-[#1A1A1A]">Mobile number (optional)</Label>
-          <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="555-123-4567" />
+        {/* ── Billing address: the source of the renewal-notice jurisdiction ── */}
+        <div className="space-y-3 p-4 rounded-lg border border-[#B8956A]/20">
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-[#1A1A1A]">Billing address</p>
+              <p className="text-xs text-[#1A1A1A]/60 mt-0.5">
+                We need the state on your billing address. The renewal-notice rules and some cancellation rights that
+                apply to your membership depend on your billing jurisdiction. We do not use your IP address, phone
+                number, or the location of any advisor for this.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[#1A1A1A]">Street address</Label>
+            <Input value={line1} onChange={e => setLine1(e.target.value)} placeholder="123 Main St" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[#1A1A1A]">City</Label>
+              <Input value={city} onChange={e => setCity(e.target.value)} placeholder="Atlanta" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[#1A1A1A]">ZIP code</Label>
+              <Input value={postalCode} onChange={e => setPostalCode(e.target.value)} placeholder="30301" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[#1A1A1A]">State</Label>
+            <Select value={stateCode} onValueChange={setStateCode}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your billing state" />
+              </SelectTrigger>
+              <SelectContent>
+                {US_STATES.map(s => (
+                  <SelectItem key={s.code} value={s.code}>{s.name} ({s.code})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[#1A1A1A]">Mobile number (optional)</Label>
+            <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="555-123-4567" />
+          </div>
         </div>
 
         <label className="flex items-start gap-3 cursor-pointer">
@@ -157,6 +238,16 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
           </div>
         )}
 
+        {enrollmentOpen && !addressComplete && (
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-900">
+              Complete your billing address — street, city, state and ZIP are all required. Enrollment cannot be
+              submitted without a billing jurisdiction.
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -167,7 +258,7 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={enroll}
-            disabled={loading || !termsAccepted || !enrollmentOpen}
+            disabled={loading || !canEnroll}
             className="bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}

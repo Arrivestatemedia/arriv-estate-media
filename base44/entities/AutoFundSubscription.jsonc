@@ -20,27 +20,29 @@
     "amount": {
       "type": "number",
       "enum": [
-        50,
-        100,
-        200,
+        150,
+        250,
         350,
         500,
-        1000
+        1000,
+        50,
+        100,
+        200
       ],
-      "description": "Monthly Auto-Fund wallet funding amount in dollars. This is the DEPOSIT only \u2014 the membership fee is separate."
+      "description": "Monthly Auto-Fund wallet funding amount in dollars. This is the DEPOSIT only \u2014 the membership fee is separate. The five enrollable tiers are $150 (Starter), $250 (Growth), $350 (Professional), $500 (Premier) and $1,000 (VIP). The retired $50 / $100 / $200 values are retained so an existing subscription keeps its contracted funding amount, and they are NOT offered for new enrollment."
     },
     "membership_fee": {
       "type": "number",
       "default": 0,
-      "description": "Approved monthly membership fee for this tier ($25 at $350/$500/$1,000; $0 below). Collected revenue: not spendable, no promotional credit, no commission."
+      "description": "Approved monthly membership fee for this tier ($25 at $350/$500/$1,000; $0 below). Collected revenue: not spendable Booking Value, no promotional credit, no commission."
     },
     "total_monthly_charge": {
       "type": "number",
-      "description": "The full recurring charge the customer authorized: wallet funding amount plus membership fee."
+      "description": "The full recurring charge the customer authorized: wallet funding amount PLUS membership fee. Disclosed before authorization."
     },
     "plan_id": {
       "type": "string",
-      "description": "Stable internal plan ID (e.g. autofund_100)"
+      "description": "Stable internal plan ID (e.g. autofund_350)"
     },
     "status": {
       "type": "string",
@@ -60,7 +62,7 @@
         "admin"
       ],
       "default": "admin",
-      "description": "How this membership was enrolled. Determines whether sales compensation may be attributed."
+      "description": "How this membership was enrolled. Both enrollment channels use the same authoritative tier configuration and the same disclosures."
     },
     "attribution_source": {
       "type": "string",
@@ -105,6 +107,66 @@
       ],
       "default": "undetermined",
       "description": "Refundability policy applied to this membership's fee. Disclosed to the customer before enrollment."
+    },
+    "billing_address_line1": {
+      "type": "string",
+      "description": "Customer-provided billing street address captured at enrollment"
+    },
+    "billing_city": {
+      "type": "string",
+      "description": "Customer-provided billing city captured at enrollment"
+    },
+    "billing_state": {
+      "type": "string",
+      "description": "Customer-provided billing state (2-letter code) as entered. Preserved as provided so a correction can be distinguished from the validated value."
+    },
+    "billing_postal_code": {
+      "type": "string",
+      "description": "Customer-provided billing postal code captured at enrollment"
+    },
+    "billing_country": {
+      "type": "string",
+      "description": "Customer-provided billing country (defaults to US)"
+    },
+    "jurisdiction_state": {
+      "type": "string",
+      "description": "VALIDATED billing jurisdiction (2-letter code) that drives the renewal-notice rule for this subscription. Required for new enrollment \u2014 a missing or invalid jurisdiction blocks enrollment rather than silently defaulting to a generic reminder cadence. Read by the renewal-notification engine."
+    },
+    "jurisdiction_resolution": {
+      "type": "string",
+      "enum": [
+        "",
+        "customer_provided_billing_address",
+        "customer_provided_confirmed_by_payment_method",
+        "customer_provided_conflicts_with_payment_method",
+        "approved_fallback"
+      ],
+      "default": "",
+      "description": "How the jurisdiction was established. Always from the customer's own billing address or an explicitly approved fallback \u2014 never from IP geolocation, phone number or advisor location."
+    },
+    "jurisdiction_captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the jurisdiction was captured"
+    },
+    "jurisdiction_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the jurisdiction was last changed. Every change is also appended to AutoFundJurisdictionAudit."
+    },
+    "jurisdiction_needs_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the jurisdiction case was flagged for human review instead of resolved automatically (for example a state conflict with the payment method, or a non-US billing address). Flagging does not block billing; it surfaces the case."
+    },
+    "jurisdiction_review_reason": {
+      "type": "string",
+      "description": "Machine-readable reason the jurisdiction needs review"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this subscription was created by the isolated certification suite rather than a real customer. Excluded from production analytics and never billed."
     },
     "last_fee_charged_at": {
       "type": "string",

@@ -243,6 +243,30 @@
     "new_customer_bonus_sales_member_id": {
       "type": "string",
       "description": "SalesTeamMember ID of the rep who earned the $40 new-customer MLS bonus"
+    },
+    "billing_address_line1": {
+      "type": "string",
+      "description": "Customer-provided billing street address captured at Auto-Fund enrollment. Mirrors the subscription so the billing jurisdiction is available wherever the customer is viewed."
+    },
+    "billing_city": {
+      "type": "string",
+      "description": "Customer-provided billing city captured at Auto-Fund enrollment"
+    },
+    "billing_state": {
+      "type": "string",
+      "description": "Customer-provided billing state (2-letter code) captured at Auto-Fund enrollment, preserved as provided"
+    },
+    "billing_postal_code": {
+      "type": "string",
+      "description": "Customer-provided billing postal code captured at Auto-Fund enrollment"
+    },
+    "billing_country": {
+      "type": "string",
+      "description": "Customer-provided billing country captured at Auto-Fund enrollment"
+    },
+    "billing_jurisdiction_state": {
+      "type": "string",
+      "description": "VALIDATED billing jurisdiction (2-letter code) for this customer. The Auto-FundSubscription record remains authoritative for billing; this mirror makes the jurisdiction visible on the customer record."
     }
   },
   "required": [],

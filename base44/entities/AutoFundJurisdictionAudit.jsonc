@@ -1,0 +1,131 @@
+{
+  "name": "AutoFundJurisdictionAudit",
+  "type": "object",
+  "properties": {
+    "audit_id": {
+      "type": "string",
+      "description": "Globally unique, immutable audit entry ID. Generated as afjur_<random>."
+    },
+    "change_type": {
+      "type": "string",
+      "enum": [
+        "initial_capture",
+        "correction",
+        "flagged_conflict",
+        "review_cleared"
+      ],
+      "description": "What jurisdiction event this entry records. 'initial_capture' is the jurisdiction taken at enrollment, which opens the trail for that subscription."
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription this jurisdiction decision belongs to"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (Contact entity ID), denormalized for lookups"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized recipient email for RLS and lookups"
+    },
+    "previous_state": {
+      "type": "string",
+      "description": "Jurisdiction in force before this entry. Empty on an initial capture."
+    },
+    "new_state": {
+      "type": "string",
+      "description": "Jurisdiction recorded by this entry. Empty when a capture was rejected or a conflict was flagged without a change."
+    },
+    "resolution_method": {
+      "type": "string",
+      "enum": [
+        "",
+        "customer_provided_billing_address",
+        "customer_provided_confirmed_by_payment_method",
+        "customer_provided_conflicts_with_payment_method",
+        "approved_fallback"
+      ],
+      "default": "",
+      "description": "How the jurisdiction was established. Customer-provided billing address is the only normal source; IP geolocation, phone number and advisor location are never used."
+    },
+    "needs_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the case was flagged for human review rather than resolved automatically (for example a state conflict, or a billing address outside the US)."
+    },
+    "review_reason": {
+      "type": "string",
+      "description": "Machine-readable reason the case needs review (e.g. JURISDICTION_CONFLICT_WITH_PAYMENT_METHOD, BILLING_ADDRESS_OUTSIDE_US)."
+    },
+    "billing_city": {
+      "type": "string",
+      "description": "City of the billing address at the time of the decision"
+    },
+    "billing_postal_code": {
+      "type": "string",
+      "description": "Postal code of the billing address at the time of the decision"
+    },
+    "billing_country": {
+      "type": "string",
+      "description": "Country of the billing address at the time of the decision. A non-US country is always flagged for review."
+    },
+    "payment_method_state": {
+      "type": "string",
+      "description": "State reported by the payment method, when one was available. Used only to corroborate or conflict-flag the customer's address \u2014 never as the sole source."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who or what caused this entry (customer email, admin email, or system)."
+    },
+    "note": {
+      "type": "string",
+      "description": "Short human-readable note explaining the entry"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Immutable timestamp of this audit entry"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification entries. Excluded from production analytics."
+    }
+  },
+  "required": [
+    "audit_id",
+    "change_type",
+    "subscription_id",
+    "customer_email",
+    "recorded_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

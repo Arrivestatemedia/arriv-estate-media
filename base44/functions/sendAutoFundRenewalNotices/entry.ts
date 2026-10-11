@@ -4,20 +4,28 @@ import {
   renewalCycleKey,
   unconfirmedJurisdictions,
 } from '../../shared/autoFundRenewalPolicy.ts';
+import { normalizeJurisdictionState } from '../../shared/autoFundJurisdiction.ts';
 import { sendRenewalNotice } from '../../shared/autoFundMembershipNotices.ts';
 
 // ============================================================================
 // SEND AUTO-FUND RENEWAL NOTICES
 // ============================================================================
-// Scheduled. Evaluates every actively-billing Auto-Fund subscription against its
-// jurisdiction's renewal-notice rule and sends an advance notice only where one
-// is actually due. Idempotent per renewal cycle, so a re-run, a retry, or two
-// schedulers overlapping cannot send the same customer two notices for one cycle.
+// Scheduled. Evaluates every actively-billing Auto-Fund subscription against the
+// renewal-notice rule for ITS OWN stored billing jurisdiction and sends an
+// advance notice only where one is genuinely due. Idempotent per renewal cycle,
+// so a re-run, a retry, or two schedulers overlapping cannot send the same
+// customer two notices for one cycle.
 //
-// A monthly renewal is NOT assumed to require its own reminder in every
+// A monthly renewal is NOT assumed to require its own advance reminder in every
 // jurisdiction — eligibility is decided by the resolved rule, and every notice
 // records which rule was applied and whether that cadence has been confirmed by
 // counsel yet.
+//
+// JURISDICTION IS REQUIRED. A subscription whose jurisdiction is missing or
+// invalid receives NO notice. It is reported here as `jurisdiction_missing` so
+// the gap is corrected — sending a generic 7-day reminder instead would look
+// like compliance while being none. There is no bulk jurisdiction override:
+// each subscription answers for its own captured jurisdiction.
 //
 // dry_run: reports what WOULD be sent without sending anything.
 // ============================================================================
@@ -35,9 +43,6 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const dryRun = body?.dry_run === true;
     const certMode = body?.cert_mode === true;
-    // Jurisdiction override, for a single-state rollout or an admin re-run.
-    // Absent, every subscription resolves to the conservative DEFAULT rule.
-    const overrideState = (body?.jurisdiction_state || '').toUpperCase().trim();
     const limit = Math.min(Number(body?.limit) || 200, 500);
 
     const subsRes = await base44.asServiceRole.entities.AutoFundSubscription.filter(
@@ -49,14 +54,42 @@ export default async function (req) {
 
     const due = [];
     let notDue = 0;
+    // Subscriptions that CANNOT be notified because the jurisdiction is unknown.
+    // Surfaced rather than defaulted, and never silently given a generic rule.
+    const jurisdictionMissing = [];
+    const flaggedForReview = [];
+
     for (const sub of subs) {
-      const verdict = isRenewalNoticeDue(
-        { ...sub, jurisdiction_state: overrideState || undefined },
-        new Date()
-      );
+      if (!normalizeJurisdictionState(sub.jurisdiction_state)) {
+        jurisdictionMissing.push({
+          subscription_id: sub.id,
+          customer_email: sub.customer_email,
+          billing_state_as_provided: sub.billing_state || '',
+          reason: 'Jurisdiction missing or invalid — no notice sent. Correct the billing jurisdiction.',
+        });
+        continue;
+      }
+      if (sub.jurisdiction_needs_review === true) {
+        flaggedForReview.push({
+          subscription_id: sub.id,
+          customer_email: sub.customer_email,
+          jurisdiction_state: sub.jurisdiction_state,
+          review_reason: sub.jurisdiction_review_reason || '',
+        });
+      }
+
+      const verdict = isRenewalNoticeDue(sub, new Date());
       if (verdict.due) due.push({ sub, verdict });
       else notDue++;
     }
+
+    const jurisdictionSummary = {
+      missing_or_invalid: jurisdictionMissing.length,
+      flagged_for_review: flaggedForReview.length,
+      missing_or_invalid_subscriptions: jurisdictionMissing,
+      flagged_for_review_subscriptions: flaggedForReview,
+      unconfirmed_jurisdiction_cadences: unconfirmedJurisdictions(),
+    };
 
     if (dryRun) {
       return Response.json({
@@ -66,14 +99,14 @@ export default async function (req) {
         would_send: due.map(d => ({
           subscription_id: d.sub.id,
           customer_email: d.sub.customer_email,
+          jurisdiction_state: d.sub.jurisdiction_state,
           renewal_date: d.verdict.renewal_date,
-          rule_applied: d.verdict.rule.rule_id,
-          advance_notice_days: d.verdict.rule.advance_notice_days,
-          statutory_cadence_confirmed: d.verdict.rule.statutory_cadence_confirmed,
+          rule_applied: d.verdict.rule?.rule_id || '',
+          advance_notice_days: d.verdict.rule?.advance_notice_days ?? null,
+          statutory_cadence_confirmed: d.verdict.rule?.statutory_cadence_confirmed ?? false,
         })),
         not_due: notDue,
-        jurisdiction_resolution: overrideState ? 'explicit_override' : 'not_captured_at_enrollment',
-        unconfirmed_jurisdiction_cadences: unconfirmedJurisdictions(),
+        jurisdiction: jurisdictionSummary,
       });
     }
 
@@ -111,7 +144,8 @@ export default async function (req) {
             outcome: r.status,
             delivery_status: r.delivery_status,
             delivery_attempts: r.delivery_attempts,
-            rule_applied: verdict.rule.rule_id,
+            jurisdiction_state: sub.jurisdiction_state,
+            rule_applied: verdict.rule?.rule_id || '',
             renewal_date: verdict.renewal_date,
           });
         } else {
@@ -133,8 +167,7 @@ export default async function (req) {
       failed,
       skipped,
       not_due: notDue,
-      jurisdiction_resolution: overrideState ? 'explicit_override' : 'not_captured_at_enrollment',
-      unconfirmed_jurisdiction_cadences: unconfirmedJurisdictions(),
+      jurisdiction: jurisdictionSummary,
       results,
     });
   } catch (error) {

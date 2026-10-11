@@ -26,6 +26,10 @@ import {
 } from '../../shared/autoFundMembershipBilling.ts';
 import { buildComplianceDisclosure } from '../../shared/autoFundComplianceDisclosure.ts';
 import {
+  describeJurisdictionRequirement,
+  US_STATE_CODES,
+} from '../../shared/autoFundJurisdiction.ts';
+import {
   sendEnrollmentAcknowledgment,
   sendCancellationConfirmation,
   listNoticesForSubscription,
@@ -141,6 +145,13 @@ export default async function(req) {
           app_setting_present: switchArr.length > 0,
           note: 'Public enrollment stays closed until the owner activates the launch gate.',
         },
+        jurisdiction: {
+          required: true,
+          statement: describeJurisdictionRequirement(),
+          states: US_STATE_CODES,
+          blocking:
+            'Enrollment cannot complete without a validated customer-provided billing jurisdiction. It is never inferred from IP geolocation, phone number or advisor location, and it is never silently defaulted to a generic renewal cadence.',
+        },
         membership_fee_statement:
           'The membership fee is collected revenue. It is never spendable Booking Value, never earns promotional credit and never pays sales commission.',
       });
@@ -160,6 +171,7 @@ export default async function(req) {
         customer_email, customer_name, customer_phone, amount,
         sales_rep_id, attribution_source, terms_accepted, terms_accepted_by,
         stripe_subscription_id, stripe_customer_id, billing_day, fee_refund_policy,
+        billing_address, payment_method_state,
       } = body;
 
       const result = await enrollAutoFund({
@@ -174,6 +186,12 @@ export default async function(req) {
         terms_accepted: terms_accepted === true,
         terms_accepted_by,
         fee_refund_policy,
+        // Customer-provided billing address: the jurisdiction source. Forwarded as
+        // given — the shared engine validates it and blocks enrollment when it is
+        // missing or invalid. `certification_bypass` is deliberately NOT forwarded,
+        // so no admin route can reach the certification gate bypass.
+        billing_address,
+        payment_method_state,
         stripe_subscription_id,
         stripe_customer_id,
         billing_day,
@@ -215,6 +233,7 @@ export default async function(req) {
       const {
         amount, customer_name, customer_phone, sales_rep_id,
         attribution_source, terms_accepted, fee_refund_policy, billing_day,
+        billing_address,
       } = body;
 
       const result = await enrollAutoFund({
@@ -232,6 +251,9 @@ export default async function(req) {
         terms_accepted: terms_accepted === true,
         terms_accepted_by: terms_accepted ? user.email : '',
         fee_refund_policy,
+        // The customer's own billing address, required for the renewal-notice
+        // jurisdiction. Validated server-side; enrollment is refused without it.
+        billing_address,
         billing_day,
         actor: user.email,
       });

@@ -39,6 +39,12 @@ import {
 } from './autoFundMembershipBilling.ts';
 import { AUTO_FUND_AMOUNTS, generateId, getAutoFundConfig } from './prepaidEngine.ts';
 import { buildComplianceDisclosure } from './autoFundComplianceDisclosure.ts';
+import {
+  resolveBillingJurisdiction,
+  recordJurisdictionAudit,
+  describeJurisdictionRequirement,
+  type BillingAddressInput,
+} from './autoFundJurisdiction.ts';
 
 /**
  * The terms version the customer accepts at enrollment.
@@ -56,6 +62,19 @@ export interface EnrollmentRequest {
   customer_email: string;
   customer_name?: string;
   customer_phone?: string;
+  /**
+   * Customer-provided billing address. REQUIRED — it is the source of the
+   * billing jurisdiction that the renewal-notice rules depend on.
+   */
+  billing_address?: BillingAddressInput;
+  /** State reported by the payment method, when one is available. Used only to corroborate or conflict-flag the customer's own address. */
+  payment_method_state?: string;
+  /**
+   * Certification-only launch-gate bypass. Supplied EXCLUSIVELY by the
+   * admin-only compliance suite; no user-facing route forwards it. See the gate
+   * in `enrollAutoFund` — public enrollment is not opened by this.
+   */
+  certification_bypass?: { authorized: boolean; admin_email: string };
   /** Advisor attribution, only honoured when it can be verified. */
   sales_rep_id?: string;
   attribution_source?: '' | 'customer_selected_advisor' | 'advisor_enrolled' | 'admin_assigned';
@@ -112,6 +131,14 @@ export interface EnrollmentResult {
   total_monthly_charge?: number;
   booking_value_per_cycle?: number;
   benefits?: any[];
+  jurisdiction?: {
+    state: string;
+    resolution: string;
+    needs_review: boolean;
+    review_reason: string;
+    customer_record_mirrored: boolean;
+    audit_recorded: boolean;
+  };
   attribution?: { verification: string; advisor_email: string };
   /** The customer must complete payment through the existing checkout. */
   checkout_handoff?: any;
@@ -132,7 +159,22 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   // ── Owner launch gate ─────────────────────────────────────────────────────
   const flagRes = await base44.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
   const flagArr = Array.isArray(flagRes) ? flagRes : (flagRes?.data || []);
-  if (!isEnrollmentOpen(flagArr.length > 0 ? flagArr[0].value : null)) {
+  // ── Certification-only bypass ─────────────────────────────────────────────
+  // Lets the admin-only compliance suite exercise enrollment while PUBLIC
+  // enrollment stays closed. Three independent conditions must ALL hold, so no
+  // customer request can reach this path:
+  //   1. an explicit bypass object marked authorized,
+  //   2. a named admin, which the CALLING function verifies before passing it,
+  //   3. a synthetic cert_-prefixed enrolled address.
+  // No user-facing route forwards `certification_bypass`, so (1) cannot be
+  // supplied from outside. This does not open public enrollment.
+  const bypass = req.certification_bypass;
+  const isCertificationRun =
+    bypass?.authorized === true &&
+    !!bypass?.admin_email &&
+    /^cert_/i.test(String(req.customer_email || ''));
+
+  if (!isCertificationRun && !isEnrollmentOpen(flagArr.length > 0 ? flagArr[0].value : null)) {
     return { status: 'enrollment_closed', error: 'Auto-Fund enrollment is closed pending owner launch authorization.' };
   }
 
@@ -162,6 +204,28 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   const membershipFee = getMembershipFee(config.amount);
   const totalMonthly = getTotalMonthlyCharge(config.amount);
   const feePolicy = req.fee_refund_policy || DEFAULT_FEE_REFUND_POLICY;
+
+  // ── Billing jurisdiction (REQUIRED) ──────────────────────────────────────
+  // Which renewal-notice rule applies depends on the customer's billing
+  // jurisdiction, so it is captured from the customer's OWN billing address
+  // before anything is created. It is never inferred from IP geolocation, a
+  // phone number or an advisor's location.
+  //
+  // A missing or invalid jurisdiction BLOCKS enrollment. It is not silently
+  // replaced with a generic default: a notice sent under the wrong cadence
+  // looks like compliance while being none. The customer is asked to correct
+  // it, and the requirement is stated to them.
+  const jurisdiction = resolveBillingJurisdiction({
+    billing_address: req.billing_address,
+    payment_method_state: req.payment_method_state,
+  });
+  if (!jurisdiction.ok) {
+    return {
+      status: 'invalid',
+      error: jurisdiction.error || describeJurisdictionRequirement(),
+    };
+  }
+  const jurisdictionState = jurisdiction.state as string;
 
   // ── Contact (Customer 360) ───────────────────────────────────────────────
   const contactRes = await base44.entities.Contact.filter({ email: req.customer_email }, undefined, 1);
@@ -238,6 +302,20 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     membership_fee: membershipFee,
     total_monthly_charge: totalMonthly,
     fee_refund_policy: feePolicy,
+    // The customer's own billing address, preserved exactly as provided, plus
+    // the VALIDATED jurisdiction that drives this subscription's renewal rule.
+    billing_address_line1: req.billing_address?.line1 || '',
+    billing_city: req.billing_address?.city || '',
+    billing_state: String(req.billing_address?.state || '').trim().toUpperCase(),
+    billing_postal_code: req.billing_address?.postal_code || '',
+    billing_country: String(req.billing_address?.country || 'US').trim().toUpperCase(),
+    jurisdiction_state: jurisdictionState,
+    jurisdiction_resolution: jurisdiction.method || '',
+    jurisdiction_captured_at: jurisdiction.captured_at,
+    jurisdiction_updated_at: jurisdiction.captured_at,
+    jurisdiction_needs_review: jurisdiction.needs_review,
+    jurisdiction_review_reason: jurisdiction.review_reason,
+    certification_mode: isCertificationRun,
     plan_id: config.plan_id,
     status: 'active',
     enrollment_channel: req.channel,
@@ -258,6 +336,45 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     updated_at: nowIso,
   });
 
+  // ── Jurisdiction audit trail ─────────────────────────────────────────────
+  // Opens the trail for this subscription with the capture decision, so the
+  // basis for every later notice is reconstructable. A conflicting or unusual
+  // case is recorded as a FLAGGED entry rather than quietly accepted.
+  await recordJurisdictionAudit({
+    base44,
+    change_type: jurisdiction.needs_review ? 'flagged_conflict' : 'initial_capture',
+    subscription_id: subscription.id,
+    customer_id: contact.id,
+    customer_email: contact.email,
+    new_state: jurisdictionState,
+    resolution_method: jurisdiction.method,
+    needs_review: jurisdiction.needs_review,
+    review_reason: jurisdiction.review_reason,
+    billing_address: req.billing_address,
+    payment_state: jurisdiction.payment_state,
+    actor: req.actor || req.customer_email,
+    note: jurisdiction.needs_review
+      ? 'Jurisdiction captured from the customer-provided billing address and flagged for human review.'
+      : 'Jurisdiction captured from the customer-provided billing address.',
+  });
+
+  // Mirror the billing jurisdiction onto the customer record so it is visible
+  // wherever the customer is viewed. The subscription stays authoritative for
+  // billing; the outcome is reported rather than swallowed.
+  let customerRecordMirrored = true;
+  try {
+    await base44.entities.Contact.update(contact.id, {
+      billing_address_line1: req.billing_address?.line1 || '',
+      billing_city: req.billing_address?.city || '',
+      billing_state: String(req.billing_address?.state || '').trim().toUpperCase(),
+      billing_postal_code: req.billing_address?.postal_code || '',
+      billing_country: String(req.billing_address?.country || 'US').trim().toUpperCase(),
+      billing_jurisdiction_state: jurisdictionState,
+    });
+  } catch {
+    customerRecordMirrored = false;
+  }
+
   return {
     status: 'enrolled',
     subscription_id: subscription.id,
@@ -269,6 +386,14 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     total_monthly_charge: totalMonthly,
     booking_value_per_cycle: config.booking_value,
     benefits: config.benefits,
+    jurisdiction: {
+      state: jurisdictionState,
+      resolution: jurisdiction.method || '',
+      needs_review: jurisdiction.needs_review,
+      review_reason: jurisdiction.review_reason,
+      customer_record_mirrored: customerRecordMirrored,
+      audit_recorded: true,
+    },
     attribution: attribution.verified
       ? { verification: 'verified', advisor_email: attribution.sales_rep_email }
       : { verification: 'none — no commission will be generated', advisor_email: '' },
