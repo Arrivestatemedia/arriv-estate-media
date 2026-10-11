@@ -377,6 +377,8 @@ export const PROMOTIONAL_MAX_BENEFIT_VALUE = 125;
 export interface AutoFundAmountConfig {
   amount: number;
   plan_id: string;
+  /** Public tier name (Starter / Growth / Professional / Premier / VIP). */
+  tier_name?: string;
   booking_value: number;
   bonus_pct: number;
   bonus_booking_value: number;
@@ -392,8 +394,13 @@ export interface AutoFundAmountConfig {
 /**
  * Auto-Fund amounts. Customer pays monthly; booking value added to wallet.
  *
- * FINAL APPROVED bonus structure: $50 = 0%, $100 = 5%, $200 = 10%,
+ * FINAL APPROVED five-tier structure: $150 = 5%, $250 = 10%,
  * $350 = 15%, $500 = 20%, $1,000 = 25% (VIP tier).
+ *
+ * The former $50 / $100 / $200 entry options are RETIRED from new enrollment and
+ * are replaced by the $150 Starter and $250 Growth tiers. A subscription already
+ * on a retired amount keeps its contractual pricing, balance and schedule until an
+ * approved migration plan exists — removing a tier here never rewrites history.
  *
  * Bonus Booking Value is promotional and is NEVER charged to the customer as a
  * booking shortfall. Credits = booking_value / 275 (canonical, full precision).
@@ -403,31 +410,15 @@ export interface AutoFundAmountConfig {
  * are never rewritten — entitlements already granted stay exactly as granted.
  */
 export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
-  50: {
-    amount: 50,
-    plan_id: "autofund_50",
-    booking_value: 50,
-    bonus_pct: 0,
-    bonus_booking_value: 0,
-    credits: 50 / 275,
-    support_tier: "AUTOFUND_50",
-    support_priority: "standard",
-    benefits: [
-      "Customer 360",
-      "Arriv Wallet",
-      "Automatic monthly funding",
-      "Rollover Booking Value",
-    ],
-    validity_months: 12,
-  },
-  100: {
-    amount: 100,
-    plan_id: "autofund_100",
-    booking_value: 105,
+  150: {
+    amount: 150,
+    plan_id: "autofund_150",
+    tier_name: "Starter",
+    booking_value: 157.5,
     bonus_pct: 5,
-    bonus_booking_value: 5,
-    credits: 105 / 275,
-    support_tier: "AUTOFUND_100",
+    bonus_booking_value: 7.5,
+    credits: 157.5 / 275,
+    support_tier: "AUTOFUND_150",
     support_priority: "standard",
     benefits: [
       "Customer 360",
@@ -435,18 +426,18 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
       "Automatic monthly funding",
       "Rollover Booking Value",
       "5% monthly bonus Booking Value",
-      "Qualifying free rescheduling",
     ],
     validity_months: 12,
   },
-  200: {
-    amount: 200,
-    plan_id: "autofund_200",
-    booking_value: 220,
+  250: {
+    amount: 250,
+    plan_id: "autofund_250",
+    tier_name: "Growth",
+    booking_value: 275,
     bonus_pct: 10,
-    bonus_booking_value: 20,
-    credits: 220 / 275,
-    support_tier: "AUTOFUND_200",
+    bonus_booking_value: 25,
+    credits: 275 / 275,
+    support_tier: "AUTOFUND_250",
     support_priority: "priority",
     benefits: [
       "Customer 360",
@@ -462,6 +453,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   350: {
     amount: 350,
     plan_id: "autofund_350",
+    tier_name: "Professional",
     booking_value: 402.5,
     bonus_pct: 15,
     bonus_booking_value: 52.5,
@@ -483,6 +475,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   500: {
     amount: 500,
     plan_id: "autofund_500",
+    tier_name: "Premier",
     booking_value: 600,
     bonus_pct: 20,
     bonus_booking_value: 100,
@@ -505,6 +498,7 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
   1000: {
     amount: 1000,
     plan_id: "autofund_1000",
+    tier_name: "VIP",
     booking_value: 1250,
     bonus_pct: 25,
     bonus_booking_value: 250,
@@ -530,7 +524,11 @@ export const AUTO_FUND_AMOUNTS: Record<number, AutoFundAmountConfig> = {
 
 import { MLS_PRICE_V1_BY_TIER } from './mlsPricing.ts';
 
-export const AUTO_FUND_AMOUNT_OPTIONS = [50, 100, 200, 350, 500, 1000];
+/** The five enrollable Auto-Fund tiers. Single source for every tier iteration. */
+export const AUTO_FUND_AMOUNT_OPTIONS = [150, 250, 350, 500, 1000];
+
+/** Tiers retired from NEW enrollment (existing subscriptions keep their terms). */
+export const AUTO_FUND_RETIRED_AMOUNTS = [50, 100, 200];
 
 export function getAutoFundConfig(amount: number): AutoFundAmountConfig | null {
   return AUTO_FUND_AMOUNTS[amount] || null;

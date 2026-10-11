@@ -219,10 +219,10 @@ export default async function(req) {
     };
 
     // ════════════════════════════════════════════════════════════════════════
-    // TEST 3: Auto-Fund $100 cert_ payment
-    // $100 customer cash → $105 Booking Value → ~0.3818 credits → $15 first-payment commission
+    // TEST 3: Auto-Fund $150 Starter cert_ payment
+    // $150 customer cash → $157.50 Booking Value → $22.50 first-payment commission
     // ════════════════════════════════════════════════════════════════════════
-    const afConfig = getAutoFundConfig(100);
+    const afConfig = getAutoFundConfig(150);
     const certAfPaymentId = certRunId + '_autofund_pay';
     const certAfWalletId = 'cert_wallet_af_' + generateId('w').slice(0, 10);
 
@@ -231,7 +231,7 @@ export default async function(req) {
       customer_email: certCustomerEmail,
       customer_name: 'CertTest Customer',
       tier: 'STARTER',
-      support_tier: 'AUTOFUND_100',
+      support_tier: 'AUTOFUND_150',
       credits_balance: 0,
       booking_value_balance: 0,
       total_credits_issued: 0,
@@ -257,7 +257,7 @@ export default async function(req) {
       customer_id: contact.id,
       customer_email: certCustomerEmail,
       wallet_id: wallet2.id,
-      amount_charged: 100,
+      amount_charged: 150,
       status: 'succeeded',
       event_type: 'recurring',
       sales_rep_id: rep.id,
@@ -266,17 +266,17 @@ export default async function(req) {
       cert_mode: true,
     });
 
-    const expectedAfCredits = round2(105 / PREPAID_CREDIT_VALUE);
-    const expectedAfCommission = calculateAutoFundCommission(100);
+    const expectedAfCredits = round2(157.5 / PREPAID_CREDIT_VALUE);
+    const expectedAfCommission = calculateAutoFundCommission(150);
 
     results['autofund_cert'] = {
       status: (afResult.status === 'processed' &&
-        afResult.booking_value_issued === 105 &&
+        afResult.booking_value_issued === 157.5 &&
         Math.abs(afResult.credits_issued - expectedAfCredits) < 0.001 &&
         afResult.commission_event_id !== '') ? 'PASS' : 'FAIL',
-      cash: 100,
+      cash: 150,
       booking_value_issued: afResult.booking_value_issued,
-      expected_booking_value: 105,
+      expected_booking_value: 157.5,
       credits_issued: afResult.credits_issued,
       expected_credits: expectedAfCredits,
       commission_event_id: afResult.commission_event_id,
@@ -298,7 +298,7 @@ export default async function(req) {
         customer_id: contact.id,
         customer_email: certCustomerEmail,
         wallet_id: wallet2.id,
-        amount_charged: 100,
+        amount_charged: 150,
         status: 'succeeded',
         event_type: 'recurring',
         sales_rep_id: rep.id,
@@ -546,14 +546,14 @@ export default async function(req) {
 
     // ════════════════════════════════════════════════════════════════════════
     // TEST 9: Auto-Fund refund (cash not Booking Value)
-    // $100 cash, $105 BV, $15 first-payment commission. Full $100 refund → $15 reversal (NOT $15.75).
+    // $150 cash, $157.50 BV, $22.50 first-payment commission. Full $150 refund → $22.50 reversal (NOT $23.63).
     // ════════════════════════════════════════════════════════════════════════
     const afRefundId = certRunId + '_af_refund';
     const afRefundResult = await processCommissionReversal({
       base44: b,
       refund_event_id: afRefundId,
       original_payment_event_id: certAfPaymentId,
-      refunded_commissionable_amount: 100,
+      refunded_commissionable_amount: 150,
       reason: 'cert autofund full refund',
       actor: 'certification_suite',
       cert_mode: true,
@@ -561,12 +561,12 @@ export default async function(req) {
 
     const afRefundCreated = afRefundResult.results.find(r => r.status === 'created');
     results['autofund_refund'] = {
-      status: (afRefundCreated?.reversal_amount === 15 && afRefundCreated?.original_commissionable_cash === 100) ? 'PASS' : 'FAIL',
+      status: (afRefundCreated?.reversal_amount === 22.5 && afRefundCreated?.original_commissionable_cash === 150) ? 'PASS' : 'FAIL',
       reversal_amount: afRefundCreated?.reversal_amount,
-      expected_reversal: 15,
+      expected_reversal: 22.5,
       original_cash: afRefundCreated?.original_commissionable_cash,
-      expected_cash: 100,
-      note: 'Reversal calculated from $100 customer cash, NOT $105 Booking Value (15% first-payment commission)',
+      expected_cash: 150,
+      note: 'Reversal calculated from $150 customer cash, NOT $157.50 Booking Value (15% first-payment commission)',
     };
 
     // ════════════════════════════════════════════════════════════════════════

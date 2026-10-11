@@ -54,20 +54,36 @@ export const MLS_ALLOWANCE_RULES_VERSION = 'mls_full_redemption_v2_20261011';
 export const MLS_ALLOWANCE_FEATURE_FLAG_KEY = 'mls_promotional_allowance_enabled';
 
 /**
- * Monthly standalone MLS promotional allowance per Auto-Fund tier.
- * Derived from the profitability model — see the report for the derivation.
+ * No booking-count cap. A tier set to this value may apply promotional Booking
+ * Value to a standalone MLS Walkthrough without a monthly count limit — the
+ * customer's available balance is the only bound.
+ */
+export const MLS_NO_COUNT_CAP = -1;
+
+/**
+ * Standalone MLS promotional policy per Auto-Fund tier.
+ *
+ * FINAL APPROVED FIVE-TIER STRUCTURE — there is NO booking-count allowance at any
+ * tier. Starter, Growth, Professional and Premier may apply promotional Booking
+ * Value to a standalone MLS Walkthrough with no count cap, no dollar cap and no
+ * required cash split. VIP promotional Booking Value may NOT pay for a standalone
+ * MLS Walkthrough; VIP cash-funded Booking Value remains fully usable there.
  */
 export const MLS_PROMOTIONAL_ALLOWANCE: Record<number, number> = {
-  50: 0,   // no promotional Booking Value exists at this tier
-  100: 1,  // $5/month bonus — too small to fund a $100 booking in one cycle
-  200: 1,  // $20/month bonus — negligible impact (verified 11.4% margin floor)
-  350: 0,  // any promotional redemption on standalone MLS breaches the target
-  500: 0,  // any promotional redemption on standalone MLS breaches the target
-  1000: 0, // any promotional redemption on standalone MLS breaches the target
+  150: MLS_NO_COUNT_CAP,
+  250: MLS_NO_COUNT_CAP,
+  350: MLS_NO_COUNT_CAP,
+  500: MLS_NO_COUNT_CAP,
+  1000: 0, // VIP — promotional credit is barred from standalone MLS Walkthroughs
 };
 
 export function getMlsPromotionalAllowance(tierAmount: number): number {
   return MLS_PROMOTIONAL_ALLOWANCE[tierAmount] ?? 0;
+}
+
+/** True when the tier places no monthly count limit on promotional MLS spend. */
+export function isMlsAllowanceUncapped(tierAmount: number): boolean {
+  return getMlsPromotionalAllowance(tierAmount) === MLS_NO_COUNT_CAP;
 }
 
 // ── Full-redemption mechanics ────────────────────────────────────────────────
@@ -80,14 +96,16 @@ export function getMlsPromotionalAllowance(tierAmount: number): number {
  * required to split, and never blocked for doing so.
  */
 export const MLS_PROMOTIONAL_COVERAGE_PCT = 100;
-export const MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY = true;
+/** The approved structure is balance-governed, NOT count-governed. */
+export const MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY = false;
 export const MLS_ALLOWANCE_MECHANICS = {
   coverage_pct_of_walkthrough_price: MLS_PROMOTIONAL_COVERAGE_PCT,
+  monthly_booking_count_cap: null,
   dollar_value_cap: null,
   percentage_cap: null,
   minimum_cash_contribution: null,
   mandatory_split_payment: false,
-  consumption_rule: 'one eligible standalone walkthrough consumes one monthly allowance unit when promotional credits are used',
+  consumption_rule: 'no monthly count is consumed — promotional spend on a standalone walkthrough is limited only by the available balance (non-VIP tiers)',
 } as const;
 
 /**
@@ -99,7 +117,8 @@ export type MlsAllowanceReason =
   | 'NO_PROMOTIONAL_CREDITS'
   | 'POOL_LIMITED'
   | 'ALLOWANCE_HEADROOM_EXHAUSTED'
-  | 'BASELINE_BELOW_TARGET';
+  | 'BASELINE_BELOW_TARGET'
+  | 'VIP_PROMO_BARRED_FROM_STANDALONE_MLS';
 
 export interface MlsAllowanceDerivation {
   max_sustainable_allowance: number | null;
@@ -111,35 +130,30 @@ export interface MlsAllowanceDerivation {
 }
 
 export const MLS_ALLOWANCE_DERIVATION: Record<number, MlsAllowanceDerivation> = {
-  50: {
-    max_sustainable_allowance: null, allowance_binds: false, reason: 'NO_PROMOTIONAL_CREDITS',
+  150: {
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
     lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
-    note: 'This tier grants no promotional Booking Value, so no walkthrough can ever be promotional-funded. The allowance is not the constraint.',
+    note: 'No count cap. The $7.50/month promotional pool ($90/year) is the only bound — promotional spend is governed by the balance, never by a count.',
   },
-  100: {
+  250: {
     max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
-    lifetime_margin_at_allowance_1_pct: 14.72, annual_shortfall_at_allowance_1: null,
-    note: 'Financially safe at any allowance — the $5/month promotional pool ($60/year) is the real constraint, not the count. Verified 14.72% lifetime margin with the full pool spent on standalone MLS.',
-  },
-  200: {
-    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
-    lifetime_margin_at_allowance_1_pct: 11.37, annual_shortfall_at_allowance_1: null,
-    note: 'Financially safe at any allowance — the $20/month promotional pool ($240/year) is the real constraint. Verified 11.37% lifetime margin with the full pool spent on standalone MLS.',
+    lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
+    note: 'No count cap. The $25/month promotional pool ($300/year) is the only bound.',
   },
   350: {
-    max_sustainable_allowance: 0, allowance_binds: true, reason: 'ALLOWANCE_HEADROOM_EXHAUSTED',
-    lifetime_margin_at_allowance_1_pct: 7.93, annual_shortfall_at_allowance_1: 86.9,
-    note: 'Baseline clears the target at 10.30% with only $12.42 of annual headroom. Moving the $630/year promotional pool onto standalone MLS adds $99.32 of delivery cost, taking the margin to 7.93% — $86.90 below target. Owner decision required.',
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
+    lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
+    note: 'No count cap. Promotional exposure is bounded by the $630/year bonus pool, offset by the $25/month membership fee, which is collected revenue and not spendable Booking Value. Certified against the approved planning assumptions.',
   },
   500: {
-    max_sustainable_allowance: 0, allowance_binds: true, reason: 'BASELINE_BELOW_TARGET',
-    lifetime_margin_at_allowance_1_pct: 4.46, annual_shortfall_at_allowance_1: 332.6,
-    note: 'Below target even at a zero allowance (7.61%, $143.42 short per year) — the shortfall is the 20% promotional bonus meeting the 30% MLS margin, not the allowance. At an allowance of 1 the margin is 4.46%, $332.60 below target. Owner decision required.',
+    max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
+    lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
+    note: 'No count cap. Promotional exposure is bounded by the $1,200/year bonus pool, offset by the $25/month membership fee. Certified against the approved planning assumptions.',
   },
   1000: {
-    max_sustainable_allowance: 0, allowance_binds: true, reason: 'BASELINE_BELOW_TARGET',
-    lifetime_margin_at_allowance_1_pct: 0.25, annual_shortfall_at_allowance_1: 1169.84,
-    note: 'Below target even at a zero allowance (1.83%, $980.66 short per year). At an allowance of 1 the margin is 0.25%, $1,169.84 below target. The VIP tier only clears the target when cash-funded value is also redeemed through bundles (17.59%). Owner decision required.',
+    max_sustainable_allowance: 0, allowance_binds: true, reason: 'VIP_PROMO_BARRED_FROM_STANDALONE_MLS',
+    lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
+    note: 'VIP promotional Booking Value may not pay for a standalone MLS Walkthrough. Enforced at the booking transaction against the promotional credit lot, never by a count. VIP cash-funded Booking Value remains fully usable there.',
   },
 };
 
@@ -250,6 +264,8 @@ export interface PromoEligibilityResult {
   reason: string;
   allowance_granted: number;
   allowance_remaining: number;
+  /** False when the tier places no monthly count limit on promotional MLS spend. */
+  count_capped: boolean;
 }
 
 /**
@@ -264,7 +280,9 @@ export interface PromoEligibilityResult {
  */
 export function resolveMlsPromoEligibility(input: PromoEligibilityInput): PromoEligibilityResult {
   const allowance = getMlsPromotionalAllowance(input.tier_amount);
-  const remaining = Math.max(0, allowance - input.allowance_used_this_cycle);
+  const uncapped = allowance === MLS_NO_COUNT_CAP;
+  const remaining = uncapped ? 0 : Math.max(0, allowance - input.allowance_used_this_cycle);
+  const count_capped = !uncapped;
 
   // Cash-funded Booking Value is always unrestricted — this resolver only governs
   // the PROMOTIONAL portion, so a non-MLS cart is eligible with no allowance cost.
@@ -273,13 +291,22 @@ export function resolveMlsPromoEligibility(input: PromoEligibilityInput): PromoE
     if (evaln.mls_count >= 1 && evaln.qualifies_for_promo) {
       return {
         promo_eligible: true, consumes_allowance: false,
-        reason: evaln.reason, allowance_granted: allowance, allowance_remaining: remaining,
+        reason: evaln.reason, allowance_granted: allowance, allowance_remaining: remaining, count_capped,
       };
     }
     return {
       promo_eligible: true, consumes_allowance: false,
       reason: 'Non-standalone-MLS purchase — promotional Booking Value applies without an allowance.',
-      allowance_granted: allowance, allowance_remaining: remaining,
+      allowance_granted: allowance, allowance_remaining: remaining, count_capped,
+    };
+  }
+
+  // Non-VIP tiers carry NO monthly count cap on promotional standalone MLS spend.
+  if (uncapped) {
+    return {
+      promo_eligible: true, consumes_allowance: false,
+      reason: 'Promotional Booking Value may be applied to this standalone MLS Walkthrough. There is no monthly booking-count cap — the available balance is the only limit.',
+      allowance_granted: allowance, allowance_remaining: remaining, count_capped: false,
     };
   }
 
@@ -287,32 +314,32 @@ export function resolveMlsPromoEligibility(input: PromoEligibilityInput): PromoE
     return {
       promo_eligible: true, consumes_allowance: true,
       reason: `Standalone MLS Walkthrough within the monthly promotional allowance (${remaining} remaining).`,
-      allowance_granted: allowance, allowance_remaining: remaining,
+      allowance_granted: allowance, allowance_remaining: remaining, count_capped: true,
     };
   }
 
   return {
     promo_eligible: false, consumes_allowance: false,
-    reason: 'Monthly MLS promotional allowance is exhausted. Build a qualifying bundle, add funds, or pay directly to continue.',
-    allowance_granted: allowance, allowance_remaining: 0,
+    reason: 'VIP promotional Booking Value cannot be used on a standalone MLS Walkthrough. Use cash-funded Booking Value, add funds, pay directly, or build a qualifying bundle that includes eligible photography, video or a premium package.',
+    allowance_granted: allowance, allowance_remaining: 0, count_capped: true,
   };
 }
 
-/** Tier options that carry any standalone MLS promotional allowance. */
+/** Tier options whose promotional credit may be applied to a standalone MLS Walkthrough. */
 export function tiersWithMlsAllowance(): number[] {
-  return AUTO_FUND_AMOUNT_OPTIONS.filter(t => getMlsPromotionalAllowance(t) > 0);
+  return AUTO_FUND_AMOUNT_OPTIONS.filter(t => getMlsPromotionalAllowance(t) !== 0);
 }
 
 /** Human-readable allowance summary for disclosure copy. */
 export function describeAllowance(tierAmount: number): string {
-  const n = getMlsPromotionalAllowance(tierAmount);
   const config = getAutoFundConfig(tierAmount);
   if (!config) return 'No Auto-Fund tier configured.';
+  const label = config.tier_name ? `${config.tier_name} ` : '';
   if (config.bonus_booking_value === 0) {
-    return `Your $${tierAmount}/month Auto-Fund plan includes no promotional Booking Value. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value, additional deposits, or direct payment. Unlimited MLS Walkthroughs are always available.`;
+    return `Your ${label}$${tierAmount}/month Auto-Fund plan includes no promotional Booking Value. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value, additional deposits, or direct payment. Unlimited MLS Walkthroughs are always available.`;
   }
-  if (n === 0) {
-    return `Your ${tierAmount === 1000 ? 'VIP ' : ''}$${tierAmount}/month Auto-Fund plan applies promotional Booking Value to qualifying bundles. Standalone MLS Walkthroughs are purchased with cash-funded Booking Value, additional deposits, or direct payment. Unlimited MLS Walkthroughs are always available.`;
+  if (isMlsAllowanceUncapped(tierAmount)) {
+    return `Your ${label}$${tierAmount}/month Auto-Fund plan may apply promotional Booking Value to a standalone MLS Walkthrough IN FULL — up to the entire walkthrough price — with no monthly booking-count cap. Your cash-funded Booking Value tops up automatically when the promotional balance does not cover the whole price; you are never required to split the payment.`;
   }
-  return `Your $${tierAmount}/month Auto-Fund plan includes ${n} standalone MLS Walkthrough${n === 1 ? '' : 's'} per billing cycle that may be paid IN FULL — up to the entire walkthrough price — with your available Booking Value, including promotional bonus credits. If your promotional balance does not cover the whole price, your cash-funded Booking Value tops it up automatically; you are never required to split the payment. Unlimited further MLS Walkthroughs are available with cash-funded Booking Value, additional deposits, or by direct payment.`;
+  return `Your ${label}$${tierAmount}/month Auto-Fund plan applies promotional Booking Value to eligible photography, video, premium packages and qualifying genuine bundles. VIP promotional Booking Value cannot be used on a standalone MLS Walkthrough. Your cash-funded Booking Value can be used on anything, including standalone MLS Walkthroughs, with no monthly booking-count cap.`;
 }

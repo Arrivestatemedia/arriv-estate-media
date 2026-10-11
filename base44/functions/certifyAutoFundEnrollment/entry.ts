@@ -51,19 +51,19 @@ export default async function (req) {
       'switch alone cannot open enrollment while the code flag is off');
 
     // ══ 2. Membership-fee table matches the owner-approved amounts ═════════
-    const approved = { 50: 0, 100: 0, 200: 0, 350: 25, 500: 25, 1000: 25 };
+    const approved = { 150: 0, 250: 0, 350: 25, 500: 25, 1000: 25 };
     const feeMismatch = Object.entries(approved).filter(([amt, fee]) => AUTOFUND_MEMBERSHIP_FEE[Number(amt)] !== fee);
     check('approved fee table exact', feeMismatch.length === 0,
-      feeMismatch.length ? JSON.stringify(feeMismatch) : '$350/$500/$1,000 = $25; $50/$100/$200 = $0');
+      feeMismatch.length ? JSON.stringify(feeMismatch) : '$350/$500/$1,000 = $25; $150/$250 = $0');
 
     // ══ 3. Total recurring charge matches the approved table ═══════════════
-    const approvedTotals = { 50: 50, 100: 100, 200: 200, 350: 375, 500: 525, 1000: 1025 };
+    const approvedTotals = { 150: 150, 250: 250, 350: 375, 500: 525, 1000: 1025 };
     const totalMismatch = Object.entries(approvedTotals).filter(([amt, t]) => getTotalMonthlyCharge(Number(amt)) !== t);
     check('approved total recurring charge exact', totalMismatch.length === 0,
-      totalMismatch.length ? JSON.stringify(totalMismatch) : '$50/$100/$200/$375/$525/$1,025');
+      totalMismatch.length ? JSON.stringify(totalMismatch) : '$150/$250/$375/$525/$1,025');
 
     // ══ 4. No fee is chargeable while billing is switched off ═════════════
-    const chargeable = [50, 100, 200, 350, 500, 1000].map(a => getMembershipFee(a));
+    const chargeable = [150, 250, 350, 500, 1000].map(a => getMembershipFee(a));
     check('fee billing disabled — zero chargeable at every tier',
       AUTOFUND_FINAL_FLAGS.membership_fee_enabled === false && chargeable.every(f => f === 0),
       `charged set = [${chargeable.join(', ')}]`);

@@ -604,10 +604,10 @@ export default async function(req) {
     let partialCommissionPaymentEventId = '';
     let partialCommissionEventId = '';
     // Canonical expectations, derived from the Auto-Fund tier configuration.
-    // For $200 the canonical tier issues $220 Booking Value (22000¢).
-    const partialTier = getAutoFundConfig(200);
+    // For $250 (Growth) the canonical tier issues $275 Booking Value (27500¢).
+    const partialTier = getAutoFundConfig(250);
     const partialIssuedCents = Math.round((partialTier?.booking_value || 0) * 100);
-    const refundFraction = 0.5; // $100 refunded of $200 charged
+    const refundFraction = 0.5; // $125 refunded of $250 charged
     const partialReversalCents = Math.round(partialIssuedCents * refundFraction);
     const partialLotRemainingCents = partialIssuedCents - partialReversalCents;
     try {
@@ -619,8 +619,8 @@ export default async function(req) {
         customer_id: prepaidContactId,
         customer_email: prepaidEmail,
         wallet_id: prepaidWalletId,
-        amount_charged: 200,
-        amount_charged_cents: 20000,
+        amount_charged: 250,
+        amount_charged_cents: 25000,
         status: 'succeeded',
         event_type: 'recurring',
         sales_rep_id: salesRepId,
@@ -633,7 +633,7 @@ export default async function(req) {
       const { status, data } = await sendRefundEvent({
         refund_event_id: partialCommRefundId,
         original_payment_event_id: partialCommissionPaymentEventId,
-        refunded_commissionable_amount: 100, // 50% of $200
+        refunded_commissionable_amount: 125, // 50% of $250
         refund_type: 'partial',
         reason: 'partial_commission_refund',
         certification: true,

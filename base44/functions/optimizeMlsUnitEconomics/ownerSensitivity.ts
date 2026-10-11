@@ -271,7 +271,7 @@ export function runOwnerSensitivity() {
           const t500 = runTier(500, price, b, CERT_PERSONAS);
           const tvip = runTier(VIP_TIER, price, b, CERT_PERSONAS);
           const otherTiers: Record<string, number> = {};
-          for (const t of [50, 100, 200, 350]) otherTiers[String(t)] = runTier(t, price, b, CERT_PERSONAS).worst_pct;
+          for (const t of [150, 250, 350]) otherTiers[String(t)] = runTier(t, price, b, CERT_PERSONAS).worst_pct;
           const t500NoChurn = runTier(500, price, b, NO_CHURN_PERSONAS);
           const tvipNoChurn = runTier(VIP_TIER, price, b, NO_CHURN_PERSONAS);
           editingGrid.push({

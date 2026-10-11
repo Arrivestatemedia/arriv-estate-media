@@ -12,9 +12,11 @@ import {
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import {
   AUTOFUND_ENROLLMENT_FLAG_KEY,
+  AUTOFUND_MEMBERSHIP_FEE,
   isEnrollmentOpen,
   getMembershipFee,
   getTotalMonthlyCharge,
+  buildEnrollmentDisclosure,
 } from '../../shared/autoFundFinalConfig.ts';
 import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
 import { buildBillingHistory, buildChargeDisclosure } from '../../shared/autoFundMembershipBilling.ts';
@@ -37,7 +39,9 @@ export default async function(req) {
     let user = null;
     try { user = await base44.auth.me(); } catch {}
 
-    const ADMIN_ACTIONS = ['enroll', 'change_amount', 'pause', 'resume', 'cancel', 'topup', 'list_subscriptions'];
+    // Actions only an administrator (or the sales-assisted channel) may perform.
+    const ADMIN_ACTIONS = ['enroll', 'topup', 'list_subscriptions'];
+
     if (ADMIN_ACTIONS.includes(action)) {
       if (!user || user.role !== 'admin') {
         return Response.json({ error: 'Admin access required' }, { status: 403 });
@@ -45,6 +49,70 @@ export default async function(req) {
       if (!globalEnabled) {
         return Response.json({ error: 'Prepaid/Auto-Fund feature is not enabled' }, { status: 403 });
       }
+    }
+
+    const isAdmin = !!user && user.role === 'admin';
+
+    /**
+     * A signed-in customer may manage THEIR OWN membership from their dashboard; an
+     * administrator may act on any. Enforced on every self-service action, so one
+     * customer can never re-price, pause or cancel another customer's membership.
+     */
+    const assertOwnership = (sub: any) => {
+      if (isAdmin) return true;
+      if (!user) return false;
+      return !!sub && !!sub.customer_email && sub.customer_email === user.email;
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // GET_TIER_CATALOG — the ONE authoritative five-tier configuration
+    // ════════════════════════════════════════════════════════════════════════
+    // Every customer-facing surface renders from this, so a tier amount, bonus,
+    // membership fee or total recurring charge is never duplicated in the UI.
+    if (action === 'get_tier_catalog') {
+      const switchResp = await base44.asServiceRole.entities.AppSetting.filter(
+        { key: AUTOFUND_ENROLLMENT_FLAG_KEY },
+        undefined,
+        1
+      );
+      const switchArr = Array.isArray(switchResp) ? switchResp : (switchResp?.data || []);
+      const switchValue = switchArr.length > 0 ? switchArr[0].value : null;
+
+      const tiers = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
+        const cfg = getAutoFundConfig(amount)!;
+        const fee = AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
+        const vip = cfg.vip === true;
+        return {
+          amount,
+          tier_name: cfg.tier_name || `$${amount}`,
+          plan_id: cfg.plan_id,
+          bonus_pct: cfg.bonus_pct,
+          bonus_booking_value: cfg.bonus_booking_value,
+          booking_value: cfg.booking_value,
+          membership_fee: fee,
+          total_monthly_charge: amount + fee,
+          credits: cfg.credits,
+          benefits: cfg.benefits,
+          support_priority: cfg.support_priority,
+          vip,
+          promotional_credit_usable_on_standalone_mls: !vip,
+          disclosure: buildEnrollmentDisclosure(amount, vip),
+        };
+      });
+
+      return Response.json({
+        status: 'success',
+        tiers,
+        tier_count: tiers.length,
+        enrollment_open: isEnrollmentOpen(switchValue),
+        enrollment_gate: {
+          app_setting_key: AUTOFUND_ENROLLMENT_FLAG_KEY,
+          app_setting_present: switchArr.length > 0,
+          note: 'Public enrollment stays closed until the owner activates the launch gate.',
+        },
+        membership_fee_statement:
+          'The membership fee is collected revenue. It is never spendable Booking Value, never earns promotional credit and never pays sales commission.',
+      });
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -142,6 +210,7 @@ export default async function(req) {
 
       const sub = await base44.asServiceRole.entities.AutoFundSubscription.get(subscription_id);
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
+      if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
       if (sub.status === 'cancelled') return Response.json({ error: 'Cannot change amount on a cancelled subscription' }, { status: 400 });
 
       const nowIso = new Date().toISOString();
@@ -178,6 +247,7 @@ export default async function(req) {
 
       const sub = await base44.asServiceRole.entities.AutoFundSubscription.get(subscription_id);
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
+      if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
       if (sub.status === 'cancelled') return Response.json({ error: 'Cannot pause a cancelled subscription' }, { status: 400 });
 
       const nowIso = new Date().toISOString();
@@ -206,6 +276,7 @@ export default async function(req) {
 
       const sub = await base44.asServiceRole.entities.AutoFundSubscription.get(subscription_id);
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
+      if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
       if (sub.status !== 'paused') return Response.json({ error: 'Subscription is not paused' }, { status: 400 });
 
       const nowIso = new Date().toISOString();
@@ -237,6 +308,7 @@ export default async function(req) {
 
       const sub = await base44.asServiceRole.entities.AutoFundSubscription.get(subscription_id);
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
+      if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
 
       const nowIso = new Date().toISOString();
       await base44.asServiceRole.entities.AutoFundSubscription.update(sub.id, {
@@ -385,6 +457,36 @@ export default async function(req) {
           ...s,
           booking_value_per_cycle: getAutoFundConfig(s.amount)?.booking_value || s.amount,
         })),
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REQUEST_ADVISOR — "Speak With a Sales Growth Advisor"
+    // ════════════════════════════════════════════════════════════════════════
+    // Records a genuine callback request for the sales team. It does NOT enroll,
+    // charge, or attribute anything — an advisor may never enroll a customer or
+    // accept recurring terms on their behalf.
+    if (action === 'request_advisor') {
+      if (!user) return Response.json({ error: 'Sign in to request an advisor.' }, { status: 401 });
+      const { customer_name, customer_phone, preferred_time, notes } = body;
+
+      const requestId = 'afadv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      await base44.asServiceRole.entities.AutoFundAdvisorRequest.create({
+        request_id: requestId,
+        customer_email: user.email,
+        customer_name: customer_name || user.full_name || '',
+        customer_phone: customer_phone || '',
+        preferred_time: preferred_time || '',
+        notes: notes || '',
+        status: 'new',
+        source: 'autofund_self_service',
+        created_at: new Date().toISOString(),
+      });
+
+      return Response.json({
+        status: 'success',
+        request_id: requestId,
+        message: 'Thanks — a Sales Growth Advisor will reach out to walk you through the tiers. You can enroll yourself at any time; an advisor cannot accept the recurring terms for you.',
       });
     }
 

@@ -8,20 +8,22 @@
 //
 // Approved structure:
 //
-//   Deposit    Membership fee   Promotional bonus   Total Booking Value
-//   $50        $0               $0                  $50
-//   $100       $0               $5                  $105
-//   $200       $0               $20                 $220
-//   $350       $25              $52.50              $402.50
-//   $500       $25              $100                $600
-//   $1,000     $25              $250                $1,250   (VIP)
+//   Tier          Deposit   Fee   Promo bonus   Total Booking Value   Total charge
+//   Starter        $150     $0     $7.50        $157.50               $150
+//   Growth         $250     $0     $25          $275                  $250
+//   Professional   $350     $25    $52.50       $402.50               $375
+//   Premier        $500     $25    $100         $600                  $525
+//   VIP            $1,000   $25    $250         $1,250                $1,025
+//
+// FIVE TIERS. The former $50 / $100 / $200 entry options are RETIRED from new
+// enrollment and are replaced by the $150 Starter and $250 Growth tiers.
 //
 // The membership fee is COLLECTED REVENUE. It is NOT spendable Booking Value, it
 // generates NO promotional credit, and it is NEVER a customer wallet liability.
 // It is identified separately in billing, reconciliation, refunds and reporting.
 //
 // MLS policy: no standalone booking-count allowance at any tier. Promotional
-// credit may be used on standalone MLS Walkthroughs at $50-$500. On the VIP tier
+// credit may be used on standalone MLS Walkthroughs at Starter-Premier. On the VIP tier
 // promotional credit may NOT pay for a standalone MLS Walkthrough, but VIP
 // cash-funded Booking Value remains fully usable there.
 // ============================================================================
@@ -50,7 +52,7 @@ export function isEnrollmentOpen(appSettingValue: string | null | undefined): bo
 
 /** Approved monthly membership fee by deposit amount. */
 export const AUTOFUND_MEMBERSHIP_FEE: Record<number, number> = {
-  50: 0, 100: 0, 200: 0, 350: 25, 500: 25, 1000: 25,
+  150: 0, 250: 0, 350: 25, 500: 25, 1000: 25,
 };
 
 /** Monthly membership fee actually chargeable right now (zero while the flag is off). */
