@@ -182,11 +182,22 @@ export const PERSONA_DESCRIPTIONS: Record<string, string> = {
   accumulator: '1 walkthrough / month for 6 months, then 15 / month',
   refunds: '6 walkthroughs / month with 2 refunded bookings',
   pause_resume: '6 walkthroughs / month, paused 3 months',
+  churn_after_1: 'funds 1 month then cancels; every remaining balance still redeemable',
+  churn_after_3: 'funds 3 months then cancels; every remaining balance still redeemable',
   churn_after_4: 'funds 4 months then cancels; every remaining balance still redeemable',
 };
 
 /** Certification persona set: the base patterns plus an explicit churn pattern. */
 export const CERT_PERSONAS = [...PERSONAS, 'churn_after_4'];
+
+/** Early-termination stress cycles: fund 1, 3 or 4 months, then cancel with the whole balance still redeemable. */
+export const CHURN_PERSONAS = ['churn_after_1', 'churn_after_3', 'churn_after_4'];
+
+/** Certification patterns plus the two additional early-churn cycles requested by the owner. */
+export const OWNER_PERSONAS = [...CERT_PERSONAS, 'churn_after_1', 'churn_after_3'];
+
+/** The certification patterns with every churn pattern removed — isolates operating-cost effects. */
+export const NO_CHURN_PERSONAS = CERT_PERSONAS.filter(p => !p.startsWith('churn_after'));
 
 /**
  * Options for a certification run. All default to the earlier behaviour so the
@@ -201,6 +212,12 @@ export interface SimOptions {
   vip_promo_on_standalone?: boolean;
   /** Cost ratio to use when closing out outstanding promotional credit. */
   promo_closeout_ratio?: number;
+  /**
+   * Months in which the 'refunds' pattern refunds one standalone Walkthrough.
+   * Defaults to the conservative [3, 7] pair. Lengthening it raises the modelled
+   * refund and cancellation rate, since no measured rate exists.
+   */
+  refund_months?: number[];
 }
 
 const rep = (k: string, n: number) => Array.from({ length: n }, () => k);
@@ -222,6 +239,8 @@ function monthlyPlan(persona: string, m: number): string[] | null {
     case 'accumulator': return m < 6 ? rep('S', 1) : rep('S', 15);
     case 'refunds': return rep('S', 6);
     case 'pause_resume': return PAUSE_MONTHS.includes(m) ? [] : rep('S', 6);
+    case 'churn_after_1': return m < 1 ? rep('S', 6) : [];
+    case 'churn_after_3': return m < 3 ? rep('S', 6) : [];
     case 'churn_after_4': return m < 4 ? rep('S', 6) : [];
     default: return [];
   }
@@ -248,10 +267,12 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
   let directPaid = 0, topups = 0, promoOnStandalone = 0, promoElsewhere = 0, cashBvUsed = 0;
   let activeMonths = 0, payments = 0, bookings = 0, nonMlsBookings = 0, refunds = 0;
   let membershipRevenue = 0, membershipProcessing = 0;
+  const refundMonths = opts.refund_months ?? REFUND_MONTHS;
 
   for (let m = 0; m < MONTHS; m++) {
     if (persona === 'pause_resume' && PAUSE_MONTHS.includes(m)) continue;
-    if (persona === 'churn_after_4' && m >= 4) continue;
+    const churnAfter = /^churn_after_(\d+)$/.exec(persona);
+    if (churnAfter && m >= Number(churnAfter[1])) continue;
     activeMonths++;
 
     cashIn += cfg.amount;
@@ -335,7 +356,7 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
       for (const k of plan) book(k);
     }
 
-    if (persona === 'refunds' && REFUND_MONTHS.includes(m)) {
+    if (persona === 'refunds' && refundMonths.includes(m)) {
       const b = monthBookings.filter(x => x.key === 'S').pop();
       if (b) {
         promoPool += b.promo;

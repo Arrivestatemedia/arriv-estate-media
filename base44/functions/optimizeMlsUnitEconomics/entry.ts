@@ -11,6 +11,7 @@ import {
 } from './simulator.ts';
 import { analyzeSimplifiedPolicy } from './simplifiedPolicy.ts';
 import { runFinalCertification } from './finalCertification.ts';
+import { runOwnerSensitivity } from './ownerSensitivity.ts';
 
 type Economics = { id: string; label: string; mls_price: number; mls_payout: number; mls_editing: number };
 
@@ -61,6 +62,26 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
     const svc = base44.asServiceRole.entities;
+
+    // Owner-requested operating-cost sensitivity. Returned on its own so the
+    // standard analysis payload is unchanged for every existing caller.
+    let scope = new URL(req.url).searchParams.get('scope');
+    if (!scope && req.method !== 'GET') {
+      try {
+        const body = await req.clone().json();
+        scope = body?.scope ?? null;
+      } catch {
+        scope = null;
+      }
+    }
+    if (scope === 'owner_sensitivity') {
+      return Response.json({
+        status: 'OWNER_SENSITIVITY_COMPLETE',
+        model_version: 'mls_unit_economics_v3_20261011',
+        phase8_owner_sensitivity: runOwnerSensitivity(),
+        note: 'Analysis only. No pricing, compensation, allowance, enrollment, balance, or production setting was changed.',
+      });
+    }
 
     // ═══ PHASE 1 — RECONCILIATION ($1,000 VIP, standalone MLS only, allowance 0) ═══
     const oldBundleRatio = 230.5 / 425; // v2 bundle: MLS (<=2,500) + Essentials (2,501-3,500)

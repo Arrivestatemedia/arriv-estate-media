@@ -5,6 +5,8 @@
 **Scope:** one consolidated certification of the approved final structure. No further redesign.
 **Status:** ANALYSIS ONLY. Staging only. Enrollment disabled. Production price, pricing, compensation, and every live ledger unchanged.
 
+> **FOLLOW-UP 2026-10-11.** The owner supplied provisional operating figures and requested a sensitivity report. See **`ARRIV_AUTOFUND_OWNER_SENSITIVITY_REPORT.md`**. That report supersedes the cost-status column in section I for items 1–3 and 9, and records which figures remain unverified or missing. Under the owner's provisional assumptions the VIP worst case improves to **7.35%** at $120 and the $500 tier to **15.26%**; VIP is negative in 17 of 24 cost combinations at the live $100 price.
+
 > **OWNER DECISION RECORDED 2026-10-11.** The VIP lifetime contribution margin of **5.48%** is **accepted** as an intentional, documented exception to the 10% minimum. The VIP membership fee is **not** raised beyond $25. The 25% promotional bonus is **not** reduced. The membership and promotional redemption structure is **preserved**. The 10% minimum is **retained** for the other five tiers, and is met. Live MLS pricing, enrollment and fee collection are **unchanged**. The $79 remedy below stays on the record as **tested and declined**, not recommended. **See section G for the decision and section H for every loss-making scenario.**
 
 ---
@@ -287,10 +289,10 @@ The $50, $100, $200 and $350 tiers stay positive at $100 but well below target (
 | Rollover and unused-balance close-out | Every balance eventually redeemed; nothing counted as profit | **Conservative by construction** |
 | VIP support | $72 retainer + 12 sessions × $25 = $372/year | **Estimated** |
 | Non-VIP priority support | $6/month, same basis as VIP enhanced support | **Estimated** |
-| Stripe — 2.9% + $0.30 on every funding charge, top-up and direct payment | Published standard rate | **Estimated** — assumed, not observed on this account |
-| Editing labour, MLS — $20 | 52 minutes × $23/hr mean editor wage | **Estimated — UNVERIFIED** |
-| Employer payroll burden — 15% (R1) / 20% (R2) | Modelled | **Estimated — no observed value** |
-| Editing quality control — $5 (R1) / $8 (R2) per walkthrough | Modelled | **Estimated — no observed value** |
+| Stripe — 2.9% + $0.30 on every funding charge, top-up and direct payment | Published standard rate, then verified against the connected account | **VERIFIED 2026-10-11** — derived from this account's own settled charges: 2.8997% + $0.301 |
+| Editing labour, MLS — $20 | 52 minutes × $23/hr. The $23 rate was **itself an unverified assumption**, not an approved wage. | **UNVERIFIED** — now modelled across $16/$18/$23 per hour and 30/45/60/90 active minutes |
+| Employer payroll burden — 15% (R1) / 20% (R2) | Modelled | **Owner-provisional at 15%, UNVERIFIED.** 20% retained as the conservative view |
+| Editing quality control — $5 (R1) / $8 (R2) per walkthrough | Modelled | **Owner-provisional at $5, UNVERIFIED.** $8 retained as the conservative view |
 | Churn | Funds 4 months, then stops | **Estimated** — a stress pattern, not a measured churn rate |
 
 The three unverified lines have **no observed value anywhere in the system**. `inventoryCertificationData` reports **0 MLS jobs, 0 MLS editing tasks, 0 tracked editing minutes and 0 MLS compensation snapshots**, against one active editor at $23/hr. No MLS Walkthrough has ever been produced.
@@ -318,15 +320,15 @@ Wallet-funded walkthrough cost at $120: **$78** under full realism (65% of price
 
 ### Requested from the owner — one consolidated list
 
-1. Actual or estimated **MLS editing minutes per Walkthrough**, and the editor cost basis (hourly or per file).
-2. **Employer payroll burden** percentage to apply to editing labour.
-3. **Quality-control cost per Walkthrough**, and what it covers.
-4. Real **refund and cancellation rate** on completed work.
-5. Real monthly **churn rate** on subscription wallets.
-6. **VIP support**: cost per session, and expected sessions per VIP member per year.
-7. **Acquisition / marketing cost per new Auto-Fund member**, plus any onboarding cost.
-8. **Chargeback, no-show and standby-dispatch cost** per job, if tracked.
-9. Confirmation that the **Stripe rate** in use is 2.9% + $0.30 and not a negotiated rate.
-10. Any **general overhead or staffing allocation** to apply per subscriber per month.
+1. Actual or estimated **MLS editing minutes per Walkthrough**, and the editor cost basis (hourly or per file). — **Still unmeasured.** Candidate wages of $16/$18/$23 against 30/45/60/90 active minutes are now modelled.
+2. **Employer payroll burden** percentage to apply to editing labour. — **Supplied provisionally at 15%, still unverified.**
+3. **Quality-control cost per Walkthrough**, and what it covers. — **Supplied provisionally at $5, still unverified.**
+4. Real **refund and cancellation rate** on completed work. — **No data. Modelled as four disclosed intensities.**
+5. Real monthly **churn rate** on subscription wallets. — **No data. Stress-tested at 1, 3 and 4 funding cycles.**
+6. **VIP support**: cost per session, and expected sessions per VIP member per year. — **Usage unknown. Expected and maximum views both reported.**
+7. **Acquisition / marketing cost per new Auto-Fund member**, plus any onboarding cost. — **Not established. Reported as the maximum absorbable cost only.**
+8. **Chargeback, no-show and standby-dispatch cost** per job, if tracked. — **No frequency data. Modelled as a flat per-member cost.**
+9. Confirmation that the **Stripe rate** in use is 2.9% + $0.30 and not a negotiated rate. — **Verified from the connected account. Assumption confirmed.**
+10. Any **general overhead or staffing allocation** to apply per subscriber per month. — **Not allocated. Contribution margin is reported separately from every net view.**
 
 Items 1–3 and 7 are the ones that can move a tier across the 10% line. **Item 7 is the only one that can turn the accepted VIP result negative.**
