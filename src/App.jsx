@@ -70,6 +70,7 @@ import SignDocumentPage from './pages/SignDocumentPage';
 import RegionalJobRouter from './pages/RegionalJobRouter';
 import PrepaidPurchase from './pages/PrepaidPurchase';
 import AutoFund from './pages/AutoFund';
+import AutoFundTerms from './pages/AutoFundTerms';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -563,6 +564,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route path="/AutoFundTerms" element={<AutoFundTerms />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

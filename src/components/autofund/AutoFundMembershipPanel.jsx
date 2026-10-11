@@ -4,18 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pause, Play, XCircle, RefreshCw, Loader2, AlertTriangle, Calendar } from "lucide-react";
+import { Pause, Play, XCircle, RefreshCw, Loader2, AlertTriangle, Calendar, CheckCircle2 } from "lucide-react";
 
 /**
  * AutoFundMembershipPanel — the customer manages their OWN membership from their
  * account dashboard. Ownership is verified server-side on every action, so this
  * panel can never reach another customer's subscription.
+ *
+ * Cancelling is self-service and complete: it needs no salesperson, stops all
+ * future recurring charges, and the confirmation below states the effective date,
+ * the end of the paid benefit period, and that the wallet balance was preserved.
  */
 export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
   const sub = data?.subscription;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [newAmount, setNewAmount] = useState("");
+  const [cancelResult, setCancelResult] = useState(null);
 
   if (!sub) return null;
 
@@ -31,7 +36,11 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
       });
       const payload = res?.data || res;
       if (payload?.error) setError(payload.error);
-      else { setNewAmount(""); onChanged?.(); }
+      else {
+        if (action === "cancel") setCancelResult(payload);
+        setNewAmount("");
+        onChanged?.();
+      }
     } catch (e) {
       setError(e?.response?.data?.error || e.message);
     } finally {
@@ -43,6 +52,8 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
     sub.status === "active" ? "bg-[#B8956A] text-[#1A1A1A]"
     : sub.status === "paused" ? "bg-amber-500 text-white"
     : "bg-gray-400 text-white";
+
+  const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : "");
 
   return (
     <Card className="border-[#B8956A]/20 bg-white">
@@ -63,7 +74,7 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
         {sub.next_billing_date && (
           <p className="flex items-center gap-2 text-sm text-[#1A1A1A]/70">
             <Calendar className="w-4 h-4 text-[#B8956A]" />
-            Next funding: {new Date(sub.next_billing_date).toLocaleDateString()}
+            Next funding: {fmtDate(sub.next_billing_date)}
           </p>
         )}
 
@@ -75,6 +86,36 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
             <p className="text-xs text-red-800">{error}</p>
+          </div>
+        )}
+
+        {cancelResult && (
+          <div className="p-4 rounded-lg bg-[#B8956A]/5 border border-[#B8956A]/25 space-y-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#B8956A]" />
+              <p className="text-sm font-medium text-[#1A1A1A]">Cancellation confirmed</p>
+            </div>
+            <div className="text-xs text-[#1A1A1A]/75 space-y-1">
+              <p>Effective cancellation date: {fmtDate(cancelResult.cancellation_effective_at) || "today"}</p>
+              <p>No further recurring charges will be made.</p>
+              {cancelResult.benefit_period_end && (
+                <p>
+                  Membership benefits you already paid for remain available through{" "}
+                  {fmtDate(cancelResult.benefit_period_end)}.
+                </p>
+              )}
+              <p>
+                Your wallet balance has <strong>not</strong> been forfeited
+                {typeof cancelResult.wallet_balance === "number"
+                  ? ` — cash-funded Booking Value remaining: $${cancelResult.wallet_balance.toFixed(2)}.`
+                  : "."}
+              </p>
+              <p>
+                {cancelResult.cancellation_notice?.delivery_status === "sent"
+                  ? "A cancellation confirmation has been emailed to you."
+                  : "We could not confirm delivery of your cancellation confirmation email."}
+              </p>
+            </div>
           </div>
         )}
 
@@ -121,6 +162,13 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
           {loading && <Loader2 className="w-4 h-4 animate-spin text-[#B8956A]" />}
         </div>
 
+        {sub.status !== "cancelled" && (
+          <p className="text-[11px] leading-relaxed text-[#1A1A1A]/50">
+            You can cancel here at any time without contacting a salesperson. Cancelling stops all future charges and
+            does not forfeit the Booking Value funded by your own deposits.
+          </p>
+        )}
+
         <div>
           <p className="text-sm font-medium text-[#1A1A1A] mb-2">Billing history</p>
           <div className="space-y-2">
@@ -131,10 +179,10 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
                     {p.date ? new Date(p.date).toLocaleDateString() : "—"} — ${p.amount}
                   </p>
                   <p className="text-xs text-[#1A1A1A]/50">
-                    {p.is_membership_fee === false && p.booking_value_added > 0
-                      ? `$${p.booking_value_added} Booking Value added`
-                      : p.component === "membership_fee" || p.is_membership_fee !== false
-                        ? "Membership fee — not spendable Booking Value"
+                    {p.component === "membership_fee"
+                      ? "Membership fee — not spendable Booking Value"
+                      : p.booking_value_added > 0
+                        ? `$${p.booking_value_added} Booking Value added`
                         : "No value added"}
                   </p>
                 </div>

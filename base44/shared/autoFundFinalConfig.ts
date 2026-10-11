@@ -134,7 +134,16 @@ export function buildEnrollmentDisclosure(amount: number, isVipTier: boolean) {
     fee_is_spendable_booking_value: false,
     fee_generates_promotional_credit: false,
     cancel_or_change_anytime: true,
-    paid_booking_value_never_expires_while_subscribed: true,
+    // CORRECTED: this field previously asserted `paid_booking_value_never_expires_while_subscribed: true`.
+    // That was FALSE. autoFundProcessor issues EVERY funding lot with a 12-month
+    // validity (addMonths(new Date(), 12)) and the daily "Prepaid Lot Expiration"
+    // workflow retires a lot once that period ends, reducing the wallet balance.
+    // A false non-expiry promise was being shown to customers. The verified
+    // behaviour is stated instead, and the lawfulness of expiring customer-funded
+    // value is logged as an unresolved legal question in autoFundWalletTerms.ts.
+    cash_funded_value_forfeited_on_cancellation: false,
+    funding_lot_validity_months: 12,
+    wallet_cash_out_available: false,
   };
   return {
     ...base,

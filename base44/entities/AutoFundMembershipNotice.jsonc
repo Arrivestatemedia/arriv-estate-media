@@ -1,0 +1,202 @@
+{
+  "name": "AutoFundMembershipNotice",
+  "type": "object",
+  "properties": {
+    "notice_id": {
+      "type": "string",
+      "description": "Globally unique notice ID. Deterministic per (notice_type, subscription, cycle) so a duplicate dispatch can never produce a second notice. Used for idempotency."
+    },
+    "notice_type": {
+      "type": "string",
+      "enum": [
+        "enrollment_acknowledgment",
+        "renewal_notice",
+        "cancellation_confirmation"
+      ],
+      "description": "Which required customer notice this record represents."
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription this notice belongs to"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (Contact entity ID), denormalized for lookups"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized recipient email for RLS and lookups"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Denormalized display name"
+    },
+    "enrollment_channel": {
+      "type": "string",
+      "enum": [
+        "self_service",
+        "sales_assisted",
+        "admin",
+        ""
+      ],
+      "default": "",
+      "description": "Channel the membership was enrolled on. Both channels receive the same notice content."
+    },
+    "tier_amount": {
+      "type": "number",
+      "description": "Monthly wallet deposit at the time this notice was issued"
+    },
+    "membership_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Monthly membership fee at the time this notice was issued"
+    },
+    "total_monthly_charge": {
+      "type": "number",
+      "description": "Total recurring monthly charge at the time this notice was issued"
+    },
+    "billing_frequency": {
+      "type": "string",
+      "default": "monthly",
+      "description": "Billing frequency disclosed to the customer"
+    },
+    "next_renewal_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The renewal date this notice refers to"
+    },
+    "terms_version": {
+      "type": "string",
+      "description": "Terms version in force when this notice was issued"
+    },
+    "fee_refund_policy": {
+      "type": "string",
+      "enum": [
+        "undetermined",
+        "non_refundable",
+        "refundable_full",
+        "refundable_prorated"
+      ],
+      "default": "undetermined",
+      "description": "Membership-fee refundability stated in this notice. 'undetermined' means the policy was not yet legally approved \u2014 the notice says so rather than asserting a policy."
+    },
+    "cancellation_effective_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Effective date of the cancellation stated in a cancellation confirmation"
+    },
+    "benefit_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of the paid membership-benefit period stated in a cancellation confirmation"
+    },
+    "wallet_balance_preserved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the confirmation stated that existing wallet balances were preserved (not forfeited)"
+    },
+    "wallet_balance_cents_at_notice": {
+      "type": "integer",
+      "default": 0,
+      "description": "Customer's cash-funded Booking Value balance in integer cents when the notice was issued"
+    },
+    "jurisdiction_state": {
+      "type": "string",
+      "description": "Two-letter state whose rule was applied to a renewal notice. Empty when no jurisdiction was resolved."
+    },
+    "renewal_rule_applied": {
+      "type": "string",
+      "description": "Identifier of the renewal-notice rule applied (e.g. DEFAULT_7D, GA_30D)"
+    },
+    "advance_notice_days": {
+      "type": "integer",
+      "description": "Advance-notice lead time applied, in days"
+    },
+    "statutory_cadence_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "False until counsel confirms the statutory notice cadence. The applied lead time is a conservative internal default, not a legal determination."
+    },
+    "email_subject": {
+      "type": "string",
+      "description": "Subject line actually sent"
+    },
+    "body_snapshot": {
+      "type": "string",
+      "description": "Plain-text snapshot of the notice body as sent, preserved for audit"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the notice was successfully sent (empty when not delivered)"
+    },
+    "delivery_status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed",
+        "skipped"
+      ],
+      "description": "Outcome of the delivery attempt"
+    },
+    "delivery_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of delivery attempts made"
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the most recent delivery attempt was made"
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Safe failure reason for the most recent failed delivery attempt (no credentials)"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification notices. Excluded from production analytics and never delivered to a real customer."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "notice_id",
+    "notice_type",
+    "subscription_id",
+    "customer_email",
+    "delivery_status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

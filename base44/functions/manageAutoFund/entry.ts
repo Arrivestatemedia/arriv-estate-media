@@ -18,8 +18,18 @@ import {
   getTotalMonthlyCharge,
   buildEnrollmentDisclosure,
 } from '../../shared/autoFundFinalConfig.ts';
-import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
-import { buildBillingHistory, buildChargeDisclosure } from '../../shared/autoFundMembershipBilling.ts';
+import { enrollAutoFund, CURRENT_TERMS_VERSION } from '../../shared/autoFundEnrollment.ts';
+import {
+  buildBillingHistory,
+  buildChargeDisclosure,
+  DEFAULT_FEE_REFUND_POLICY,
+} from '../../shared/autoFundMembershipBilling.ts';
+import { buildComplianceDisclosure } from '../../shared/autoFundComplianceDisclosure.ts';
+import {
+  sendEnrollmentAcknowledgment,
+  sendCancellationConfirmation,
+  listNoticesForSubscription,
+} from '../../shared/autoFundMembershipNotices.ts';
 
 export default async function(req) {
   try {
@@ -78,6 +88,17 @@ export default async function(req) {
       const switchArr = Array.isArray(switchResp) ? switchResp : (switchResp?.data || []);
       const switchValue = switchArr.length > 0 ? switchArr[0].value : null;
 
+      // The renewal date a new enrollment would carry today — mirrors the exact
+      // calculation the enrollment engine performs, so the pre-authorization
+      // disclosure matches what the customer will actually be billed.
+      const nowForDisclosure = new Date();
+      const billingDayForDisclosure = nowForDisclosure.getDate();
+      const nextRenewalForDisclosure = new Date();
+      nextRenewalForDisclosure.setDate(billingDayForDisclosure);
+      if (nextRenewalForDisclosure <= nowForDisclosure) {
+        nextRenewalForDisclosure.setMonth(nextRenewalForDisclosure.getMonth() + 1);
+      }
+
       const tiers = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
         const cfg = getAutoFundConfig(amount)!;
         const fee = AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
@@ -97,6 +118,16 @@ export default async function(req) {
           vip,
           promotional_credit_usable_on_standalone_mls: !vip,
           disclosure: buildEnrollmentDisclosure(amount, vip),
+          // The SAME authoritative compliance package both enrollment channels
+          // render, so a material pre-authorization disclosure can never differ
+          // between self-service and sales-assisted enrollment.
+          compliance_disclosure: buildComplianceDisclosure({
+            tierAmount: amount,
+            termsVersion: CURRENT_TERMS_VERSION,
+            billingDay: billingDayForDisclosure,
+            nextRenewalDate: nextRenewalForDisclosure.toDateString(),
+            feePolicy: DEFAULT_FEE_REFUND_POLICY,
+          }),
         };
       });
 
@@ -153,7 +184,20 @@ export default async function(req) {
         const code = result.status === 'enrollment_closed' ? 403 : (result.status === 'already_enrolled' ? 409 : 400);
         return Response.json(result, { status: code });
       }
-      return Response.json(result);
+
+      // Durable enrollment acknowledgment: the customer's own record of the tier,
+      // the recurring-charge breakdown, billing frequency and renewal date, the
+      // terms version, the refund policy and how to cancel. Recorded with its
+      // delivery outcome. A delivery failure is recorded and surfaced — it never
+      // rolls back a completed enrollment.
+      const enrolledSub = await base44.asServiceRole.entities.AutoFundSubscription.get(result.subscription_id);
+      const ack = await sendEnrollmentAcknowledgment({
+        base44: base44.asServiceRole,
+        subscription: enrolledSub,
+        billingDay,
+      });
+
+      return Response.json({ ...result, enrollment_notice: ack });
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -196,7 +240,16 @@ export default async function(req) {
         const code = result.status === 'enrollment_closed' ? 403 : (result.status === 'already_enrolled' ? 409 : 400);
         return Response.json(result, { status: code });
       }
-      return Response.json(result);
+
+      // The self-service customer receives the identical acknowledgment email.
+      const enrolledSub = await base44.asServiceRole.entities.AutoFundSubscription.get(result.subscription_id);
+      const ack = await sendEnrollmentAcknowledgment({
+        base44: base44.asServiceRole,
+        subscription: enrolledSub,
+        billingDay,
+      });
+
+      return Response.json({ ...result, enrollment_notice: ack });
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -311,18 +364,48 @@ export default async function(req) {
       if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
 
       const nowIso = new Date().toISOString();
+      // The paid membership-benefit period runs to the renewal date that was
+      // scheduled when the customer cancelled, captured before it is cleared.
+      const benefitPeriodEnd = sub.next_billing_date || '';
+
       await base44.asServiceRole.entities.AutoFundSubscription.update(sub.id, {
         status: 'cancelled',
         cancelled_at: nowIso,
         cancel_reason: reason || '',
+        // Stop future scheduled recurring charges: clearing the scheduled billing
+        // date means nothing can pick this subscription up for a future charge.
+        next_billing_date: '',
+        paused_until: '',
         updated_at: nowIso,
+      });
+
+      // Wallet balance is only ever READ here — cancelling never touches it.
+      let wallet = null;
+      if (sub.wallet_id) {
+        try { wallet = await base44.asServiceRole.entities.PrepaidWallet.get(sub.wallet_id); } catch { wallet = null; }
+      }
+      const balanceCents = wallet?.booking_value_balance_cents ?? 0;
+
+      // Durable cancellation confirmation, with its delivery outcome recorded.
+      const confirmation = await sendCancellationConfirmation({
+        base44: base44.asServiceRole,
+        subscription: { ...sub, status: 'cancelled', cancelled_at: nowIso },
+        wallet,
+        cancelledAt: nowIso,
       });
 
       return Response.json({
         status: 'success',
         subscription_id: sub.id,
         new_status: 'cancelled',
-        message: 'Auto-Fund cancelled. Existing wallet value and transaction history preserved. Customer may continue booking with remaining balance.',
+        cancellation_effective_at: nowIso,
+        benefit_period_end: benefitPeriodEnd,
+        future_charges_stopped: true,
+        wallet_balance_preserved: true,
+        wallet_balance_cents: balanceCents,
+        wallet_balance: balanceCents / 100,
+        cancellation_notice: confirmation,
+        message: 'Auto-Fund cancelled. No further recurring charges will be made. Existing wallet value and transaction history preserved. Customer may continue booking with remaining balance.',
       });
     }
 
@@ -487,6 +570,43 @@ export default async function(req) {
         status: 'success',
         request_id: requestId,
         message: 'Thanks — a Sales Growth Advisor will reach out to walk you through the tiers. You can enroll yourself at any time; an advisor cannot accept the recurring terms for you.',
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // GET_NOTICES — the membership notice audit trail for one subscription
+    // ════════════════════════════════════════════════════════════════════════
+    // A customer may read the notices issued to them; an administrator may read
+    // any. Every record carries what was sent, when, and whether it was delivered.
+    if (action === 'get_notices') {
+      const { subscription_id } = body;
+      if (!subscription_id) return Response.json({ error: 'subscription_id is required' }, { status: 400 });
+
+      const sub = await base44.asServiceRole.entities.AutoFundSubscription.get(subscription_id);
+      if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
+      if (!assertOwnership(sub)) return Response.json({ error: 'Access denied' }, { status: 403 });
+
+      const notices = await listNoticesForSubscription(base44.asServiceRole, sub.id);
+      return Response.json({
+        subscription_id: sub.id,
+        notice_count: notices.length,
+        notices: notices.map(n => ({
+          notice_id: n.notice_id,
+          notice_type: n.notice_type,
+          delivery_status: n.delivery_status,
+          delivery_attempts: n.delivery_attempts,
+          sent_at: n.sent_at || '',
+          last_attempt_at: n.last_attempt_at || '',
+          failure_reason: n.failure_reason || '',
+          terms_version: n.terms_version || '',
+          fee_refund_policy: n.fee_refund_policy || '',
+          jurisdiction_state: n.jurisdiction_state || '',
+          renewal_rule_applied: n.renewal_rule_applied || '',
+          statutory_cadence_confirmed: n.statutory_cadence_confirmed === true,
+          cancellation_effective_at: n.cancellation_effective_at || '',
+          benefit_period_end: n.benefit_period_end || '',
+          wallet_balance_preserved: n.wallet_balance_preserved === true,
+        })),
       });
     }
 

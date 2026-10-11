@@ -47,15 +47,63 @@ export type FeeRefundPolicy =
  */
 export const DEFAULT_FEE_REFUND_POLICY: FeeRefundPolicy = 'undetermined';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REFUND LANGUAGE — LEGALLY CONSERVATIVE
+// ─────────────────────────────────────────────────────────────────────────────
+// The membership fee is NEVER described as absolutely or unconditionally
+// nonrefundable. Every variant below carries the legally-required exceptions and
+// an explicit statement that applicable law overrides these terms. The former
+// absolute string ("The membership fee is not refundable.") was removed for that
+// reason. `undetermined` remains the default and asserts NO policy at all.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS: string[] = [
+  'If you are charged a membership fee for a membership period that has not yet begun, and you cancel before that period starts, that fee is refunded.',
+  'Duplicate, erroneous or unauthorized membership charges are refunded.',
+  'If Arriv materially fails to provide the membership benefits described in the terms, you are entitled to an appropriate refund, adjustment, or other legally required remedy.',
+  'Nothing in these terms limits any refund or cancellation right you have under applicable federal or state law. Where applicable law gives you a greater right, that right applies.',
+];
+
 export const FEE_REFUND_POLICY_DISCLOSURE: Record<FeeRefundPolicy, string> = {
-  undetermined: 'The refundability of the membership fee is not yet determined and is flagged for review before enrollment opens.',
-  non_refundable: 'The membership fee is not refundable. It is charged for the membership period and is separate from your deposited Booking Value.',
-  refundable_full: 'The membership fee is refundable in full on request.',
-  refundable_prorated: 'The membership fee is refundable on a pro-rata basis for the unused part of the membership period.',
+  undetermined:
+    'The refund policy for the membership fee has not been finalised and is under legal review. Nothing here waives any refund right you have under applicable law.',
+  non_refundable:
+    'A correctly charged membership fee is generally not refundable once the membership period has begun and the membership benefits for that period have been made available to you.',
+  refundable_full:
+    'The membership fee is refundable in full on request.',
+  refundable_prorated:
+    'The membership fee is refundable on a pro-rata basis for the unused part of the membership period.',
 };
 
 export function describeFeeRefundPolicy(policy: FeeRefundPolicy): string {
   return FEE_REFUND_POLICY_DISCLOSURE[policy] || FEE_REFUND_POLICY_DISCLOSURE.undetermined;
+}
+
+/** True only once the owner has selected a real policy after legal approval. */
+export function feeRefundPolicyApproved(policy: FeeRefundPolicy): boolean {
+  return policy !== 'undetermined';
+}
+
+export interface FeeRefundDisclosure {
+  policy: FeeRefundPolicy;
+  statement: string;
+  exceptions: string[];
+  is_approved: boolean;
+}
+
+/**
+ * The membership-fee refund section of the customer disclosure.
+ * The exceptions and the statutory-override statement are always included: they
+ * apply to every policy, including a non-refundability policy.
+ */
+export function buildFeeRefundDisclosure(policy?: FeeRefundPolicy): FeeRefundDisclosure {
+  const resolved: FeeRefundPolicy = policy || DEFAULT_FEE_REFUND_POLICY;
+  return {
+    policy: resolved,
+    statement: describeFeeRefundPolicy(resolved),
+    exceptions: LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS,
+    is_approved: feeRefundPolicyApproved(resolved),
+  };
 }
 
 /**

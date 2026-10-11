@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "autofund_renewal_notices",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_renewal_notices": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendAutoFundRenewalNotices",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send due renewal notices",
+            "description": "Jurisdiction-aware, idempotent per renewal cycle"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Auto-Fund Renewal Notices",
+  "description": "Daily at 8am ET: sends an advance renewal notice to each actively-billing Auto-Fund subscription whose jurisdiction rule says a notice is due within its lead window. Idempotent per renewal cycle, so a re-run cannot duplicate a notice. Records what was sent, when, which rule was applied and the delivery outcome."
+}

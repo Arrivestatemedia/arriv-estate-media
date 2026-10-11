@@ -38,8 +38,16 @@ import {
   type FeeRefundPolicy,
 } from './autoFundMembershipBilling.ts';
 import { AUTO_FUND_AMOUNTS, generateId, getAutoFundConfig } from './prepaidEngine.ts';
+import { buildComplianceDisclosure } from './autoFundComplianceDisclosure.ts';
 
-export const CURRENT_TERMS_VERSION = 'autofund_terms_2026_10';
+/**
+ * The terms version the customer accepts at enrollment.
+ * V1 of the membership terms (`ARRIV_AUTOFUND_MEMBERSHIP_TERMS_V1.md`), which
+ * incorporates the membership-fee refund policy and the separate wallet terms.
+ * Any material change requires a new label AND refreshed customer consent —
+ * see the versioned-consent requirements in the terms document.
+ */
+export const CURRENT_TERMS_VERSION = 'autofund_membership_v1';
 
 export interface EnrollmentRequest {
   base44: any;
@@ -278,6 +286,17 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
       ...buildChargeDisclosure(config.amount),
       fee_refund_policy: feePolicy,
       fee_refund_policy_statement: describeFeeRefundPolicy(feePolicy),
+      // The authoritative compliance package: every material pre-authorization
+      // disclosure item, resolved from the canonical configuration. The same
+      // package drives the tier catalog the interface renders, so the customer
+      // sees identical material disclosures on both enrollment channels.
+      compliance: buildComplianceDisclosure({
+        tierAmount: config.amount,
+        termsVersion: CURRENT_TERMS_VERSION,
+        billingDay,
+        nextRenewalDate: nextBilling.toDateString(),
+        feePolicy,
+      }),
     },
   };
 }
