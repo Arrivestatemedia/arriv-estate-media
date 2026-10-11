@@ -8,6 +8,8 @@ import { secrets } from 'base44:runtime';
 //   and can no longer be enrolled into. Contains NO pricing activation and NO
 //   enrollment enablement.
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
+import { chargeMembershipFeeForCycle } from '../../shared/autoFundEnrollment.ts';
+import { reconcileChargeComponents } from '../../shared/autoFundMembershipBilling.ts';
 import { PREPAID_FEATURE_FLAG_KEY, AUTO_FUND_AMOUNT_OPTIONS, AUTO_FUND_RETIRED_AMOUNTS } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 import { evaluateCertificationBypass } from '../../shared/certificationMode.ts';
@@ -229,6 +231,153 @@ export default async function(req) {
       }
 
       console.warn('B2B payment event without matching invoice:', payment_event_id);
+    }
+
+    // ── Component routing: membership fee vs wallet funding ──────────────────
+    // A recurring charge has two components that must NEVER be confused: wallet
+    // funding, which becomes Booking Value, and the membership fee, which becomes
+    // NO Booking Value. Routing on an EXPLICIT component — never on an inferred
+    // amount — is what structurally prevents a fee becoming wallet liability.
+    const bodyComponent = String(body.charge_component || '').toLowerCase();
+    const reportedFeeCents = body.membership_fee_amount_cents != null
+      ? Math.round(Number(body.membership_fee_amount_cents))
+      : (body.membership_fee_amount != null ? Math.round(Number(body.membership_fee_amount) * 100) : 0);
+    const isFeeOnlyEvent = bodyComponent === 'membership_fee' || event_type === 'membership_fee';
+    const reportedFundingCents = body.funding_amount_cents != null
+      ? Math.round(Number(body.funding_amount_cents))
+      : Math.round(normalizedAmount * 100) - reportedFeeCents;
+    const isCombinedEvent = !isFeeOnlyEvent && reportedFeeCents > 0;
+
+    // The contract is resolved ONCE, and every component decision below is made
+    // against it, so a component can never be checked against a different contract
+    // from the one that will be charged.
+    let componentSubscription = null;
+    if (isFeeOnlyEvent || isCombinedEvent) {
+      const subRes = await base44.asServiceRole.entities.AutoFundSubscription.filter({ id: subscription_id }, undefined, 1);
+      const subArr = Array.isArray(subRes) ? subRes : (subRes?.data || []);
+      componentSubscription = subArr[0] || null;
+      if (!componentSubscription) {
+        return Response.json({
+          error: 'Subscription not found for this charge',
+          error_code: 'SUBSCRIPTION_NOT_FOUND',
+          retryable: true,
+          payment_event_id,
+        }, { status: 404 });
+      }
+    }
+
+    // ── FEE-ONLY EVENT: record the fee, issue NOTHING ───────────────────────
+    if (isFeeOnlyEvent) {
+      const feeResult = await chargeMembershipFeeForCycle({
+        base44: base44.asServiceRole,
+        subscription: componentSubscription,
+        payment_event_id,
+        status: status === 'succeeded' || status === 'retry_succeeded' ? 'succeeded' : 'failed',
+        stripe_invoice_id,
+        stripe_charge_id,
+        failure_reason,
+        billing_period_start,
+        billing_period_end,
+        actor: 'arriv_pay',
+        cert_mode: certResult.isCertification,
+      });
+      return Response.json({
+        component: 'membership_fee',
+        booking_value_issued_cents: 0,
+        wallet_credits_issued: 0,
+        ...feeResult,
+        certification_mode: certResult.isCertification,
+        cert_id: certResult.certId,
+      }, { status: feeResult.status === 'error' ? 500 : 200 });
+    }
+
+    // ── COMBINED EVENT: components must reconcile BEFORE anything is issued ──
+    if (isCombinedEvent) {
+      const reconciliation = reconcileChargeComponents({
+        subscription: componentSubscription,
+        reported_funding_cents: reportedFundingCents,
+        reported_fee_cents: reportedFeeCents,
+      });
+      if (!reconciliation.ok) {
+        // Fail closed with NOTHING issued. A partial issuance is the worst
+        // outcome on a mismatched charge: the customer pays the full authorized
+        // amount and receives part of the value, or a fee quietly becomes wallet
+        // liability. Retrying cannot fix this, so it is a permanent rejection.
+        return Response.json({
+          error: 'Charge components do not reconcile to the authorized recurring charge. Nothing was issued.',
+          error_code: 'CHARGE_COMPONENT_MISMATCH',
+          retryable: false,
+          reconciliation,
+        }, { status: 409 });
+      }
+
+      // Funding is recorded FIRST so customer-visible value is never held up by
+      // the fee. Both writes are independently idempotent on their own event IDs,
+      // so a retry after a partial failure completes the missing component
+      // instead of duplicating the one that succeeded.
+      const fundingResult = await processAutoFundPayment({
+        base44: base44.asServiceRole,
+        payment_event_id,
+        subscription_id,
+        customer_id,
+        customer_email,
+        wallet_id,
+        amount_charged: reportedFundingCents / 100,
+        status,
+        event_type: event_type || 'recurring',
+        charge_component: 'wallet_funding',
+        sales_rep_id,
+        stripe_invoice_id,
+        stripe_charge_id,
+        failure_reason,
+        billing_period_start,
+        billing_period_end,
+        raw_event: bodyText,
+        actor: 'arriv_pay',
+        cert_mode: certResult.isCertification,
+      });
+
+      let feeResult = null;
+      let feeError = '';
+      if (fundingResult.status === 'processed' || fundingResult.status === 'duplicate') {
+        try {
+          feeResult = await chargeMembershipFeeForCycle({
+            base44: base44.asServiceRole,
+            subscription: componentSubscription,
+            // Deterministic fee-half event ID: the fee is idempotent in its own
+            // right, and it can never collide with the funding event's ID.
+            payment_event_id: `${payment_event_id}_fee`,
+            status: status === 'succeeded' || status === 'retry_succeeded' ? 'succeeded' : 'failed',
+            stripe_invoice_id,
+            stripe_charge_id,
+            failure_reason,
+            billing_period_start,
+            billing_period_end,
+            actor: 'arriv_pay',
+            cert_mode: certResult.isCertification,
+          });
+        } catch (e) {
+          feeError = e.message;
+        }
+      }
+
+      const feeRecorded = !!feeResult && [
+        'fee_recorded', 'fee_failed_recorded', 'duplicate', 'fee_disabled', 'no_fee_due',
+      ].includes(feeResult.status);
+
+      return Response.json({
+        component: 'combined',
+        funding: fundingResult,
+        fee: feeResult,
+        fee_recorded: feeRecorded,
+        fee_error: feeError,
+        reconciliation,
+        requires_reconciliation: !feeRecorded,
+        booking_value_issued_cents: fundingResult.booking_value_issued_cents || 0,
+        membership_fee_amount: feeResult?.membership_fee_amount ?? null,
+        certification_mode: certResult.isCertification,
+        cert_id: certResult.certId,
+      }, { status: feeRecorded ? 200 : 500 });
     }
 
     // ── Process via shared processor (handles idempotency + credit issuance) ─

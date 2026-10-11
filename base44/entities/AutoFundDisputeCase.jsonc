@@ -1,0 +1,188 @@
+{
+  "name": "AutoFundDisputeCase",
+  "type": "object",
+  "properties": {
+    "dispute_case_id": {
+      "type": "string",
+      "description": "Immutable dispute case ID (afdispute_...)."
+    },
+    "dispute_reference": {
+      "type": "string",
+      "description": "Provider dispute/chargeback reference (Stripe dispute ID or Arriv Pay dispute reference). Idempotency key for the case."
+    },
+    "provider_charge_id": {
+      "type": "string",
+      "description": "Charge the dispute was raised against (stripe_charge_id / invoice id)."
+    },
+    "subscription_id": {
+      "type": "string"
+    },
+    "wallet_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized for RLS and lookups."
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "disputed_amount_cents": {
+      "type": "integer",
+      "description": "Amount disputed by the provider, in integer cents."
+    },
+    "held_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Unspent Booking Value actually suspended on the customer's wallet as a result of this dispute."
+    },
+    "held_lot_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Credit lots suspended by this case. Their `booking_value_remaining_cents` are preserved so a release restores the exact amount."
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "open_hold",
+        "released_won",
+        "reversed_lost",
+        "partially_reversed"
+      ],
+      "default": "open_hold",
+      "description": "Current dispute phase. A dispute holds funds while open; it is either released (won) or reversed (lost)."
+    },
+    "held_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_by": {
+      "type": "string"
+    },
+    "resolution_note": {
+      "type": "string"
+    },
+    "alert_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the automatic dispute alert was dispatched."
+    },
+    "alert_recipient": {
+      "type": "string"
+    },
+    "alert_delivery_status": {
+      "type": "string",
+      "enum": [
+        "",
+        "sent",
+        "failed",
+        "skipped"
+      ],
+      "default": ""
+    },
+    "alert_failure_reason": {
+      "type": "string"
+    },
+    "evidence_packet": {
+      "type": "object",
+      "description": "Assembled evidence for the dispute: consent and billing authorization, transactions, service delivery and communications. Snapshot taken at hold time.",
+      "properties": {
+        "consent": {
+          "type": "object"
+        },
+        "billing_authorization": {
+          "type": "object"
+        },
+        "transactions": {
+          "type": "object"
+        },
+        "service_delivery": {
+          "type": "object"
+        },
+        "communications": {
+          "type": "object"
+        }
+      }
+    },
+    "evidence_completeness": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Flat list of the evidence items present in the packet, for quick review."
+    },
+    "evidence_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Evidence items that could NOT be assembled. An empty list means the packet is complete."
+    },
+    "commission_reversal_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a commission reversal event was created for this dispute. A reversal event is NOT evidence that cash was recovered."
+    },
+    "commission_recovery_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when Arriv Pay has explicitly confirmed the commission was actually recovered from payroll."
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification disputes. Excluded from production reporting and never delivered."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "dispute_case_id",
+    "dispute_reference",
+    "customer_email",
+    "phase"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

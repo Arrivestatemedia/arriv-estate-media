@@ -29,6 +29,14 @@ import {
   isEnrollmentOpen,
   buildEnrollmentDisclosure,
 } from './autoFundFinalConfig.ts';
+import { evaluateEnrollmentGate, EMERGENCY_SWITCH_SEMANTICS } from './enrollmentCohort.ts';
+
+/**
+ * Retention for consent-evidence personal data (IP address and user agent).
+ * Written onto every consent record as an explicit expiry so the data becomes
+ * eligible for deletion instead of accumulating indefinitely.
+ */
+export const CONSENT_RETENTION_MONTHS = 24;
 import {
   DEFAULT_FEE_REFUND_POLICY,
   buildChargeDisclosure,
@@ -98,6 +106,11 @@ export interface EnrollmentRequest {
   /** Customer's own authorization of the recurring charge. */
   terms_accepted?: boolean;
   terms_accepted_by?: string;
+  /** Session evidence captured at authorization, used for dispute representment. */
+  consent_ip?: string;
+  consent_user_agent?: string;
+  /** Exact consent wording presented to the customer, snapshotted at authorization. */
+  consent_text_snapshot?: string;
   fee_refund_policy?: FeeRefundPolicy;
   /** Arriv Pay identifiers, when checkout already produced a subscription. */
   stripe_subscription_id?: string;
@@ -206,6 +219,33 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
 
   if (!isCertificationRun && !isEnrollmentOpen(flagArr.length > 0 ? flagArr[0].value : null)) {
     return { status: 'enrollment_closed', error: 'Auto-Fund enrollment is closed pending owner launch authorization.' };
+  }
+
+  // ── Controlled-launch gate: cohort allowlist + separate self-service switch ─
+  // The master switch above decides whether ANY new enrollment happens. It is not
+  // a cohort control: an open switch would let anyone enroll. This gate adds the
+  // two things a controlled launch actually needs — a genuine allowlist, and a
+  // separate switch that keeps public self-service closed while advisor-assisted
+  // enrollment is open. The certification suite bypasses it, because the suite
+  // must remain able to exercise enrollment while public enrollment stays closed.
+  //
+  // NOTE ON SWITCH SEMANTICS: this gate is the ONLY reader of the enrollment
+  // switch. Billing, redemption, service access and cancellation never consult it,
+  // so switching enrollment off cannot re-price or stop an existing member.
+  if (!isCertificationRun) {
+    const gate = await evaluateEnrollmentGate(base44, {
+      channel: req.channel,
+      customer_email: req.customer_email || '',
+      sales_rep_id: req.sales_rep_id,
+    });
+    if (!gate.allowed) {
+      return {
+        status: gate.code === 'ENROLLMENT_CLOSED' ? 'enrollment_closed' : 'not_in_launch_cohort',
+        error: gate.reason,
+        code: gate.code,
+        gate_checks: gate.checks,
+      };
+    }
   }
 
   // ── Fail-closed launch interlock ──────────────────────────────────────────
@@ -450,6 +490,52 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     customerRecordMirrored = false;
   }
 
+  // ── Consent and authorization evidence ───────────────────────────────────
+  // An IMMUTABLE record of exactly what this customer authorized. Dispute
+  // representment needs the authorization wording, the frozen amounts, the terms
+  // version and the session it came from, captured NOW — a later reader cannot
+  // reconstruct them from records that may since have changed.
+  //
+  // The IP address and user agent are personal data. They are captured only when
+  // supplied, and a retention expiry is written alongside them so they become
+  // eligible for deletion rather than accumulating indefinitely.
+  const consentRetentionExpires = new Date(nowIso);
+  consentRetentionExpires.setMonth(consentRetentionExpires.getMonth() + CONSENT_RETENTION_MONTHS);
+  let consentRecorded = true;
+  let consentRecordId = '';
+  try {
+    const consentRecord = await base44.entities.AutoFundConsentRecord.create({
+      consent_record_id: generateId('afconsent'),
+      subscription_id: subscription.id,
+      customer_id: contact.id,
+      customer_email: contact.email,
+      customer_name: req.customer_name || wallet.customer_name || '',
+      enrollment_channel: req.channel,
+      terms_version: CURRENT_TERMS_VERSION,
+      funding_amount: config.amount,
+      membership_fee: membershipFee,
+      total_recurring_charge: totalMonthly,
+      billing_frequency: 'monthly',
+      authorized_at: nowIso,
+      authorized_by: acceptedBy,
+      consent_text_snapshot: req.consent_text_snapshot || [
+        `I authorize Arriv Estate Media to charge $${totalMonthly} every month: $${config.amount} funds my Arriv Wallet as Booking Value and $${membershipFee} is my membership fee.`,
+        'My membership fee is collected revenue. It is not spendable Booking Value and does not earn promotional credit.',
+        'I may cancel or change my plan at any time, and cancelling preserves my existing wallet balance.',
+        `Terms version ${CURRENT_TERMS_VERSION}.`,
+      ].join(' '),
+      consent_ip: req.consent_ip || '',
+      consent_user_agent: req.consent_user_agent || '',
+      retention_policy: `${CONSENT_RETENTION_MONTHS}_months_after_authorization`,
+      retention_expires_at: consentRetentionExpires.toISOString(),
+      certification_mode: isCertificationRun,
+      created_at: nowIso,
+    });
+    consentRecordId = consentRecord?.id || '';
+  } catch {
+    consentRecorded = false;
+  }
+
   return {
     status: 'enrolled',
     subscription_id: subscription.id,
@@ -472,6 +558,25 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     attribution: attribution.verified
       ? { verification: 'verified', advisor_email: attribution.sales_rep_email }
       : { verification: 'none — no commission will be generated', advisor_email: '' },
+    consent: {
+      recorded: consentRecorded,
+      consent_record_id: consentRecordId,
+      terms_version: CURRENT_TERMS_VERSION,
+      authorized_at: nowIso,
+      authorized_by: acceptedBy,
+      frozen_amounts: {
+        funding: config.amount,
+        membership_fee: membershipFee,
+        total_recurring_charge: totalMonthly,
+      },
+      session_evidence: {
+        ip_captured: !!req.consent_ip,
+        user_agent_captured: !!req.consent_user_agent,
+        retention_policy: `${CONSENT_RETENTION_MONTHS}_months_after_authorization`,
+        note: 'IP and user agent are personal data, retained for dispute evidence and deleted at the retention expiry.',
+      },
+    },
+    emergency_switch_semantics: EMERGENCY_SWITCH_SEMANTICS,
     checkout_handoff: {
       // The customer pays the TOTAL recurring charge: wallet funding + membership fee.
       recurring_charge_cents: Math.round(totalMonthly * 100),
@@ -506,6 +611,7 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
 export async function chargeMembershipFeeForCycle({
   base44, subscription, payment_event_id, status, stripe_invoice_id, stripe_charge_id,
   failure_reason, actor, billing_period_start, billing_period_end, cert_mode,
+  declared_fee_enabled,
 }: any) {
   return processMembershipFee({
     base44,
@@ -520,6 +626,7 @@ export async function chargeMembershipFeeForCycle({
     billing_period_start,
     billing_period_end,
     cert_mode,
+    declared_fee_enabled,
   });
 }
 

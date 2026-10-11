@@ -28,6 +28,7 @@ import {
   getMembershipFee,
   getTotalMonthlyCharge,
 } from './autoFundFinalConfig.ts';
+import { round2 } from './prepaidEngine.ts';
 
 export const MEMBERSHIP_FEE_EVENT_TYPE = 'membership_fee';
 export const WALLET_FUNDING_COMPONENT = 'wallet_funding';
@@ -125,6 +126,105 @@ export function tierHasFee(tierAmount: number): boolean {
   return approvedFeeForTier(tierAmount) > 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTRACTED FEE — THE SWITCH PERMITS EXECUTION, IT NEVER SETS THE AMOUNT
+// ─────────────────────────────────────────────────────────────────────────────
+// The amount charged for a membership is the amount FROZEN on the customer's
+// accepted subscription. The feature switch decides only whether fee billing
+// runs at all; it must never rewrite a contracted amount. If the switch could
+// change the charge, turning billing off and on again, or changing the approved
+// table, would silently re-price a live agreement.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The fee frozen on the customer's accepted contract.
+ * Falls back to the approved table ONLY when the subscription genuinely has no
+ * recorded fee (a legacy or partially migrated record) — never to the live
+ * switch, so a switch state can never move a contractual amount.
+ */
+export function contractedFee(subscription: any): number {
+  if (subscription && typeof subscription.membership_fee === 'number') {
+    return round2(subscription.membership_fee);
+  }
+  return approvedFeeForTier(subscription?.amount ?? 0);
+}
+
+/** True when an event is a membership-fee component rather than wallet funding. */
+export function isFeeComponent(event: any): boolean {
+  if (!event) return false;
+  return event.charge_component === MEMBERSHIP_FEE_COMPONENT || event.event_type === MEMBERSHIP_FEE_EVENT_TYPE;
+}
+
+export interface ChargeComponentReconciliation {
+  ok: boolean;
+  authorized_funding_cents: number;
+  authorized_fee_cents: number;
+  authorized_total_cents: number;
+  reported_funding_cents: number;
+  reported_fee_cents: number;
+  reported_total_cents: number;
+  contract_total_cents: number | null;
+  issues: string[];
+}
+
+/**
+ * Prove that the components of a recurring charge reconcile EXACTLY to the total
+ * the customer authorized.
+ *
+ * A recurring charge has two components: wallet funding (which becomes Booking
+ * Value) and the membership fee (collected revenue that becomes no Booking Value).
+ * If they do not add up to the authorized total, or either one differs from the
+ * frozen contract, the charge is not the one the customer agreed to. The caller
+ * must fail closed and issue nothing, because a partial issuance is the worst
+ * outcome: the customer pays a full charge and receives part of the value, or a
+ * fee quietly becomes wallet liability.
+ */
+export function reconcileChargeComponents({
+  subscription,
+  reported_funding_cents,
+  reported_fee_cents,
+}: {
+  subscription: any;
+  reported_funding_cents: number;
+  reported_fee_cents: number;
+}): ChargeComponentReconciliation {
+  const authorizedFunding = Math.round(round2(subscription?.amount ?? 0) * 100);
+  const authorizedFee = Math.round(contractedFee(subscription) * 100);
+  const authorizedTotal = authorizedFunding + authorizedFee;
+  const reportedFunding = Math.round(reported_funding_cents || 0);
+  const reportedFee = Math.round(reported_fee_cents || 0);
+  const reportedTotal = reportedFunding + reportedFee;
+  const contractTotal = subscription && typeof subscription.total_monthly_charge === 'number'
+    ? Math.round(round2(subscription.total_monthly_charge) * 100)
+    : null;
+
+  const issues: string[] = [];
+  if (reportedFunding !== authorizedFunding) {
+    issues.push(`FUNDING_COMPONENT_MISMATCH: charged ${reportedFunding}¢ of funding, contract authorizes ${authorizedFunding}¢.`);
+  }
+  if (reportedFee !== authorizedFee) {
+    issues.push(`FEE_COMPONENT_MISMATCH: charged ${reportedFee}¢ of membership fee, contract authorizes ${authorizedFee}¢.`);
+  }
+  if (reportedTotal !== authorizedTotal) {
+    issues.push(`TOTAL_COMPONENT_MISMATCH: components total ${reportedTotal}¢, the authorized recurring charge is ${authorizedTotal}¢.`);
+  }
+  if (contractTotal !== null && contractTotal !== authorizedTotal) {
+    issues.push(`CONTRACT_TOTAL_INCONSISTENT: the subscription's own total is ${contractTotal}¢ but its components resolve to ${authorizedTotal}¢.`);
+  }
+
+  return {
+    ok: issues.length === 0,
+    authorized_funding_cents: authorizedFunding,
+    authorized_fee_cents: authorizedFee,
+    authorized_total_cents: authorizedTotal,
+    reported_funding_cents: reportedFunding,
+    reported_fee_cents: reportedFee,
+    reported_total_cents: reportedTotal,
+    contract_total_cents: contractTotal,
+    issues,
+  };
+}
+
 /** The total recurring charge the customer authorizes: deposit + fee. */
 export function totalRecurringCharge(tierAmount: number): number {
   return getTotalMonthlyCharge(tierAmount);
@@ -178,6 +278,7 @@ export async function processMembershipFee({
   billing_period_end,
   refund_policy,
   cert_mode,
+  declared_fee_enabled,
 }: {
   base44: any;
   payment_event_id: string;
@@ -192,13 +293,22 @@ export async function processMembershipFee({
   billing_period_end?: string;
   refund_policy?: FeeRefundPolicy;
   cert_mode?: boolean;
+  /** Certification ONLY: declares fee billing enabled for an isolated synthetic run. */
+  declared_fee_enabled?: boolean;
 }) {
   if (!payment_event_id) {
     return { status: 'error', error: 'payment_event_id is required', error_code: 'FEE_EVENT_ID_REQUIRED' };
   }
 
   // ── Fail closed while billing is switched off ─────────────────────────────
-  if (!isFeeBillingEnabled()) {
+  // Real fees require the code flag. The ONLY exception is a declared
+  // certification run: the isolated suites must be able to exercise the fee path
+  // without activating billing for a single real customer. It requires an
+  // explicit declared enablement AND a synthetic identity, and every generated ID
+  // is cert_-prefixed, so it cannot touch production value. This mirrors the
+  // certification bypass the enrollment engine already uses.
+  const billingPermitted = isFeeBillingEnabled() || (cert_mode === true && declared_fee_enabled === true);
+  if (!billingPermitted) {
     return {
       status: 'fee_disabled',
       message: 'Membership-fee billing is disabled. No fee was charged or recorded.',
@@ -206,9 +316,16 @@ export async function processMembershipFee({
     };
   }
 
-  const feeAmount = feeDueForTier(tier_amount);
+  // ── The amount is the CONTRACTED fee, not the switch's current state ──────
+  // Billing has already been permitted above; from here the amount comes from the
+  // customer's accepted subscription so a switch change can never re-price it.
+  const feeAmount = contractedFee({ ...(subscription || {}), amount: subscription?.amount ?? tier_amount });
   if (feeAmount <= 0) {
-    return { status: 'no_fee_due', message: `No membership fee is due on the $${tier_amount} tier.`, payment_event_id };
+    return {
+      status: 'no_fee_due',
+      message: `No membership fee is due on the $${subscription?.amount ?? tier_amount} tier.`,
+      payment_event_id,
+    };
   }
 
   // ── Idempotency: never record the same fee event twice ────────────────────

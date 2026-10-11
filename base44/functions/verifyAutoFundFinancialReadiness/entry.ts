@@ -84,12 +84,17 @@ type Basis = { id: string; label: string; wage: number; minutes: number; burden:
 const COST_BASES: Basis[] = [
   {
     id: 'EXPECTED',
-    label: 'Expected — owner-approved planning assumption: $18.00/hr x 60 active minutes, +15% employer payroll burden, +$5.00 QC',
+    label: 'Expected — owner-approved planning assumption (ESTIMATE, not observed): $18.00/hr x 60 active minutes, +15% employer payroll burden, +$5.00 QC',
     wage: 18, minutes: 60, burden: 0.15, qc: 5,
   },
   {
-    id: 'CONSERVATIVE',
-    label: 'Conservative — measured editor wage basis: $23.00/hr x 52 active minutes, +20% employer payroll burden, +$8.00 QC',
+    // RENAMED (owner direction 2026-10-11): this was labelled "measured", but NO
+    // walkthrough has ever been produced, so no editing time has ever been
+    // observed and nothing here is measured. It is an ESTIMATED higher-cost
+    // assumption, and calling it measured overstated the confidence of every
+    // number derived from it.
+    id: 'ESTIMATED_HIGH_COST',
+    label: 'Estimated higher-cost basis — ESTIMATE, not a measurement: $23.00/hr x 52 active minutes, +20% employer payroll burden, +$8.00 QC. No production walkthrough has been produced, so editing minutes are unobserved.',
     wage: 23, minutes: 52, burden: 0.20, qc: 8,
   },
 ];

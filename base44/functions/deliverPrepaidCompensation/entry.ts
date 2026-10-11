@@ -63,7 +63,15 @@ export default async function(req) {
       '-earned_at',
       batchSize
     );
-    const pendingEvents = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
+    const allPending = Array.isArray(pendingResp) ? pendingResp : (pendingResp?.data || []);
+
+    // Synthetic records are removed from the CANDIDATE POOL, not merely filtered
+    // after selection. There are hundreds of them, and because the batch is
+    // capped they would otherwise occupy every slot in the batch and starve real
+    // commissions of delivery. The post-selection guard below is kept as well:
+    // exclusion happens before the query result is used AND before any HTTP call.
+    const pendingEvents = allPending.filter((e: any) => !checkDeliveryGuard(e).blocked);
+    const starvedBySynthetic = allPending.length - pendingEvents.length;
 
     // Unconditionally partition: synthetic events are NEVER delivered to
     // real payroll, regardless of feature flag state.
@@ -93,6 +101,8 @@ export default async function(req) {
     return Response.json({
       status: 'batch_complete',
       processed: results.length,
+      candidates_examined: allPending.length,
+      excluded_before_selection: starvedBySynthetic,
       skipped_synthetic: blockedResults.length,
       acknowledged,
       delivered,

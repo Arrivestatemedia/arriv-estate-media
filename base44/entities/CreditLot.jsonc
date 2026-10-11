@@ -66,7 +66,7 @@
     "booking_value_remaining_cents": {
       "type": "integer",
       "default": 0,
-      "description": "Remaining booking value in integer cents. Authoritative for FIFO and expiration."
+      "description": "Remaining booking value in integer cents. Authoritative for FIFO and expiration. A dispute hold does NOT change this value \u2014 the held amount is removed from the wallet's spendable balance instead, so releasing a hold restores the exact amount without reconstructing the lot."
     },
     "expires_at": {
       "type": "string",
@@ -87,7 +87,35 @@
     },
     "stripe_transaction_id": {
       "type": "string",
-      "description": "Associated Stripe payment ID (if applicable)"
+      "description": "Associated Stripe payment ID (if applicable). Used to trace a disputed charge to the exact lot it funded."
+    },
+    "dispute_hold": {
+      "type": "boolean",
+      "default": false,
+      "description": "True while this lot's unspent value is suspended by an open dispute. A held lot is excluded from the wallet's spendable balance and from FIFO consumption, so it cannot be redeemed, but it is never deleted or rewritten."
+    },
+    "dispute_hold_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Amount of THIS lot suspended by the open dispute, in integer cents. Zero when no hold is active."
+    },
+    "dispute_hold_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the hold was applied"
+    },
+    "dispute_hold_reason": {
+      "type": "string",
+      "description": "Why the lot is held (e.g. CHARGEBACK_OPEN)"
+    },
+    "dispute_reference": {
+      "type": "string",
+      "description": "Provider dispute/chargeback reference that caused the hold. Links the lot to its AutoFundDisputeCase."
+    },
+    "dispute_hold_released_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a hold on this lot was released because the dispute was resolved in the customer's favour"
     },
     "created_at": {
       "type": "string",

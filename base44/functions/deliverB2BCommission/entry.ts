@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { signRequest, isNonRetryableError, backoffDelayMs } from '../../shared/payrollCrypto.ts';
 import { getPayrollConfig } from '../../shared/payrollSettings.ts';
+import { checkDeliveryGuard } from '../../shared/certificationDeliveryGuard.ts';
 
 // ============================================================================
 // DELIVER B2B COMMISSION — Arriv Pay Compensation Handoff
@@ -169,6 +170,21 @@ async function deliverOneEvent(base44, eventId, certMode, existingEvent = null) 
     event = await fetchEvent(base44, eventId);
   }
   if (!event) return { error: 'Event not found', status: 'FAILED' };
+
+  // ── UNCONDITIONAL CERTIFICATION GUARD ─────────────────────────────────────
+  // Evaluated before the eligibility check, before any HTTP request and before
+  // any state transition, so a synthetic record can never reach real payroll on
+  // this path either. This path previously had no guard at all: certification
+  // exclusion must hold on EVERY delivery route, not only the prepaid one.
+  const guard = checkDeliveryGuard(event);
+  if (guard.blocked) {
+    return {
+      status: 'BLOCKED',
+      reason: guard.reason,
+      http_attempted: false,
+      cert_excluded: true,
+    };
+  }
 
   // Immutable: never re-deliver a paid event
   if (event.payroll_status === 'paid') {

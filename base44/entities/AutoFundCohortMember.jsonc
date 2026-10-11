@@ -1,0 +1,104 @@
+{
+  "name": "AutoFundCohortMember",
+  "type": "object",
+  "properties": {
+    "cohort_member_id": {
+      "type": "string",
+      "description": "Stable allowlist entry ID (afcohort_...)."
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Email of the customer permitted to enroll in the controlled-launch cohort. Matched case-insensitively."
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "approved",
+        "enrolled",
+        "removed"
+      ],
+      "default": "invited",
+      "description": "Allowlist state. Only 'invited', 'approved' and 'enrolled' permit enrollment; 'removed' denies it."
+    },
+    "allowed_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sales_assisted",
+          "admin"
+        ]
+      },
+      "default": [
+        "sales_assisted"
+      ],
+      "description": "Enrollment channels this member is permitted to use. Public self-service is NEVER granted by an allowlist entry \u2014 it is gated separately by the self-service switch."
+    },
+    "invited_by_email": {
+      "type": "string",
+      "description": "Admin or advisor who granted the invitation."
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "Sales Growth Advisor who owns the sales-assisted enrollment."
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "enrolled_subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription created from this cohort entry."
+    },
+    "enrolled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "removed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification cohort entries. Excluded from production reporting."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "cohort_member_id",
+    "customer_email",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

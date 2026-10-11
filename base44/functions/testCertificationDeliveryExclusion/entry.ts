@@ -262,16 +262,37 @@ export default async function(req) {
         }
       }
 
-      check('PAYROLL_FOOTPRINT: 14 acknowledged synthetic events exist',
-        ackEvents.length === 14,
-        `ack_count=${ackEvents.length}, expected=14`);
+      // The count is deliberately NOT hard-coded. Every certification run adds
+      // synthetic events, so asserting a fixed number fails for a reason that has
+      // nothing to do with delivery safety. What must hold is that acknowledged
+      // synthetic events exist and that none of them ever left the system.
+      check('PAYROLL_FOOTPRINT: acknowledged synthetic events exist and are inventoried',
+        ackEvents.length > 0,
+        `ack_count=${ackEvents.length}`);
       check('PAYROLL_FOOTPRINT: zero cert_ records in payroll entities',
         certPayrollRecords === 0,
         `cert_payroll_records=${certPayrollRecords}, by_entity=${JSON.stringify(certPayrollByEntity)}`);
-      check('PAYROLL_FOOTPRINT: acknowledged events have no network delivery',
-        ackEvents.every((e: any) => !isCertificationId(e.employee_id) || true) &&
-        ackEvents.length > 0,
-        `${ackEvents.length} acknowledged cert events, all local-state only`);
+      // Two things must hold, and both are real assertions:
+      //   1. No acknowledged synthetic event ever ATTEMPTED a network delivery.
+      //      deliverOneEvent increments delivery_attempts immediately before the
+      //      fetch, so a zero count proves no request was ever made.
+      //   2. A synthetic record cannot occupy a slot in a real delivery batch.
+      //      The batch is capped, so if synthetic records were still selected the
+      //      pool they would starve every genuine commission of delivery.
+      const poolCandidates = arr(await b.entities.PrepaidCompensationEvent.filter(
+        { delivery_status: { $in: ['PENDING', 'RETRYING'] }, status: 'APPROVED' },
+        '-earned_at',
+        200,
+      ));
+      const syntheticInPool = poolCandidates.filter((e: any) => checkDeliveryGuard(e).blocked);
+      const deliverablePool = poolCandidates.filter((e: any) => !checkDeliveryGuard(e).blocked);
+      const maxAttempts = ackEvents.reduce((m: number, e: any) => Math.max(m, e.delivery_attempts || 0), 0);
+
+      check('PAYROLL_FOOTPRINT: no acknowledged synthetic event attempted delivery, and synthetic candidates cannot occupy a batch slot',
+        maxAttempts === 0 &&
+          ackEvents.length > 0 &&
+          deliverablePool.every((e: any) => !isCertificationId(e.source_event_id)),
+        `max_delivery_attempts=${maxAttempts}, ack_count=${ackEvents.length}, pool_candidates=${poolCandidates.length}, synthetic_excluded_from_pool=${syntheticInPool.length}, deliverable_pool=${deliverablePool.length}`);
     } catch (e) {
       check('PAYROLL_FOOTPRINT: zero cert_ records in payroll entities', false, e.message);
     }

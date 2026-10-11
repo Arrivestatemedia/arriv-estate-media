@@ -1,0 +1,133 @@
+{
+  "name": "AutoFundConsentRecord",
+  "type": "object",
+  "properties": {
+    "consent_record_id": {
+      "type": "string",
+      "description": "Immutable consent-evidence record ID (afconsent_...)."
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription this authorization belongs to."
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (Contact entity ID)."
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized customer email for RLS and lookups."
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "enrollment_channel": {
+      "type": "string",
+      "enum": [
+        "self_service",
+        "sales_assisted",
+        "admin"
+      ],
+      "description": "Channel the authorization was given on."
+    },
+    "terms_version": {
+      "type": "string",
+      "description": "Exact terms version the customer accepted."
+    },
+    "funding_amount": {
+      "type": "number",
+      "description": "Monthly wallet funding amount frozen at authorization."
+    },
+    "membership_fee": {
+      "type": "number",
+      "description": "Monthly membership fee frozen at authorization. Charged exactly as frozen."
+    },
+    "total_recurring_charge": {
+      "type": "number",
+      "description": "The full recurring charge the customer authorized: funding plus fee."
+    },
+    "billing_frequency": {
+      "type": "string",
+      "default": "monthly"
+    },
+    "authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer authorized the recurring charge."
+    },
+    "authorized_by": {
+      "type": "string",
+      "description": "Email of the customer who authorized. Never a salesperson on the customer's behalf."
+    },
+    "consent_text_snapshot": {
+      "type": "string",
+      "description": "Plain-text snapshot of the consent/disclosure wording presented at authorization, preserved for dispute evidence."
+    },
+    "consent_ip": {
+      "type": "string",
+      "description": "IP address of the authorizing session, for dispute evidence. Personal data \u2014 deleted at retention_expires_at."
+    },
+    "consent_user_agent": {
+      "type": "string",
+      "description": "User-agent of the authorizing session, for dispute evidence. Personal data \u2014 deleted at retention_expires_at."
+    },
+    "retention_policy": {
+      "type": "string",
+      "default": "24_months_after_authorization",
+      "description": "Retention rule applied to the IP address and user-agent on this record."
+    },
+    "retention_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When consent_ip and consent_user_agent become eligible for deletion."
+    },
+    "evidence_superseded_by": {
+      "type": "string",
+      "description": "Newer consent record ID that replaced this one, when the customer re-authorized at a changed amount or terms version."
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification records. Excluded from production reporting."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "consent_record_id",
+    "subscription_id",
+    "customer_email",
+    "authorized_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

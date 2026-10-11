@@ -27,6 +27,7 @@ import {
 import { isCertificationId } from './certificationMode.ts';
 
 import { AUTOFUND_FINAL_FLAGS } from './autoFundFinalConfig.ts';
+import { isFeeComponent } from './autoFundMembershipBilling.ts';
 
 export interface ProcessPaymentParams {
   base44: any;
@@ -37,7 +38,9 @@ export interface ProcessPaymentParams {
   wallet_id: string;
   amount_charged: number;
   status: 'succeeded' | 'failed' | 'retry_succeeded';
-  event_type: 'recurring' | 'topup' | 'retry' | 'prepaid_purchase';
+  event_type: 'recurring' | 'topup' | 'retry' | 'prepaid_purchase' | 'membership_fee';
+  /** 'wallet_funding' | 'membership_fee' — which part of the charge this event is. */
+  charge_component?: string;
   sales_rep_id?: string;
   stripe_invoice_id?: string;
   stripe_charge_id?: string;
@@ -134,6 +137,23 @@ export async function processAutoFundPayment(params: ProcessPaymentParams) {
   const existingArr = Array.isArray(existing) ? existing : (existing?.data || []);
   if (existingArr.length > 0) {
     return { status: 'duplicate', event: existingArr[0] };
+  }
+
+  // ── A membership fee must NEVER become wallet value ───────────────────────
+  // The fee is collected revenue. If a fee component reaches this funding
+  // processor, the only safe behaviour is to refuse to issue anything at all:
+  // issuing Booking Value for a fee would create a wallet liability the customer
+  // never funded, and would make a fee look like spendable value. This is a
+  // permanent rejection — the event can never succeed here, so it must not be
+  // retried. Fee components are recorded by the membership billing engine.
+  if (isFeeComponent(data)) {
+    return {
+      status: 'error',
+      error: 'A membership-fee component cannot be processed as wallet funding. Route it to the membership billing engine.',
+      error_code: 'FEE_COMPONENT_IS_NOT_WALLET_FUNDING',
+      retryable: false,
+      payment_event_id: data.payment_event_id,
+    };
   }
 
   const nowIso = new Date().toISOString();

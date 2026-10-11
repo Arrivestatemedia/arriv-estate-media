@@ -47,7 +47,7 @@
     "booking_value_balance_cents": {
       "type": "integer",
       "default": 0,
-      "description": "Authoritative booking value balance in integer cents. No floating-point loss. Sum of all non-expired lot booking_value_remaining_cents."
+      "description": "Authoritative SPENDABLE booking value balance in integer cents. Sum of all non-expired, non-held lot booking_value_remaining_cents. Value suspended by an open dispute is excluded from this figure and counted in dispute_held_cents instead."
     },
     "total_credits_issued": {
       "type": "number",
@@ -93,6 +93,11 @@
       "type": "integer",
       "default": 0,
       "description": "Authoritative total booking value expired, in integer cents."
+    },
+    "dispute_held_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Booking Value currently suspended by open disputes, in integer cents. Already EXCLUDED from booking_value_balance_cents, so held value cannot be spent. It is not a redemption, not an expiry and not a fee \u2014 the underlying lots keep their remaining value so a won dispute restores it exactly, and a lost dispute reverses it."
     },
     "promotional_benefits_available": {
       "type": "integer",

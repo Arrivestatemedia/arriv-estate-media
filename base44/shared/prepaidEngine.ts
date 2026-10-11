@@ -254,6 +254,8 @@ export interface CreditLotCentsLike {
   fifo_order: number;
   expired: boolean;
   expires_at: string;
+  /** True while an open dispute has suspended this lot. A held lot is not spendable. */
+  dispute_hold?: boolean;
 }
 
 export interface ConsumptionEntryCents {
@@ -286,7 +288,12 @@ export function consumeFIFOCents(lots: CreditLotCentsLike[], centsNeeded: number
   const eligible = lots
     .filter(l => {
       const remaining = l.booking_value_remaining_cents ?? Math.round((l as any).booking_value_remaining * 100);
-      return !l.expired && remaining > 0 && new Date(l.expires_at) > new Date(now);
+      // A lot suspended by an open dispute is NOT eligible for consumption. Its
+      // remaining value is preserved so a won dispute restores it exactly, and the
+      // wallet's spendable balance already excludes it (dispute_held_cents). This
+      // second check is defence in depth: funds under dispute must never be spent
+      // even if a balance figure somewhere were stale.
+      return !l.expired && !l.dispute_hold && remaining > 0 && new Date(l.expires_at) > new Date(now);
     })
     .sort((a, b) => (a.fifo_order || 0) - (b.fifo_order || 0));
 
