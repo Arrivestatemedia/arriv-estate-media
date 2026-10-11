@@ -41,20 +41,29 @@ import { AUTOFUND_MEMBERSHIP_FEE, AUTOFUND_FINAL_FLAGS } from '../../shared/auto
  * an earlier report.
  *
  * PASS CRITERION (owner direction 2026-10-11): a tier PASSES when its contribution
- * is a POSITIVE DOLLAR AMOUNT after every included cost and liability — media
- * specialist compensation, editing labour plus employer payroll burden, QC,
- * payment processing, support, chargebacks and refunds with unrecoverable
- * commissions, and the full eventual redemption of every outstanding cash-funded
- * and promotional balance. Margin percentages are reported but no longer decide
- * PASS/FAIL.
+ * is a POSITIVE DOLLAR AMOUNT in NORMAL OPERATIONS — media specialist compensation,
+ * editing labour plus employer payroll burden, QC, payment processing, support,
+ * refunds, the membership fee actually collected, and the full eventual redemption
+ * of every outstanding cash-funded and promotional balance — under BOTH the
+ * expected and the measured cost basis. Margin percentages are reported but never
+ * decide PASS/FAIL.
+ *
+ * DISPUTES ARE NOT NORMAL TRADING (owner direction 2026-10-11). No operating arm
+ * assumes any chargeback. Dispute stress is measured in its own arms and reported
+ * separately, because two or four disputes per member per year is not ordinary
+ * behaviour and must not be presented as the operating result.
+ *
+ * CONTRACTUAL USAGE IS NOT A STRESS TEST. The full contractual VIP enhanced-support
+ * entitlement (48 sessions/yr) is a benefit the member has paid for, so the arm that
+ * serves it is a requirement of honouring the contract. When that arm is negative it
+ * is reported as FAIL, never as PASS.
  *
  * COMMISSION RECOVERY. Refunds and chargebacks reverse the sales commission
  * attributable to the reversed revenue, traced to CUSTOMER CASH from the ORIGINAL
  * compensation event (commissionReversalEngine.ts), and delivered to Arriv Pay as
  * immutable reversal events. Estate Media does NOT debit employees or alter
  * completed payroll, so a commission already paid out may NOT be recovered. The
- * conservative and maximum-utilisation scenarios therefore count unrecovered
- * commission as a cost.
+ * dispute-stress arms therefore count unrecovered commission as a cost.
  *
  * Every number comes from the SINGLE certified simulation core
  * (base44/shared/autoFundSimulator.ts) so these results are comparable with the
@@ -64,6 +73,7 @@ import { AUTOFUND_MEMBERSHIP_FEE, AUTOFUND_FINAL_FLAGS } from '../../shared/auto
 const MLS_PAYOUT = 50;                 // contractual guaranteed payout, <=2,500 sqft, unchanged
 const VIP_PRIORITY_SUPPORT_COST = 6;   // per month, non-VIP tiers carrying a fee
 const DISPUTE_FEE = 15;                // per chargeback, not a configured rate — assumption
+const VIP_TIER = 1000;
 
 /** Authoritative enrollable tiers, read from the engine. Retired tiers excluded. */
 const TIERS = [...AUTO_FUND_AMOUNT_OPTIONS];
@@ -286,12 +296,18 @@ function runScenario(
 }
 
 const SCENARIO_DEFINITIONS = {
-  expected:
-    'Expected: owner-approved planning cost basis, expected VIP support (12 sessions/yr), refunds as modelled, no chargeback assumed, commissions recovered on reversal.',
-  conservative:
-    'Conservative: measured editor-wage cost basis, expected VIP support, refunds as modelled plus 2 chargebacks/yr with commission treated as UNRECOVERED and therefore carried as a cost.',
-  max_benefit_utilization:
-    'Maximum benefit utilisation: measured editor-wage cost basis, FULL contractual VIP support (48 sessions/yr), refunds as modelled plus 4 chargebacks/yr with commission UNRECOVERED. The harshest simultaneous bundling.',
+  normal_operations:
+    'NORMAL OPERATIONS (expected basis): owner-approved planning costs, expected VIP support (12 sessions/yr), refunds as modelled, and ZERO chargebacks. An ordinary trading year carries no dispute, so a dispute is never treated as normal behaviour.',
+  normal_operations_measured_cost:
+    'NORMAL OPERATIONS (measured-cost basis): measured editor-wage costs, expected VIP support, refunds as modelled, ZERO chargebacks. This is the ordinary operating result under the pessimistic cost basis, and it is still a normal-operations arm.',
+  normal_operations_fee_not_collectible:
+    'NORMAL OPERATIONS with the membership fee NOT collectible: identical to the expected arm except the monthly fee is never collected. Derived arithmetically because a membership fee carries no cost, issues no Booking Value, creates no wallet liability and generates no commission.',
+  vip_full_contractual_support:
+    'CONTRACTUAL USAGE LIMIT: expected basis, ZERO chargebacks, and the FULL contractual VIP enhanced-support entitlement (48 sessions/yr). This benefit level is what the contract entitles the member to, so it is a contractual requirement rather than a stress test, and a negative result here is a FAIL.',
+  dispute_stress_2:
+    'DISPUTE STRESS (exceptional, NOT normal behaviour): expected basis, 2 chargebacks per member-year with commission treated as UNRECOVERED. Reported separately from operating profitability.',
+  dispute_stress_4:
+    'DISPUTE STRESS / maximum adverse (exceptional): measured-cost basis, full contractual VIP support, 4 chargebacks per member-year with commission UNRECOVERED.',
 } as const;
 
 export default async function (req: Request): Promise<Response> {
@@ -367,15 +383,15 @@ export default async function (req: Request): Promise<Response> {
     const buildTier = (tier: number, price: number) => {
       const cfg = getAutoFundConfig(tier)!;
       const fee = scheduledFeeFor(tier);
-      const expected = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
-      const conservative = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, 2, false);
-      const maxUtilization = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 4, false);
-      const supportOnly = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 0, true);
-      // Isolating arms, so each risk is quantified on its own instead of being
-      // bundled: the cost basis alone, and the chargeback/unrecovered-commission
-      // load alone. Their sum is what makes the conservative scenario so much worse.
-      const costBasisOnly = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
-      const chargebackOnly = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 2, false);
+      // Normal trading: no chargeback is assumed in any operating arm.
+      const normal = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
+      const normalMeasured = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
+      // The contract entitles a VIP member to 48 enhanced-support sessions a year.
+      // Serving that entitlement is a cost of honouring the contract, not stress.
+      const vipFullSupport = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 0, true);
+      // Disputes, held apart from operating results. Never presented as normal.
+      const dispute2 = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 2, false);
+      const dispute4 = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 4, false);
 
       return {
         tier,
@@ -392,25 +408,39 @@ export default async function (req: Request): Promise<Response> {
         mls_policy: tier === 1000
           ? 'VIP — promotional Booking Value permitted on standalone MLS up to 7 per cycle (owner-stated policy); cash-funded value unlimited'
           : 'No standalone-MLS booking-count cap — the available balance is the only bound',
-        expected: summarize(expected.worst, tier, expected.overlaid),
-        conservative: summarize(conservative.worst, tier, conservative.overlaid),
-        max_benefit_utilization: summarize(maxUtilization.worst, tier, maxUtilization.overlaid),
-        max_vip_support_only_expected_costs: summarize(supportOnly.worst, tier, supportOnly.overlaid),
-        conservative_cost_basis_no_chargebacks: summarize(costBasisOnly.worst, tier, costBasisOnly.overlaid),
-        expected_cost_basis_with_chargebacks: summarize(chargebackOnly.worst, tier, chargebackOnly.overlaid),
+        normal_operations: summarize(normal.worst, tier, normal.overlaid),
+        normal_operations_measured_cost: summarize(normalMeasured.worst, tier, normalMeasured.overlaid),
+        normal_operations_fee_not_collectible: {
+          contribution_dollars: round2(normal.overlaid.contribution_dollars - round2(fee * 12)),
+          fee_revenue_not_collected_per_year: round2(fee * 12),
+          passes_positive_contribution: round2(normal.overlaid.contribution_dollars - round2(fee * 12)) > 0,
+          note: 'Derived from the expected arm by removing the uncollected fee revenue. The fee carries no cost, so nothing else changes.',
+        },
+        vip_full_contractual_support: {
+          ...summarize(vipFullSupport.worst, tier, vipFullSupport.overlaid),
+          applies_to_this_tier: tier === VIP_TIER,
+          entitlement: 'The full contractual 48 enhanced-support sessions per year. Serving it is required by the contract.',
+        },
+        dispute_stress_2_chargebacks: summarize(dispute2.worst, tier, dispute2.overlaid),
+        dispute_stress_4_chargebacks_max_adverse: summarize(dispute4.worst, tier, dispute4.overlaid),
         risk_decomposition: {
-          note: 'Dollar effect of each risk measured on its own against the expected scenario at this price.',
-          cost_basis_effect_dollars: round2(costBasisOnly.overlaid.contribution_dollars - expected.overlaid.contribution_dollars),
-          chargeback_and_unrecovered_commission_effect_dollars: round2(chargebackOnly.overlaid.contribution_dollars - expected.overlaid.contribution_dollars),
-          vip_support_utilisation_effect_dollars: round2(supportOnly.overlaid.contribution_dollars - expected.overlaid.contribution_dollars),
+          note: 'Dollar effect of each factor measured on its own against the normal-operations expected arm at this price.',
+          cost_basis_effect_dollars: round2(normalMeasured.overlaid.contribution_dollars - normal.overlaid.contribution_dollars),
+          membership_fee_not_collectible_effect_dollars: -round2(fee * 12),
+          vip_full_contractual_support_effect_dollars: round2(vipFullSupport.overlaid.contribution_dollars - normal.overlaid.contribution_dollars),
+          dispute_stress_2_effect_dollars: round2(dispute2.overlaid.contribution_dollars - normal.overlaid.contribution_dollars),
+          dispute_stress_4_effect_dollars: round2(dispute4.overlaid.contribution_dollars - normal.overlaid.contribution_dollars),
         },
         verdict: {
-          expected: expected.overlaid.passes ? 'PASS' : 'FAIL',
-          conservative: conservative.overlaid.passes ? 'PASS' : 'FAIL',
-          max_benefit_utilization: maxUtilization.overlaid.passes ? 'PASS' : 'FAIL',
-          positive_in_all_three_scenarios:
-            expected.overlaid.passes && conservative.overlaid.passes && maxUtilization.overlaid.passes
-              ? 'PASS' : 'FAIL',
+          normal_operations:
+            normal.overlaid.passes && normalMeasured.overlaid.passes ? 'PASS' : 'FAIL',
+          normal_operations_expected: normal.overlaid.passes ? 'PASS' : 'FAIL',
+          normal_operations_measured_cost: normalMeasured.overlaid.passes ? 'PASS' : 'FAIL',
+          normal_operations_with_fee_not_collectible:
+            round2(normal.overlaid.contribution_dollars - round2(fee * 12)) > 0 ? 'PASS' : 'FAIL',
+          vip_full_contractual_support: vipFullSupport.overlaid.passes ? 'PASS' : 'FAIL',
+          vip_contractual_usage_is_unprofitable: tier === VIP_TIER ? !vipFullSupport.overlaid.passes : null,
+          dispute_stress: 'REPORTED_SEPARATELY - never part of the operating verdict and never assumed as normal',
         },
       };
     };
@@ -426,16 +456,19 @@ export default async function (req: Request): Promise<Response> {
       promotional_bv_per_month: t.promotional_booking_value_per_month,
       membership_fee: t.contractual_membership_fee,
       total_monthly_charge: t.total_recurring_monthly_charge,
-      expected_contribution_dollars: t.expected.contribution_dollars,
-      expected_margin_pct: t.expected.margin_pct,
-      expected_pass: t.verdict.expected,
-      conservative_contribution_dollars: t.conservative.contribution_dollars,
-      conservative_margin_pct: t.conservative.margin_pct,
-      conservative_pass: t.verdict.conservative,
-      max_utilization_contribution_dollars: t.max_benefit_utilization.contribution_dollars,
-      max_utilization_margin_pct: t.max_benefit_utilization.margin_pct,
-      max_utilization_pass: t.verdict.max_benefit_utilization,
-      positive_in_all_three_scenarios: t.verdict.positive_in_all_three_scenarios,
+      normal_operations_contribution_dollars: t.normal_operations.contribution_dollars,
+      normal_operations_margin_pct: t.normal_operations.margin_pct,
+      normal_operations_pass: t.verdict.normal_operations_expected,
+      measured_cost_contribution_dollars: t.normal_operations_measured_cost.contribution_dollars,
+      measured_cost_margin_pct: t.normal_operations_measured_cost.margin_pct,
+      measured_cost_pass: t.verdict.normal_operations_measured_cost,
+      fee_not_collectible_contribution_dollars: t.normal_operations_fee_not_collectible.contribution_dollars,
+      fee_not_collectible_pass: t.verdict.normal_operations_with_fee_not_collectible,
+      vip_full_contractual_support_contribution_dollars: t.vip_full_contractual_support.contribution_dollars,
+      vip_full_contractual_support_verdict: t.verdict.vip_full_contractual_support,
+      normal_operations_overall_verdict: t.verdict.normal_operations,
+      dispute_stress_2_contribution_dollars: t.dispute_stress_2_chargebacks.contribution_dollars,
+      dispute_stress_4_contribution_dollars: t.dispute_stress_4_chargebacks_max_adverse.contribution_dollars,
     });
 
     const tableAtProduction = tiers.map(tableRow);
@@ -443,24 +476,35 @@ export default async function (req: Request): Promise<Response> {
 
     // ═══ 4. Negative scenarios, identified explicitly ════════════════════════
     const negativeScenarios: any[] = [];
+    const ARM_CLASSES: Record<string, string> = {
+      normal_operations: 'operating_profitability',
+      normal_operations_measured_cost: 'operating_profitability',
+      normal_operations_fee_not_collectible: 'operating_profitability',
+      vip_full_contractual_support: 'contractual_usage_requirement',
+      dispute_stress_2_chargebacks: 'dispute_stress_exceptional',
+      dispute_stress_4_chargebacks_max_adverse: 'dispute_stress_exceptional',
+    };
     for (const t of tiers) {
-      for (const key of ['expected', 'conservative', 'max_benefit_utilization'] as const) {
+      for (const key of Object.keys(ARM_CLASSES)) {
         const s = (t as any)[key];
-        if (!s.passes_positive_contribution) {
-          negativeScenarios.push({
-            price_basis: `production $${PRICE_IN_PRODUCTION}`,
-            tier: t.tier,
-            tier_name: t.tier_name,
-            scenario: key,
-            worst_persona: s.worst_persona,
-            worst_persona_description: s.worst_persona_description,
-            cash_in: s.cash_in,
-            contribution_dollars: s.contribution_dollars,
-            margin_pct: s.margin_pct,
-          });
-        }
+        if (!s || s.passes_positive_contribution) continue;
+        negativeScenarios.push({
+          price_basis: `production $${PRICE_IN_PRODUCTION}`,
+          tier: t.tier,
+          tier_name: t.tier_name,
+          scenario: key,
+          arm_class: ARM_CLASSES[key],
+          worst_persona: s.worst_persona,
+          worst_persona_description: s.worst_persona_description,
+          cash_in: s.cash_in,
+          contribution_dollars: s.contribution_dollars,
+          margin_pct: s.margin_pct,
+        });
       }
     }
+    const operatingNegatives = negativeScenarios.filter(n => n.arm_class === 'operating_profitability');
+    const contractualNegatives = negativeScenarios.filter(n => n.arm_class === 'contractual_usage_requirement');
+    const disputeNegatives = negativeScenarios.filter(n => n.arm_class === 'dispute_stress_exceptional');
 
     // Worst individual customer pattern per tier at the conservative scenario.
     const worstPatterns = tiers.map((t: any) => {
@@ -510,23 +554,28 @@ export default async function (req: Request): Promise<Response> {
       };
     });
 
-    const anyPositive = negativeScenarios.length === 0;
-
     return Response.json({
       status: 'VERIFICATION_COMPLETE',
-      model_version: 'autofund_financial_readiness_v2_20261011',
+      model_version: 'autofund_financial_readiness_v3_20261011',
       verdict_summary: {
         price_actually_calculated_at: PRICE_IN_PRODUCTION,
         approved_price_not_activated: PRICE_APPROVED,
+        membership_fee_included_as_collected_revenue: true,
+        membership_fee_chargeable_today: AUTOFUND_FINAL_FLAGS.membership_fee_enabled,
         tiers_verified: TIERS.length,
         retired_tiers_excluded: RETIRED_EXCLUDED,
-        pass_criterion: 'Positive contribution DOLLARS after every included cost and liability, including full eventual redemption of all cash-funded and promotional balances, chargebacks, refunds and unrecoverable commissions.',
-        tiers_positive_in_expected_scenario: tableAtProduction.filter((r) => r.expected_pass === 'PASS').map((r) => r.tier),
-        tiers_positive_in_conservative_scenario: tableAtProduction.filter((r) => r.conservative_pass === 'PASS').map((r) => r.tier),
-        tiers_positive_in_max_utilization_scenario: tableAtProduction.filter((r) => r.max_utilization_pass === 'PASS').map((r) => r.tier),
-        tiers_positive_in_all_three_scenarios: tableAtProduction.filter((r) => r.positive_in_all_three_scenarios === 'PASS').map((r) => r.tier),
-        negative_scenario_count: negativeScenarios.length,
-        no_negative_scenarios: anyPositive,
+        pass_criterion: 'Positive contribution DOLLARS in NORMAL OPERATIONS (both the expected and the measured cost basis) after every included cost and liability, including full eventual redemption of all cash-funded and promotional balances, with the membership fee collected. Disputes are assessed separately and are never assumed as normal behaviour.',
+        tiers_positive_in_normal_operations: tableAtProduction.filter((r) => r.normal_operations_overall_verdict === 'PASS').map((r) => r.tier),
+        tiers_positive_in_normal_operations_expected: tableAtProduction.filter((r) => r.normal_operations_pass === 'PASS').map((r) => r.tier),
+        tiers_positive_in_normal_operations_measured_cost: tableAtProduction.filter((r) => r.measured_cost_pass === 'PASS').map((r) => r.tier),
+        tiers_positive_with_fee_not_collectible: tableAtProduction.filter((r) => r.fee_not_collectible_pass === 'PASS').map((r) => r.tier),
+        tiers_profitable_while_serving_full_vip_contractual_support: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'PASS').map((r) => r.tier),
+        vip_full_contractual_support_tiers_negative: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'FAIL').map((r) => r.tier),
+        vip_contractual_usage_labelled_pass: tiers.filter((t: any) => t.tier === VIP_TIER && t.vip_full_contractual_support.contribution_dollars > 0).length === 1,
+        negative_operating_scenario_count: operatingNegatives.length,
+        negative_contractual_usage_scenario_count: contractualNegatives.length,
+        negative_dispute_stress_scenario_count: disputeNegatives.length,
+        no_negative_operating_scenarios: operatingNegatives.length === 0,
       },
       price_verification: priceVerification,
       scenario_definitions: SCENARIO_DEFINITIONS,
@@ -566,10 +615,10 @@ export default async function (req: Request): Promise<Response> {
       unresolved_assumptions_and_risks: [
         'NO MLS WALKTHROUGH HAS EVER BEEN PRODUCED. Editing minutes, and therefore editing cost per walkthrough, has never been observed; this single number moves tier results by 6-7 margin points.',
         'The employer payroll burden percentage and the QC expense per walkthrough are not configured anywhere in the app.',
-        'Membership billing is switched off, so the currently chargeable fee is $0 on every tier; the fee tiers would lose $300/year each of fee revenue if launched in that state.',
-        'VIP enhanced-support utilisation is unmeasured: 12 sessions per member per year is assumed against a 48-session contractual entitlement.',
-        'Chargeback frequency is unmeasured (2 and 4 per member per year modelled) and the $15 dispute fee is not a configured rate.',
-        'Whether a commission already paid out is actually recovered depends on Arriv Pay payroll treatment. Estate Media creates and delivers the reversal but does not debit employees; the conservative scenarios therefore treat it as unrecovered.',
+        'Membership billing is switched off, so the currently chargeable fee is $0 on every tier. The normal-operations arms assume the fee IS collected, as the owner intends; the separate fee-not-collectible arm shows the cost of launching without it.',
+        'VIP enhanced-support utilisation is unmeasured: 12 sessions per member per year is assumed against the contractual 48. The vip_full_contractual_support arm therefore charges the entitlement in full instead of assuming the lower observed level.',
+        'Chargeback frequency is unmeasured. The dispute-stress arms apply 2 and 4 disputes per member-year and the $15 dispute fee is not a configured rate; no operating arm assumes any dispute.',
+        'Whether a commission already paid out is actually recovered depends on Arriv Pay payroll treatment. Estate Media creates and delivers the reversal but does not debit employees; the dispute-stress arms therefore treat it as unrecovered.',
         'The published MLS Walkthrough price is $' + PRICE_IN_PRODUCTION + '. The owner-approved $' + PRICE_APPROVED + ' exists only as an inactive configuration record.',
         'Funding commission is modelled at 15% first payment and 8% recurring on every subscription; a self-service enrollment with no verified advisor attribution generates no commission, which would improve every figure shown.',
       ],
