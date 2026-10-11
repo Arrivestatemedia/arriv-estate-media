@@ -341,8 +341,9 @@ export default async function (req) {
         : '$50→$50 · $100→$105 · $200→$220 with their legacy plan IDs');
 
     check('H5 · A retired tier cannot be enrolled as a new option',
-      AUTO_FUND_RETIRED_AMOUNTS.every(a => getAutoFundConfig(a) !== AUTO_FUND_AMOUNTS[a]),
-      `resolvable for existing contracts, absent from AUTO_FUND_AMOUNT_OPTIONS`);
+      AUTO_FUND_RETIRED_AMOUNTS.every(a => getAutoFundConfig(a) !== null)
+        && !AUTO_FUND_RETIRED_AMOUNTS.some(a => AUTO_FUND_AMOUNT_OPTIONS.includes(a)),
+      'still resolvable for existing contracts, absent from AUTO_FUND_AMOUNT_OPTIONS');
 
     const retiredEnroll = await enrollCert({ email: 'cert_retired@example.com', amount: 50, billing: GA_ADDRESS });
     check('H6 · Engine refuses a retired tier at enrollment', retiredEnroll.status === 'invalid', `status=${retiredEnroll.status}`);
@@ -592,6 +593,12 @@ export default async function (req) {
     // ─────────────────────────────────────────────────────────────────────
     // F. CANCELLATION
     // ─────────────────────────────────────────────────────────────────────
+    // Fund the wallet so wallet preservation is actually proven, not merely asserted.
+    await svc.entities.PrepaidWallet.update(selfService.wallet_id, {
+      booking_value_balance_cents: 25000,
+      booking_value_balance: 250,
+    });
+
     const cancelledAt = new Date().toISOString();
     const benefitEnd = selfSub.next_billing_date;
     await svc.entities.AutoFundSubscription.update(selfSub.id, {
@@ -617,7 +624,7 @@ export default async function (req) {
       !!cancelRow?.cancellation_effective_at && cancelRow.benefit_period_end === benefitEnd,
       `effective ${cancelRow?.cancellation_effective_at?.slice(0, 10)} · benefits to ${String(benefitEnd).slice(0, 10)}`);
     check('F4 · Confirmation states wallet balances were NOT forfeited, with the balance',
-      cancelRow?.wallet_balance_preserved === true,
+      cancelRow?.wallet_balance_preserved === true && cancelRow.wallet_balance_cents_at_notice === 25000,
       `balance snapshot $${((cancelRow?.wallet_balance_cents_at_notice || 0) / 100).toFixed(2)} preserved`);
 
     const cancelDup = await sendCancellationConfirmation({
@@ -625,6 +632,11 @@ export default async function (req) {
       wallet: walletRow, cancelledAt, sender: okSender,
     });
     check('F5 · Cancellation confirmation is idempotent', cancelDup.status === 'duplicate', 'repeat confirmation not re-sent');
+
+    const walletAfter = await svc.entities.PrepaidWallet.get(selfService.wallet_id);
+    check('F6 · Wallet balance is unchanged by cancellation',
+      walletAfter.booking_value_balance_cents === 25000,
+      `$${((walletAfter.booking_value_balance_cents || 0) / 100).toFixed(2)} intact`);
 
     // ─────────────────────────────────────────────────────────────────────
     // G. AUDITABILITY
