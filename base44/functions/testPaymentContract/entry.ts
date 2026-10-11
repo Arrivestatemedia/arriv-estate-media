@@ -147,7 +147,7 @@ export default async function(req) {
     // AUTO-FUND FUNDING: $100 → 10,500 cents BV
     // ════════════════════════════════════════════════════════════════════
     try {
-      const afEventId = `${TEST_RUN_ID}_autofund_100`;
+      const afEventId = `${TEST_RUN_ID}_autofund_150`;
       const afResult = await processAutoFundPayment({
         base44: b,
         payment_event_id: afEventId,
@@ -336,7 +336,7 @@ export default async function(req) {
       const fullRefundResult = await processCommissionReversal({
         base44: b,
         refund_event_id: `${TEST_RUN_ID}_refund_full`,
-        original_payment_event_id: `${TEST_RUN_ID}_autofund_100`,
+        original_payment_event_id: `${TEST_RUN_ID}_autofund_150`,
         refunded_commissionable_amount: 100,
         reason: 'customer_refund',
         actor: 'arriv_pay',
@@ -361,7 +361,7 @@ export default async function(req) {
       const r1 = await processCommissionReversal({
         base44: b,
         refund_event_id: refundEventId,
-        original_payment_event_id: `${TEST_RUN_ID}_autofund_100`,
+        original_payment_event_id: `${TEST_RUN_ID}_autofund_150`,
         refunded_commissionable_amount: 50,
         reason: 'partial_refund',
         actor: 'arriv_pay',
@@ -370,7 +370,7 @@ export default async function(req) {
       const r2 = await processCommissionReversal({
         base44: b,
         refund_event_id: refundEventId,
-        original_payment_event_id: `${TEST_RUN_ID}_autofund_100`,
+        original_payment_event_id: `${TEST_RUN_ID}_autofund_150`,
         refunded_commissionable_amount: 50,
         reason: 'partial_refund',
         actor: 'arriv_pay',

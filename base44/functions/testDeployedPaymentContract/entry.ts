@@ -225,7 +225,7 @@ export default async function(req) {
     // TEST 3: AUTO-FUND RECURRING — $100 → 10,500¢ (DEPLOYED_HTTP)
     // ═══════════════════════════════════════════════════════════════════════
     try {
-      const eventId = `${TEST_RUN_ID}_autofund_100`;
+      const eventId = `${TEST_RUN_ID}_autofund_150`;
       const { status, data } = await sendPaymentEvent({
         payment_event_id: eventId,
         subscription_id: afSubId,
@@ -563,7 +563,7 @@ export default async function(req) {
     // Use the auto-fund $100 payment and chargeback the full amount
     // ═══════════════════════════════════════════════════════════════════════
     try {
-      const autofundEventId = `${TEST_RUN_ID}_autofund_100`;
+      const autofundEventId = `${TEST_RUN_ID}_autofund_150`;
       const chargebackId = `${TEST_RUN_ID}_chargeback`;
       const { status, data } = await sendRefundEvent({
         refund_event_id: chargebackId,

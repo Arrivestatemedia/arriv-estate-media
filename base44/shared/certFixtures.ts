@@ -134,7 +134,7 @@ export async function setupCertFixtures(base44: any): Promise<CertFixtureResult>
     customer_name: 'CertAutoFund Fixture',
     wallet_id: autofundWallet.id,
     amount: 100,
-    plan_id: 'autofund_100',
+    plan_id: 'autofund_150',
     status: 'active',
     stripe_subscription_id: `${runId}_stripe_sub`,
     stripe_customer_id: `${runId}_stripe_cust`,

@@ -199,7 +199,7 @@ export default async function (req) {
         `other subscription used=${status2?.allowance_used} (granted=${status2?.allowance_granted})`);
 
       // Subscription change (tier change) — the new allowance takes effect at the next cycle
-      await svc.entities.AutoFundSubscription.update(fx2.sub.id, { amount: 200, plan_id: 'autofund_200', updated_at: new Date().toISOString() });
+      await svc.entities.AutoFundSubscription.update(fx2.sub.id, { amount: 250, plan_id: 'autofund_250', updated_at: new Date().toISOString() });
       await mk({ action: 'reset_cycle', subscription_id: fx2.sub.id });
       const afterChange = await mk({ action: 'get_status', subscription_id: fx2.sub.id });
       check('16. Subscription tier change re-derives allowance on the next cycle',
