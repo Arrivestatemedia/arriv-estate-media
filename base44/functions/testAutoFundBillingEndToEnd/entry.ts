@@ -21,6 +21,7 @@ import {
   checkHoldInvariants,
 } from '../../shared/disputeProtection.ts';
 import { evaluateEnrollmentGate, EMERGENCY_SWITCH_SEMANTICS } from '../../shared/enrollmentCohort.ts';
+import { getMembershipFee } from '../../shared/autoFundFinalConfig.ts';
 import { checkDeliveryGuard, partitionByDeliveryGuard } from '../../shared/certificationDeliveryGuard.ts';
 import { isCertificationId } from '../../shared/certificationMode.ts';
 import { processCommissionReversal } from '../../shared/commissionReversalEngine.ts';
@@ -42,9 +43,11 @@ import { MLS_PRICE_V1_BY_TIER, MLS_PRICE_V2_BY_TIER } from '../../shared/mlsPric
  * Every fixture uses cert_-prefixed identifiers. Nothing here can reach a real
  * customer, charge a real card, pay a real employee, or activate a real price.
  *
- * The fee switch is DISABLED in production. Certification declares it enabled
- * for this isolated run only — the same bypass shape the enrollment engine uses —
- * and every generated ID is cert_-prefixed. Real fees still require the code flag.
+ * The fee switch and enrollment are LIVE by owner authorization (2026-10-11), so this
+ * suite runs against the activated posture. Every generated ID is cert_-prefixed, so
+ * nothing here can charge a real card or pay a real employee, and where a scenario used
+ * to simulate a switched-off control that the live switch now overrides, the check says
+ * so instead of asserting a state that no longer exists.
  */
 
 const APP_URL = 'https://arrivestatemedia.base44.app';
@@ -456,11 +459,21 @@ export default async function (req) {
     });
     const switchOffEvent = await findPaymentEvent(b, switchOffId);
 
-    check('SCENARIO 16: with billing switched off, no fee is charged, nothing is recorded, and the contract amount is unchanged',
-      switchOff.status === 'fee_disabled' &&
-        !switchOffEvent &&
-        contractedFee(subscription) === EXPECTED_FEE,
-      `status=${switchOff.status} recorded=${!!switchOffEvent} contracted_fee=${contractedFee(subscription)}`);
+    // Billing is LIVE by owner authorization (2026-10-11), so the switched-off path can no
+    // longer be simulated end-to-end: the live switch wins over any caller declaration, by
+    // design — a caller must never be able to UNDER-charge a customer. This check therefore
+    // asserts both directions of the fee switch where they remain observable: the tier
+    // resolves to NO fee at all when the switch is off (so nothing could be charged), and
+    // with billing live the CONTRACTED fee is charged, recorded, issues zero Booking Value,
+    // and never rewrites the contract amount.
+    check('SCENARIO 16: with billing off the tier resolves to no fee; with billing live the contracted fee is charged and the contract is unchanged',
+      switchOff.status === 'fee_recorded' &&
+        !!switchOffEvent &&
+        (switchOffEvent?.booking_value_issued_cents || 0) === 0 &&
+        contractedFee(subscription) === EXPECTED_FEE &&
+        getMembershipFee(TIER, false) === 0 &&
+        getMembershipFee(TIER, true) === EXPECTED_FEE,
+      `live status=${switchOff.status} recorded=${!!switchOffEvent} contracted_fee=${contractedFee(subscription)} · resolution off=$${getMembershipFee(TIER, false)} on=$${getMembershipFee(TIER, true)}`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // SCENARIO 15 — emergency enrollment OFF blocks new signups only
