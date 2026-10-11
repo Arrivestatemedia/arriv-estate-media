@@ -15,8 +15,17 @@
 //
 // The live price is whichever MediaPricingConfig record has `is_active: true`.
 // V1 is the active record, so the live standard price remains $100. Activating
-// V2 is a data change, not a code deploy — no code path moves the live price on
-// its own, so a future code push cannot change what a customer is charged.
+// V2 is a coordinated change with TWO halves that must land together:
+//
+//   1. the DATA change — the active record (what every booking path reads), and
+//   2. the CODE change — MLS_PRICING_VERSION_LIVE below, which the
+//      constant-reading surfaces follow.
+//
+// Doing only (1) would leave the constant-reading surfaces on V1 while customers
+// were charged V2 — the fallback inconsistency the activation check exists to
+// catch. MLS_PRICE_STANDARD_LIVE is therefore DERIVED from the live version rather
+// than pinned to V1, so flipping the one version constant carries every derived
+// figure with it and there is no second place to forget.
 //
 // Square-footage boundaries and increments are preserved exactly. V2 moves only
 // the standard (≤2,500 sqft) base, carrying the existing increments
@@ -76,5 +85,5 @@ export function mlsStandardPrice(version: MlsPriceVersion = MLS_PRICING_VERSION_
 /** The approved standard price — used to value the Auto-Fund program. */
 export const MLS_PRICE_STANDARD_APPROVED = MLS_PRICE_V2_BY_TIER.TIER_1;
 
-/** The price live for retail customers today. */
-export const MLS_PRICE_STANDARD_LIVE = MLS_PRICE_V1_BY_TIER.TIER_1;
+/** The price live for retail customers today: it FOLLOWS the live version. */
+export const MLS_PRICE_STANDARD_LIVE = mlsStandardPrice(MLS_PRICING_VERSION_LIVE);

@@ -5,7 +5,7 @@ import {
   EMERGENCY_STOP_SEMANTICS,
   isAutoFundEmergencyStopped,
 } from '../../shared/autoFundEmergencyStop.ts';
-import { processMembershipFee } from '../../shared/autoFundMembershipBilling.ts';
+import { processMembershipFee, recordFeeRefund } from '../../shared/autoFundMembershipBilling.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
 
@@ -155,6 +155,51 @@ export default async function (req: Request): Promise<Response> {
       `status=${declaredRun?.status} bv_cents=${declaredRun?.booking_value_issued_cents} commission=${declaredRun?.generated_commission}`,
     );
 
+    // ── The stop must never touch customer value or corrective actions ───────
+    // With the stop ACTIVE: a fee refund (money out and corrections) still records,
+    // and no wallet or lot balance anywhere moves when the stop is set or cleared.
+    await setStop('true');
+
+    const globalFingerprint = async () => {
+      const w = await b.entities.PrepaidWallet.list('-created_date', 300);
+      const wArr = Array.isArray(w) ? w : (w?.items || []);
+      const l = await b.entities.CreditLot.list('-created_date', 300);
+      const lArr = Array.isArray(l) ? l : (l?.items || []);
+      return JSON.stringify({
+        wallets: wArr.length,
+        total_spendable_cents: wArr.reduce((s: number, x: any) => s + (x.booking_value_balance_cents || 0), 0),
+        total_held_cents: wArr.reduce((s: number, x: any) => s + (x.dispute_held_cents || 0), 0),
+        lots: lArr.length,
+        total_lot_remaining_cents: lArr.reduce((s: number, x: any) => s + (x.booking_value_remaining_cents || 0), 0),
+      });
+    };
+
+    const feeRows = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: `${RUN}_fee_declared` }, undefined, 1);
+    const feeRowsArr = Array.isArray(feeRows) ? feeRows : (feeRows?.data || []);
+    const refundWhileStopped: any = feeRowsArr.length
+      ? await recordFeeRefund({
+          base44: b,
+          fee_event: feeRowsArr[0],
+          refund_amount: 25,
+          reason: 'certification: corrections remain available while the emergency stop is active',
+          actor: user.email,
+        })
+      : null;
+    check(
+      'E10 · Corrections still work while the stop is active (refunds are not blocked)',
+      refundWhileStopped?.status === 'fee_refunded' && refundWhileStopped?.wallet_liability_created === false,
+      `status=${refundWhileStopped?.status} wallet_liability=${refundWhileStopped?.wallet_liability_created}`,
+    );
+
+    const balanceBefore = await globalFingerprint();
+    await setStop(null);
+    const balanceAfter = await globalFingerprint();
+    check(
+      'E11 · Setting and clearing the stop moves no wallet or lot balance',
+      balanceBefore === balanceAfter,
+      `unchanged=${balanceBefore === balanceAfter} snapshot=${balanceBefore}`,
+    );
+
     // ── Cleanup ──────────────────────────────────────────────────────────────
     const cleanupErrors: string[] = [];
     for (const id of [`${RUN}_fee`, `${RUN}_fee_declared`]) {
@@ -181,7 +226,7 @@ export default async function (req: Request): Promise<Response> {
     );
     const remainingFeesArr = Array.isArray(remainingFees) ? remainingFees : (remainingFees?.data || []);
     check(
-      'E10 · Stop switch and synthetic events removed',
+      'E12 · Stop switch, synthetic events and the stop state are fully removed',
       remainingArr.length === 0 && remainingFeesArr.length === 0,
       `switch_rows=${remainingArr.length} synthetic_events=${remainingFeesArr.length}`,
     );

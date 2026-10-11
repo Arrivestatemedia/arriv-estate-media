@@ -1,5 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
+  MLS_PRICING_VERSION_LIVE,
+  MLS_PRICE_STANDARD_APPROVED,
+  MLS_PRICE_V2_BY_TIER,
+  mlsStandardPrice,
+} from '../../shared/mlsPricing.ts';
+import {
+  FEE_POLICY_COUNSEL_REVIEW_STATUS,
+} from '../../shared/autoFundFeePolicy.ts';
+import { buildFeeRefundDisclosure } from '../../shared/autoFundMembershipBilling.ts';
+import {
   AUTOFUND_FINAL_FLAGS,
   AUTOFUND_MEMBERSHIP_FEE,
   AUTOFUND_ENROLLMENT_FLAG_KEY,
@@ -107,11 +117,15 @@ export default async function (req) {
       buildChargeDisclosure(500).fee_generates_sales_commission === false,
       'fee is collected revenue on all three counts');
 
-    // ══ 7. Refundability is NOT assumed non-refundable ════════════════════
-    check('fee refund policy defaults to undetermined, not non-refundable',
-      DEFAULT_FEE_REFUND_POLICY === 'undetermined' &&
+    // ══ 7. Refundability: OWNER-ADOPTED policy, counsel review NOT completed ══
+    const liveFeeRefund = buildFeeRefundDisclosure();
+    check('fee refund policy is the owner-adopted policy and is not recorded as legally approved',
+      DEFAULT_FEE_REFUND_POLICY === 'non_refundable' &&
+      liveFeeRefund.is_approved === true &&
+      liveFeeRefund.exceptions.length > 0 &&
+      FEE_POLICY_COUNSEL_REVIEW_STATUS === 'not_completed' &&
       typeof FEE_REFUND_POLICY_DISCLOSURE.refundable_full === 'string',
-      `default = ${DEFAULT_FEE_REFUND_POLICY}; four policies configured including full and pro-rata refund`);
+      `policy = ${DEFAULT_FEE_REFUND_POLICY} (owner-adopted, ${liveFeeRefund.exceptions.length} statutory exceptions); counsel review = ${FEE_POLICY_COUNSEL_REVIEW_STATUS}`);
 
     // ══ 8. Salesperson cannot alter money — tampered quotes are rejected ═══
     check('tampered fee quote rejected', feeMatchesApprovedTable(500, 25) === true && feeMatchesApprovedTable(500, 5) === false,
@@ -128,10 +142,12 @@ export default async function (req) {
     // ══ 10. MLS price single source ════════════════════════════════════════
     const activeCfg = await getActivePricingConfig(sr);
     const tier1 = (activeCfg.tier_prices || []).find(t => t.tier === 'TIER_1')?.prices?.mls_walkthrough;
-    check('live MLS price is $100 across sources', MLS_RETAIL_LIVE === 100 && tier1 === 100,
-      `mlsPricing live = $${MLS_RETAIL_LIVE}; active engine TIER_1 = $${tier1}`);
-    check('Auto-Fund program valued at the approved $120', MLS_RETAIL === 120,
-      `Auto-Fund MLS retail = $${MLS_RETAIL}`);
+    check('live MLS price is consistent across pricing sources',
+      MLS_RETAIL_LIVE === mlsStandardPrice(MLS_PRICING_VERSION_LIVE) && tier1 === MLS_RETAIL_LIVE,
+      `mlsPricing live (${MLS_PRICING_VERSION_LIVE}) = $${MLS_RETAIL_LIVE}; active engine TIER_1 = $${tier1}`);
+    check('Auto-fund program is valued at the owner-approved V2 ladder',
+      MLS_RETAIL === MLS_PRICE_STANDARD_APPROVED && MLS_RETAIL === MLS_PRICE_V2_BY_TIER.TIER_1,
+      `Auto-Fund MLS retail = $${MLS_RETAIL} (approved V2 standard = $${MLS_PRICE_STANDARD_APPROVED})`);
 
     // ══ 11. Bundle margin guard uses the approved cost assumption ═════════
     check('bundle guard editing+QC cost = $25.70', MLS_EDITING === 25.70,
@@ -170,7 +186,7 @@ export default async function (req) {
       results,
       flags: AUTOFUND_FINAL_FLAGS,
       launch_blockers: [
-        'Membership-fee refundability policy must be set by the owner and legally reviewed before enrollment opens.',
+        'Membership-fee refund policy is OWNER-ADOPTED (ordinarily nonrefundable, with statutory and error exceptions). External counsel review of the membership and wallet terms is NOT completed, so enrollment stays closed.',
         'Full financial-lifecycle certification (real charges, retries, refunds, Arriv Pay reconciliation) requires the staging flags to be enabled in an isolated environment; production flags were deliberately left off.',
         'Public enrollment requires explicit owner launch authorization.',
       ],

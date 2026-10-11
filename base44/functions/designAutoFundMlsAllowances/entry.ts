@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { MLS_PRICE_STANDARD_LIVE } from '../../shared/mlsPricing.ts';
 import {
   AUTO_FUND_AMOUNT_OPTIONS,
   getAutoFundConfig,
@@ -62,7 +63,7 @@ const STRIPE_RATE = 0.029;
 const STRIPE_FIXED = 0.30;
 
 // MLS Walkthrough <=2,500 sqft — canonical unit economics.
-const MLS_RETAIL = 100;
+const MLS_RETAIL = MLS_PRICE_STANDARD_LIVE;
 const MLS_PAYOUT = 50;   // guaranteed payout table
 const MLS_EDITING = 20;
 const MLS_UNIT_COST = MLS_PAYOUT + MLS_EDITING; // $70

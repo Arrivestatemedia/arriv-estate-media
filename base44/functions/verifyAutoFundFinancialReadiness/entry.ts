@@ -24,10 +24,13 @@ import {
   mlsPriceVersionFromLabel,
 } from '../../shared/mlsPricing.ts';
 import {
-  VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
-  VIP_SUPPORT_ASSUMED_COST_PER_SESSION,
-  buildVipSupportProposalDisclosure,
-} from '../../shared/autoFundVipSupportProposal.ts';
+  VIP_ENHANCED_SUPPORT_TEXT,
+  VIP_SUPPORT_ESCALATION_EVENTS_ASSUMED_PER_YEAR,
+  VIP_SUPPORT_ESCALATION_COST_PER_EVENT,
+  VIP_SUPPORT_STRESS_CEILING_EVENTS,
+  escalationCapacityForContribution,
+  buildVipSupportDisclosure,
+} from '../../shared/autoFundVipSupport.ts';
 import { feePolicyAuditRecord } from '../../shared/autoFundFeePolicy.ts';
 import { AUTOFUND_MEMBERSHIP_FEE, AUTOFUND_FINAL_FLAGS } from '../../shared/autoFundFinalConfig.ts';
 
@@ -317,7 +320,7 @@ const SCENARIO_DEFINITIONS = {
   normal_operations_fee_not_collectible:
     'NORMAL OPERATIONS with the membership fee NOT collectible: identical to the expected arm except the monthly fee is never collected. Derived arithmetically because a membership fee carries no cost, issues no Booking Value, creates no wallet liability and generates no commission.',
   vip_full_contractual_support:
-    'CONTRACTUAL USAGE LIMIT: expected basis, ZERO chargebacks, and the FULL contractual VIP enhanced-support entitlement (48 sessions/yr). This benefit level is what the contract entitles the member to, so it is a contractual requirement rather than a stress test, and a negative result here is a FAIL.',
+    'HIGH-UTILISATION SUPPORT STRESS (not a promised benefit): expected basis, ZERO chargebacks, and 48 VIP support events per member-year, retained from the former proposal as a conservative ceiling. The finalized VIP enhanced support promises no fixed number of human sessions, so this is a downside test, not a contractual requirement.',
   dispute_stress_2:
     'DISPUTE STRESS (exceptional, NOT normal behaviour): expected basis, 2 chargebacks per member-year with commission treated as UNRECOVERED. Reported separately from operating profitability.',
   dispute_stress_4:
@@ -400,21 +403,24 @@ export default async function (req: Request): Promise<Response> {
       // Normal trading: no chargeback is assumed in any operating arm.
       const normal = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
       const normalMeasured = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_EXPECTED, 0, true);
-      // The contract entitles a VIP member to 48 enhanced-support sessions a year.
-      // Serving that entitlement is a cost of honouring the contract, not stress.
+      // High-utilisation STRESS: the former proposed ceiling of 48 support events a
+      // year is retained as a conservative downside test. The finalized VIP benefit
+      // promises no fixed number of human sessions, so this is stress, not an
+      // entitlement, and a negative result here is not a contractual failure.
       const vipFullSupport = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 0, true);
       // Disputes, held apart from operating results. Never presented as normal.
       const dispute2 = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 2, false);
       const dispute4 = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 4, false);
-      // The owner's PROPOSED VIP benefit (up to 12 qualifying sessions a year),
-      // tested as an operating arm under BOTH cost bases. It is a proposal, not a
-      // contractual entitlement, so it informs pricing rather than asserting a right.
-      const vipProposalArm = {
-        sessions_per_year: VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
-        cost_per_session: VIP_SUPPORT_ASSUMED_COST_PER_SESSION,
+      // The FINALIZED VIP enhanced support: priority Arriv Assist access with
+      // escalation when necessary, and NO promised number of human sessions. The
+      // support basis is the existing priority-support retainer only, so the
+      // removed per-session cost is not silently retained as a benefit cost.
+      const vipFinalArm = {
+        sessions_per_year: VIP_SUPPORT_ESCALATION_EVENTS_ASSUMED_PER_YEAR,
+        cost_per_session: VIP_SUPPORT_ESCALATION_COST_PER_EVENT,
       };
-      const vip12Expected = runScenario(tier, price, EXPECTED_BASIS, vipProposalArm, 0, true);
-      const vip12HighCost = runScenario(tier, price, CONSERVATIVE_BASIS, vipProposalArm, 0, true);
+      const vipFinalExpected = runScenario(tier, price, EXPECTED_BASIS, vipFinalArm, 0, true);
+      const vipFinalHighCost = runScenario(tier, price, CONSERVATIVE_BASIS, vipFinalArm, 0, true);
 
       return {
         tier,
@@ -442,17 +448,22 @@ export default async function (req: Request): Promise<Response> {
         vip_full_contractual_support: {
           ...summarize(vipFullSupport.worst, tier, vipFullSupport.overlaid),
           applies_to_this_tier: tier === VIP_TIER,
-          entitlement: 'The full contractual 48 enhanced-support sessions per year. Serving it is required by the contract.',
+          entitlement:
+            'NOT a contractual entitlement. Conservative high-utilisation stress at 48 support events per member-year, retained from the former proposal. The finalized VIP benefit promises no fixed number of human sessions.',
         },
-        vip_12_session_proposal: {
-          ...summarize(vip12Expected.worst, tier, vip12Expected.overlaid),
+        vip_finalized_support: {
+          ...summarize(vipFinalExpected.worst, tier, vipFinalExpected.overlaid),
           applies_to_this_tier: tier === VIP_TIER,
-          proposal_status: 'PROPOSED_AWAITING_OWNER_APPROVAL — not a contractual entitlement',
-          sessions_per_year: VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
-          cost_basis_expected_contribution_dollars: vip12Expected.overlaid.contribution_dollars,
-          cost_basis_high_cost_contribution_dollars: vip12HighCost.overlaid.contribution_dollars,
-          full_utilization_contribution_positive_expected_basis: vip12Expected.overlaid.passes,
-          full_utilization_contribution_positive_high_cost_basis: vip12HighCost.overlaid.passes,
+          benefit: VIP_ENHANCED_SUPPORT_TEXT,
+          promised_human_sessions_per_year: VIP_SUPPORT_ESCALATION_EVENTS_ASSUMED_PER_YEAR,
+          cost_basis_expected_contribution_dollars: vipFinalExpected.overlaid.contribution_dollars,
+          cost_basis_high_cost_contribution_dollars: vipFinalHighCost.overlaid.contribution_dollars,
+          contribution_positive_expected_basis: vipFinalExpected.overlaid.passes,
+          contribution_positive_high_cost_basis: vipFinalHighCost.overlaid.passes,
+          escalation_capacity_from_contribution_expected_basis:
+            escalationCapacityForContribution(vipFinalExpected.overlaid.contribution_dollars),
+          escalation_capacity_from_contribution_high_cost_basis:
+            escalationCapacityForContribution(vipFinalHighCost.overlaid.contribution_dollars),
         },
         dispute_stress_2_chargebacks: summarize(dispute2.worst, tier, dispute2.overlaid),
         dispute_stress_4_chargebacks_max_adverse: summarize(dispute4.worst, tier, dispute4.overlaid),
@@ -513,8 +524,8 @@ export default async function (req: Request): Promise<Response> {
       normal_operations: 'operating_profitability',
       normal_operations_measured_cost: 'operating_profitability',
       normal_operations_fee_not_collectible: 'operating_profitability',
-      vip_full_contractual_support: 'contractual_usage_requirement',
-      vip_12_session_proposal: 'owner_proposed_vip_benefit',
+      vip_full_contractual_support: 'high_utilisation_support_stress',
+      vip_finalized_support: 'finalized_vip_support',
       dispute_stress_2_chargebacks: 'dispute_stress_exceptional',
       dispute_stress_4_chargebacks_max_adverse: 'dispute_stress_exceptional',
     };
@@ -603,8 +614,8 @@ export default async function (req: Request): Promise<Response> {
         tiers_positive_in_normal_operations_expected: tableAtProduction.filter((r) => r.normal_operations_pass === 'PASS').map((r) => r.tier),
         tiers_positive_in_normal_operations_measured_cost: tableAtProduction.filter((r) => r.measured_cost_pass === 'PASS').map((r) => r.tier),
         tiers_positive_with_fee_not_collectible: tableAtProduction.filter((r) => r.fee_not_collectible_pass === 'PASS').map((r) => r.tier),
-        tiers_profitable_while_serving_full_vip_contractual_support: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'PASS').map((r) => r.tier),
-        vip_full_contractual_support_tiers_negative: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'FAIL').map((r) => r.tier),
+        tiers_positive_under_high_utilisation_support_stress: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'PASS').map((r) => r.tier),
+        high_utilisation_support_stress_tiers_negative: tableAtProduction.filter((r) => r.vip_full_contractual_support_verdict === 'FAIL').map((r) => r.tier),
         vip_contractual_usage_labelled_pass: tiers.filter((t: any) => t.tier === VIP_TIER && t.vip_full_contractual_support.contribution_dollars > 0).length === 1,
         negative_operating_scenario_count: operatingNegatives.length,
         negative_contractual_usage_scenario_count: contractualNegatives.length,
@@ -637,7 +648,23 @@ export default async function (req: Request): Promise<Response> {
           'Auto-Fund MLS allowance and redemption math',
         ],
       },
-      vip_support_proposal: buildVipSupportProposalDisclosure(),
+      vip_enhanced_support: buildVipSupportDisclosure(),
+      vip_support_at_approved_price: (() => {
+        const vip = tiersAtApprovedPrice.find((t: any) => t.tier === VIP_TIER);
+        if (!vip) return null;
+        const final = vip.vip_finalized_support;
+        return {
+          price: PRICE_APPROVED,
+          contribution_expected_basis_dollars: final.cost_basis_expected_contribution_dollars,
+          contribution_high_cost_basis_dollars: final.cost_basis_high_cost_contribution_dollars,
+          positive_expected_basis: final.contribution_positive_expected_basis,
+          positive_high_cost_basis: final.contribution_positive_high_cost_basis,
+          shortfall_high_cost_basis_dollars: round2(Math.min(0, final.cost_basis_high_cost_contribution_dollars)),
+          escalation_capacity_at_expected_basis: final.escalation_capacity_from_contribution_expected_basis,
+          escalation_capacity_at_high_cost_basis: final.escalation_capacity_from_contribution_high_cost_basis,
+          basis: 'Full eventual redemption of all cash-funded and promotional Booking Value, with the finalized VIP enhanced support (no promised sessions) and the membership fee collected.',
+        };
+      })(),
       fee_policy_adoption: feePolicyAuditRecord(),
       scenario_definitions: SCENARIO_DEFINITIONS,
       table_at_production_price: tableAtProduction,
@@ -651,9 +678,14 @@ export default async function (req: Request): Promise<Response> {
         mls_payout_per_walkthrough: MLS_PAYOUT,
         mls_policy_under_test: 'No standalone booking-count cap below VIP; VIP promotional allowance 7 per cycle',
         vip_support: {
+          finalized_benefit: VIP_ENHANCED_SUPPORT_TEXT,
+          promised_human_sessions_per_year: 0,
+          incremental_support_retainer_per_month: VIP_PRIORITY_SUPPORT_COST,
+          escalation_cost_per_event_assumption: VIP_SUPPORT_ESCALATION_COST_PER_EVENT,
+          stress_ceiling_events_per_year: VIP_SUPPORT_STRESS_CEILING_EVENTS,
           expected: VIP_SUPPORT_EXPECTED,
           maximum_contractual: VIP_SUPPORT_MAX_CONTRACTUAL,
-          retainer_per_month: VIP_PRIORITY_SUPPORT_COST,
+          note: 'The finalized benefit introduces no new support workflow and promises no session count. The retainer is the existing VIP priority-support line, so no existing support expense is counted twice.',
         },
         cost_bases: COST_BASES.map((b) => ({
           id: b.id, label: b.label,
@@ -677,7 +709,7 @@ export default async function (req: Request): Promise<Response> {
         'NO MLS WALKTHROUGH HAS EVER BEEN PRODUCED. Editing minutes, and therefore editing cost per walkthrough, has never been observed; this single number moves tier results by 6-7 margin points.',
         'The employer payroll burden percentage and the QC expense per walkthrough are not configured anywhere in the app.',
         'Membership billing is switched off, so the currently chargeable fee is $0 on every tier. The normal-operations arms assume the fee IS collected, as the owner intends; the separate fee-not-collectible arm shows the cost of launching without it.',
-        'VIP enhanced-support utilisation is unmeasured: 12 sessions per member per year is assumed against the contractual 48. The vip_full_contractual_support arm therefore charges the entitlement in full instead of assuming the lower observed level.',
+        'VIP enhanced-support utilisation is unmeasured. The finalized benefit promises no fixed number of human sessions: priority Arriv Assist access with escalation when necessary, costed at the existing priority-support retainer only. The high-utilisation arm charges 48 support events per member-year as a conservative stress, and it is not a promised benefit.',
         'Chargeback frequency is unmeasured. The dispute-stress arms apply 2 and 4 disputes per member-year and the $15 dispute fee is not a configured rate; no operating arm assumes any dispute.',
         'Whether a commission already paid out is actually recovered depends on Arriv Pay payroll treatment. Estate Media creates and delivers the reversal but does not debit employees; the dispute-stress arms therefore treat it as unrecovered.',
         'The published MLS Walkthrough price is $' + PRICE_IN_PRODUCTION + '. The owner-approved $' + PRICE_APPROVED + ' exists only as an inactive configuration record.',
