@@ -61,6 +61,24 @@
 
 Full realism basis: 15% employer payroll burden, $5 QC per walkthrough, and provider payouts on the authoritative **ordered waterfall** — the sales person is paid out of the package **first**, and the partner then takes **40% of what remains**, exactly as `mediaCompensationEngine` computes it (`post_sales_value = CSV − sales_commission`, `payout = post_sales_value × 0.40`). A wallet-funded booking carries zero booking commission, so its post-sales value is the full package and the partner receives **40% of the package**. A standard marketplace booking pays the 15% commission first, so the partner receives **34% of retail**. Plus Stripe 2.9% + $0.30, churn, refunds, rollover, and full eventual redemption of every balance. Fifteen customer patterns per tier. Promotional credit is always closed out at the **lowest-margin service the customer is permitted to buy**.
 
+### MLS Walkthrough waterfall (the one package with its own economics)
+
+The MLS Walkthrough does **not** follow the 40%-after-sales rule. The specialist is paid a **flat $50** from the guaranteed payout table (`MLS_GUARANTEED_PAYOUT`, ≤2,500 sqft), whatever the price and however the booking is paid for. The 40%-of-remainder rule applies only to non-MLS packages. In a bundle, the MLS portion pays the flat $50 and the non-MLS portion pays 40% of its own value.
+
+| Per walkthrough, $100 price | Standard booking | Auto-Fund wallet booking |
+|---|---|---|
+| Media Specialist (flat) | $50.00 | $50.00 |
+| Sales Growth Advisor (booking commission) | $15.00 | $0.00 — paid at funding instead (15% first, 8% recurring) |
+| Editing (estimated) | $20.00 | $20.00 |
+| **Arriv remaining, before overhead** | **$15.00** | **$30.00** |
+| Less payroll burden on editing (15%) | −$3.00 | −$3.00 |
+| Less quality control | −$5.00 | −$5.00 |
+| **Arriv remaining, full realism** | **$7.00** | **$22.00** |
+
+At **$120** the specialist payout and editing stay the same, so the full extra $20 goes to Arriv: **$42.00** per Auto-Fund walkthrough under full realism.
+
+That per-walkthrough figure is **not** the program's profit. Each walkthrough paid from the wallet has to cover its share of the promotional bonus (delivered with no cash behind it), the funding commission, Stripe on the funding charge, VIP support, and churn. Those program-level costs are why the tier results below differ from the per-walkthrough line.
+
 ### At the proposed $120 price — full realism
 
 | Tier | Fee | Worst pattern | Worst lifetime margin | Cash in | Shortfall vs 10% | Verdict |
