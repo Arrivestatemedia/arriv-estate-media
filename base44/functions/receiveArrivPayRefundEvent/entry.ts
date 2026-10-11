@@ -190,6 +190,21 @@ export default async function(req) {
         };
       }
 
+      // A chargeback is ONE dispute, however many times the provider delivers it.
+      // dispute_reference is the case key, so an already-recorded dispute is
+      // reused rather than recreated: a redelivered webhook must not open a second
+      // case, fork the recovery tracking, or page the owner a second time.
+      let existingDisputeCase: any = null;
+      try {
+        const existingRaw = await base44.asServiceRole.entities.AutoFundDisputeCase.filter(
+          { dispute_reference: refund_event_id }, undefined, 1,
+        );
+        const existingArr = Array.isArray(existingRaw) ? existingRaw : (existingRaw?.data || []);
+        existingDisputeCase = existingArr[0] || null;
+      } catch (e) {
+        console.error('Dispute case lookup error:', e.message);
+      }
+
       // Evidence packet — assembled now, while the records are current.
       let evidence: any = null;
       try {
@@ -212,7 +227,9 @@ export default async function(req) {
       let alertStatus = 'skipped';
       let alertReason = 'No administrator alert address configured.';
       const alertRecipient = secrets.get("ADMIN_EMAIL") || '';
-      if (alertRecipient) {
+      if (existingDisputeCase) {
+        alertReason = 'A dispute case already exists for this reference — a redelivered chargeback does not re-alert.';
+      } else if (alertRecipient) {
         try {
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: alertRecipient,
@@ -245,7 +262,11 @@ export default async function(req) {
       }
 
       // Durable case record, with the evidence and the alert outcome preserved.
-      try {
+      if (existingDisputeCase) {
+        // Reuse the recorded dispute — a redelivery must not fork the case record
+        // or reset its recovery tracking.
+        disputeCaseId = existingDisputeCase.dispute_case_id || existingDisputeCase.id || '';
+      } else try {
         const disputeCase = await base44.asServiceRole.entities.AutoFundDisputeCase.create({
           dispute_case_id: generateDisputeCaseId(),
           dispute_reference: refund_event_id,

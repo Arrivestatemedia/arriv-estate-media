@@ -48,7 +48,11 @@ import { MLS_PRICE_V1_BY_TIER, MLS_PRICE_V2_BY_TIER } from '../../shared/mlsPric
  */
 
 const APP_URL = 'https://arrivestatemedia.base44.app';
-const TEST_RUN_ID = `cert_bill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+// The run id, the results array and the step marker are created INSIDE the handler.
+// Declared here they survive between invocations in a warm instance, so a second
+// call appends its checks to the first call's array and reports a doubled total
+// under the FIRST call's run id — a report that looks like one complete run while
+// actually describing two, hiding the second run's real result.
 const TIER = 350;                                 // $350 → $402.50 Booking Value, $25 fee
 const EXPECTED_BV_CENTS = 40250;                  // 350 + 52.50 bonus
 const EXPECTED_FEE = 25;
@@ -73,13 +77,15 @@ const DECLARED_LAUNCH_CONFIGURATION = {
   processor_capabilities: AUTOFUND_PROCESSOR_CAPABILITIES,
 };
 
-const CUSTOMER_EMAIL = `cert_bill_customer_${TEST_RUN_ID}@cert.test`;
-const CUSTOMER_NAME = 'Certification Billing Customer';
-
-const results: any[] = [];
-let step = 'init';
-
 export default async function (req) {
+  // Per-invocation state: a fresh run id, a fresh results array and a fresh step
+  // marker, so nothing can leak from a previous call in the same warm instance.
+  const TEST_RUN_ID = `cert_bill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const CUSTOMER_EMAIL = `cert_bill_customer_${TEST_RUN_ID}@cert.test`;
+  const CUSTOMER_NAME = 'Certification Billing Customer';
+  const results: any[] = [];
+  let step = 'init';
+
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();

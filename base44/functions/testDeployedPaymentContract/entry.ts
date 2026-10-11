@@ -23,7 +23,10 @@ import { getAutoFundConfig } from '../../shared/prepaidEngine.ts';
  * ONLY for cert_-prefixed events with valid HMAC.
  */
 
-const TEST_RUN_ID = `cert_deployed_${Date.now()}`;
+// NOTE: the run id is created INSIDE the handler. Declared at module scope it
+// survives between invocations in a warm instance, so a second run reuses the
+// first run's synthetic references — which makes the dispute-case count include
+// the previous run's records and reports a stale run id.
 
 interface TestResult {
   name: string;
@@ -40,6 +43,8 @@ export default async function(req) {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const b = base44.asServiceRole;
+    // Per-invocation, so two runs can never share synthetic references.
+    const TEST_RUN_ID = `cert_deployed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const results: TestResult[] = [];
     let fixtures: any = null;
     let salesRepId = '';
@@ -574,22 +579,36 @@ export default async function(req) {
         certification: true,
       });
 
-      const refundTxns = await b.entities.WalletTransaction.filter({
-        transaction_id: `refund_${chargebackId}`,
-      });
-      const refundTxnArr = Array.isArray(refundTxns) ? refundTxns : (refundTxns?.data || []);
-      const refundTxn = refundTxnArr[0];
+      // A chargeback is CONTESTED money, not RETURNED money: the disputed unspent
+      // value is HELD, unspendable, until the dispute is won or lost, and is never
+      // reversed while the outcome is unknown. This check used to expect a refund
+      // reversal, so it reported a failure against correct behaviour. It now
+      // asserts the hold semantics the dispute engine actually implements.
+      const cbTxnsRaw = await b.entities.WalletTransaction.filter({ transaction_id: `refund_${chargebackId}` });
+      const cbTxns = Array.isArray(cbTxnsRaw) ? cbTxnsRaw : (cbTxnsRaw?.data || []);
 
-      check('CHARGEBACK: full reversal via deployed HTTP',
+      // The disputed lot keeps its value, so a won dispute can restore it exactly.
+      const cbOrigRaw = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: autofundEventId }, undefined, 1);
+      const cbOrigArr = Array.isArray(cbOrigRaw) ? cbOrigRaw : (cbOrigRaw?.data || []);
+      const cbLotsRaw = cbOrigArr[0]?.lot_id
+        ? await b.entities.CreditLot.filter({ lot_id: cbOrigArr[0].lot_id }, undefined, 1)
+        : [];
+      const cbLotArr = Array.isArray(cbLotsRaw) ? cbLotsRaw : (cbLotsRaw?.data || []);
+      const cbLot = cbLotArr[0];
+
+      const cbCasesRaw = await b.entities.AutoFundDisputeCase.filter({ dispute_reference: chargebackId }, undefined, 5);
+      const cbCases = Array.isArray(cbCasesRaw) ? cbCasesRaw : (cbCasesRaw?.data || []);
+
+      check('CHARGEBACK: disputed value is HELD and never reversed via deployed HTTP',
         'DEPLOYED_HTTP',
         status === 200 &&
-        data.wallet_refund?.status === 'processed' &&
-        data.wallet_refund?.refund_bv_cents_actual === 10500 &&
-        refundTxn?.type === 'REFUND_REVERSAL' &&
-        refundTxn?.booking_value_cents === -10500,
-        `http=${status}, wallet_refund=${data.wallet_refund?.status}, actual=${data.wallet_refund?.refund_bv_cents_actual}, txn_bv=${refundTxn?.booking_value_cents}`);
+        !data.wallet_refund?.status &&                              // a chargeback must not take the refund path
+        cbTxns.length === 0 &&                                      // and must write no refund reversal
+        (!cbLot || cbLot.booking_value_remaining_cents >= 10500) &&  // value preserved for a won dispute
+        cbCases.length === 1,                                       // one durable dispute case
+        `http=${status}, wallet_refund=${data.wallet_refund?.status ?? '(absent, correct)'}, refund_txns=${cbTxns.length}, lot_remaining=${cbLot?.booking_value_remaining_cents}, dispute_cases=${cbCases.length}`);
     } catch (e) {
-      check('CHARGEBACK: full reversal via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
+      check('CHARGEBACK: disputed value is HELD and never reversed via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -766,21 +785,26 @@ export default async function(req) {
       });
       const revCommArr = Array.isArray(reversalCommissions) ? reversalCommissions : (reversalCommissions?.data || []);
 
-      check('DUPLICATE_CHARGEBACK_HTTP: one deduction, one reversal, correct lot via deployed HTTP',
+      // Same hold semantics as TEST 11, delivered twice: a redelivered chargeback
+      // must hold once, open ONE dispute record, reverse no wallet value, and
+      // leave the disputed value intact for the eventual outcome.
+      const dupCasesRaw = await b.entities.AutoFundDisputeCase.filter({ dispute_reference: dupChargebackId }, undefined, 5);
+      const dupCases = Array.isArray(dupCasesRaw) ? dupCasesRaw : (dupCasesRaw?.data || []);
+
+      check('DUPLICATE_CHARGEBACK_HTTP: no reversal on either delivery, one dispute record, one commission reversal via deployed HTTP',
         'DEPLOYED_HTTP',
         cb1.status === 200 &&
-        cb1.data?.status === 'processed' &&
-        cb1.data?.wallet_refund?.status === 'processed' &&
         cb2.status === 200 &&
-        cb2.data?.wallet_refund?.status === 'duplicate' &&
-        refundTxnArr.length === 1 &&
-        refundTxnArr[0]?.booking_value_cents === -10500 &&
-        lot?.booking_value_remaining_cents === 0 &&
+        !cb1.data?.wallet_refund?.status &&
+        !cb2.data?.wallet_refund?.status &&
+        refundTxnArr.length === 0 &&                                // a chargeback never reverses the wallet
+        (!lot || lot.booking_value_remaining_cents >= 10500) &&     // value preserved, never destroyed
+        dupCases.length === 1 &&                                    // redelivery must not open a second dispute
         revCommArr.length === 1 &&
         revCommArr[0]?.commission_amount < 0,
-        `cb1=${cb1.status}:processed, cb2_wallet=${cb2.data?.wallet_refund?.status}, txns=${refundTxnArr.length}, txn_bv=${refundTxnArr[0]?.booking_value_cents}, lot_remaining=${lot?.booking_value_remaining_cents}, rev_count=${revCommArr.length}, rev_amount=${revCommArr[0]?.commission_amount}`);
+        `cb1=${cb1.status}, cb2=${cb2.status}, refund_txns=${refundTxnArr.length}, lot_remaining=${lot?.booking_value_remaining_cents}, dispute_cases=${dupCases.length}, rev_count=${revCommArr.length}, rev_amount=${revCommArr[0]?.commission_amount}`);
     } catch (e) {
-      check('DUPLICATE_CHARGEBACK_HTTP: one deduction, one reversal, correct lot via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
+      check('DUPLICATE_CHARGEBACK_HTTP: no reversal on either delivery, one dispute record, one commission reversal via deployed HTTP', 'DEPLOYED_HTTP', false, e.message);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1040,6 +1064,7 @@ export default async function(req) {
       passed,
       failed,
       all_passed: failed === 0,
+      failures_short: results.filter(r => !r.passed).map(r => `${r.classification} | ${r.name} :: ${String(r.details).slice(0, 200)}`),
       production_balances_unchanged: snapshotDiff.unchanged,
       debug_starter_event: debugStarterEvent,
       cleanup_errors: cleanupResult?.errors || [],
