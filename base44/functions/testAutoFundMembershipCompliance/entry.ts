@@ -106,7 +106,7 @@ export default async function (req) {
   // cleanup and the isolated enrollment path. Shared with the launch-interlock suite
   // so the two can never drift on how a synthetic customer is created or removed.
   const harness = createCertHarness();
-  const { results, check, track, cleanupAll } = harness;
+  const { results, check, fail, blocked, track, cleanupAll, enrollCert } = harness;
 
   try {
     const user = await base44.auth.me();
@@ -538,7 +538,7 @@ export default async function (req) {
       !!ackRow && ackRow.tier_amount === 350 && ackRow.membership_fee === 25
         && ackRow.total_monthly_charge === 375 && ackRow.billing_frequency === 'monthly'
         && !!ackRow.next_renewal_date,
-      'deposit $350 + fee $25 = $375/month recorded');
+      `tier=${ackRow?.tier_amount} fee=${ackRow?.membership_fee} total=${ackRow?.total_monthly_charge} freq=${ackRow?.billing_frequency} next=${ackRow?.next_renewal_date} channel=${ackRow?.enrollment_channel}`);
 
     check('D3 · Acknowledgment records terms version, refund policy and cancellation instructions',
       !!ackRow && ackRow.terms_version === CURRENT_TERMS_VERSION

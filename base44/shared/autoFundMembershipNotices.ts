@@ -233,6 +233,10 @@ export async function sendEnrollmentAcknowledgment({
       ? new Date(subscription.next_billing_date).toDateString()
       : '',
     feePolicy: subscription?.fee_refund_policy,
+    // The notice restates the fee RECORDED on this subscription, not today's feature
+    // switch. An existing contract must be told the amount it actually authorized,
+    // even if the switch changed after enrollment.
+    feeEnabled: (subscription?.membership_fee ?? 0) > 0,
   });
 
   const subject = `Your Arriv Auto-Fund membership is confirmed — ${d.tier_name}`;
@@ -338,6 +342,8 @@ export async function sendCancellationConfirmation({
     tierAmount: subscription?.amount,
     termsVersion: subscription?.terms_version || '',
     billingDay: subscription?.billing_day_of_month,
+    // The contracted fee recorded on the subscription, not today's switch.
+    feeEnabled: (subscription?.membership_fee ?? 0) > 0,
   });
 
   const subject = 'Your Arriv Auto-Fund membership is cancelled';
@@ -421,6 +427,9 @@ export async function sendRenewalNotice({
       ? new Date(subscription.next_billing_date).toDateString()
       : '',
     feePolicy: subscription?.fee_refund_policy,
+    // A renewal notice must state the amount this contract will actually be charged,
+    // read from the subscription's own recorded fee rather than the current switch.
+    feeEnabled: (subscription?.membership_fee ?? 0) > 0,
   });
 
   const subject = `Upcoming Arriv Auto-Fund renewal — $${d.total_monthly_recurring_charge} on ${d.next_renewal_date}`;

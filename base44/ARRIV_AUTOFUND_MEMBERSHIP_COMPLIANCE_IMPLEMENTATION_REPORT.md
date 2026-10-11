@@ -1,7 +1,7 @@
 # ARRIV AUTO-FUND — MEMBERSHIP COMPLIANCE IMPLEMENTATION REPORT
 
 **Date:** 2026-10-11
-**Scope:** Legally conservative Auto-Fund membership policy — pre-authorization disclosure, durable enrollment consent, renewal notification, cancellation confirmation, wallet-terms truthfulness, the five-tier enrollment list, and customer billing-jurisdiction capture.
+**Scope:** Legally conservative Auto-Fund membership policy — pre-authorization disclosure, durable enrollment consent, renewal notification, cancellation confirmation, wallet-terms truthfulness, the five-tier enrollment list, customer billing-jurisdiction capture, and the fail-closed launch interlock with processor-contract versioning.
 **Status:** Implementation complete and verified. **Enrollment remains closed. Nothing was activated. No price changed. No customer charged.**
 
 > **Certification note.** A passing software suite is not legal certification. Every result below verifies software *behaviour*. It is not a legal opinion, and it does not substitute for counsel confirming the statutory cadences, the membership-fee refund policy, or the wallet terms.
@@ -31,6 +31,11 @@
 | 17 | **Retired tiers cannot be sold** | The enrollment engine guards on the **enrollable** list, not the resolvable one. See correction 2 below. |
 | 18 | **Billing jurisdiction captured at enrollment** | `base44/shared/autoFundJurisdiction.ts` + `AutoFundJurisdictionAudit`. Captured from the customer's own billing address, validated, persisted on the subscription, mirrored onto the customer record, and audited. Missing or invalid jurisdiction **blocks** enrollment. |
 | 19 | **Jurisdiction-aware renewal notices** | A missing or invalid jurisdiction sends **no** notice and is reported for correction instead of silently defaulting to a generic cadence. |
+| 20 | **Fail-closed launch interlock** | `base44/shared/autoFundLaunchInterlock.ts`. Enrollment is **impossible** until the configuration that would *charge* a customer and the configuration that would *disclose* the charge agree, on every approved tier, including the membership fee — together with legal approval of the versioned terms, approval of the separate wallet terms, an approved fee-refund policy, the processor contract version and its component separation, the approved MLS V2 price basis, and a live VIP promotional restriction. Every unmet requirement is named. A refusal is not a warning: nothing is created. |
+| 21 | **The interlock cannot be bypassed from outside** | It is the first gate in the shared enrollment engine, evaluated server-side from the live records. No caller can supply a launch configuration; the certification suite's ability to do so requires four independent conditions and is forwarded by no user-facing route. |
+| 22 | **Processor contract versioning** | `AUTOFUND_PROCESSOR_CONTRACT_VERSION` = `autofund_processor_v2`. A stale processor is refused rather than trusted, and the processor's own component separation (a membership fee issues **zero** Booking Value) is asserted against live capability declarations. |
+| 23 | **Guarded launch procedure** | `base44/functions/manageAutoFundLaunch` — reads the real configuration, re-evaluates the interlock server-side on every call, and refuses to enable anything while a prerequisite is unmet. |
+| 24 | **A notice states the contracted fee** | Enrollment acknowledgment, renewal notice and cancellation confirmation all restate the fee **recorded on the subscription**, not today's feature switch. An existing contract is always told the amount it actually authorized. |
 
 ### Corrections made during verification (real defects, all fixed)
 
@@ -42,13 +47,16 @@
 
 4. **A pre-existing certifier asserted two mutually exclusive things about the same tier.** `certifyAutoFundEnrollment` checked that `$350` charges `$375` *and* that the chargeable fee is `$0`. The schedule and the charge are now asserted separately and the invariant between them is asserted directly. **That certifier now passes 23 / 23.**
 
+5. **A notice restated the fee from the live switch instead of the contract.** Found by this revision's suite: the enrollment acknowledgment for a `$350` subscription recorded `fee 0 / total 350` while the subscription itself recorded `fee 25 / total 375`, because the disclosure builder defaulted to the current feature switch. With the switch off, every notice for an existing fee-bearing contract would have understated the recurring charge by $25 — the opposite of the divergence fixed in correction 3, and equally capable of misleading a customer. All three notice builders now derive the fee from the subscription's own recorded amount. **A notice about a contract must describe that contract, not today's configuration.**
+
 ---
 
 ## B. VERIFIED TEST RESULTS
 
-**Suite:** `testAutoFundMembershipCompliance` (admin-only; synthetic `cert_` fixtures and an **injected** mail sender — no customer charged, no real address emailed). Fixtures are removed after every run; cleanup confirmed (14 subscriptions, 5 wallets, 5 customer records).
+**Suites:** `testAutoFundMembershipCompliance` (75 checks) and `testAutoFundLaunchInterlock` (25 checks). Both are admin-only, both run on **synthetic `cert_` fixtures** with an **injected** mail sender — no customer charged, no real address emailed — and both remove every fixture they create, verified by cleanup counters. The two suites share one certification harness, so they cannot drift on how a synthetic customer is created or removed.
 
-> **74 checks — 73 PASS · 0 FAIL · 1 BLOCKED**
+> **testAutoFundMembershipCompliance — 75 checks · 75 PASS · 0 FAIL · 0 BLOCKED**
+> **testAutoFundLaunchInterlock — 25 checks · 25 PASS · 0 FAIL · 0 BLOCKED**
 
 | Group | Verified |
 |---|---|
@@ -61,13 +69,26 @@
 | G · Auditability | Terms version, consent identity and date recorded on the subscription; full notice trail retrievable with delivery status; append-only (unique `notice_id`). |
 | H · Tier list (approved fix 1) | All five approved tiers resolve to the authorised structure; **the database accepts all five current tiers and all three legacy amounts** (each written and removed); legacy customers keep their contracted terms ($50→$50, $100→$105, $200→$220) and their legacy plan IDs; a retired tier is **refused at enrollment**. |
 | I · Jurisdiction (approved fix 2) | Captured from the customer's billing address and persisted on the subscription; mirrored onto the customer record; available to the renewal engine (a GA subscription resolves `GA_30D`); state-specific rules selected correctly; refused when the address is absent, has no state, or the state is invalid; a state conflict with the payment method is captured, flagged and **not** auto-resolved; a non-US address is flagged; decisions recorded in an append-only audit trail. |
-| J · Channel parity & fee separation | Both channels produce identical financial terms and identical material disclosures; the fee never inflates Booking Value; **the recurring charge always equals wallet funding + the recorded fee**; the promotional-credit restriction is attached to the correct record. |
+| J · Channel parity, fee separation & disclosure/charge parity | Both channels produce identical financial terms and identical material disclosures; the fee never inflates Booking Value; **the recurring charge always equals wallet funding + the recorded fee**; **the disclosed schedule equals the fee actually billed on every tier, so a customer can no longer authorize one amount and be charged another**; notices restate the fee recorded on the contract; the promotional-credit restriction is attached to the correct record. |
 
-### The 1 blocked check — and why it is not faked as passing
+### No blocked checks remain — the last one became structurally unreachable
 
-`J6 · Disclosed fee schedule equals the fee actually billed` is **BLOCKED**. The pre-authorization disclosure states the **approved fee schedule** ($25 on a $375 charge), while the charge is gated by the membership-fee switch, which is **off**. No real enrollment can occur while the switch is off, because the gate requires both switches — so this cannot reach a customer today. But opening enrollment **without** the fee switch would have a customer authorize $375 and be charged $350. Reported as a launch blocker and an operating instruction rather than silently reconciled, because which of the two the disclosure should state is the owner's call, not an engineering decision.
+`J6 · Disclosed fee schedule equals the fee actually billed` was previously **BLOCKED**: the disclosure stated the approved schedule ($25 on a $375 charge) while the charge was gated by the membership-fee switch, which is **off** — so opening enrollment without the switch would have had a customer authorize $375 and be charged $350.
 
-**The three previously-blocked enrollment checks now run.** The suite exercises the real enrollment engine through an isolated certification path whose bypass requires **three independent conditions** (`authorized` flag, a named admin the calling function verifies, and a synthetic `cert_` address) and which **no user-facing route forwards**. The engine's refusal of every ordinary enrollment is still asserted (A2, A3), so the gate is verified closed rather than merely assumed.
+It now **PASSES**, and the reason matters more than the tick. The divergence was not reconciled by choosing one number over the other; it was made **unreachable**. The interlock requires the membership-fee switch to be **on** for every fee-bearing tier, so a `$350` enrollment can no longer exist alongside a `$0` charge. Disclosure, recorded total and the payment request are now one resolution from the same approved configuration, and the suite asserts they are equal on all five tiers. Choosing which number a divergent disclosure should show is no longer a decision anyone has to make, because the configuration that could produce the divergence cannot be launched.
+
+### Launch-interlock suite — 25 checks
+
+| Group | Verified |
+|---|---|
+| K1 · Refusal | The **real** configuration refuses enrollment and names all 11 unmet requirements; the engine refuses a real-signature enrollment even on a fee-free tier. |
+| K2–K4 · Permissibility | A complete configuration **permits** enrollment on all five tiers (a safety control that refuses everything is a broken feature, not a control); every tier's disclosed total equals the amount to be charged; the approved fee schedule lands on Professional/Premier/VIP only. |
+| K5a–K5k · Injected failures | Fee flag off on a fee tier; uncoordinated launch; unapproved or mismatched terms version; undetermined fee-refund policy; unapproved wallet terms; missing MLS V2 basis; stale processor version; broken processor component separation; a corrupted tier configuration; a disclosure that disagrees with the amount to be charged (**both directions**); inactive VIP restriction. Each is refused with the unmet requirement named. |
+| K6–K9 · Through the real engine | The engine refuses a `$350` enrollment when the `$25` fee is not enabled; a `$250` enrollment carries **no** fee in its payment request; missing legal approval is refused; a retired tier stays unsellable even under a complete configuration. |
+| K10–K12 · Guards | Retired tiers unsellable while legacy contracted terms stay intact; the launch procedure reports refusal rather than enabling anything; **no test wrote the enrollment switch**. |
+| K13–K14 · Blast radius | Existing subscriptions, wallets, balances and payment records are **byte-identical before and after** the run; every certification fixture is removed. |
+
+**The three previously-blocked enrollment checks now run.** The suite exercises the real enrollment engine through an isolated certification path whose bypass requires **four independent conditions** (`authorized` flag, a named admin the calling function verifies, a synthetic `cert_` address, and a declared launch configuration to evaluate) and which **no user-facing route forwards**. The engine's refusal of every ordinary enrollment is still asserted (A2, A3), so the gate is verified closed rather than merely assumed.
 
 ---
 
@@ -92,12 +113,12 @@
 4. **The membership terms are not final**, so no customer can be shown operative terms and consent cannot be taken against them.
 
 **Operational sequencing:**
-5. **Open enrollment and the membership-fee switch TOGETHER — never enrollment alone.** While the switch is off the disclosed schedule and the amount charged diverge (blocked check `J6`).
-6. **Decide what the disclosure must state** while any switch is off: the approved schedule or the amount currently charged.
+5. **Set the membership-fee refund policy, approve the versioned terms and approve the separate wallet terms.** These are now *enforced* prerequisites, not instructions: while any of them is unresolved the interlock refuses every enrollment and names the unmet requirement. There is no path that opens enrollment around them.
+6. **Open the launch with the launch procedure, not by flipping a flag.** `manageAutoFundLaunch` reads the real configuration, re-evaluates the interlock server-side and refuses until every prerequisite is satisfied together.
 
 **Engineering / data:**
 7. **Build the jurisdiction review workflow** for flagged conflicts and non-US addresses.
-8. **Terms page must be replaced with final counsel-approved text** and the version label advanced if the content changes materially — a material change requires refreshed customer consent.
+8. **Terms page must be replaced with final counsel-approved text** and the version label advanced if the content changes materially — a material change requires refreshed customer consent, and advancing the label also invalidates the recorded approval, so the launch prerequisites must be re-confirmed afterwards.
 
 **Deliberately untouched:** enrollment gate closed (`autofund_enrollment_enabled` absent), membership-fee flag off, promotional restriction flag inactive, no production tier or price changed, no live subscription created, no fee charged, no wallet credit issued.
 
@@ -105,7 +126,7 @@
 
 ## E. WHAT THIS DOES AND DOES NOT ESTABLISH
 
-**Does:** every compliance obligation in the request is implemented in one authoritative place, rendered identically on both enrollment channels, recorded durably and idempotently, and verified by a suite that now exercises enrollment end-to-end instead of reporting it blocked. The five approved tiers are enrollable, the retired tiers are not, jurisdiction is captured and drives the renewal rules, and the charge a customer authorizes always equals the breakdown recorded against it. **Four real defects were found and fixed during verification** — two of them (the retired-tier leak and the fee/charge split) could have moved money incorrectly.
+**Does:** every compliance obligation in the request is implemented in one authoritative place, rendered identically on both enrollment channels, recorded durably and idempotently, and verified by two suites that exercise enrollment end-to-end instead of reporting it blocked — **100 checks, all passing, none blocked**. The five approved tiers are enrollable, the retired tiers are not, jurisdiction is captured and drives the renewal rules, the charge a customer authorizes always equals the breakdown recorded against it, and a notice restates the amount the contract actually carries. **Enrollment is now gated by a fail-closed interlock**: while any legal, pricing or processor prerequisite is unresolved, enrollment is refused with the unmet requirement named, and the refusal creates nothing. **Five real defects were found and fixed during verification** — the retired-tier leak, the fee/charge split and the notice understatement could each have moved money or misled a customer about money.
 
 **Does not:** certify legal compliance. Fee refundability, statutory renewal cadence, and the separate wallet terms remain open legal questions. No real customer enrollment has been executed against live payment rails.
 
@@ -113,10 +134,10 @@
 
 ## F. RECOMMENDED IMMEDIATE ACTION
 
-Both previously recommended engineering items are now **done and verified**. Remaining:
+All previously recommended engineering items are now **done and verified** — 100 checks across two suites, none failing, none blocked. Remaining:
 
-1. **Owner decision** — membership-fee refundability, and the disclosure-vs-charge question while switches are off.
+1. **Owner decision** — membership-fee refundability. The disclosure-vs-charge question is now closed: the interlock makes a divergent launch unreachable, so there is nothing left to choose.
 2. **Counsel** — statutory renewal cadence by state, and the separate wallet terms.
 3. **Build the jurisdiction review workflow** so flagged cases have an owner.
 4. **Hold the renewal scheduler** until launch if the owner prefers no scheduler activity before then.
-5. **Do not open enrollment** until the fee switch is opened with it.
+5. **Do not open enrollment by flipping a flag.** Use the launch procedure; it refuses until every prerequisite is satisfied together.
