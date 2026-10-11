@@ -37,7 +37,7 @@ import {
   type EnrollmentChannel,
   type FeeRefundPolicy,
 } from './autoFundMembershipBilling.ts';
-import { AUTO_FUND_AMOUNTS, generateId, getAutoFundConfig } from './prepaidEngine.ts';
+import { AUTO_FUND_AMOUNTS, AUTO_FUND_AMOUNT_OPTIONS, generateId, getAutoFundConfig } from './prepaidEngine.ts';
 import { buildComplianceDisclosure } from './autoFundComplianceDisclosure.ts';
 import {
   resolveBillingJurisdiction,
@@ -182,6 +182,20 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   const config = getAutoFundConfig(req.tier_amount);
   if (!config) {
     return { status: 'invalid', error: 'Invalid tier. Must be one of: ' + AUTO_FUND_AMOUNTS.join(', ') };
+  }
+
+  // ── Enrollable-tier gate ─────────────────────────────────────────────────
+  // getAutoFundConfig also resolves the RETIRED $50 / $100 / $200 tiers, which
+  // exist ONLY so an existing contract keeps its contracted funding amount. The
+  // resolvable list is therefore wider than the sellable list, and using it as
+  // the enrollment guard silently re-opened the retired tiers to new business.
+  // The ENROLLABLE list governs new enrollment; the retired tiers stay
+  // resolvable but cannot be sold.
+  if (!AUTO_FUND_AMOUNT_OPTIONS.includes(config.amount)) {
+    return {
+      status: 'invalid',
+      error: `The $${config.amount} tier is closed to new enrollment. Choose one of: $${AUTO_FUND_AMOUNT_OPTIONS.join(', $')}.`,
+    };
   }
   if (!req.customer_email) return { status: 'invalid', error: 'customer_email is required' };
 

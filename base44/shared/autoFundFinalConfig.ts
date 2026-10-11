@@ -89,9 +89,19 @@ export function getMembershipFee(amount: number): number {
   return AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
 }
 
-/** The full recurring monthly charge the customer sees: wallet deposit plus membership fee. */
+/**
+ * The full recurring monthly charge the customer authorizes: wallet deposit plus
+ * membership fee.
+ *
+ * Resolved through getMembershipFee so the charge always equals the fee that is
+ * actually billed and recorded. Reading the fee table directly here (as this
+ * function previously did) produced an internally contradictory record while the
+ * fee switch was off: a $375 charge carrying a $0 membership fee, which would
+ * have commingled an unnamed $25 into wallet funding — the exact failure the
+ * separate fee component exists to prevent.
+ */
 export function getTotalMonthlyCharge(amount: number): number {
-  return amount + (AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0);
+  return amount + getMembershipFee(amount);
 }
 
 /** True when this tier is currently barred from using promotional credit on a standalone MLS Walkthrough. */

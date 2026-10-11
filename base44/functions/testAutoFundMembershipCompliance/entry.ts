@@ -18,6 +18,8 @@ import {
   FEE_REFUND_POLICY_DISCLOSURE,
   LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS,
   buildFeeRefundDisclosure,
+  feeDueForTier,
+  isFeeBillingEnabled,
   DEFAULT_FEE_REFUND_POLICY,
 } from '../../shared/autoFundMembershipBilling.ts';
 import { buildWalletTermsDisclosure } from '../../shared/autoFundWalletTerms.ts';
@@ -345,8 +347,10 @@ export default async function (req) {
         && !AUTO_FUND_RETIRED_AMOUNTS.some(a => AUTO_FUND_AMOUNT_OPTIONS.includes(a)),
       'still resolvable for existing contracts, absent from AUTO_FUND_AMOUNT_OPTIONS');
 
-    const retiredEnroll = await enrollCert({ email: 'cert_retired@example.com', amount: 50, billing: GA_ADDRESS });
-    check('H6 · Engine refuses a retired tier at enrollment', retiredEnroll.status === 'invalid', `status=${retiredEnroll.status}`);
+    // Tracked so that a regression here cannot leak an enrollable retired tier.
+    const retiredEnroll = track(await enrollCert({ email: 'cert_retired@example.com', amount: 50, billing: GA_ADDRESS }));
+    check('H6 · Engine refuses a retired tier at enrollment', retiredEnroll.status === 'invalid',
+      `status=${retiredEnroll.status}${retiredEnroll.error ? ` — ${String(retiredEnroll.error).slice(0, 100)}` : ''}`);
 
     // ─────────────────────────────────────────────────────────────────────
     // J. CHANNEL PARITY AND FEE SEPARATION
@@ -371,16 +375,22 @@ export default async function (req) {
         && itemsOf(selfService).length === stableKeys.length,
       `${stableKeys.length} material statements identical on both channels`);
 
-    check('J3 · The membership fee is not added to the customer\'s Booking Value',
-      selfSub.membership_fee === 25 && selfService.booking_value_per_cycle === 402.5
-        && selfService.disclosure.monthly_wallet_funding === 350,
-      `$350 funding + $25 fee → $402.50 Booking Value (fee excluded)`);
+    // Asserted as INVARIANTS rather than magic numbers. The fee switch is off
+    // pre-launch, so a hardcoded "$25 / $375" here would pass while masking a
+    // charge that did not match its own breakdown.
+    const handoff = selfService.checkout_handoff;
+    check('J3 · The membership fee never inflates the customer\'s Booking Value',
+      selfSub.membership_fee === feeDueForTier(350)
+        && selfService.booking_value_per_cycle === Math.round(350 * 1.15 * 100) / 100
+        && selfService.disclosure.monthly_deposit === 350,
+      `deposit $${selfService.disclosure.monthly_deposit} + fee $${selfSub.membership_fee} → BV $${selfService.booking_value_per_cycle} (the 15% bonus applies to the deposit only; the fee issues no Booking Value)`);
 
-    check('J4 · The checkout handoff keeps wallet funding and membership fee separate',
-      selfService.checkout_handoff.wallet_funding_cents === 35000
-        && selfService.checkout_handoff.membership_fee_cents === 2500
-        && selfService.checkout_handoff.recurring_charge_cents === 37500,
-      'wallet 35000 + fee 2500 = recurring 37500 cents');
+    check('J4 · The recurring charge always equals wallet funding plus the recorded fee',
+      handoff.wallet_funding_cents === 35000
+        && handoff.membership_fee_cents === selfSub.membership_fee * 100
+        && handoff.recurring_charge_cents === handoff.wallet_funding_cents + handoff.membership_fee_cents
+        && selfSub.total_monthly_charge === selfSub.amount + selfSub.membership_fee,
+      `wallet ${handoff.wallet_funding_cents} + fee ${handoff.membership_fee_cents} = recurring ${handoff.recurring_charge_cents} cents · subscription $${selfSub.amount} + $${selfSub.membership_fee} = $${selfSub.total_monthly_charge}`);
 
     const vipEnroll = track(await enrollCert({ email: 'cert_vip@example.com', amount: 1000, billing: WY_ADDRESS }));
     const vipSub = await svc.entities.AutoFundSubscription.get(vipEnroll.subscription_id);
@@ -389,6 +399,28 @@ export default async function (req) {
         && selfService.disclosure.compliance.promotional_credit_usable_on_standalone_mls === true
         && vipSub.amount === 1000 && selfSub.amount === 350,
       'VIP restricted · Professional unrestricted · each on its own record');
+
+    // ── Disclosed schedule vs the charge actually raised ────────────────────
+    // The pre-authorization disclosure states the APPROVED fee schedule, while the
+    // charge is gated by the fee switch. While the switch is off no real enrollment
+    // can occur (the gate requires both switches), but opening enrollment WITHOUT
+    // the fee switch would have the customer authorize the schedule total and be
+    // charged the deposit alone. Surfaced as a launch blocker rather than silently
+    // reconciled.
+    const disclosedFee = selfService.disclosure.compliance.monthly_membership_fee;
+    const disclosedTotal = selfService.disclosure.compliance.total_monthly_recurring_charge;
+    if (isFeeBillingEnabled()) {
+      check('J6 · Disclosed fee schedule equals the fee actually billed',
+        disclosedFee === selfSub.membership_fee && disclosedTotal === selfSub.total_monthly_charge,
+        `disclosed $${disclosedFee}/$${disclosedTotal} · billed $${selfSub.membership_fee}/$${selfSub.total_monthly_charge}`);
+    } else {
+      results.push({
+        name: 'J6 · Disclosed fee schedule equals the fee actually billed',
+        status: 'BLOCKED',
+        detail: `Fee switch OFF: disclosure states $${disclosedFee} fee on a $${disclosedTotal} charge, while $${selfSub.membership_fee} is billed on $${selfSub.total_monthly_charge}. Harmless only while enrollment is closed — enrollment MUST NOT be opened without the fee switch.`,
+      });
+      blockers.push('The disclosed fee schedule and the amount actually charged diverge while the membership-fee switch is off. Open enrollment and the fee switch TOGETHER — never enrollment alone.');
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     // I. ENGINEERING FIX 2 — JURISDICTION CAPTURE
@@ -650,9 +682,14 @@ export default async function (req) {
       `version ${finalSub.terms_version} · consent by ${finalSub.terms_accepted_by} · jurisdiction ${finalSub.jurisdiction_state}`);
 
     const allNotices = await listNoticesForSubscription(svc, selfSub.id, 100);
+    // This subscription receives an acknowledgment and a cancellation
+    // confirmation; the renewal notice is exercised on its own subscription.
     check('G2 · Full notice audit trail retrievable with delivery status',
-      allNotices.length >= 3 && allNotices.every(n => !!n.delivery_status && n.delivery_attempts >= 1),
-      `${allNotices.length} notices with status + attempts`);
+      allNotices.length >= 2
+        && allNotices.some(n => n.notice_type === 'enrollment_acknowledgment')
+        && allNotices.some(n => n.notice_type === 'cancellation_confirmation')
+        && allNotices.every(n => !!n.delivery_status && n.delivery_attempts >= 1),
+      `${allNotices.length} notices (${allNotices.map(n => n.notice_type).join(', ')}) with status + attempts`);
     check('G3 · Notice audit records are append-only per event',
       new Set(allNotices.map(n => n.notice_id)).size === allNotices.length,
       'unique notice_id per notice');

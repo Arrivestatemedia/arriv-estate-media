@@ -56,11 +56,27 @@ export default async function (req) {
     check('approved fee table exact', feeMismatch.length === 0,
       feeMismatch.length ? JSON.stringify(feeMismatch) : '$350/$500/$1,000 = $25; $150/$250 = $0');
 
-    // ══ 3. Total recurring charge matches the approved table ═══════════════
+    // ══ 3. Approved SCHEDULE vs the charge actually raised ════════════════
+    // The approved total is a property of the schedule; what is charged is gated
+    // by the fee switch. These were previously conflated: this check compared the
+    // charged total against the schedule total while check 4 asserted the
+    // chargeable fee was $0. Two mutually exclusive statements about the same $350
+    // tier — which is how a $375 charge came to be recorded against a $0 fee.
     const approvedTotals = { 150: 150, 250: 250, 350: 375, 500: 525, 1000: 1025 };
-    const totalMismatch = Object.entries(approvedTotals).filter(([amt, t]) => getTotalMonthlyCharge(Number(amt)) !== t);
-    check('approved total recurring charge exact', totalMismatch.length === 0,
-      totalMismatch.length ? JSON.stringify(totalMismatch) : '$150/$250/$375/$525/$1,025');
+    const scheduleMismatch = Object.entries(approvedTotals).filter(
+      ([amt, t]) => Number(amt) + (AUTOFUND_MEMBERSHIP_FEE[Number(amt)] ?? 0) !== t
+    );
+    check('approved fee SCHEDULE exact', scheduleMismatch.length === 0,
+      scheduleMismatch.length ? JSON.stringify(scheduleMismatch) : '$150/$250/$375/$525/$1,025');
+
+    const chargeTiers = [150, 250, 350, 500, 1000];
+    const chargeMismatch = chargeTiers.filter(a => getTotalMonthlyCharge(a) !== a + getMembershipFee(a));
+    check('charge raised always equals deposit + the CHARGEABLE fee',
+      chargeMismatch.length === 0
+        && chargeTiers.every(a => getTotalMonthlyCharge(a) === (AUTOFUND_FINAL_FLAGS.membership_fee_enabled ? approvedTotals[a] : a)),
+      chargeMismatch.length
+        ? JSON.stringify(chargeMismatch.map(a => ({ tier: a, charged: getTotalMonthlyCharge(a), chargeable_fee: getMembershipFee(a) })))
+        : `charged = ${chargeTiers.map(a => `$${getTotalMonthlyCharge(a)}`).join(' / ')} (fee switch ${AUTOFUND_FINAL_FLAGS.membership_fee_enabled ? 'ON' : 'OFF'})`);
 
     // ══ 4. No fee is chargeable while billing is switched off ═════════════
     const chargeable = [150, 250, 350, 500, 1000].map(a => getMembershipFee(a));
