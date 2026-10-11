@@ -37,6 +37,7 @@ import {
   sendRenewalNotice,
   listNoticesForSubscription,
 } from '../../shared/autoFundMembershipNotices.ts';
+import { createCertHarness } from '../../shared/autoFundCertificationHarness.ts';
 import {
   isRenewalNoticeDue,
   renewalCycleKey,
@@ -96,35 +97,16 @@ const DECLARED_LAUNCH_CONFIGURATION = {
 };
 
 export default async function (req) {
-  const created = { contacts: [], wallets: [], subs: [] };
-  const results = [];
   const blockers = [];
-
-  const pass = (name, detail) => results.push({ name, status: 'PASS', detail: detail || '' });
-  const fail = (name, detail) => results.push({ name, status: 'FAIL', detail: detail || '' });
-  const check = (name, condition, detail) => (condition ? pass(name, detail) : fail(name, detail));
 
   const base44 = createClientFromRequest(req);
   const svc = base44.asServiceRole;
 
-  const cleanupAll = async () => {
-    let ok = true;
-    for (const id of created.subs) {
-      try {
-        const ns = await listNoticesForSubscription(svc, id, 100);
-        for (const n of ns) { try { await svc.entities.AutoFundMembershipNotice.delete(n.id); } catch { ok = false; } }
-      } catch { ok = false; }
-      try {
-        const audits = await svc.entities.AutoFundJurisdictionAudit.filter({ subscription_id: id }, undefined, 100);
-        const rows = Array.isArray(audits) ? audits : (audits?.data || []);
-        for (const a of rows) { try { await svc.entities.AutoFundJurisdictionAudit.delete(a.id); } catch { ok = false; } }
-      } catch { ok = false; }
-      try { await svc.entities.AutoFundSubscription.delete(id); } catch { ok = false; }
-    }
-    for (const id of created.wallets) { try { await svc.entities.PrepaidWallet.delete(id); } catch { ok = false; } }
-    for (const id of created.contacts) { try { await svc.entities.Contact.delete(id); } catch { ok = false; } }
-    return { ok, deleted: { subscriptions: created.subs.length, wallets: created.wallets.length, contacts: created.contacts.length } };
-  };
+  // Shared certification scaffolding: result recording, synthetic-fixture tracking,
+  // cleanup and the isolated enrollment path. Shared with the launch-interlock suite
+  // so the two can never drift on how a synthetic customer is created or removed.
+  const harness = createCertHarness();
+  const { results, check, track, cleanupAll } = harness;
 
   try {
     const user = await base44.auth.me();
@@ -158,41 +140,20 @@ export default async function (req) {
         updated_at: new Date().toISOString(),
         ...extra,
       });
-      created.subs.push(s.id);
+      harness.created.subs.push(s.id);
       return s;
     };
 
-    // Enrollment through the certification path. `certification_bypass` is supplied
-    // ONLY here; no user-facing route forwards it.
-    const enrollCert = (opts) =>
-      enrollAutoFund({
-        base44: svc,
-        channel: opts.channel || 'self_service',
-        tier_amount: opts.amount,
-        customer_email: opts.email,
-        customer_name: 'Cert Compliance',
-        customer_phone: '555-000-0000',
-        billing_address: opts.billing,
-        payment_method_state: opts.payment_method_state,
-        attribution_source: opts.channel === 'sales_assisted' ? 'advisor_enrolled' : '',
-        terms_accepted: opts.terms_accepted === undefined ? true : opts.terms_accepted,
-        terms_accepted_by: opts.accepted_by === undefined ? opts.email : opts.accepted_by,
-        certification_bypass: {
-          authorized: true,
-          admin_email: user.email,
-          // Declared test input: the configuration this run exercises. See A8 — the
-          // REAL configuration separately refuses enrollment.
-          launch_configuration: DECLARED_LAUNCH_CONFIGURATION,
-        },
-        actor: user.email,
-      });
-
-    const track = (r) => {
-      if (r?.subscription_id) created.subs.push(r.subscription_id);
-      if (r?.wallet_id) created.wallets.push(r.wallet_id);
-      if (r?.contact_id) created.contacts.push(r.contact_id);
-      return r;
-    };
+    // The shared harness supplies the certification bypass. The configuration this
+    // run exercises is declared once, explicitly, here. No user-facing route forwards
+    // the bypass, and check A8 asserts the REAL configuration refuses enrollment.
+    harness.configure({
+      svc,
+      adminEmail: user.email,
+      launchConfiguration: DECLARED_LAUNCH_CONFIGURATION,
+      customerName: 'Cert Compliance',
+      customerPhone: '555-000-0000',
+    });
 
     // ─────────────────────────────────────────────────────────────────────
     // A. ENROLLMENT GATE AND SAFETY
@@ -385,7 +346,7 @@ export default async function (req) {
           status: 'cancelled',
           certification_mode: true,
         });
-        created.subs.push(probe.id);
+        harness.created.subs.push(probe.id);
       } catch (e) {
         schemaRejects.push(`${amount} (${String(e.message).slice(0, 60)})`);
       }
@@ -752,29 +713,24 @@ export default async function (req) {
     // ─────────────────────────────────────────────────────────────────────
     const cleanup = await cleanupAll();
 
-    const failed = results.filter(r => r.status === 'FAIL');
-    const blockedResults = results.filter(r => r.status === 'BLOCKED');
-
     blockers.push('Membership-fee refundability is undetermined and unapproved — cannot be verified as compliant.');
     blockers.push('Separate wallet refund, expiration and unclaimed-property terms are unapproved.');
     blockers.push('Renewal-notice statutory cadence is unconfirmed for every jurisdiction.');
     blockers.push('Jurisdiction conflicts and non-US billing addresses are flagged for review but have no review workflow yet.');
 
-    return Response.json({
-      status: failed.length === 0 ? 'success' : 'failed',
-      summary: {
-        total: results.length,
-        passed: results.filter(r => r.status === 'PASS').length,
-        failed: failed.length,
-        blocked: blockedResults.length,
-      },
-      results,
-      blocked_checks: blockedResults.map(r => ({ name: r.name, reason: r.detail })),
+    return Response.json(harness.summarize({
       launch_blockers: blockers,
+      // The REAL configuration's unmet requirements, so a reader can see that the
+      // suite ran against a declared configuration rather than a live one.
+      real_configuration_blockers: realEvaluation.blockers.map(b => ({
+        code: b.code,
+        requirement: b.requirement,
+        detail: b.detail,
+      })),
       certification_note:
-        'Results verify software behaviour only. They are not a legal opinion, and a passing suite is not legal certification.',
+        'Results verify software behaviour only. They are not a legal opinion, and a passing suite is not legal certification. Enrollment checks ran against a DECLARED launch configuration; the real configuration refuses enrollment.',
       cleanup,
-    });
+    }));
   } catch (error) {
     const cleanup = await cleanupAll().catch(() => ({ ok: false }));
     return Response.json({ error: error.message, results, cleanup }, { status: 500 });

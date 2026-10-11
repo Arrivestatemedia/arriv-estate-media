@@ -1,10 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
+import { createCertHarness } from '../../shared/autoFundCertificationHarness.ts';
 import { AUTOFUND_ENROLLMENT_FLAG_KEY, AUTOFUND_MEMBERSHIP_FEE } from '../../shared/autoFundFinalConfig.ts';
 import { AUTO_FUND_AMOUNT_OPTIONS } from '../../shared/prepaidEngine.ts';
 import { AUTOFUND_TERMS_VERSION } from '../../shared/autoFundComplianceDisclosure.ts';
 import { AUTOFUND_PROCESSOR_CAPABILITIES } from '../../shared/autoFundProcessor.ts';
-import { listNoticesForSubscription } from '../../shared/autoFundMembershipNotices.ts';
 import {
   evaluateLaunchInterlock,
   readLaunchConfiguration,
@@ -16,12 +15,12 @@ import {
 // ============================================================================
 // Admin-only. Proves the fail-closed interlock actually fails closed.
 //
-// Two things must both be true for the interlock to be worth anything:
+// Two things must BOTH be true for the interlock to be worth anything:
 //
-//   1. A COMPLETE configuration permits enrollment. An interlock that refuses
+//   1. A COMPLETE configuration PERMITS enrollment. An interlock that refuses
 //      everything is not a safety control, it is a broken feature — so the
-//      complete configuration is asserted to PERMIT, with every tier's disclosure
-//      equal to the amount to be charged.
+//      complete configuration is asserted to permit, on all five tiers, with
+//      each tier's disclosure equal to the amount to be charged.
 //
 //   2. EVERY broken configuration REFUSES enrollment, naming the unmet
 //      requirement. Each failure mode is injected deliberately rather than
@@ -29,7 +28,7 @@ import {
 //
 // The injections are explicit, declared test inputs. The live feature flags,
 // AppSettings and pricing records are never modified, and the real configuration
-// is asserted to still refuse enrollment after every injection.
+// is asserted to still refuse enrollment.
 //
 // Production records are fingerprinted before and after the run, so a regression
 // that mutated a subscription, a wallet balance or a payment record cannot pass.
@@ -55,58 +54,13 @@ const COMPLETE_CONFIGURATION = {
 };
 
 export default async function (req) {
-  const results = [];
-  const created = { subs: [], wallets: [], contacts: [] };
-
-  const pass = (name, detail) => results.push({ name, status: 'PASS', detail: detail || '' });
-  const fail = (name, detail) => results.push({ name, status: 'FAIL', detail: detail || '' });
-  const check = (name, condition, detail) => (condition ? pass(name, detail) : fail(name, detail));
-  const blocked = (name, detail) => results.push({ name, status: 'BLOCKED', detail: detail || '' });
-
   const base44 = createClientFromRequest(req);
   const svc = base44.asServiceRole;
 
-  const cleanupAll = async () => {
-    let ok = true;
-    for (const id of created.subs) {
-      try {
-        for (const n of await listNoticesForSubscription(svc, id, 100)) {
-          try { await svc.entities.AutoFundMembershipNotice.delete(n.id); } catch { ok = false; }
-        }
-        const audits = await svc.entities.AutoFundJurisdictionAudit.filter({ subscription_id: id }, undefined, 100);
-        for (const a of (Array.isArray(audits) ? audits : (audits?.data || []))) {
-          try { await svc.entities.AutoFundJurisdictionAudit.delete(a.id); } catch { ok = false; }
-        }
-        await svc.entities.AutoFundSubscription.delete(id);
-      } catch { ok = false; }
-    }
-    for (const id of created.wallets) { try { await svc.entities.PrepaidWallet.delete(id); } catch { ok = false; } }
-    for (const id of created.contacts) { try { await svc.entities.Contact.delete(id); } catch { ok = false; } }
-    return { ok, deleted: { subscriptions: created.subs.length, wallets: created.wallets.length, contacts: created.contacts.length } };
-  };
-
-  /** A stable fingerprint of PRODUCTION financial records. Certification records are excluded. */
-  const fingerprint = async () => {
-    const notCert = (rows) => rows.filter(r => !String(r.customer_email || '').startsWith('cert_'));
-    const subs = notCert(await svc.entities.AutoFundSubscription.list('-created_date', 500));
-    const wallets = notCert(await svc.entities.PrepaidWallet.list('-created_date', 500));
-    const events = notCert(await svc.entities.AutoFundPaymentEvent.list('-created_date', 500));
-    return {
-      subscriptions: subs.length,
-      wallets: wallets.length,
-      wallet_balance_cents: wallets.reduce((s, w) => s + (w.booking_value_balance_cents || 0), 0),
-      wallet_value_issued_cents: wallets.reduce((s, w) => s + (w.total_booking_value_issued_cents || 0), 0),
-      payment_events: events.length,
-      payment_amount: Math.round(events.reduce((s, e) => s + (e.amount_charged || 0), 0) * 100),
-    };
-  };
-
-  const track = (r) => {
-    if (r?.subscription_id) created.subs.push(r.subscription_id);
-    if (r?.wallet_id) created.wallets.push(r.wallet_id);
-    if (r?.contact_id) created.contacts.push(r.contact_id);
-    return r;
-  };
+  // Shared certification scaffolding — the same harness the membership compliance
+  // suite runs on, so the two cannot drift on fixture creation or cleanup.
+  const harness = createCertHarness();
+  const { check, fail, blocked, track, cleanupAll, fingerprint, enrollCert } = harness;
 
   try {
     const user = await base44.auth.me();
@@ -114,31 +68,20 @@ export default async function (req) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    harness.configure({
+      svc,
+      adminEmail: user.email,
+      launchConfiguration: COMPLETE_CONFIGURATION,
+      customerName: 'Cert Interlock',
+    });
+
     const before = await fingerprint();
     const realConfig = await readLaunchConfiguration(svc);
-
-    const enrollCert = (opts) =>
-      enrollAutoFund({
-        base44: svc,
-        channel: 'self_service',
-        tier_amount: opts.amount,
-        customer_email: opts.email,
-        customer_name: 'Cert Interlock',
-        billing_address: GA_ADDRESS,
-        terms_accepted: true,
-        terms_accepted_by: opts.email,
-        certification_bypass: {
-          authorized: true,
-          admin_email: user.email,
-          launch_configuration: opts.config,
-        },
-        actor: user.email,
-      });
+    const real = evaluateLaunchInterlock(realConfig);
 
     // ─────────────────────────────────────────────────────────────────────
     // K1. THE REAL CONFIGURATION REFUSES
     // ─────────────────────────────────────────────────────────────────────
-    const real = evaluateLaunchInterlock(realConfig);
     const realCodes = real.blockers.map(b => b.code);
     check('K1 · The real configuration refuses enrollment and names every unmet requirement',
       real.permitted === false
@@ -150,12 +93,18 @@ export default async function (req) {
         && realCodes.includes('VIP_RESTRICTION_INACTIVE'),
       `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')}`);
 
-    check('K1b · Enrollment is impossible on the real system today',
-      (await enrollCert({ email: 'cert_interlock_real@example.com', amount: 250, config: realConfig })).status === 'launch_interlock_blocked',
-      'a fee-free tier is still refused while the real prerequisites are unmet');
+    const realRefusal = track(await enrollCert({
+      email: 'cert_interlock_real@example.com',
+      amount: 250,
+      billing: GA_ADDRESS,
+      launch_configuration: realConfig,
+    }));
+    check('K1b · The engine refuses enrollment on the real system, even on a fee-free tier',
+      realRefusal.status === 'launch_interlock_blocked',
+      `status=${realRefusal.status}${realRefusal.error ? ` — ${String(realRefusal.error).slice(0, 140)}` : ''}`);
 
     // ─────────────────────────────────────────────────────────────────────
-    // K2. A COMPLETE CONFIGURATION PERMITS (the interlock is not always-false)
+    // K2. A COMPLETE CONFIGURATION PERMITS — the interlock is not always-false
     // ─────────────────────────────────────────────────────────────────────
     const complete = evaluateLaunchInterlock(COMPLETE_CONFIGURATION);
     const tierOf = (amount) => complete.tiers.find(t => t.amount === amount);
@@ -173,7 +122,7 @@ export default async function (req) {
         && t.amount_to_be_charged === t.total_recurring_charge),
       complete.tiers.map(t => `$${t.amount}: fee $${t.chargeable_fee} · total $${t.total_recurring_charge}`).join(' · '));
 
-    check('K4 · The fee schedule is applied to the right tiers only',
+    check('K4 · The approved fee schedule is applied to the right tiers only',
       tierOf(150).chargeable_fee === 0 && tierOf(250).chargeable_fee === 0
         && tierOf(350).chargeable_fee === 25 && tierOf(500).chargeable_fee === 25 && tierOf(1000).chargeable_fee === 25
         && tierOf(350).total_recurring_charge === 375,
@@ -187,18 +136,15 @@ export default async function (req) {
       return !evaluation.permitted && evaluation.blockers.some(b => b.code === code);
     };
 
-    // (a) Mismatched fee flags: a fee tier left chargeable while billing is off.
-    check('K5a · Mismatched fee flag (billing off on a fee tier) prevents enrollment',
+    check('K5a · A mismatched fee flag (billing off on a fee tier) prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, membership_fee_enabled: false }, 'FEE_NOT_ENABLED'),
       'the $25 tiers cannot be enrolled when membership-fee billing is not enabled');
 
-    // (b) Enrollment switch missing entirely.
     check('K5b · An uncoordinated launch prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, enrollment_switch_value: null }, 'ENROLLMENT_NOT_ENABLED')
         && refusesWith({ ...COMPLETE_CONFIGURATION, enrollment_enabled: false }, 'ENROLLMENT_NOT_ENABLED'),
-      'the code flag and the owner switch must both be on');
+      'the code flag and the owner switch must both be on, together');
 
-    // (c) Missing legal approval — terms, refund policy and wallet terms.
     check('K5c · Missing approval of the versioned legal terms prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, terms_legally_approved: false }, 'LEGAL_TERMS_NOT_APPROVED')
         && refusesWith({ ...COMPLETE_CONFIGURATION, terms_version: 'autofund_membership_v0' }, 'LEGAL_TERMS_NOT_APPROVED'),
@@ -210,18 +156,16 @@ export default async function (req) {
 
     check('K5e · Unapproved separate wallet terms prevent enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, wallet_terms_approved: false }, 'WALLET_TERMS_NOT_APPROVED'),
-      'refund, expiry and unclaimed-property terms must be resolved');
+      'refund, expiry and unclaimed-property treatment must be resolved');
 
     check('K5f · A missing approved MLS V2 price configuration prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, mls_v2_configured: false }, 'MLS_V2_NOT_CONFIGURED'),
       'the approved pricing basis must exist as data before launch');
 
-    // (d) Stale processor version.
     check('K5g · A stale processor version prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, processor_contract_version: 'autofund_processor_v1' }, 'PROCESSOR_CONTRACT_STALE'),
       `required contract is ${REQUIRED_PROCESSOR_CONTRACT_VERSION}`);
 
-    // (e) Processor separation broken.
     check('K5h · Broken component separation in the processor prevents enrollment',
       refusesWith(
         { ...COMPLETE_CONFIGURATION, processor_capabilities: { ...AUTOFUND_PROCESSOR_CAPABILITIES, membership_fee_issues_zero_booking_value: false } },
@@ -229,20 +173,19 @@ export default async function (req) {
       ),
       'a fee that could issue Booking Value would become a wallet liability');
 
-    // (f) Invalid tier configuration.
     check('K5i · A corrupted tier configuration prevents enrollment',
-      refusesWith({ ...COMPLETE_CONFIGURATION }, 'TIER_CONFIGURATION_INVALID') === false
-        && evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { tier_config_overrides: { 350: { booking_value: 999 } } }).blockers.some(b => b.code === 'TIER_CONFIGURATION_INVALID')
-        && evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { tier_config_overrides: { 250: { bonus_booking_value: 999 } } }).blockers.some(b => b.code === 'TIER_CONFIGURATION_INVALID'),
-      'a Booking Value that does not equal funding + bonus is refused (a clean configuration is unaffected)');
+      !evaluateLaunchInterlock(COMPLETE_CONFIGURATION).blockers.some(b => b.code === 'TIER_CONFIGURATION_INVALID')
+        && evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { tier_config_overrides: { 350: { booking_value: 999 } } })
+          .blockers.some(b => b.code === 'TIER_CONFIGURATION_INVALID')
+        && evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { tier_config_overrides: { 250: { bonus_booking_value: 999 } } })
+          .blockers.some(b => b.code === 'TIER_CONFIGURATION_INVALID'),
+      'a Booking Value that does not equal funding + bonus is refused; a clean configuration is unaffected');
 
-    // (g) Incorrect disclosure total vs the amount actually charged.
     check('K5j · A disclosure that disagrees with the amount to be charged prevents enrollment',
       evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { charged_totals: { 350: 350 } }).blockers.some(b => b.code === 'DISCLOSURE_CHARGE_MISMATCH')
         && evaluateLaunchInterlock(COMPLETE_CONFIGURATION, { charged_totals: { 250: 275 } }).blockers.some(b => b.code === 'DISCLOSURE_CHARGE_MISMATCH'),
       'authorizing $375 while $350 is raised is refused, in both directions');
 
-    // (h) VIP restriction not enforced.
     check('K5k · An inactive VIP promotional restriction prevents enrollment',
       refusesWith({ ...COMPLETE_CONFIGURATION, vip_mls_promo_restriction_enabled: false }, 'VIP_RESTRICTION_INACTIVE'),
       'the restriction must be live at the authoritative booking layer');
@@ -253,9 +196,10 @@ export default async function (req) {
     const feeTierRefused = track(await enrollCert({
       email: 'cert_interlock_fee_tier@example.com',
       amount: 350,
-      config: { ...COMPLETE_CONFIGURATION, membership_fee_enabled: false },
+      billing: GA_ADDRESS,
+      launch_configuration: { ...COMPLETE_CONFIGURATION, membership_fee_enabled: false },
     }));
-    check('K6 · The engine refuses a $350 enrollment when the fee is not enabled',
+    check('K6 · The engine refuses a $350 enrollment when the $25 fee is not enabled',
       feeTierRefused.status === 'launch_interlock_blocked'
         && (feeTierRefused.interlock?.blockers || []).some(b => b.code === 'FEE_NOT_ENABLED'),
       `status=${feeTierRefused.status} — the customer is not enrolled against a disclosed $375 that would be billed as $350`);
@@ -263,7 +207,7 @@ export default async function (req) {
     const zeroFee = track(await enrollCert({
       email: 'cert_interlock_zero_fee@example.com',
       amount: 250,
-      config: COMPLETE_CONFIGURATION,
+      billing: GA_ADDRESS,
     }));
     const zeroFeeSub = zeroFee.status === 'enrolled'
       ? await svc.entities.AutoFundSubscription.get(zeroFee.subscription_id)
@@ -282,14 +226,19 @@ export default async function (req) {
     const noApproval = await enrollCert({
       email: 'cert_interlock_no_approval@example.com',
       amount: 250,
-      config: { ...COMPLETE_CONFIGURATION, terms_legally_approved: false },
+      billing: GA_ADDRESS,
+      launch_configuration: { ...COMPLETE_CONFIGURATION, terms_legally_approved: false },
     });
     check('K8 · The engine refuses enrollment when legal approval is missing',
       noApproval.status === 'launch_interlock_blocked'
         && (noApproval.interlock?.blockers || []).some(b => b.code === 'LEGAL_TERMS_NOT_APPROVED'),
       `status=${noApproval.status}`);
 
-    const retired = await enrollCert({ email: 'cert_interlock_retired@example.com', amount: 50, config: COMPLETE_CONFIGURATION });
+    const retired = await enrollCert({
+      email: 'cert_interlock_retired@example.com',
+      amount: 50,
+      billing: GA_ADDRESS,
+    });
     check('K9 · A retired tier is refused even under a complete configuration',
       retired.status === 'invalid',
       `status=${retired.status} — $50 stays unsellable while remaining resolvable for existing contracts`);
@@ -306,23 +255,25 @@ export default async function (req) {
       try {
         const res = await base44.functions.invoke('manageAutoFundLaunch', { action: 'preflight' });
         const report = res?.data || res;
-        check('K11 · The launch procedure reports refusal and changes nothing',
+        check('K11 · The launch procedure reports refusal rather than enabling anything',
           report?.permitted === false && report?.blocker_count > 0,
-          `preflight reports ${report?.blocker_count} unmet requirement(s): ${report?.verdict || ''}`);
+          `preflight reports ${report?.blocker_count} unmet requirement(s)`);
       } catch (e) {
-        blocked('K11 · The launch procedure reports refusal and changes nothing', `preflight could not be invoked: ${String(e.message).slice(0, 120)}`);
+        blocked('K11 · The launch procedure reports refusal rather than enabling anything',
+          `preflight could not be invoked from this context: ${String(e.message).slice(0, 140)}`);
       }
     } else {
-      fail('K11 · The launch procedure reports refusal and changes nothing', 'guard failed: the real configuration reported as launchable, so preflight was not invoked');
+      fail('K11 · The launch procedure reports refusal rather than enabling anything',
+        'guard failed: the real configuration reported as launchable, so preflight was not invoked');
     }
 
-    check('K12 · The enrollment switch was not written by any test',
-      (() => true)() && (await (async () => {
-        const res = await svc.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
-        const rows = Array.isArray(res) ? res : (res?.data || []);
-        return rows.length === 0 || rows[0].value !== 'true';
-      })()),
-      'enrollment remains closed — no test activated Auto-Fund');
+    const switchRows = await (async () => {
+      const res = await svc.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
+      return Array.isArray(res) ? res : (res?.data || []);
+    })();
+    check('K12 · No test wrote the enrollment switch',
+      switchRows.length === 0 || switchRows[0].value !== 'true',
+      `autofund_enrollment_enabled=${switchRows.length ? switchRows[0].value : 'absent'} — enrollment remains closed`);
 
     // ─────────────────────────────────────────────────────────────────────
     // CLEANUP AND REQUIREMENT 12
@@ -333,38 +284,26 @@ export default async function (req) {
     check('K13 · Existing subscriptions, wallets, balances and payment records are unchanged',
       JSON.stringify(before) === JSON.stringify(after),
       JSON.stringify(before) === JSON.stringify(after)
-        ? `${after.subscriptions} subscriptions · ${after.wallets} wallets · $${(after.wallet_balance_cents / 100).toFixed(2)} balance · ${after.payment_events} payment records — identical before and after`
+        ? `${after.subscriptions} subscription(s) · ${after.wallets} wallet(s) · $${(after.wallet_balance_cents / 100).toFixed(2)} balance · ${after.payment_events} payment record(s) — identical before and after`
         : `before=${JSON.stringify(before)} after=${JSON.stringify(after)}`);
 
     check('K14 · Certification fixtures were fully removed',
       cleanup.ok === true,
       `removed ${cleanup.deleted.subscriptions} subscription(s), ${cleanup.deleted.wallets} wallet(s), ${cleanup.deleted.contacts} customer record(s)`);
 
-    const failed = results.filter(r => r.status === 'FAIL');
-    const blockedResults = results.filter(r => r.status === 'BLOCKED');
-
-    return Response.json({
-      status: failed.length === 0 ? 'success' : 'failed',
-      summary: {
-        total: results.length,
-        passed: results.filter(r => r.status === 'PASS').length,
-        failed: failed.length,
-        blocked: blockedResults.length,
-      },
-      results,
-      blocked_checks: blockedResults.map(r => ({ name: r.name, reason: r.detail })),
+    return Response.json(harness.summarize({
       real_configuration_verdict: {
         permitted: real.permitted,
         unmet_requirements: real.blockers.map(b => ({ code: b.code, requirement: b.requirement, detail: b.detail })),
       },
       production_fingerprint: { before, after, unchanged: JSON.stringify(before) === JSON.stringify(after) },
-      approval_schedule_status: AUTOFUND_MEMBERSHIP_FEE,
+      approved_fee_schedule: AUTOFUND_MEMBERSHIP_FEE,
       certification_note:
         'Results verify software behaviour only. The declared complete configuration is a test assumption, not a claim of legal approval, and no feature was activated.',
       cleanup,
-    });
+    }));
   } catch (error) {
     const cleanup = await cleanupAll().catch(() => ({ ok: false }));
-    return Response.json({ error: error.message, results, cleanup }, { status: 500 });
+    return Response.json({ error: error.message, results: harness.results, cleanup }, { status: 500 });
   }
 }
