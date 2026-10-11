@@ -127,30 +127,48 @@ export async function cleanupCertRun(
   // deletion and for the verification pass, so `remaining` can never under-report a
   // fixture whose identity does not carry the run id (a suite simulating a production
   // customer uses an isolation_prod_ identity, for example).
-  const buildQueries = (spec: SweepSpec): Record<string, unknown>[] => {
-    const queries: Record<string, unknown>[] = [{ [spec.field]: prefix }];
+  const identityFilters = (spec: SweepSpec): Record<string, unknown>[] => {
+    const filters: Record<string, unknown>[] = [{ [spec.field]: prefix }];
     for (const ex of spec.exact || []) {
       if (ex.field === 'customer_email' || ex.field === 'employee_email' || ex.field === 'email') {
-        queries.push({ [ex.field]: { $in: emails } });
+        filters.push({ [ex.field]: { $in: emails } });
       } else if (ex.field === 'arriv_employee_id' && employeeIds.length) {
-        queries.push({ [ex.field]: { $in: employeeIds } });
+        filters.push({ [ex.field]: { $in: employeeIds } });
       }
     }
-    return queries;
+    return filters;
+  };
+
+  // ONE query per entity, combining every identity the run can be recognized by, with a
+  // single retry when the app rate limiter intervenes. Teardown previously issued several
+  // queries per entity (plus a second pass for verification) and could exhaust the app's
+  // query budget mid-cleanup, leaving fixtures behind — the exact failure it exists to
+  // prevent.
+  const queryRun = async (entity: any, spec: SweepSpec): Promise<{ rows: any[]; error?: string }> => {
+    const filters = identityFilters(spec);
+    const q = filters.length > 1 ? { $or: filters } : filters[0];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await entity.filter(q, '-created_date', 200);
+        return { rows: Array.isArray(res) ? res : (res?.items || res?.data || []) };
+      } catch (e: any) {
+        const msg = String(e?.message || e || '');
+        if (attempt === 0 && /rate limit|too many requests/i.test(msg)) {
+          await new Promise((r) => setTimeout(r, 1500));
+          continue;
+        }
+        return { rows: [], error: `${spec.entity} query: ${msg}` };
+      }
+    }
+    return { rows: [], error: `${spec.entity} query: rate limited` };
   };
 
   for (const spec of SWEEP) {
     const entity = client.entities?.[spec.entity];
     if (!entity) continue;
-    for (const q of buildQueries(spec)) {
-      let rows: any[] = [];
-      try {
-        const res = await entity.filter(q, '-created_date', 200);
-        rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
-      } catch (e: any) {
-        errors.push(`${spec.entity} query: ${e.message}`);
-        continue;
-      }
+    {
+      const { rows, error } = await queryRun(entity, spec);
+      if (error) errors.push(error);
       for (const row of rows) {
         // Marker guard — never delete a record whose own identity is not synthetic.
         const candidates = [row[spec.field], row.customer_email, row.email, row.employee_email, row.arriv_employee_id];
@@ -165,21 +183,22 @@ export async function cleanupCertRun(
     }
   }
 
-  // Verify: nothing belonging to this run may remain, by ANY of its identities.
+  // Verify against the entities that actually hold run fixtures, kept to a small set so
+  // the check cannot itself exhaust the query budget. Entities that are empty for every
+  // run are skipped rather than re-queried.
+  const VERIFY_ENTITIES = new Set([
+    'Contact', 'PrepaidWallet', 'CreditLot', 'WalletTransaction', 'AutoFundPaymentEvent',
+    'AutoFundSubscription', 'AutoFundConsentRecord', 'AutoFundJurisdictionAudit',
+    'AutoFundDisputeCase', 'EmployeeSyncQueue',
+  ]);
   for (const spec of SWEEP) {
     const entity = client.entities?.[spec.entity];
-    if (!entity) continue;
-    const seen = new Set<string>();
-    for (const q of buildQueries(spec)) {
-      try {
-        const res = await entity.filter(q, '-created_date', 200);
-        const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
-        for (const r of rows) seen.add(r.id);
-      } catch { /* verification is best-effort; deletion errors are already reported */ }
-    }
-    if (seen.size) {
-      result.remaining_by_entity[spec.entity] = seen.size;
-      result.remaining += seen.size;
+    if (!entity || !VERIFY_ENTITIES.has(spec.entity)) continue;
+    const { rows, error } = await queryRun(entity, spec);
+    if (error) errors.push(error);
+    if (rows.length) {
+      result.remaining_by_entity[spec.entity] = rows.length;
+      result.remaining += rows.length;
     }
   }
   return result;
@@ -204,18 +223,15 @@ export async function sweepStaleCertRuns(client: any, olderThanMinutes = 30) {
   };
 
   const runIds = new Set<string>();
+  // Kept deliberately small: these are the records an interrupted run leaves behind. Every
+  // extra probe spends the app's query budget that teardown itself needs.
   const probes: { entity: string; field: string }[] = [
-    { entity: 'AutoFundPaymentEvent', field: 'payment_event_id' },
-    { entity: 'AutoFundConsentRecord', field: 'consent_record_id' },
-    { entity: 'AutoFundSubscription', field: 'subscription_id' },
-    { entity: 'EmployeeSyncQueue', field: 'sync_id' },
-    { entity: 'AutoFundJurisdictionAudit', field: 'audit_id' },
-    { entity: 'AutoFundDisputeCase', field: 'dispute_reference' },
-    { entity: 'AutoFundMembershipNotice', field: 'notice_id' },
-    { entity: 'PaymentRecoveryNotification', field: 'notification_id' },
     // An interrupted run can leave ONLY its contact behind (its own teardown removed
     // everything else before the process was killed), so the contact is a run source too.
     { entity: 'Contact', field: 'email' },
+    { entity: 'AutoFundPaymentEvent', field: 'payment_event_id' },
+    { entity: 'AutoFundConsentRecord', field: 'consent_record_id' },
+    { entity: 'AutoFundSubscription', field: 'subscription_id' },
   ];
   for (const probe of probes) {
     const entity = client.entities?.[probe.entity];
