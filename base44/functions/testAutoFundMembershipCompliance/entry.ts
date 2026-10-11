@@ -3,6 +3,7 @@ import { enrollAutoFund, CURRENT_TERMS_VERSION } from '../../shared/autoFundEnro
 import {
   AUTOFUND_ENROLLMENT_FLAG_KEY,
   AUTOFUND_MEMBERSHIP_FEE,
+  getMembershipFee,
 } from '../../shared/autoFundFinalConfig.ts';
 import {
   AUTO_FUND_AMOUNT_OPTIONS,
@@ -13,6 +14,7 @@ import {
 import {
   buildComplianceDisclosure,
   buildAuthorizationConsentText,
+  AUTOFUND_TERMS_VERSION,
 } from '../../shared/autoFundComplianceDisclosure.ts';
 import {
   FEE_REFUND_POLICY_DISCLOSURE,
@@ -23,6 +25,12 @@ import {
   DEFAULT_FEE_REFUND_POLICY,
 } from '../../shared/autoFundMembershipBilling.ts';
 import { buildWalletTermsDisclosure } from '../../shared/autoFundWalletTerms.ts';
+import {
+  evaluateLaunchInterlock,
+  readLaunchConfiguration,
+  REQUIRED_PROCESSOR_CONTRACT_VERSION,
+} from '../../shared/autoFundLaunchInterlock.ts';
+import { AUTOFUND_PROCESSOR_CAPABILITIES } from '../../shared/autoFundProcessor.ts';
 import {
   sendEnrollmentAcknowledgment,
   sendCancellationConfirmation,
@@ -49,12 +57,43 @@ import { normalizeJurisdictionState } from '../../shared/autoFundJurisdiction.ts
 // addresses must be synthetic cert_ addresses, and no user-facing route forwards
 // the bypass field.
 //
+// ENROLLMENT CHECKS RUN AGAINST A DECLARED LAUNCH CONFIGURATION — see
+// DECLARED_LAUNCH_CONFIGURATION below. It is a test input, not a claim of approval,
+// and check A8 asserts the REAL configuration still refuses enrollment.
+//
 // Passing software tests are NOT legal certification. See the implementation report.
 // ============================================================================
 
 const CERT_CUSTOMER_ID = 'cert_compliance_customer';
 const GA_ADDRESS = { line1: '1 Peachtree St NE', city: 'Atlanta', state: 'GA', postal_code: '30301', country: 'US' };
 const WY_ADDRESS = { line1: '100 Capitol Ave', city: 'Cheyenne', state: 'WY', postal_code: '82001', country: 'US' };
+
+/**
+ * DECLARED LAUNCH CONFIGURATION — a TEST ASSUMPTION, NOT A CLAIM OF APPROVAL.
+ *
+ * This suite verifies the engine in the configuration the owner intends to LAUNCH,
+ * because that is the configuration a customer will actually meet: all five tiers
+ * chargeable, fees live, the VIP restriction enforced, every approval in place.
+ *
+ * Declaring it here asserts nothing about reality, records nothing, and activates
+ * nothing — the live flags, AppSettings and pricing records are untouched. Check A8
+ * asserts that the REAL configuration refuses enrollment, so this declaration cannot
+ * mask a production hazard, and the launch-interlock suite proves that a
+ * configuration missing any one of these elements refuses enrollment outright.
+ */
+const DECLARED_LAUNCH_CONFIGURATION = {
+  enrollment_enabled: true,
+  enrollment_switch_value: 'true',
+  membership_fee_enabled: true,
+  vip_mls_promo_restriction_enabled: true,
+  terms_version: AUTOFUND_TERMS_VERSION,
+  terms_legally_approved: true,
+  fee_refund_policy: 'non_refundable',
+  wallet_terms_approved: true,
+  mls_v2_configured: true,
+  processor_contract_version: REQUIRED_PROCESSOR_CONTRACT_VERSION,
+  processor_capabilities: { ...AUTOFUND_PROCESSOR_CAPABILITIES },
+};
 
 export default async function (req) {
   const created = { contacts: [], wallets: [], subs: [] };
@@ -138,7 +177,13 @@ export default async function (req) {
         attribution_source: opts.channel === 'sales_assisted' ? 'advisor_enrolled' : '',
         terms_accepted: opts.terms_accepted === undefined ? true : opts.terms_accepted,
         terms_accepted_by: opts.accepted_by === undefined ? opts.email : opts.accepted_by,
-        certification_bypass: { authorized: true, admin_email: user.email },
+        certification_bypass: {
+          authorized: true,
+          admin_email: user.email,
+          // Declared test input: the configuration this run exercises. See A8 — the
+          // REAL configuration separately refuses enrollment.
+          launch_configuration: DECLARED_LAUNCH_CONFIGURATION,
+        },
         actor: user.email,
       });
 
@@ -189,6 +234,18 @@ export default async function (req) {
     });
     check('A7 · Consent is personal — an advisor cannot accept for the customer', advisorConsent.status === 'invalid', `status=${advisorConsent.status}`);
 
+    // ── The REAL configuration, not the declared one ─────────────────────────
+    // Everything from A4 onward runs against the DECLARED launch configuration. This
+    // asserts what the system does in its REAL state, which is what any production
+    // route would meet: enrollment is refused, so the enrollment/billing sequencing
+    // hazard cannot be reached at all.
+    const realEvaluation = evaluateLaunchInterlock(await readLaunchConfiguration(svc));
+    check('A8 · Real configuration refuses enrollment until launch prerequisites are met',
+      realEvaluation.permitted === false
+        && realEvaluation.blockers.some(b => b.code === 'ENROLLMENT_NOT_ENABLED')
+        && realEvaluation.blockers.some(b => b.code === 'LEGAL_TERMS_NOT_APPROVED'),
+      `${realEvaluation.blockers.length} unmet launch requirement(s): ${realEvaluation.blockers.map(b => b.code).join(', ')}`);
+
     // ─────────────────────────────────────────────────────────────────────
     // B. PRE-AUTHORIZATION DISCLOSURES
     // ─────────────────────────────────────────────────────────────────────
@@ -196,6 +253,10 @@ export default async function (req) {
       buildComplianceDisclosure({
         tierAmount: amount, termsVersion: CURRENT_TERMS_VERSION, billingDay: 11,
         nextRenewalDate: 'Fri Nov 11 2026', feePolicy: DEFAULT_FEE_REFUND_POLICY,
+        // The disclosure a customer would see at LAUNCH, which is the configuration
+        // the interlock has approved. The fee therefore equals the approved schedule
+        // AND the fee that would actually be charged.
+        feeEnabled: DECLARED_LAUNCH_CONFIGURATION.membership_fee_enabled,
       })
     );
 
@@ -380,7 +441,7 @@ export default async function (req) {
     // charge that did not match its own breakdown.
     const handoff = selfService.checkout_handoff;
     check('J3 · The membership fee never inflates the customer\'s Booking Value',
-      selfSub.membership_fee === feeDueForTier(350)
+      selfSub.membership_fee === getMembershipFee(350, DECLARED_LAUNCH_CONFIGURATION.membership_fee_enabled)
         && selfService.booking_value_per_cycle === Math.round(350 * 1.15 * 100) / 100
         && selfService.disclosure.monthly_deposit === 350,
       `deposit $${selfService.disclosure.monthly_deposit} + fee $${selfSub.membership_fee} → BV $${selfService.booking_value_per_cycle} (the 15% bonus applies to the deposit only; the fee issues no Booking Value)`);
@@ -400,27 +461,19 @@ export default async function (req) {
         && vipSub.amount === 1000 && selfSub.amount === 350,
       'VIP restricted · Professional unrestricted · each on its own record');
 
-    // ── Disclosed schedule vs the charge actually raised ────────────────────
-    // The pre-authorization disclosure states the APPROVED fee schedule, while the
-    // charge is gated by the fee switch. While the switch is off no real enrollment
-    // can occur (the gate requires both switches), but opening enrollment WITHOUT
-    // the fee switch would have the customer authorize the schedule total and be
-    // charged the deposit alone. Surfaced as a launch blocker rather than silently
-    // reconciled.
+    // ── Requirement 4 of the launch interlock: disclosed === charged ─────────
+    // Asserted as an EQUALITY rather than reported as a hazard. The enrollment
+    // engine cannot reach this point when the disclosure and the charge would
+    // differ: the interlock refuses first. The launch-interlock suite proves that
+    // refusal, so this is now a hard invariant instead of a documented gap.
     const disclosedFee = selfService.disclosure.compliance.monthly_membership_fee;
     const disclosedTotal = selfService.disclosure.compliance.total_monthly_recurring_charge;
-    if (isFeeBillingEnabled()) {
-      check('J6 · Disclosed fee schedule equals the fee actually billed',
-        disclosedFee === selfSub.membership_fee && disclosedTotal === selfSub.total_monthly_charge,
-        `disclosed $${disclosedFee}/$${disclosedTotal} · billed $${selfSub.membership_fee}/$${selfSub.total_monthly_charge}`);
-    } else {
-      results.push({
-        name: 'J6 · Disclosed fee schedule equals the fee actually billed',
-        status: 'BLOCKED',
-        detail: `Fee switch OFF: disclosure states $${disclosedFee} fee on a $${disclosedTotal} charge, while $${selfSub.membership_fee} is billed on $${selfSub.total_monthly_charge}. Harmless only while enrollment is closed — enrollment MUST NOT be opened without the fee switch.`,
-      });
-      blockers.push('The disclosed fee schedule and the amount actually charged diverge while the membership-fee switch is off. Open enrollment and the fee switch TOGETHER — never enrollment alone.');
-    }
+    check('J6 · Disclosed fee and total equal the fee and total actually billed',
+      disclosedFee === selfSub.membership_fee
+        && disclosedTotal === selfSub.total_monthly_charge
+        && handoff.recurring_charge_cents === Math.round(disclosedTotal * 100)
+        && handoff.membership_fee_cents === Math.round(disclosedFee * 100),
+      `disclosed $${disclosedFee} fee on $${disclosedTotal} · billed $${selfSub.membership_fee} on $${selfSub.total_monthly_charge} · handoff ${handoff.wallet_funding_cents}+${handoff.membership_fee_cents}=${handoff.recurring_charge_cents} cents`);
 
     // ─────────────────────────────────────────────────────────────────────
     // I. ENGINEERING FIX 2 — JURISDICTION CAPTURE
@@ -528,7 +581,7 @@ export default async function (req) {
 
     check('D3 · Acknowledgment records terms version, refund policy and cancellation instructions',
       !!ackRow && ackRow.terms_version === CURRENT_TERMS_VERSION
-        && ackRow.fee_refund_policy === DEFAULT_FEE_REFUND_POLICY
+        && ackRow.fee_refund_policy === DECLARED_LAUNCH_CONFIGURATION.fee_refund_policy
         && /cancel any time/i.test(ackRow.body_snapshot || ''),
       `terms ${ackRow?.terms_version} · policy ${ackRow?.fee_refund_policy}`);
 

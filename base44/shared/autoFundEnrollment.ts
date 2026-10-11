@@ -275,7 +275,10 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   const feeEnabled = launchConfig.membership_fee_enabled;
   const membershipFee = getMembershipFee(config.amount, feeEnabled);
   const totalMonthly = getTotalMonthlyCharge(config.amount, feeEnabled);
-  const feePolicy = req.fee_refund_policy || DEFAULT_FEE_REFUND_POLICY;
+  // The policy recorded on the subscription is the one the interlock has just
+  // verified. Falling back to the generic default would record a refund policy the
+  // interlock never saw, and would silently discard an approved policy.
+  const feePolicy = req.fee_refund_policy || launchConfig.fee_refund_policy;
 
   // ── Billing jurisdiction (REQUIRED) ──────────────────────────────────────
   // Which renewal-notice rule applies depends on the customer's billing

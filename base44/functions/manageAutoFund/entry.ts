@@ -105,7 +105,11 @@ export default async function(req) {
 
       const tiers = AUTO_FUND_AMOUNT_OPTIONS.map(amount => {
         const cfg = getAutoFundConfig(amount)!;
-        const fee = AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
+        // The fee and total resolve through the LOCKED, chargeable fee, never the
+        // approved schedule table. The catalog is what a customer reads before
+        // authorizing, so it must state the amount that will actually be charged —
+        // the launch interlock separately refuses enrollment while the two differ.
+        const fee = getMembershipFee(amount);
         const vip = cfg.vip === true;
         return {
           amount,
@@ -115,7 +119,7 @@ export default async function(req) {
           bonus_booking_value: cfg.bonus_booking_value,
           booking_value: cfg.booking_value,
           membership_fee: fee,
-          total_monthly_charge: amount + fee,
+          total_monthly_charge: getTotalMonthlyCharge(amount),
           credits: cfg.credits,
           benefits: cfg.benefits,
           support_priority: cfg.support_priority,

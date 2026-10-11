@@ -195,7 +195,7 @@ export function resolveTierEconomics(
   cfg: LaunchConfiguration,
   opts: InterlockOptions = {},
 ): TierEconomics | null {
-  const config = getAutoFundConfig(amount);
+  const config = resolveTierConfig(amount, opts);
   if (!config) return null;
 
   const scheduledFee = AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
@@ -251,7 +251,7 @@ function evaluateTiers(cfg: LaunchConfiguration, opts: InterlockOptions) {
   const tiers: TierEconomics[] = [];
 
   for (const amount of AUTO_FUND_AMOUNT_OPTIONS) {
-    const config = getAutoFundConfig(amount);
+    const config = resolveTierConfig(amount, opts);
     const scope = `$${amount}`;
 
     if (!config) {
@@ -336,7 +336,7 @@ function evaluateTiers(cfg: LaunchConfiguration, opts: InterlockOptions) {
   // Compared as a set rather than per tier: the two configurations are the
   // canonical tier record and the approved fee table, and every enrollable amount
   // must be present in both with the same funding amount.
-  const missingFromBilling = AUTO_FUND_AMOUNT_OPTIONS.filter(a => !getAutoFundConfig(a));
+  const missingFromBilling = AUTO_FUND_AMOUNT_OPTIONS.filter(a => !resolveTierConfig(a, opts));
   checks.push({
     id: 'CONFIGURATION_PARITY',
     requirement: 1,
