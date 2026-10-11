@@ -24,7 +24,9 @@ import {
  *
  * Verified production rules applied:
  *   - Specialist payout: MLS guaranteed table ($50 at <=2,500 sqft); standard
- *     packages 40% of post-sales value = 34% of retail.
+ *     packages 40% of post-sales value. Sales compensation comes out FIRST, so a
+ *     wallet-funded booking (no booking commission) pays 40% of the package and a
+ *     standard marketplace booking pays 40% of the remaining 85% = 34% of retail.
  *   - Funding commission: 15% first payment, 8% recurring and top-ups.
  *   - Booking commission: 0% when ANY wallet value is applied; a fully direct-paid
  *     booking is a standard marketplace booking and carries 15%.
@@ -44,7 +46,14 @@ export const TARGET_PCT = 10;
 const STRIPE_RATE = 0.029;
 const STRIPE_FIXED = 0.30;
 const MARKETPLACE_COMMISSION_RATE = 0.15;
-const SPECIALIST_RATE = 0.34;
+/**
+ * Authoritative partner share of POST-SALES value. The sales person is paid out of
+ * the package FIRST, and the partner then takes 40% of what remains. So a
+ * wallet-funded booking (zero booking commission) pays the partner 40% of the
+ * package, and a standard marketplace booking pays 40% of the remaining 85%,
+ * which is 34% of retail.
+ */
+const PARTNER_RATE = 0.40;
 const PROPERTY_SQFT = 2000; // every service priced on one <=2,500 sqft property
 const TOPUP_MONTH = 5;
 const TOPUP_AMOUNT = 500;
@@ -70,13 +79,12 @@ export interface Economics {
    */
   mls_qc?: number;
   /**
-   * Provider payout rate for non-MLS packages, as a share of post-sales value.
-   * 0.40 is the authoritative standard partner rate (mediaCompensationEngine).
-   * Post-sales value is CSV less the sales commission, so a standard marketplace
-   * booking pays 0.40 x 0.85 = 0.34 of retail — but a wallet-funded Auto-Fund
-   * booking carries ZERO booking commission, so its post-sales value equals retail
-   * and the payout is a full 0.40 of retail. Defaults to 0.34 so the earlier
-   * analysis reproduces exactly.
+   * Partner payout rate for non-MLS packages, as a share of POST-SALES value, where
+   * post-sales value is the package retail less the booking's sales commission,
+   * because the sales person is paid out of the package first. Defaults to the
+   * authoritative 0.40 (mediaCompensationEngine), which yields 40% of the package
+   * on a wallet-funded booking (zero booking commission) and 0.40 x 0.85 = 34% of
+   * retail on a standard marketplace booking.
    */
   partner_rate?: number;
 }
@@ -100,7 +108,10 @@ export const VIP_BASE: VipCost = { sessions_per_year: 12, cost_per_session: 25 }
 
 interface Svc {
   retail: number;
+  /** Partner payout when the booking carries no sales commission (wallet-funded). */
   payout: number;
+  /** Partner payout when a 15% marketplace commission is paid out of the package first. */
+  payout_marketplace: number;
   editing: number;
   standalone: boolean;
   /** True when this service includes an MLS Walkthrough (so QC applies). */
@@ -117,19 +128,25 @@ interface Svc {
 export function serviceCatalog(e: Economics): Record<string, Svc> {
   const ess = getPriceForSqft(PROPERTY_SQFT, 'essentials') as number;
   const cin = getPriceForSqft(PROPERTY_SQFT, 'cinematic') as number;
-  const pr = e.partner_rate ?? SPECIALIST_RATE;
+  const pr = e.partner_rate ?? PARTNER_RATE;
+  // Sales compensation is paid out of the package FIRST; the partner then receives
+  // its share of what remains. A wallet-funded booking pays no booking commission,
+  // so the partner's base is the full package.
+  const prMkt = pr * (1 - MARKETPLACE_COMMISSION_RATE);
   const essPayout = round2(ess * pr);
   const cinPayout = round2(cin * pr);
+  const essPayoutMkt = round2(ess * prMkt);
+  const cinPayoutMkt = round2(cin * prMkt);
   // Editing is payroll labour: gross editing cost plus employer burden. QC is a
   // separate per-walkthrough expense on any cart carrying an MLS Walkthrough.
   const bur = 1 + (e.editing_burden_rate ?? 0);
   const qc = e.mls_qc ?? 0;
   const ed = (gross: number, hasMls: boolean) => round2(gross * bur + (hasMls ? qc : 0));
   return {
-    S: { retail: e.mls_price, payout: e.mls_payout, editing: ed(e.mls_editing, true), standalone: true, has_mls: true, eligible_retail: 0 },
-    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, editing: ed(e.mls_editing + 50, true), standalone: false, has_mls: true, eligible_retail: ess },
-    E: { retail: ess, payout: essPayout, editing: ed(50, false), standalone: false, has_mls: false, eligible_retail: ess },
-    C: { retail: cin, payout: cinPayout, editing: ed(100, false), standalone: false, has_mls: false, eligible_retail: cin },
+    S: { retail: e.mls_price, payout: e.mls_payout, payout_marketplace: e.mls_payout, editing: ed(e.mls_editing, true), standalone: true, has_mls: true, eligible_retail: 0 },
+    B: { retail: e.mls_price + ess, payout: e.mls_payout + essPayout, payout_marketplace: e.mls_payout + essPayoutMkt, editing: ed(e.mls_editing + 50, true), standalone: false, has_mls: true, eligible_retail: ess },
+    E: { retail: ess, payout: essPayout, payout_marketplace: essPayoutMkt, editing: ed(50, false), standalone: false, has_mls: false, eligible_retail: ess },
+    C: { retail: cin, payout: cinPayout, payout_marketplace: cinPayoutMkt, editing: ed(100, false), standalone: false, has_mls: false, eligible_retail: cin },
   };
 }
 
@@ -292,7 +309,9 @@ export function simulate(tier: number, allowance: number, persona: string, e: Ec
       }
       const bc = promo + cash === 0 ? s.retail * MARKETPLACE_COMMISSION_RATE : 0;
       bookingCommission += bc;
-      payout += s.payout;
+      // The sales person is paid out of the package first, so a commissioned
+      // booking leaves the partner a 40% share of the remainder (34% of retail).
+      payout += bc > 0 ? s.payout_marketplace : s.payout;
       editing += s.editing;
       retailDelivered += s.retail;
       if (s.standalone) promoOnStandalone += promo / 100;

@@ -59,7 +59,7 @@
 
 ## B. Financial results
 
-Full realism basis: 15% employer payroll burden, $5 QC per walkthrough, provider payouts at the authoritative 40% of post-sales value (which equals 40% of retail on a wallet-funded booking, since these bookings carry zero sales commission), Stripe 2.9% + $0.30, churn, refunds, rollover, and full eventual redemption of every balance. Fifteen customer patterns per tier. Promotional credit is always closed out at the **lowest-margin service the customer is permitted to buy**.
+Full realism basis: 15% employer payroll burden, $5 QC per walkthrough, and provider payouts on the authoritative **ordered waterfall** — the sales person is paid out of the package **first**, and the partner then takes **40% of what remains**, exactly as `mediaCompensationEngine` computes it (`post_sales_value = CSV − sales_commission`, `payout = post_sales_value × 0.40`). A wallet-funded booking carries zero booking commission, so its post-sales value is the full package and the partner receives **40% of the package**. A standard marketplace booking pays the 15% commission first, so the partner receives **34% of retail**. Plus Stripe 2.9% + $0.30, churn, refunds, rollover, and full eventual redemption of every balance. Fifteen customer patterns per tier. Promotional credit is always closed out at the **lowest-margin service the customer is permitted to buy**.
 
 ### At the proposed $120 price — full realism
 
@@ -145,7 +145,7 @@ All changes are staging-only. **Every feature flag is disabled**, so production 
 
 | Artifact | Change |
 |---|---|
-| `base44/functions/optimizeMlsUnitEconomics/simulator.ts` | Added membership-fee revenue and processing, membership benefit cost, the VIP promotional restriction with its eligible-portion cap, a promotional close-out ratio override, a churn pattern, and the authoritative **40% partner payout** for wallet-funded non-MLS bookings. Every new parameter defaults to the previous behaviour. |
+| `base44/functions/optimizeMlsUnitEconomics/simulator.ts` | Added membership-fee revenue and processing, membership benefit cost, the VIP promotional restriction with its eligible-portion cap, a promotional close-out ratio override, and a churn pattern. **Corrected the payout waterfall:** the partner rate is now the authoritative **0.40 of post-sales value**, applied *after* sales compensation, so the 34% paid on a commissioned booking is **derived** from the ordering rather than hardcoded, and a wallet-funded booking correctly pays 40% of the package. |
 | `base44/functions/optimizeMlsUnitEconomics/entry.ts` | Wired the certification in as phase 7. |
 
 ### Tests
@@ -153,6 +153,7 @@ All changes are staging-only. **Every feature flag is disabled**, so production 
 | Test | Result |
 |---|---|
 | `testAutoFundMlsAllowance` (22-part certification) | **22/22 PASS**, no cleanup errors |
+| Payout waterfall against `mediaCompensationEngine` | **Exact match** — `post_sales_value = CSV − sales_commission`, then `payout = post_sales_value × 0.40`. Sales compensation first, 40% of the remainder second. |
 | Backward compatibility of the simulator | **Verified** — all new parameters default to prior behaviour; the live analysis endpoints reproduce their earlier figures exactly |
 | Certification coverage | 6 tiers × 15 patterns × 2 prices × 2 realism bases, plus 4 remedy searches |
 
