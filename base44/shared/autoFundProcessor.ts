@@ -50,6 +50,35 @@ export interface ProcessPaymentParams {
   cert_mode?: boolean;
 }
 
+/**
+ * Processor contract version. The launch interlock refuses to enroll a customer when
+ * the version it reads here is not the one it requires, so a stale or partially
+ * edited processor can never silently take a payment whose components it does not
+ * know how to separate.
+ */
+export const AUTOFUND_PROCESSOR_CONTRACT_VERSION = 'autofund_processor_v2';
+
+/**
+ * The separation guarantees the processor must still provide. The interlock asserts
+ * every one of these is `true`; deleting or turning off a guarantee in this file
+ * blocks enrollment rather than quietly degrading the ledger.
+ */
+export const AUTOFUND_PROCESSOR_CAPABILITIES = {
+  contract_version: AUTOFUND_PROCESSOR_CONTRACT_VERSION,
+  /** Wallet funding, promotional Booking Value and membership-fee revenue stay distinct. */
+  separates_cash_funding_from_promotional_booking_value: true,
+  /** A membership fee issues zero Booking Value, in integer cents. */
+  membership_fee_issues_zero_booking_value: true,
+  /** A membership fee creates no credit lot and no wallet transaction, so it is never a wallet liability. */
+  membership_fee_creates_no_wallet_liability: true,
+  /** A membership fee generates no sales commission. */
+  membership_fee_generates_no_commission: true,
+  /** Promotional Booking Value is issued as its own lot so the VIP restriction is enforceable at redemption. */
+  promotional_bonus_issued_as_own_lot: true,
+  /** All bookkeeping is integer cents; no floating-point value reaches a ledger. */
+  booking_value_recorded_in_integer_cents: true,
+} as const;
+
 /** Reason marker written on the customer's acquisition commission event. */
 export const AUTO_FUND_FIRST_PAYMENT_REASON = 'AUTO_FUND_FIRST_PAYMENT_15_PERCENT';
 

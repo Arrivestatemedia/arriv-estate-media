@@ -338,10 +338,17 @@ export function buildBillingHistory(events: any[]) {
   });
 }
 
-/** What the customer is charged, shown separately. Never merged into Booking Value. */
-export function buildChargeDisclosure(tierAmount: number) {
+/**
+ * What the customer is charged, shown separately. Never merged into Booking Value.
+ *
+ * The fee comes from `feeDueForTier` (the gated, genuinely chargeable fee), not from
+ * the approved schedule table — the two differ whenever the membership-fee switch is
+ * off, and a customer-facing charge breakdown must state the amount that will
+ * actually be collected.
+ */
+export function buildChargeDisclosure(tierAmount: number, feeEnabled?: boolean) {
   const deposit = tierAmount;
-  const fee = approvedFeeForTier(tierAmount);
+  const fee = getMembershipFee(tierAmount, feeEnabled);
   return {
     monthly_wallet_funding: deposit,
     monthly_membership_fee: fee,

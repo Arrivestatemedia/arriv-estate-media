@@ -38,7 +38,14 @@ import {
   type FeeRefundPolicy,
 } from './autoFundMembershipBilling.ts';
 import { AUTO_FUND_AMOUNTS, AUTO_FUND_AMOUNT_OPTIONS, generateId, getAutoFundConfig } from './prepaidEngine.ts';
-import { buildComplianceDisclosure } from './autoFundComplianceDisclosure.ts';
+import { buildComplianceDisclosure, AUTOFUND_TERMS_VERSION } from './autoFundComplianceDisclosure.ts';
+import {
+  describeInterlockRefusal,
+  evaluateLaunchInterlock,
+  readLaunchConfiguration,
+  type InterlockBlocker,
+  type LaunchConfiguration,
+} from './autoFundLaunchInterlock.ts';
 import {
   resolveBillingJurisdiction,
   recordJurisdictionAudit,
@@ -53,7 +60,7 @@ import {
  * Any material change requires a new label AND refreshed customer consent —
  * see the versioned-consent requirements in the terms document.
  */
-export const CURRENT_TERMS_VERSION = 'autofund_membership_v1';
+export const CURRENT_TERMS_VERSION = AUTOFUND_TERMS_VERSION;
 
 export interface EnrollmentRequest {
   base44: any;
@@ -73,8 +80,18 @@ export interface EnrollmentRequest {
    * Certification-only launch-gate bypass. Supplied EXCLUSIVELY by the
    * admin-only compliance suite; no user-facing route forwards it. See the gate
    * in `enrollAutoFund` — public enrollment is not opened by this.
+   *
+   * It must carry the launch configuration it intends to exercise. That
+   * configuration is an explicit, declared TEST INPUT, not a claim about reality:
+   * the live flags are never touched, and the suite separately asserts that the
+   * REAL configuration refuses enrollment. Production callers must omit this field
+   * entirely, which makes the engine read the real configuration instead.
    */
-  certification_bypass?: { authorized: boolean; admin_email: string };
+  certification_bypass?: {
+    authorized: boolean;
+    admin_email: string;
+    launch_configuration?: LaunchConfiguration;
+  };
   /** Advisor attribution, only honoured when it can be verified. */
   sales_rep_id?: string;
   attribution_source?: '' | 'customer_selected_advisor' | 'advisor_enrolled' | 'admin_assigned';
@@ -120,8 +137,10 @@ async function resolveAttribution(base44: any, req: EnrollmentRequest) {
 }
 
 export interface EnrollmentResult {
-  status: 'enrolled' | 'enrollment_closed' | 'invalid' | 'already_enrolled';
+  status: 'enrolled' | 'enrollment_closed' | 'launch_interlock_blocked' | 'invalid' | 'already_enrolled';
   error?: string;
+  /** Present only when the launch interlock refused. Names every unmet requirement. */
+  interlock?: { version: string; permitted: boolean; blockers: InterlockBlocker[] };
   subscription_id?: string;
   wallet_id?: string;
   contact_id?: string;
@@ -168,14 +187,49 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   //   3. a synthetic cert_-prefixed enrolled address.
   // No user-facing route forwards `certification_bypass`, so (1) cannot be
   // supplied from outside. This does not open public enrollment.
+  // ── Certification-only bypass ─────────────────────────────────────────────
+  // Lets the admin-only compliance suite exercise enrollment while PUBLIC
+  // enrollment stays closed. Four independent conditions must ALL hold, so no
+  // customer request can reach this path:
+  //   1. an explicit bypass object marked authorized,
+  //   2. a named admin, which the CALLING function verifies before passing it,
+  //   3. a synthetic cert_-prefixed enrolled address,
+  //   4. a DECLARED launch configuration to evaluate the interlock against.
+  // No user-facing route forwards `certification_bypass`, so (1) cannot be
+  // supplied from outside. This does not open public enrollment.
   const bypass = req.certification_bypass;
   const isCertificationRun =
     bypass?.authorized === true &&
     !!bypass?.admin_email &&
+    !!bypass?.launch_configuration &&
     /^cert_/i.test(String(req.customer_email || ''));
 
   if (!isCertificationRun && !isEnrollmentOpen(flagArr.length > 0 ? flagArr[0].value : null)) {
     return { status: 'enrollment_closed', error: 'Auto-Fund enrollment is closed pending owner launch authorization.' };
+  }
+
+  // ── Fail-closed launch interlock ──────────────────────────────────────────
+  // Requirement 1 of the launch interlock: enrollment is IMPOSSIBLE unless the
+  // configuration that would charge this customer agrees, on every approved tier,
+  // with the configuration that would disclose the charge — including the
+  // membership fee, and including the legal and processor prerequisites. This
+  // replaces the previous behaviour where a customer could be enrolled while an
+  // internal charge disagreed with its own disclosed breakdown.
+  const launchConfig: LaunchConfiguration = isCertificationRun
+    ? (bypass!.launch_configuration as LaunchConfiguration)
+    : await readLaunchConfiguration(base44);
+
+  const interlock = evaluateLaunchInterlock(launchConfig);
+  if (!interlock.permitted) {
+    return {
+      status: 'launch_interlock_blocked',
+      error: describeInterlockRefusal(interlock),
+      interlock: {
+        version: interlock.version,
+        permitted: false,
+        blockers: interlock.blockers,
+      },
+    };
   }
 
   // ── Server-side pricing: nothing financial is read from the request ───────
@@ -215,8 +269,12 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
   }
 
   const isVip = config.amount === 1000;
-  const membershipFee = getMembershipFee(config.amount);
-  const totalMonthly = getTotalMonthlyCharge(config.amount);
+  // Resolved from the configuration the interlock has just approved, so the amount
+  // RECORDED, the amount DISCLOSED and the amount CHARGED are one resolution. The
+  // interlock refuses to reach this point when they would disagree.
+  const feeEnabled = launchConfig.membership_fee_enabled;
+  const membershipFee = getMembershipFee(config.amount, feeEnabled);
+  const totalMonthly = getTotalMonthlyCharge(config.amount, feeEnabled);
   const feePolicy = req.fee_refund_policy || DEFAULT_FEE_REFUND_POLICY;
 
   // ── Billing jurisdiction (REQUIRED) ──────────────────────────────────────
@@ -421,8 +479,8 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
       note: 'Recurring charge is authorized by the customer. No card data is accepted or stored by this system.',
     },
     disclosure: {
-      ...buildEnrollmentDisclosure(config.amount, isVip),
-      ...buildChargeDisclosure(config.amount),
+      ...buildEnrollmentDisclosure(config.amount, isVip, feeEnabled),
+      ...buildChargeDisclosure(config.amount, feeEnabled),
       fee_refund_policy: feePolicy,
       fee_refund_policy_statement: describeFeeRefundPolicy(feePolicy),
       // The authoritative compliance package: every material pre-authorization
@@ -435,6 +493,7 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
         billingDay,
         nextRenewalDate: nextBilling.toDateString(),
         feePolicy,
+        feeEnabled,
       }),
     },
   };

@@ -27,6 +27,16 @@ export const MLS_WALKTHROUGH_PACKAGE_ID = 'mls_walkthrough';
 export const PROMOTIONAL_LOT_SOURCE = 'promotional';
 export const VIP_TIER_AMOUNT = 1000;
 
+/**
+ * Declared for the launch interlock. The restriction is enforced on the booking
+ * submission itself (see `assertVipWalletRedemption` below, called from the booking
+ * path), NOT in the interface — so the rule cannot be bypassed by a direct API call,
+ * a booking edit, a price change or a UI change. The interlock requires the flag to be
+ * enabled at launch; this declaration asserts the enforcement point still exists.
+ */
+export const VIP_ENFORCEMENT_IS_AUTHORITATIVE = true;
+export const VIP_ENFORCEMENT_LAYER = 'booking_submission';
+
 export interface VipRedemptionDecision {
   allowed: boolean;
   code?: string;

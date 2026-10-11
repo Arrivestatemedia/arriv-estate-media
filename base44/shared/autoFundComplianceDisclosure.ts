@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { getAutoFundConfig } from './prepaidEngine.ts';
-import { AUTOFUND_MEMBERSHIP_FEE, buildEnrollmentDisclosure } from './autoFundFinalConfig.ts';
+import { getMembershipFee, buildEnrollmentDisclosure } from './autoFundFinalConfig.ts';
 import {
   buildFeeRefundDisclosure,
   type FeeRefundPolicy,
@@ -25,6 +25,20 @@ export const AUTOFUND_TERMS_PATH = '/AutoFundTerms';
 const APP_URL = 'https://app.arrivestatemedia.com';
 export const AUTOFUND_SUPPORT_EMAIL = 'info@arrivestatemedia.com';
 export const AUTOFUND_SUPPORT_URL = `${APP_URL}/AutoFund`;
+
+/**
+ * The membership-terms version a customer accepts, and its legal status.
+ *
+ * `AUTOFUND_TERMS_LEGAL_APPROVAL_KEY` names the AppSetting the OWNER writes once
+ * counsel has approved the terms. Approval is therefore an explicit, dated owner
+ * action recorded in data — it is never inferred from this constant, and a code
+ * deploy cannot grant it. The launch interlock refuses enrollment until the
+ * AppSetting names the current version.
+ */
+export const AUTOFUND_TERMS_VERSION = 'autofund_membership_v1';
+export const AUTOFUND_TERMS_LEGAL_APPROVAL_KEY = 'autofund_terms_legal_approval';
+export const AUTOFUND_FEE_REFUND_POLICY_KEY = 'autofund_fee_refund_policy';
+export const AUTOFUND_WALLET_TERMS_APPROVAL_KEY = 'autofund_wallet_terms_approval';
 
 export interface DisclosureItem {
   key: string;
@@ -89,18 +103,26 @@ export function buildComplianceDisclosure({
   billingDay,
   nextRenewalDate,
   feePolicy,
+  feeEnabled,
 }: {
   tierAmount: number;
   termsVersion: string;
   billingDay?: number;
   nextRenewalDate?: string;
   feePolicy?: FeeRefundPolicy;
+  /**
+   * Overrides the membership-fee switch for this build. Omitted (the default) means
+   * the live switch, so a customer is always told the fee that will really be charged.
+   * The launch interlock and the certification suite pass an explicit value to state
+   * the disclosure that WOULD be shown under a declared configuration.
+   */
+  feeEnabled?: boolean;
 }): ComplianceDisclosure {
   const config = getAutoFundConfig(tierAmount);
-  const fee = AUTOFUND_MEMBERSHIP_FEE[tierAmount] ?? 0;
+  const fee = getMembershipFee(tierAmount, feeEnabled);
   const total = tierAmount + fee;
   const isVip = config?.vip === true;
-  const base = buildEnrollmentDisclosure(tierAmount, isVip);
+  const base = buildEnrollmentDisclosure(tierAmount, isVip, feeEnabled);
   const refund = buildFeeRefundDisclosure(feePolicy);
   const walletTerms = buildWalletTermsDisclosure();
 

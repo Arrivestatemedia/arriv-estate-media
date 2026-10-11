@@ -83,9 +83,29 @@ export const AUTOFUND_LEGACY_TIER_TERMS: Record<number, { bonus_pct: number; boo
 /** Retired tiers. Preserved for grandfathering; never enrollable. */
 export const AUTOFUND_LEGACY_TIER_AMOUNTS = [50, 100, 200];
 
-/** Monthly membership fee actually chargeable right now (zero while the flag is off). */
-export function getMembershipFee(amount: number): number {
-  if (!AUTOFUND_FINAL_FLAGS.membership_fee_enabled) return 0;
+/**
+ * Monthly membership fee actually chargeable right now (zero while the flag is off).
+ *
+ * `feeEnabled` defaults to the LIVE feature flag, so every ordinary caller gets the
+ * genuinely chargeable fee. The launch interlock and the certification suite pass an
+ * explicit value so the fee that WOULD apply in a declared configuration can be
+ * resolved and verified WITHOUT activating billing for anyone.
+ */
+export function getMembershipFee(
+  amount: number,
+  feeEnabled: boolean = AUTOFUND_FINAL_FLAGS.membership_fee_enabled,
+): number {
+  if (!feeEnabled) return 0;
+  return AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
+}
+
+/**
+ * The fee the APPROVED SCHEDULE specifies, regardless of whether billing is live.
+ * This is a configuration fact, never a customer-facing statement: it must never be
+ * shown as the amount a customer will be charged. Customer-facing amounts always
+ * resolve through getMembershipFee, so the disclosure can never overstate the charge.
+ */
+export function scheduledFeeForTier(amount: number): number {
   return AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
 }
 
@@ -100,8 +120,8 @@ export function getMembershipFee(amount: number): number {
  * have commingled an unnamed $25 into wallet funding — the exact failure the
  * separate fee component exists to prevent.
  */
-export function getTotalMonthlyCharge(amount: number): number {
-  return amount + getMembershipFee(amount);
+export function getTotalMonthlyCharge(amount: number, feeEnabled?: boolean): number {
+  return amount + getMembershipFee(amount, feeEnabled);
 }
 
 /** True when this tier is currently barred from using promotional credit on a standalone MLS Walkthrough. */
@@ -134,9 +154,17 @@ export function vipPromoCreditCap(
   return eligible.reduce((sum, p) => sum + p.retail_cents, 0);
 }
 
-/** Plain-language disclosure shown to the customer before enrollment. */
-export function buildEnrollmentDisclosure(amount: number, isVipTier: boolean) {
-  const fee = AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
+/**
+ * Plain-language disclosure shown to the customer before enrollment.
+ *
+ * The fee and the total come from getMembershipFee, NOT from the approved schedule
+ * table. While billing is switched off that means $0 and a total equal to the deposit
+ * — the amount actually charged. Reading the schedule table here stated a fee the
+ * customer would never be billed, which is precisely the disclosure/charge divergence
+ * the launch interlock now refuses to let reach a customer.
+ */
+export function buildEnrollmentDisclosure(amount: number, isVipTier: boolean, feeEnabled?: boolean) {
+  const fee = getMembershipFee(amount, feeEnabled);
   const base = {
     monthly_deposit: amount,
     monthly_membership_fee: fee,
