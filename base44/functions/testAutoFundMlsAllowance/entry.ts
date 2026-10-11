@@ -229,7 +229,7 @@ export default async function (req) {
     // introduce a booking commission or alter the guaranteed specialist payout.
     const bookingCommissionRate = 0;
     check('18. Commission suppression preserved', bookingCommissionRate === 0,
-      'Auto-Fund bookings (including cash shortfalls and allowance-exhausted purchases) carry 0% booking-level commission.');
+      'Any booking that applies wallet value (including partial cash shortfalls) carries 0% booking-level commission. A fully direct-paid booking applies no wallet value and is a standard marketplace booking (15%).');
 
     check('19. Specialist payout preserved', MLS_PAYOUT === 50 && MLS_RETAIL === 100,
       `MLS guaranteed payout unchanged at $${MLS_PAYOUT} on $${MLS_RETAIL} retail.`);

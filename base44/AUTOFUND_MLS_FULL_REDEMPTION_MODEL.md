@@ -1,3 +1,5 @@
+> **PARTLY SUPERSEDED — 2026-10-11.** The "$10 delivery-cost reduction" option in this report is **not supported by operational evidence**. The $20 MLS editing figure is a modelling assumption, and no MLS Walkthrough has been edited in production. The final recommendation and stress results are in **`AUTOFUND_MLS_UNIT_ECONOMICS_FINAL.md`**.
+
 # Auto-Fund MLS Walkthrough — Full Promotional-Credit Redemption
 ## Corrected Design, Exact Shortfalls, and Solutions for Owner Consideration
 
