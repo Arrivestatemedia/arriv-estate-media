@@ -107,3 +107,37 @@ document versions here:
 Neither is an activation: recording them charges no customer and opens no enrollment.
 Activation is a separate, owner-authorized step (see the activation sequence in
 `prepareAutoFundV2PricingActivation`).
+
+---
+
+## 6. Confirmation request — ready to send to counsel
+
+The record above stays incomplete until the version-match is confirmed in writing. This is
+the exact confirmation needed; it asks nothing new, only whether the approval already given
+covers the final amounts.
+
+> We need written confirmation that your review and approval of the Arriv Auto-Fund program
+> covers the **final** documents below, and specifically the recurring amounts stated in
+> them, which changed after the drafts you first reviewed:
+>
+> 1. **Membership Agreement — version `autofund_membership_v2`**: monthly wallet funding of
+>    $150 / $250 / $350 / $500 / $1,000, monthly membership fee of
+>    $5.99 / $10 / $25 / $27 / $30, and total recurring monthly charges of
+>    $155.99 / $260 / $375 / $527 / $1,030.
+> 2. **Wallet Agreement — version `autofund_wallet_v1`**: unchanged since review (funding
+>    lots valid 12 months, expiry enforced, no cash-out).
+> 3. **Membership-fee refund policy — version `autofund_fee_policy_v2`**: re-issued in
+>    amount-neutral terms; refundability itself unchanged.
+>
+> Please confirm (a) that the version identifiers above are the versions you reviewed and
+> approved, (b) that the amounts above are approved, and (c) the date of approval and the
+> firm or individual providing it, for the record.
+>
+> For reference, the earlier drafts stated fees of $0 / $0 / $25 / $25 / $25, with total
+> recurring charges of $150 / $250 / $375 / $525 / $1,025. If your approval was given
+> against those figures, please confirm the revised figures above separately.
+
+**Until that confirmation exists:** the launch interlock continues to report
+`LEGAL_TERMS_NOT_APPROVED` and `WALLET_TERMS_NOT_APPROVED`, enrollment stays closed, and no
+customer can be enrolled. No fee can be charged: fee billing is off, and the interlock
+refuses every tier — the final schedule has no fee-free tier — while it is off.
