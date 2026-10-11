@@ -628,6 +628,14 @@ export default async function(req) {
       });
       partialCommissionEventId = payResult.data.commission_event_id || '';
 
+      // Verify the deployed bundle is the corrected five-tier release. Without
+      // this, "the fix is wrong" and "the fix is not deployed yet" produce the
+      // identical failing tier assertion below and cannot be told apart.
+      check('DEPLOYED_PROCESSOR_VERSION: corrected five-tier bundle live via deployed HTTP',
+        'DEPLOYED_HTTP',
+        payResult.data?._webhook_version === 'v3_five_tier_20261011',
+        `webhook_version=${payResult.data?._webhook_version}, amount=250, issued_cents=${payResult.data?.booking_value_issued_cents}`);
+
       // Step 2: Send partial refund (50% = $100) through published refund endpoint
       const partialCommRefundId = `${TEST_RUN_ID}_partial_comm_refund`;
       const { status, data } = await sendRefundEvent({
