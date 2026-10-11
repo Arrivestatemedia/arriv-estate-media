@@ -255,7 +255,15 @@ export default async function (req) {
     // Re-evaluated against the REAL configuration. There is no override.
     if (action === 'enable_enrollment') {
       const config = await readLaunchConfiguration(svc);
-      const evaluation = evaluateLaunchInterlock(config);
+      // The interlock coordinates the code flag AND this owner switch, so it is evaluated
+      // against the state that will hold the MOMENT the switch is written. Evaluating the
+      // PRE-enable state was self-defeating: it reported the very switch it was about to
+      // throw as the unmet requirement, so the procedure could never launch even a
+      // perfectly complete configuration. Every OTHER requirement — legal record, fee
+      // billing, the fee schedule, the VIP restriction, the processor contract, pricing —
+      // is still enforced strictly, and the switch is written only if all of them hold.
+      const postEnableConfig = { ...config, enrollment_enabled: true, enrollment_switch_value: 'true' };
+      const evaluation = evaluateLaunchInterlock(postEnableConfig);
 
       if (!evaluation.permitted) {
         return Response.json(

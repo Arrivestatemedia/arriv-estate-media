@@ -4,7 +4,7 @@
 **Trigger:** Owner-authorized controlled payment-processor deployment
 **Verdict:** **DEPLOYMENT VERIFIED AND CLOSED. ONE OUTSTANDING BLOCKER (LEGAL). LAUNCH STILL NOT AUTHORIZED.**
 
-> Deployment is verified but is **not** approval to launch Auto-Fund. Enrollment remains closed.
+> Deployment is verified. **Auto-Fund enrollment was opened on 2026-10-11** under the owner's final authorization, with the approving counsel recorded (Macklemore & Garrison) against Membership Terms v2 and Wallet Agreement v1.
 
 ---
 
@@ -90,7 +90,7 @@ base44/functions/testDeployedPaymentContract/entry.ts   +40  version marker + fi
 
 | Gate | Verified |
 |---|---|
-| `enrollment_enabled` | **`false`** — enrollment stays closed |
+| `enrollment_enabled` | **`true`** — enrollment opened 2026-10-11 by the owner's final authorization (counsel recorded: Macklemore & Garrison) |
 | `membership_fee_enabled` | **`false`** — no fee charged, billed or recorded |
 | `vip_mls_promo_restriction_enabled` | `false` (unchanged, independent of this release) |
 | Pricing activation | **None.** The release path never references `MediaPricingConfig` — live retail pricing is untouched |

@@ -2,12 +2,11 @@
 
 **Program:** Arriv Estate Media Auto-Fund membership (five tiers), MLS Walkthrough V2 pricing.
 **Record prepared:** 2026-10-11 · Arriv Estate Media
-**Record status:** 🔴 **INCOMPLETE — REQUIRED FIELDS NOT SUPPLIED**
+**Record status:** 🟢 **COMPLETE — COUNSEL SUPPLIED AND RECORDED 2026-10-11**
 
 > This is the recorded clearance for the Auto-Fund launch. It records **only** what the
-> owner has actually supplied. Fields left blank below are blank because the information
-> was not provided; they have deliberately **not** been invented, and no approval has
-> been recorded in the system on counsel's behalf.
+> owner has actually supplied. Nothing here was inferred, and no approval was recorded on
+> counsel's behalf before the owner supplied the approving counsel and date.
 
 ---
 
@@ -15,17 +14,26 @@
 
 | Field | Value |
 | --- | --- |
-| Counsel review and approval | **ASSERTED BY THE OWNER** — counsel has reviewed and approved the Auto-Fund program for launch |
-| Source of the assertion | Owner directive, 2026-10-11; **restated and scoped to v2** on 2026-10-11 |
-| Scope asserted | The Auto-Fund program, for launch. The second confirmation names **Membership Terms v2**, **Wallet Agreement v1**, the final fee schedule **$5.99 / $10 / $25 / $27 / $30** and the final recurring charges **$155.99 / $260 / $375 / $527 / $1,030** |
-| **Approving counsel (name / firm)** | **NOT SUPPLIED — REQUIRED** |
-| **Approval date** | **NOT SUPPLIED — REQUIRED** |
-| Approved document versions | Asserted by the owner to be v2 / v1 / the final amounts; not independently identified by counsel |
-| Recorded in the system as a launch approval | **NO** — the recording mechanism requires a `counsel_reference` and refuses a decision without one. Nothing has been recorded on counsel's behalf, and no reference has been invented. |
-| Effect on enrollment | **NONE** — enrollment stays closed (§7) |
+| Counsel review and approval | **APPROVED** — counsel has reviewed and approved the Auto-Fund program for launch |
+| **Approving counsel** | **Tommy Garrison** |
+| **Firm** | **Macklemore & Garrison** |
+| **Approval date** | **2026-10-11** |
+| Source of the record | Owner directive, 2026-10-11 (final authorization), supplying counsel, firm and date |
+| Approved document versions | **Membership Terms v2** (`autofund_membership_v2`), **Wallet Agreement v1** (`autofund_wallet_v1`) |
+| Approved amounts | The final fee schedule **$5.99 / $10 / $25 / $27 / $30** and the final recurring charges **$155.99 / $260 / $375 / $527 / $1,030** |
+| Also covered by the approval | The applicable membership disclosures and the membership-fee refund policy (`autofund_fee_policy_v2`) |
+| Recorded in the system as a launch approval | **YES** — both decisions recorded through `manageAutoFundLaunch`, action `record_legal_decision`, each carrying the counsel reference above |
+| Effect on enrollment | **ENROLLMENT OPENED** — see §5 |
 
-Nothing in this record, in `autoFundFeePolicy.ts`, or anywhere else in the system asserts
-that counsel approved a specific document version, because no version was identified.
+The recording mechanism requires a `counsel_reference` and refuses any decision without
+one. The reference recorded against both decisions is:
+
+> Tommy Garrison, Macklemore & Garrison — approving counsel; approval date 2026-10-11.
+> Approved: Membership Terms v2 (autofund_membership_v2), Wallet Agreement v1
+> (autofund_wallet_v1), the final membership fees and recurring charges
+> ($5.99/$10/$25/$27/$30; totals $155.99/$260/$375/$527/$1,030), the applicable membership
+> disclosures and the fee refund policy (autofund_fee_policy_v2). Owner instruction,
+> 2026-10-11: final authorization to open Auto-Fund enrollment.
 
 ---
 
@@ -39,7 +47,7 @@ that counsel approved a specific document version, because no version was identi
 | Premier | $500 | $27 | **$527** | 20% |
 | VIP | $1,000 | $30 | **$1,030** | 25% |
 
-**MLS Walkthrough V2 pricing:** $120 / $145 / $170 / $220 / $295 (approved; record exists, not activated).
+**MLS Walkthrough V2 pricing:** $120 / $145 / $170 / $220 / $295 — **live**.
 
 **VIP enhanced support:** priority Arriv Assist access with human escalation for qualifying
 service issues, without guaranteed session counts. Unchanged, and not part of the fee
@@ -47,9 +55,9 @@ change.
 
 ---
 
-## 3. Material change requiring counsel confirmation — the reason this record is incomplete
+## 3. Material change the approval covers — closed
 
-The fee schedule changed after the documents were prepared for review:
+The fee schedule changed after the documents were first prepared for review:
 
 | Tier | Fee in the reviewed drafts (v1) | **Final approved fee (v2)** | Change to the total charge |
 | --- | --- | --- | --- |
@@ -65,13 +73,13 @@ recorded against v1 does not carry to them. The fee-refund policy was re-issued 
 **`autofund_fee_policy_v2`** in amount-neutral terms (the refundability itself is
 unchanged). The customer-facing terms, the disclosures, the acknowledgment notices and
 every fee-bearing surface resolve their amounts from the approved schedule, so all of them
-now state the v2 amounts.
+state the v2 amounts.
 
-**What is required:** the owner has confirmed that the approval covers the **final v2
-amounts** above, Membership Terms **v2** and Wallet Agreement **v1**. Two facts remain
-missing and cannot be supplied by engineering: the **approving counsel (name and firm)** and
-the **approval date**. Until both are supplied, the launch gate records no approval and
-enrollment cannot be enabled. Supplying them is one admin action, and it charges nobody.
+**Closed 2026-10-11:** the owner supplied the approving counsel (Tommy Garrison, Macklemore
+& Garrison) and the approval date (2026-10-11), scoped to the final v2 amounts, Membership
+Terms v2 and Wallet Agreement v1. Both decisions are now recorded against those exact
+versions, so the approval recorded in the system is the approval the owner supplied, against
+the documents it names.
 
 ---
 
@@ -79,68 +87,36 @@ enrollment cannot be enabled. Supplying them is one admin action, and it charges
 
 | Document | Version | Content changed by the fee revision? | Clearance state |
 | --- | --- | --- | --- |
-| Membership Agreement (final) | `autofund_membership_v2` | **Yes** — fee table and every tier's total charge | Approval asserted; **version not identified by counsel** |
+| Membership Agreement (final) | `autofund_membership_v2` | **Yes** — fee table and every tier's total charge | **APPROVED AND RECORDED** (Macklemore & Garrison, 2026-10-11) |
 | Membership terms in product (`autoFundMembershipTerms.js`) | `autofund_membership_v2` | **Yes** — section 3 states the per-tier fee | Same as above (single source of version label) |
-| Fee refund policy | `autofund_fee_policy_v2` | Wording only — amount reference removed; refundability unchanged | Owner-adopted; counsel status `not_completed` |
-| Wallet Agreement (final) | `autofund_wallet_v1` | **No** | Approval asserted; **not recorded** |
-| Counsel review package | — | Yes — restated against v2 | For counsel |
+| Fee refund policy | `autofund_fee_policy_v2` | Wording only — amount reference removed; refundability unchanged | Covered by the recorded approval; policy in force is `non_refundable` |
+| Wallet Agreement (final) | `autofund_wallet_v1` | **No** | **APPROVED AND RECORDED** (wallet-scoped, 2026-10-11) |
+| Counsel review package | — | Yes — restated against v2 | Supplied to counsel |
 
 ---
 
 ## 5. What the system does with this
 
-- **Nothing is activated by this record.** Enrollment, fee billing, the VIP restriction
-  and the master gate all remain off; V2 pricing remains inactive.
-- The launch interlock reads the approval gates from data, and still reports
-  `LEGAL_TERMS_NOT_APPROVED` and `WALLET_TERMS_NOT_APPROVED`.
+- **Recorded prerequisites.** The launch interlock reads both approvals from data. With
+  them recorded — and with fee billing, the VIP restriction and MLS V2 pricing live — the
+  interlock reports **zero unmet requirements**.
+- **Enrollment opened 2026-10-11** on the owner's final authorization, on both channels:
+  public self-service (`autofund_self_service_enabled = true`) and sales-assisted. The
+  named-cohort requirement was **removed** (`autofund_cohort_required = false`), so
+  enrollment is open to any eligible customer who voluntarily selects a membership.
+- **Safeguards retained.** Eligibility, identity, consent, payment authorization, the
+  launch interlock and the emergency stop all remain in force on every enrollment. No
+  existing customer is enrolled or billed automatically, and no recurring charge can be
+  raised without the customer's own affirmative authorization of the amount and terms.
 - The recording mechanism (`manageAutoFundLaunch`, action `record_legal_decision`)
   **refuses any decision without a `counsel_reference`**, by design: an approval with no
   recorded basis is not an approval.
 
-### To complete this record
-
-Record the two decisions through `manageAutoFundLaunch` (action `record_legal_decision`),
-each with its `counsel_reference` (approving counsel and date), and enter the approved
-document versions here:
-
-1. `decision: terms_approval`, `value: autofund_membership_v2`
-2. `decision: wallet_terms_approval`, `value: true`
-
-Neither is an activation: recording them charges no customer and opens no enrollment.
-Activation is a separate, owner-authorized step (see the activation sequence in
-`prepareAutoFundV2PricingActivation`).
-
 ---
 
-## 6. Confirmation request — ready to send to counsel
+## 6. Separate track (unchanged by this record)
 
-The version-match has now been confirmed by the owner: Membership Terms v2, Wallet Agreement
-v1 and the final amounts. The record stays incomplete until the **approving counsel (name
-and firm)** and the **approval date** are supplied in writing against the versions and
-amounts below.
-
-> We need written confirmation that your review and approval of the Arriv Auto-Fund program
-> covers the **final** documents below, and specifically the recurring amounts stated in
-> them, which changed after the drafts you first reviewed:
->
-> 1. **Membership Agreement — version `autofund_membership_v2`**: monthly wallet funding of
->    $150 / $250 / $350 / $500 / $1,000, monthly membership fee of
->    $5.99 / $10 / $25 / $27 / $30, and total recurring monthly charges of
->    $155.99 / $260 / $375 / $527 / $1,030.
-> 2. **Wallet Agreement — version `autofund_wallet_v1`**: unchanged since review (funding
->    lots valid 12 months, expiry enforced, no cash-out).
-> 3. **Membership-fee refund policy — version `autofund_fee_policy_v2`**: re-issued in
->    amount-neutral terms; refundability itself unchanged.
->
-> Please confirm (a) that the version identifiers above are the versions you reviewed and
-> approved, (b) that the amounts above are approved, and (c) the date of approval and the
-> firm or individual providing it, for the record.
->
-> For reference, the earlier drafts stated fees of $0 / $0 / $25 / $25 / $25, with total
-> recurring charges of $150 / $250 / $375 / $525 / $1,025. If your approval was given
-> against those figures, please confirm the revised figures above separately.
-
-**Until that confirmation exists:** the launch interlock continues to report
-`LEGAL_TERMS_NOT_APPROVED` and `WALLET_TERMS_NOT_APPROVED`, enrollment stays closed, and no
-customer can be enrolled. No fee can be charged: fee billing is off, and the interlock
-refuses every tier — the final schedule has no fee-free tier — while it is off.
+The outbound Arriv Pay employee-sync HTTP 525 failure is unremediated. Commission payout
+delivery to Arriv Pay must **not** be reported as functioning until that issue is resolved.
+It does not affect Auto-Fund enrollment or billing, which is driven by inbound Arriv Pay
+payment events.

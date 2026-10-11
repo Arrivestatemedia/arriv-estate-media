@@ -9,6 +9,7 @@ import {
   readLaunchConfiguration,
   REQUIRED_PROCESSOR_CONTRACT_VERSION,
 } from '../../shared/autoFundLaunchInterlock.ts';
+import { evaluateEnrollmentGate } from '../../shared/enrollmentCohort.ts';
 
 // ============================================================================
 // AUTO-FUND LAUNCH INTERLOCK — VERIFICATION SUITE
@@ -27,8 +28,9 @@ import {
 //      assumed to be caught.
 //
 // The injections are explicit, declared test inputs. The live feature flags,
-// AppSettings and pricing records are never modified, and the real configuration
-// is asserted to still refuse enrollment.
+// AppSettings and pricing records are never modified: the live configuration is
+// asserted to be the complete, owner-authorized one, and every failure mode is
+// still injected deliberately to prove the interlock refuses it.
 //
 // Production records are fingerprinted before and after the run, so a regression
 // that mutated a subscription, a wallet balance or a payment record cannot pass.
@@ -76,36 +78,48 @@ export default async function (req) {
     });
 
     const before = await fingerprint();
+    // The owner's switch value as it stands BEFORE any test runs, so K12 can prove this
+    // suite left it exactly as the owner set it.
+    const switchBeforeRows = await svc.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
+    const switchBeforeValue = ((Array.isArray(switchBeforeRows) ? switchBeforeRows : (switchBeforeRows?.data || []))[0]?.value) ?? null;
     const realConfig = await readLaunchConfiguration(svc);
     const real = evaluateLaunchInterlock(realConfig);
 
     // ─────────────────────────────────────────────────────────────────────
-    // K1. THE REAL CONFIGURATION REFUSES
+    // K1. THE REAL CONFIGURATION IS COMPLETE — owner-authorized launch
     // ─────────────────────────────────────────────────────────────────────
+    // The owner's FINAL authorization (2026-10-11) completed the legal record and
+    // opened enrollment, so the LIVE configuration is asserted to PERMIT. The refusal
+    // side is not lost: every failure mode is still injected deliberately in K5a–K5k,
+    // K6, K8 and K9, and K1b proves the live enrollment gate itself.
     const realCodes = real.blockers.map(b => b.code);
-    check('K1 · The real configuration refuses enrollment and names every remaining unmet requirement',
-      real.permitted === false
-        && realCodes.includes('ENROLLMENT_NOT_ENABLED')
-        && realCodes.includes('LEGAL_TERMS_NOT_APPROVED')
-        && realCodes.includes('WALLET_TERMS_NOT_APPROVED')
-        // Satisfied prerequisites must NOT appear as blockers: the fee refund policy is
-        // OWNER-ADOPTED, and the membership-fee switch and the VIP MLS promo restriction
-        // were activated on 2026-10-11 under owner authorization (activation STEP 6). Each
-        // failure mode stays injectable — K5a, K5d and K5f cover them.
+    check('K1 · The real configuration permits enrollment, with every prerequisite satisfied',
+      real.permitted === true
+        && real.blockers.length === 0
+        // Prerequisites that were once blockers must now be satisfied, and each must stay
+        // individually detectable when broken (K5b, K5c, K5d, K5e cover them).
+        && !realCodes.includes('ENROLLMENT_NOT_ENABLED')
+        && !realCodes.includes('LEGAL_TERMS_NOT_APPROVED')
+        && !realCodes.includes('WALLET_TERMS_NOT_APPROVED')
         && !realCodes.includes('FEE_REFUND_POLICY_UNDETERMINED')
         && !realCodes.includes('FEE_NOT_ENABLED')
         && !realCodes.includes('VIP_RESTRICTION_INACTIVE'),
-      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')} — fee billing and the VIP restriction are LIVE; the legal approvals and the enrollment gate are the remaining blockers`);
+      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ') || 'none'} — terms and wallet approvals RECORDED (Macklemore & Garrison, 2026-10-11); enrollment, fee billing, the VIP restriction and MLS V2 pricing are LIVE`);
 
-    const realRefusal = track(await enrollCert({
-      email: 'cert_interlock_real@example.com',
-      amount: 250,
-      billing: GA_ADDRESS,
-      launch_configuration: realConfig,
-    }));
-    check('K1b · The engine refuses enrollment on the real system, even on a fee-free tier',
-      realRefusal.status === 'launch_interlock_blocked',
-      `status=${realRefusal.status}${realRefusal.error ? ` — ${String(realRefusal.error).slice(0, 140)}` : ''}`);
+    // K1b. The LIVE enrollment gate, exercised READ-ONLY: no record is created, and no
+    // real configuration is modified.
+    const liveSelfService = await evaluateEnrollmentGate(svc, {
+      channel: 'self_service', customer_email: 'gate-probe@example.com',
+    });
+    const liveSalesAssisted = await evaluateEnrollmentGate(svc, {
+      channel: 'sales_assisted', customer_email: 'gate-probe@example.com',
+    });
+    check('K1b · The live gate admits an eligible customer on BOTH channels',
+      liveSelfService.allowed === true && liveSalesAssisted.allowed === true
+        && liveSelfService.checks.master_switch_open === true
+        && liveSelfService.checks.self_service_switch_open === true
+        && liveSelfService.checks.cohort_required === false,
+      `self-service=${liveSelfService.code} · sales-assisted=${liveSalesAssisted.code} — master switch open, public self-service open, cohort requirement ${liveSelfService.checks.cohort_required === false ? 'REMOVED' : 'IN FORCE'}`);
 
     // ─────────────────────────────────────────────────────────────────────
     // K2. A COMPLETE CONFIGURATION PERMITS — the interlock is not always-false
@@ -271,31 +285,29 @@ export default async function (req) {
       'absent from the enrollable list, still resolvable at their contracted Booking Value');
 
     // ─────────────────────────────────────────────────────────────────────
-    // K11. THE LAUNCH PROCEDURE REFUSES TO ENABLE ANYTHING
+    // K11. THE LAUNCH PROCEDURE READS THE LIVE CONFIGURATION AS COMPLETE
     // ─────────────────────────────────────────────────────────────────────
-    if (!real.permitted) {
-      try {
-        const res = await base44.functions.invoke('manageAutoFundLaunch', { action: 'preflight' });
-        const report = res?.data || res;
-        check('K11 · The launch procedure reports refusal rather than enabling anything',
-          report?.permitted === false && report?.blocker_count > 0,
-          `preflight reports ${report?.blocker_count} unmet requirement(s)`);
-      } catch (e) {
-        blocked('K11 · The launch procedure reports refusal rather than enabling anything',
-          `preflight could not be invoked from this context: ${String(e.message).slice(0, 140)}`);
-      }
-    } else {
-      fail('K11 · The launch procedure reports refusal rather than enabling anything',
-        'guard failed: the real configuration reported as launchable, so preflight was not invoked');
+    // READ-ONLY: preflight re-evaluates the live configuration and is asserted to
+    // report it as complete. It writes nothing — K12 proves the switches were untouched.
+    try {
+      const res = await base44.functions.invoke('manageAutoFundLaunch', { action: 'preflight' });
+      const report = res?.data || res;
+      check('K11 · The launch procedure reports the live configuration as complete',
+        report?.permitted === true && report?.blocker_count === 0,
+        `preflight reports ${report?.blocker_count} unmet requirement(s) · enrollment switch=${report?.enrollment_switch?.value} · self-service=${report?.enrollment_channels?.self_service?.value} · cohort required=${report?.enrollment_channels?.cohort_required?.value}`);
+    } catch (e) {
+      blocked('K11 · The launch procedure reports the live configuration as complete',
+        `preflight could not be invoked from this context: ${String(e.message).slice(0, 140)}`);
     }
 
     const switchRows = await (async () => {
       const res = await svc.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
       return Array.isArray(res) ? res : (res?.data || []);
     })();
+    const switchAfterValue = switchRows.length ? switchRows[0].value : null;
     check('K12 · No test wrote the enrollment switch',
-      switchRows.length === 0 || switchRows[0].value !== 'true',
-      `autofund_enrollment_enabled=${switchRows.length ? switchRows[0].value : 'absent'} — enrollment remains closed`);
+      switchAfterValue === switchBeforeValue,
+      `autofund_enrollment_enabled=${switchAfterValue ?? 'absent'} — identical before and after this suite, so the owner's setting is preserved`);
 
     // ─────────────────────────────────────────────────────────────────────
     // CLEANUP AND REQUIREMENT 12
