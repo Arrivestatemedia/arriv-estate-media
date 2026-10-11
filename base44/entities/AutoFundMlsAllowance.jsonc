@@ -1,0 +1,106 @@
+{
+  "name": "AutoFundMlsAllowance",
+  "type": "object",
+  "properties": {
+    "subscription_id": {
+      "type": "string",
+      "description": "AutoFundSubscription ID this allowance record belongs to"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer 360 ID (Contact entity ID), denormalized for lookups"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Denormalized customer email for RLS and lookups"
+    },
+    "tier_amount": {
+      "type": "number",
+      "description": "Auto-Fund tier amount ($50-$1,000) the allowance was granted for"
+    },
+    "billing_cycle_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start of the billing cycle this allowance covers"
+    },
+    "billing_cycle_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of the billing cycle this allowance covers"
+    },
+    "allowance_granted": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of standalone MLS Walkthroughs eligible for promotional Booking Value this cycle"
+    },
+    "allowance_used": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of allowance units consumed this cycle. Only increments when the promotional benefit is actually applied."
+    },
+    "allowance_override": {
+      "type": "integer",
+      "description": "Admin override for allowance_granted. Empty = use the canonical tier configuration."
+    },
+    "consumed_booking_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Booking IDs that consumed an allowance unit this cycle. Guarantees idempotency and enables exact restoration on cancellation or refund."
+    },
+    "rules_version": {
+      "type": "string",
+      "description": "MLS allowance rules version applied when this cycle was opened"
+    },
+    "last_consumed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_restored_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification records. Excluded from production analytics and never delivered."
+    }
+  },
+  "required": [
+    "subscription_id",
+    "customer_id",
+    "billing_cycle_start",
+    "allowance_granted"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
