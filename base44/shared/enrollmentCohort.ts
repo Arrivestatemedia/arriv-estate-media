@@ -14,10 +14,13 @@
 //      the loop, so it is gated separately and stays CLOSED during the initial
 //      launch while sales-assisted enrollment is open.
 //
-//   3. The COHORT ALLOWLIST (AutoFundCohortMember). During the initial launch a
-//      customer may only enroll if they are on the allowlist. This is a genuine
-//      allowlist, not a count of enrollments: an unlisted customer is refused
-//      even while the master switch is on.
+//   3. The COHORT ALLOWLIST (AutoFundCohortMember), now OPTIONAL. While it is in
+//      force (autofund_cohort_required = 'true') a customer may only enroll if
+//      they are on the allowlist — a genuine allowlist, not a count of
+//      enrollments. The owner removed that requirement on 2026-10-11 for ordinary
+//      eligible customers, so it is off: an unlisted customer may enroll through a
+//      channel the switches permit. An allowlist entry, where one exists, still
+//      binds the channels it names.
 // ============================================================================
 
 import { isEnrollmentOpen, AUTOFUND_ENROLLMENT_FLAG_KEY } from './autoFundFinalConfig.ts';
@@ -25,6 +28,15 @@ import { generateId } from './prepaidEngine.ts';
 
 /** Separate switch for public self-service enrollment. Absent/false means closed. */
 export const AUTOFUND_SELF_SERVICE_FLAG_KEY = 'autofund_self_service_enabled';
+
+/**
+ * Whether a controlled-launch allowlist is REQUIRED. The owner removed the
+ * named-cohort requirement on 2026-10-11 and authorized enrollment for any eligible
+ * customer who voluntarily selects a membership, so this reads 'false': an unlisted
+ * customer is no longer refused. Set it back to 'true' to confine new enrollment to
+ * AutoFundCohortMember entries again. Only 'true' turns the requirement on.
+ */
+export const AUTOFUND_COHORT_REQUIRED_FLAG_KEY = 'autofund_cohort_required';
 
 export type EnrollmentChannelInput = 'self_service' | 'sales_assisted' | 'admin';
 
@@ -35,6 +47,7 @@ export interface EnrollmentGateResult {
   checks: {
     master_switch_open: boolean;
     self_service_switch_open: boolean;
+    cohort_required: boolean;
     on_cohort_allowlist: boolean;
     channel_permitted: boolean;
   };
@@ -77,14 +90,18 @@ export async function evaluateEnrollmentGate(
   const masterSwitchOpen = await readFlag(base44, AUTOFUND_ENROLLMENT_FLAG_KEY);
   const masterOpen = isEnrollmentOpen(masterSwitchOpen ? 'true' : 'false');
   const selfServiceOpen = await readFlag(base44, AUTOFUND_SELF_SERVICE_FLAG_KEY);
+  const cohortRequired = await readFlag(base44, AUTOFUND_COHORT_REQUIRED_FLAG_KEY);
   const entry = await findCohortEntry(base44, customer_email);
   const onAllowlist = !!entry && PERMITTING_STATUSES.includes(String(entry.status));
   const channels: string[] = entry?.allowed_channels?.length ? entry.allowed_channels : ['sales_assisted'];
-  const channelPermitted = onAllowlist && channels.includes(channel);
+  // An allowlist entry constrains the channels it names. Where there is no entry, the
+  // channel is unconstrained — but only while the cohort requirement is not in force.
+  const channelPermitted = onAllowlist ? channels.includes(channel) : !cohortRequired;
 
   const checks = {
     master_switch_open: masterOpen,
     self_service_switch_open: selfServiceOpen,
+    cohort_required: cohortRequired,
     on_cohort_allowlist: onAllowlist,
     channel_permitted: channelPermitted,
   };
@@ -92,7 +109,7 @@ export async function evaluateEnrollmentGate(
   if (!masterOpen) {
     return { allowed: false, code: 'ENROLLMENT_CLOSED', reason: 'Auto-Fund enrollment is closed. No new enrollment is accepted.', checks };
   }
-  if (!onAllowlist) {
+  if (cohortRequired && !onAllowlist) {
     return {
       allowed: false,
       code: 'NOT_IN_LAUNCH_COHORT',
@@ -118,7 +135,14 @@ export async function evaluateEnrollmentGate(
   }
   // Self-service still requires a verified advisor attribution to carry commission,
   // which the enrollment engine resolves separately; the gate only authorizes entry.
-  return { allowed: true, code: 'ALLOWED', reason: 'Enrollment permitted for this cohort member.', checks };
+  return {
+    allowed: true,
+    code: 'ALLOWED',
+    reason: onAllowlist
+      ? 'Enrollment permitted for this allowlisted customer.'
+      : 'Enrollment permitted: the cohort restriction is not in force and every other gate is satisfied.',
+    checks,
+  };
 }
 
 /**

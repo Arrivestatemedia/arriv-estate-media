@@ -2,10 +2,13 @@
 // ARRIV AUTO-FUND — FINAL APPROVED STRUCTURE (STAGING ONLY)
 // ============================================================================
 // Implements the owner-approved Auto-Fund restructure. EVERY behaviour change is
-// gated by a feature flag. Membership-fee billing and the VIP promotional-credit
-// MLS restriction were ENABLED on 2026-10-11 under explicit owner authorization.
-// The enrollment gate stays CLOSED: no customer can be enrolled, and therefore no
-// customer can be charged, until the legal record and the cohort gate are satisfied.
+// gated by a feature flag. On 2026-10-11, under explicit owner authorization,
+// membership-fee billing, the VIP promotional-credit MLS restriction and MLS V2
+// pricing were enabled, and Auto-Fund ENROLLMENT was opened on the owner's final
+// authorization with counsel recorded (Macklemore & Garrison) and the named-cohort
+// requirement removed. Enrollment nonetheless charges nobody: each customer must
+// personally authorize the recurring amount and its terms first, and no existing
+// customer is enrolled or billed automatically.
 //
 // Approved structure:
 //
@@ -36,23 +39,41 @@
 // ============================================================================
 
 /**
- * ACTIVATION RECORD — 2026-10-11, explicit owner authorization.
+ * ACTIVATION RECORD — 2026-10-11, explicit owner authorization (FINAL).
  *
  * ENABLED: membership-fee billing at the final approved schedule
- *          ($5.99 / $10 / $25 / $27 / $30; totals $155.99 / $260 / $375 / $527 / $1,030)
- *          and the VIP promotional-credit standalone-MLS restriction.
- * CLOSED:  the enrollment gate — the legal approval carries no recorded counsel
- *          reference and the controlled-launch cohort is empty, so enrollment cannot
- *          open. With enrollment closed, no customer can be enrolled and therefore
- *          none can be charged, funded or billed.
+ *          ($5.99 / $10 / $25 / $27 / $30; totals $155.99 / $260 / $375 / $527 / $1,030),
+ *          the VIP promotional-credit standalone-MLS restriction, MLS Walkthrough V2
+ *          pricing ($120 / $145 / $170 / $220 / $295) and Auto-Fund ENROLLMENT on both
+ *          the public self-service and sales-assisted channels.
+ * RECORDED: the owner supplied the approving counsel — Tommy Garrison of Macklemore &
+ *          Garrison, approving on 2026-10-11 Membership Terms v2, Wallet Agreement v1,
+ *          the final fees and recurring charges, and the disclosures and refund policy.
+ *          Both legal decisions were recorded through manageAutoFundLaunch with that
+ *          counsel reference, against those exact versions.
+ * REMOVED: the named-cohort requirement (autofund_cohort_required = 'false'). Enrollment
+ *          is open to any ELIGIBLE customer who voluntarily selects a membership;
+ *          eligibility, identity, consent, payment authorization and the launch
+ *          interlock are all still enforced on every enrollment.
+ * PRESERVED: the emergency stop, refunds, dispute handling, wallet accounting and
+ *          commission protections. No existing customer is enrolled or billed
+ *          automatically, and no fee can be raised without the customer's own
+ *          affirmative authorization of the recurring charge.
  *
  * The fee switch ships with the fee schedule: the interlock refuses any fee-bearing
  * tier while billing is off, and with the final schedule every tier bears a fee, so
- * enrollment is refused entirely while this switch is off.
+ * enrollment is refused entirely while that switch is off.
  */
 export const AUTOFUND_FINAL_FLAGS = {
-  /** Master switch. While false, Auto-Fund enrollment stays closed. */
-  enrollment_enabled: false,
+  /**
+   * Master switch. OPENED 2026-10-11 under the owner's FINAL enrollment
+   * authorization, with the legal record completed (approving counsel
+   * Macklemore & Garrison). It opens nothing on its own: the owner switch
+   * (autofund_enrollment_enabled = 'true') must also be on, and while either is
+   * off no new enrollment is accepted. Every customer is still required to
+   * authorize the recurring charge personally before any charge is raised.
+   */
+  enrollment_enabled: true,
   /** While false, no membership fee is charged, billed, or recorded. */
   membership_fee_enabled: true,
   /** While false, VIP promotional credit may still be used on standalone MLS. */

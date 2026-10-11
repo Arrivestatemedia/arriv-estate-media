@@ -162,24 +162,38 @@ export default async function (req) {
     const gateRes = await svc.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
     const gateArr = Array.isArray(gateRes) ? gateRes : (gateRes?.data || []);
     const gateValue = gateArr.length ? gateArr[0].value : null;
-    check('A1 · Public enrollment gate is still closed', gateValue !== 'true', `autofund_enrollment_enabled=${gateValue === null ? 'absent' : gateValue}`);
+    check('A1 · Public enrollment gate is OPEN by owner authorization (2026-10-11)', gateValue === 'true', `autofund_enrollment_enabled=${gateValue === null ? 'absent' : gateValue}`);
 
-    const closedReal = await enrollAutoFund({
-      base44: svc, channel: 'self_service', tier_amount: 250,
-      customer_email: 'a-real-customer@example.com',
-      billing_address: GA_ADDRESS,
-      terms_accepted: true, terms_accepted_by: 'a-real-customer@example.com',
+    // NOTE ON SCOPE — A2 and A3 previously asserted that the REAL system refuses
+    // ordinary enrollment. Enrollment is now open, so an ordinary attempt against the
+    // real configuration would SUCCEED and create a live subscription. A certification
+    // suite must never write production records, so both checks were re-pointed at the
+    // refusal paths they were actually testing, without creating anything:
+    //   A2  a closed launch configuration still refuses enrollment — verified through the
+    //       isolated, DECLARED-configuration path.
+    //   A3  a caller-supplied bypass cannot carry a NON-certification address onto the
+    //       certification path, so the ordinary consent gate still refuses it outright.
+    const closedDeclared = { ...DECLARED_LAUNCH_CONFIGURATION, enrollment_enabled: false };
+    const closedRefusal = await enrollCert({
+      email: 'cert_compliance_closed@example.com', amount: 250, billing: GA_ADDRESS,
+      launch_configuration: closedDeclared,
     });
-    check('A2 · Engine still refuses ordinary enrollment while closed', closedReal.status === 'enrollment_closed', `status=${closedReal.status}`);
+    check('A2 · A closed launch configuration still refuses enrollment',
+      closedRefusal.status === 'launch_interlock_blocked'
+        && (closedRefusal.interlock?.blockers || []).some(b => b.code === 'ENROLLMENT_NOT_ENABLED'),
+      `status=${closedRefusal.status} · blocker=${(closedRefusal.interlock?.blockers || []).map(b => b.code).join(', ') || 'none'}`);
 
     const bypassOnRealCustomer = await enrollAutoFund({
       base44: svc, channel: 'self_service', tier_amount: 250,
       customer_email: 'not_cert_customer@example.com',
+      customer_name: 'Cert Compliance',
       billing_address: GA_ADDRESS,
-      terms_accepted: true, terms_accepted_by: 'not_cert_customer@example.com',
+      terms_accepted: false, terms_accepted_by: 'not_cert_customer@example.com',
       certification_bypass: { authorized: true, admin_email: user.email },
     });
-    check('A3 · Bypass cannot be used on a non-certification address', bypassOnRealCustomer.status === 'enrollment_closed', `status=${bypassOnRealCustomer.status}`);
+    check('A3 · A bypass cannot exempt a non-certification address from the consent gate',
+      bypassOnRealCustomer.status === 'invalid',
+      `status=${bypassOnRealCustomer.status} — the bypass needs a cert_-prefixed address (four conditions), so this was validated as an ordinary enrollment and refused for missing consent`);
 
     const selfService = track(await enrollCert({ email: 'cert_self_service@example.com', amount: 350, billing: GA_ADDRESS }));
     check('A4 · Self-service enrollment completes end-to-end', selfService.status === 'enrolled', `status=${selfService.status}`);

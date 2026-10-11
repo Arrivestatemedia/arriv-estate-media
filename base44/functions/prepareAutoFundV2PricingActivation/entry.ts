@@ -12,7 +12,7 @@ import {
   mlsStandardPrice,
 } from '../../shared/mlsPricing.ts';
 import { MLS_RETAIL, MLS_RETAIL_LIVE } from '../../shared/autoFundMlsAllowance.ts';
-import { AUTOFUND_SELF_SERVICE_FLAG_KEY } from '../../shared/enrollmentCohort.ts';
+import { AUTOFUND_SELF_SERVICE_FLAG_KEY, AUTOFUND_COHORT_REQUIRED_FLAG_KEY } from '../../shared/enrollmentCohort.ts';
 import { AUTOFUND_EMERGENCY_STOP_KEY } from '../../shared/autoFundEmergencyStop.ts';
 import { AUTOFUND_ENROLLMENT_FLAG_KEY, AUTOFUND_FINAL_FLAGS } from '../../shared/autoFundFinalConfig.ts';
 
@@ -210,22 +210,24 @@ export default async function (req: Request): Promise<Response> {
       code_live_version: MLS_PRICING_VERSION_LIVE,
       master_enrollment_gate: await readSetting(AUTOFUND_ENROLLMENT_FLAG_KEY),
       public_self_service: await readSetting(AUTOFUND_SELF_SERVICE_FLAG_KEY),
+      cohort_required: await readSetting(AUTOFUND_COHORT_REQUIRED_FLAG_KEY),
       emergency_stop: await readSetting(AUTOFUND_EMERGENCY_STOP_KEY),
       membership_fee_enabled: AUTOFUND_FINAL_FLAGS.membership_fee_enabled,
       vip_promo_restriction_enabled: AUTOFUND_FINAL_FLAGS.vip_mls_promo_restriction_enabled,
     };
-    // The protection posture that must hold at ALL times: enrollment closed on both
-    // channels, emergency stop available, and the pricing record in step with the code.
-    // Pricing, fee billing and the VIP restriction follow the owner's authorization; the
-    // enrollment gate does not.
-    check('13 · Enrollment and self-service stay closed, emergency stop available, record and code in step',
-      controlState.master_enrollment_gate !== 'true'
-        && controlState.public_self_service !== 'true'
+    // The posture that must hold now that the owner has authorized launch: enrollment
+    // open on both owner switches, the cohort requirement removed, the emergency stop
+    // AVAILABLE (inactive), and the pricing record in step with the code.
+    check('13 · Both owner switches open, cohort requirement removed, emergency stop available, record and code in step',
+      controlState.master_enrollment_gate === 'true'
+        && controlState.public_self_service === 'true'
+        && controlState.cohort_required !== 'true'
         && controlState.emergency_stop !== 'true'
         && controlState.v2_record_active === (controlState.code_live_version === 'V2'),
       JSON.stringify(controlState));
-    check('14 · Public self-service enrollment remains disabled', controlState.public_self_service !== 'true',
-      `autofund_self_service=${controlState.public_self_service ?? 'absent'}`);
+    check('14 · Public self-service enrollment is enabled by owner authorization',
+      controlState.public_self_service === 'true' && controlState.master_enrollment_gate === 'true',
+      `autofund_self_service=${controlState.public_self_service ?? 'absent'} · autofund_enrollment_enabled=${controlState.master_enrollment_gate ?? 'absent'}`);
 
     const failed = checks.filter((c) => !c.ok);
 

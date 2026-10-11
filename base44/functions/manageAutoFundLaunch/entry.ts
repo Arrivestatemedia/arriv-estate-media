@@ -15,6 +15,10 @@ import {
   AUTOFUND_FEE_REFUND_POLICY_KEY,
   AUTOFUND_WALLET_TERMS_APPROVAL_KEY,
 } from '../../shared/autoFundComplianceDisclosure.ts';
+import {
+  AUTOFUND_SELF_SERVICE_FLAG_KEY,
+  AUTOFUND_COHORT_REQUIRED_FLAG_KEY,
+} from '../../shared/enrollmentCohort.ts';
 
 // ============================================================================
 // ARRIV AUTO-FUND — CONTROLLED, REVERSIBLE LAUNCH PROCEDURE
@@ -86,6 +90,10 @@ export default async function (req) {
     if (action === 'status' || action === 'preflight') {
       const config = await readLaunchConfiguration(svc);
       const evaluation = evaluateLaunchInterlock(config);
+      const channelState = {
+        self_service: (await readSetting(AUTOFUND_SELF_SERVICE_FLAG_KEY))?.value ?? null,
+        cohort_required: (await readSetting(AUTOFUND_COHORT_REQUIRED_FLAG_KEY))?.value ?? null,
+      };
 
       // Prerequisites the OWNER must supply, as distinct from engineering items.
       const ownerPrerequisites = [
@@ -120,6 +128,20 @@ export default async function (req) {
           value: config.enrollment_switch_value,
           code_flag: AUTOFUND_FINAL_FLAGS.enrollment_enabled,
           note: 'Enrollment opens only when the code flag AND this switch are both true.',
+        },
+        // The two channel controls the owner sets independently of the master gate.
+        enrollment_channels: {
+          self_service: {
+            key: AUTOFUND_SELF_SERVICE_FLAG_KEY,
+            value: channelState.self_service,
+            open: channelState.self_service === 'true',
+          },
+          cohort_required: {
+            key: AUTOFUND_COHORT_REQUIRED_FLAG_KEY,
+            value: channelState.cohort_required,
+            in_force: channelState.cohort_required === 'true',
+            note: 'While in force, only allowlisted customers may enroll. The owner removed this requirement on 2026-10-11.',
+          },
         },
         configuration: {
           membership_fee_enabled: config.membership_fee_enabled,
@@ -203,6 +225,30 @@ export default async function (req) {
         { error: 'Unknown decision. Use terms_approval, fee_refund_policy or wallet_terms_approval.' },
         { status: 400 },
       );
+    }
+
+    // ── Enrollment channel switches (owner-controlled, reversible) ────────────
+    // Independent of the master gate: the public self-service channel, and whether a
+    // named cohort is still required. Neither one can charge a customer, and neither
+    // one lets a customer be enrolled without their own authorization.
+    if (action === 'set_self_service' || action === 'set_cohort_requirement') {
+      const isSelfService = action === 'set_self_service';
+      const key = isSelfService ? AUTOFUND_SELF_SERVICE_FLAG_KEY : AUTOFUND_COHORT_REQUIRED_FLAG_KEY;
+      const enable = body.enabled === true || body.enabled === 'true';
+      const recorded = await writeSetting(key, enable ? 'true' : 'false', {
+        decision: action,
+        value: enable ? 'true' : 'false',
+        counsel_reference: body.authorization_reference || 'owner authorization 2026-10-11',
+      });
+      return Response.json({
+        status: 'success',
+        switch: key,
+        value: enable ? 'true' : 'false',
+        recorded,
+        message: isSelfService
+          ? `Public self-service enrollment is now ${enable ? 'OPEN' : 'closed'}. Sales-assisted enrollment is unaffected.`
+          : `A named cohort is now ${enable ? 'REQUIRED — only allowlisted customers may enroll' : 'not required — any eligible customer may enroll'}.`,
+      });
     }
 
     // ── Enable enrollment ────────────────────────────────────────────────────

@@ -147,7 +147,7 @@ export default async function(req) {
         enrollment_gate: {
           app_setting_key: AUTOFUND_ENROLLMENT_FLAG_KEY,
           app_setting_present: switchArr.length > 0,
-          note: 'Public enrollment stays closed until the owner activates the launch gate.',
+          note: 'Public enrollment follows the owner launch gate: open only while both the code flag and this AppSetting are true. Eligibility, identity, consent and the customer\'s own authorization of the recurring charge are enforced on every enrollment.',
         },
         jurisdiction: {
           required: true,

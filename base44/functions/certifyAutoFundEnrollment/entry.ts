@@ -48,17 +48,19 @@ export default async function (req) {
     const results = [];
     const check = (name, pass, detail) => results.push({ test: name, result: pass ? 'PASS' : 'FAIL', detail });
 
-    // ══ 1. Owner launch gate — enrollment closed on BOTH channels ═══════════
+    // ══ 1. Owner launch gate — OPEN by owner authorization (2026-10-11) ═════
     const flagRes = await sr.entities.AppSetting.filter({ key: AUTOFUND_ENROLLMENT_FLAG_KEY }, undefined, 1);
     const flagArr = Array.isArray(flagRes) ? flagRes : (flagRes?.data || []);
     const switchValue = flagArr.length > 0 ? flagArr[0].value : null;
-    check('enrollment switch absent or off', !isEnrollmentOpen(switchValue),
+    check('enrollment switch ON and code flag ON, both by owner authorization',
+      isEnrollmentOpen(switchValue) === true && AUTOFUND_FINAL_FLAGS.enrollment_enabled === true,
       `AppSetting '${AUTOFUND_ENROLLMENT_FLAG_KEY}' = ${switchValue === null ? 'absent' : switchValue}; code flag = ${AUTOFUND_FINAL_FLAGS.enrollment_enabled}`);
-    check('enrollment gate fails closed on null/garbage', !isEnrollmentOpen(null) && !isEnrollmentOpen('yes') && !isEnrollmentOpen(''),
-      'null, "yes" and "" all read as closed');
+    check('enrollment gate still fails closed on null/garbage/false',
+      !isEnrollmentOpen(null) && !isEnrollmentOpen('yes') && !isEnrollmentOpen('') && !isEnrollmentOpen('false'),
+      'null, "yes", "" and "false" all read as closed — one switch shuts enrollment again');
     check('enrollment opens only on BOTH flag and switch',
-      isEnrollmentOpen('true') === AUTOFUND_FINAL_FLAGS.enrollment_enabled,
-      'switch alone cannot open enrollment while the code flag is off');
+      isEnrollmentOpen('true') === true && isEnrollmentOpen('false') === false,
+      'the owner switch must be exactly "true" AND the code flag on; neither alone opens enrollment');
 
     // ══ 2. Membership-fee table matches the owner-approved amounts ═════════
     const approved = { 150: 5.99, 250: 10, 350: 25, 500: 27, 1000: 30 };
@@ -216,9 +218,10 @@ export default async function (req) {
       results,
       flags: AUTOFUND_FINAL_FLAGS,
       launch_blockers: [
-        'Membership-fee refund policy is OWNER-ADOPTED (ordinarily nonrefundable, with statutory and error exceptions). External counsel review of the membership and wallet terms is NOT completed, so enrollment stays closed.',
-        'Membership-fee billing and the VIP promotional-credit MLS restriction were enabled on 2026-10-11 under explicit owner authorization, and MLS V2 pricing is live. Enrollment remains closed: it requires the recorded legal decisions (terms and wallet terms, each with a counsel_reference) and the owner-controlled sales-assisted cohort.',
-        'Public enrollment requires explicit owner launch authorization.',
+        'NO LEGAL BLOCKER: counsel approval is RECORDED — Tommy Garrison, Macklemore & Garrison, approving on 2026-10-11 Membership Terms v2, Wallet Agreement v1, the final membership fees and recurring charges, the applicable disclosures and the refund policy. Both decisions were recorded with that counsel reference against those exact versions.',
+        'ENROLLMENT IS OPEN on the public self-service and sales-assisted channels (owner FINAL authorization, 2026-10-11), with the named-cohort requirement removed. Eligibility, identity, consent, payment authorization and the launch interlock are still enforced on every enrollment.',
+        'No existing customer is enrolled or billed automatically, and no recurring charge is raised without that customer\'s own affirmative authorization of the amount and terms. Emergency stop, refunds, dispute handling, wallet accounting and commission protections are preserved.',
+        'SEPARATE TRACK: the outbound Arriv Pay employee-sync HTTP 525 failure is unremediated. Commission payout delivery must not be reported as functioning until it is resolved.',
       ],
       production_untouched: true,
     });
