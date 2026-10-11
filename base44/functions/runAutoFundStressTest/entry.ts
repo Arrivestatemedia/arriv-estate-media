@@ -367,6 +367,11 @@ export default async function (req) {
       })),
       standardized_arm: standardized,
       scenario_failures: scenarios.filter(r => !r.passes),
+      // Full scenario detail is returned only on request, so the normal response stays
+      // small. `scenario_tier` narrows it to one tier.
+      ...(body?.include_scenario_detail
+        ? { scenario_runs: scenarios.filter(r => !body?.scenario_tier || r.tier === Number(body.scenario_tier)) }
+        : {}),
       version_comparison: versionComparison,
       reconciliation: {
         note: 'Arm 1 uses the identical core, economics, persona set, wallet rules, close-out convention and margin definition as optimizeMlsUnitEconomics. Arm 2 adds this harness\'s scenario family on the same core. The arms are DIFFERENT SCENARIO SETS by design and are never averaged together.',
