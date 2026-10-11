@@ -237,11 +237,12 @@ export default async function (req) {
     check('B2 · Recurring charge, fee and deposit are correct on every tier', chargeErrors.length === 0,
       chargeErrors.length ? `wrong on: ${chargeErrors.map(d => d.tier_amount).join(', ')}` : '$150/$250/$350/$500/$1,000 verified');
 
-    const feeTiers = disclosures.filter(d => d.tier_amount >= 350);
-    const noFeeTiers = disclosures.filter(d => d.tier_amount < 350);
-    check('B3 · Fee shown only on Professional/Premier/VIP',
-      feeTiers.every(d => d.monthly_membership_fee === 25) && noFeeTiers.every(d => d.monthly_membership_fee === 0),
-      'fee tiers $25 · Starter/Growth $0');
+    const feeMismatches = disclosures.filter(d => d.monthly_membership_fee !== (AUTOFUND_MEMBERSHIP_FEE[d.tier_amount] ?? 0));
+    check('B3 · Every tier discloses exactly the fee in the approved schedule',
+      feeMismatches.length === 0,
+      feeMismatches.length
+        ? `wrong on: ${feeMismatches.map(d => `$${d.tier_amount} shows $${d.monthly_membership_fee}`).join(', ')}`
+        : disclosures.map(d => `$${d.tier_amount} → $${d.monthly_membership_fee}`).join(' · '));
 
     check('B4 · Billing frequency and renewal date disclosed',
       disclosures.every(d => d.billing_frequency === 'monthly' && d.next_renewal_date.length > 0),
@@ -315,11 +316,11 @@ export default async function (req) {
     // H. ENGINEERING FIX 1 — THE ENROLLMENT TIER LIST
     // ─────────────────────────────────────────────────────────────────────
     const EXPECTED_TIERS = [
-      { amount: 150, name: 'Starter', bonus: 7.5, bv: 157.5, fee: 0 },
-      { amount: 250, name: 'Growth', bonus: 25, bv: 275, fee: 0 },
+      { amount: 150, name: 'Starter', bonus: 7.5, bv: 157.5, fee: 5.99 },
+      { amount: 250, name: 'Growth', bonus: 25, bv: 275, fee: 10 },
       { amount: 350, name: 'Professional', bonus: 52.5, bv: 402.5, fee: 25 },
-      { amount: 500, name: 'Premier', bonus: 100, bv: 600, fee: 25 },
-      { amount: 1000, name: 'VIP', bonus: 250, bv: 1250, fee: 25 },
+      { amount: 500, name: 'Premier', bonus: 100, bv: 600, fee: 27 },
+      { amount: 1000, name: 'VIP', bonus: 250, bv: 1250, fee: 30 },
     ];
     const tierErrors = EXPECTED_TIERS.filter(t => {
       const cfg = getAutoFundConfig(t.amount);

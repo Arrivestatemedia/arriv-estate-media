@@ -124,11 +124,11 @@ export default async function (req) {
         && t.amount_to_be_charged === t.total_recurring_charge),
       complete.tiers.map(t => `$${t.amount}: fee $${t.chargeable_fee} · total $${t.total_recurring_charge}`).join(' · '));
 
-    check('K4 · The approved fee schedule is applied to the right tiers only',
-      tierOf(150).chargeable_fee === 0 && tierOf(250).chargeable_fee === 0
-        && tierOf(350).chargeable_fee === 25 && tierOf(500).chargeable_fee === 25 && tierOf(1000).chargeable_fee === 25
-        && tierOf(350).total_recurring_charge === 375,
-      'Starter/Growth $0 fee · Professional/Premier/VIP $25 fee · Professional total $375');
+    const feeFor = (amount: number) => AUTOFUND_MEMBERSHIP_FEE[amount] ?? 0;
+    check('K4 · The approved fee schedule is applied to every tier exactly',
+      AUTO_FUND_AMOUNT_OPTIONS.every(a => tierOf(a)?.chargeable_fee === feeFor(a)
+        && tierOf(a)?.total_recurring_charge === a + feeFor(a)),
+      AUTO_FUND_AMOUNT_OPTIONS.map(a => `$${a}: fee $${tierOf(a)?.chargeable_fee} · total $${tierOf(a)?.total_recurring_charge}`).join(' · '));
 
     // ─────────────────────────────────────────────────────────────────────
     // K5. INJECTED FAILURE MODES — EACH MUST PREVENT ENROLLMENT
@@ -201,10 +201,25 @@ export default async function (req) {
       billing: GA_ADDRESS,
       launch_configuration: { ...COMPLETE_CONFIGURATION, membership_fee_enabled: false },
     }));
-    check('K6 · The engine refuses a $350 enrollment when the $25 fee is not enabled',
+    check('K6 · The engine refuses a fee-bearing enrollment when its fee is not enabled',
       feeTierRefused.status === 'launch_interlock_blocked'
         && (feeTierRefused.interlock?.blockers || []).some(b => b.code === 'FEE_NOT_ENABLED'),
       `status=${feeTierRefused.status} — the customer is not enrolled against a disclosed $375 that would be billed as $350`);
+
+    // With the FINAL approved schedule every tier carries a fee, so the membership-fee
+    // switch gates the whole ladder: no tier — not even the smallest — can be enrolled
+    // while fee billing is off. (Before the final schedule, Starter and Growth were
+    // fee-free and could be enrolled with fee billing off.)
+    const lowTierRefused = track(await enrollCert({
+      email: 'cert_interlock_low_tier@example.com',
+      amount: 150,
+      billing: GA_ADDRESS,
+      launch_configuration: { ...COMPLETE_CONFIGURATION, membership_fee_enabled: false },
+    }));
+    check('K6b · No tier is fee-free — $150 is refused while fee billing is off',
+      lowTierRefused.status === 'launch_interlock_blocked'
+        && (lowTierRefused.interlock?.blockers || []).some(b => b.code === 'FEE_NOT_ENABLED'),
+      `status=${lowTierRefused.status} — no tier can be enrolled while its fee cannot be billed`);
 
     const zeroFee = track(await enrollCert({
       email: 'cert_interlock_zero_fee@example.com',
@@ -214,13 +229,16 @@ export default async function (req) {
     const zeroFeeSub = zeroFee.status === 'enrolled'
       ? await svc.entities.AutoFundSubscription.get(zeroFee.subscription_id)
       : null;
-    check('K7 · A $250 enrollment carries no membership fee in the payment request',
+    // NOTE (final schedule): the $250 tier now carries a $10 membership fee, so no tier
+    // is fee-free any more — every enrollment carries its approved fee. This verifies the
+    // component split on a low tier: deposit + fee = the recurring charge.
+    check('K7 · A $250 enrollment carries exactly its approved fee in the payment request',
       zeroFee.status === 'enrolled'
-        && zeroFeeSub.membership_fee === 0
-        && zeroFeeSub.total_monthly_charge === 250
-        && zeroFee.checkout_handoff.membership_fee_cents === 0
+        && zeroFeeSub.membership_fee === (AUTOFUND_MEMBERSHIP_FEE[250] ?? 0)
+        && zeroFeeSub.total_monthly_charge === 250 + (AUTOFUND_MEMBERSHIP_FEE[250] ?? 0)
+        && zeroFee.checkout_handoff.membership_fee_cents === Math.round((AUTOFUND_MEMBERSHIP_FEE[250] ?? 0) * 100)
         && zeroFee.checkout_handoff.wallet_funding_cents === 25000
-        && zeroFee.checkout_handoff.recurring_charge_cents === 25000,
+        && zeroFee.checkout_handoff.recurring_charge_cents === 25000 + Math.round((AUTOFUND_MEMBERSHIP_FEE[250] ?? 0) * 100),
       zeroFee.status === 'enrolled'
         ? `fee $${zeroFeeSub.membership_fee} · handoff ${zeroFee.checkout_handoff.wallet_funding_cents}+${zeroFee.checkout_handoff.membership_fee_cents}=${zeroFee.checkout_handoff.recurring_charge_cents} cents`
         : `status=${zeroFee.status}`);
