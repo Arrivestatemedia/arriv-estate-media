@@ -61,10 +61,10 @@ export default async function (req) {
       'switch alone cannot open enrollment while the code flag is off');
 
     // ══ 2. Membership-fee table matches the owner-approved amounts ═════════
-    const approved = { 150: 0, 250: 0, 350: 25, 500: 25, 1000: 25 };
+    const approved = { 150: 5.99, 250: 10, 350: 25, 500: 27, 1000: 30 };
     const feeMismatch = Object.entries(approved).filter(([amt, fee]) => AUTOFUND_MEMBERSHIP_FEE[Number(amt)] !== fee);
     check('approved fee table exact', feeMismatch.length === 0,
-      feeMismatch.length ? JSON.stringify(feeMismatch) : '$350/$500/$1,000 = $25; $150/$250 = $0');
+      feeMismatch.length ? JSON.stringify(feeMismatch) : '$150=$5.99, $250=$10, $350=$25, $500=$27, $1,000=$30');
 
     // ══ 3. Approved SCHEDULE vs the charge actually raised ════════════════
     // The approved total is a property of the schedule; what is charged is gated
@@ -72,12 +72,12 @@ export default async function (req) {
     // charged total against the schedule total while check 4 asserted the
     // chargeable fee was $0. Two mutually exclusive statements about the same $350
     // tier — which is how a $375 charge came to be recorded against a $0 fee.
-    const approvedTotals = { 150: 150, 250: 250, 350: 375, 500: 525, 1000: 1025 };
+    const approvedTotals = { 150: 155.99, 250: 260, 350: 375, 500: 527, 1000: 1030 };
     const scheduleMismatch = Object.entries(approvedTotals).filter(
       ([amt, t]) => Number(amt) + (AUTOFUND_MEMBERSHIP_FEE[Number(amt)] ?? 0) !== t
     );
     check('approved fee SCHEDULE exact', scheduleMismatch.length === 0,
-      scheduleMismatch.length ? JSON.stringify(scheduleMismatch) : '$150/$250/$375/$525/$1,025');
+      scheduleMismatch.length ? JSON.stringify(scheduleMismatch) : '$155.99 / $260 / $375 / $527 / $1,030');
 
     const chargeTiers = [150, 250, 350, 500, 1000];
     const chargeMismatch = chargeTiers.filter(a => getTotalMonthlyCharge(a) !== a + getMembershipFee(a));
@@ -128,8 +128,8 @@ export default async function (req) {
       `policy = ${DEFAULT_FEE_REFUND_POLICY} (owner-adopted, ${liveFeeRefund.exceptions.length} statutory exceptions); counsel review = ${FEE_POLICY_COUNSEL_REVIEW_STATUS}`);
 
     // ══ 8. Salesperson cannot alter money — tampered quotes are rejected ═══
-    check('tampered fee quote rejected', feeMatchesApprovedTable(500, 25) === true && feeMatchesApprovedTable(500, 5) === false,
-      'a quoted $5 fee against the approved $25 is rejected');
+    check('tampered fee quote rejected', feeMatchesApprovedTable(500, 27) === true && feeMatchesApprovedTable(500, 5) === false,
+      'a quoted $5 fee against the approved $27 is rejected');
 
     // ══ 9. Commission attribution rules ═══════════════════════════════════
     check('self-service without verified advisor generates no commission',

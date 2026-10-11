@@ -53,11 +53,23 @@ const MONITORING = [
 ];
 
 const ACTIVATION_SEQUENCE = [
+  // ── Prerequisite: the OWNER records the legal decisions before any switch ────
+  'STEP 0 (OWNER, prerequisite — NOT an activation): record the legal decisions through manageAutoFundLaunch, action record_legal_decision, each with its counsel_reference — one for terms approval (value must be the current AUTOFUND_TERMS_VERSION, now autofund_membership_v2) and one for wallet_terms_approval. Confirm the clearance covers the FINAL fee schedule ($5.99 / $10 / $25 / $27 / $30, totalling $155.99 / $260 / $375 / $527 / $1,030), which differs from the schedule in the drafts first reviewed. Recording a prerequisite charges nobody and opens nothing.',
+  // ── Pricing ─────────────────────────────────────────────────────────────────
   "STEP 1 (CODE, same release): set MLS_PRICING_VERSION_LIVE = 'V2' in base44/shared/mlsPricing.ts. This is the only version switch; MLS_PRICE_STANDARD_LIVE and every derived figure follow it automatically.",
   'STEP 2 (DATA, immediately after): set the V2 MediaPricingConfig record is_active = true and the V1 record is_active = false.',
   'STEP 3 (VERIFY): re-run this endpoint. code_matches_active_record must be true, v1_fallback_inconsistency_present false, and both halves must name V2 / $120.',
   'STEP 4 (VERIFY, one live booking): create one internal test booking and confirm the quoted, snapshotted and invoiced MLS price is the V2 price and any non-MLS package and add-on price is unchanged.',
   'STEP 5 (RE-VERIFY, financial): re-run the Auto-Fund financial verification at the now-live $120 before enabling enrollment.',
+  // ── Membership-fee billing ──────────────────────────────────────────────────
+  'STEP 6 (CODE, same release as STEP 1): set AUTOFUND_FINAL_FLAGS.membership_fee_enabled = true and vip_mls_promo_restriction_enabled = true in base44/shared/autoFundFinalConfig.ts. The interlock refuses launch on any fee-bearing tier while fee billing is off, so the fee schedule and this switch ship together.',
+  // ── Enrollment cohort ───────────────────────────────────────────────────────
+  'STEP 7 (DATA): create the AutoFundCohortMember entries for the approved sales-assisted customers with allowed_channels = ["sales_assisted"]. Leave the public self-service switch (autofund_self_service_enabled) OFF — a cohort entry never grants public enrollment, which is gated separately.',
+  // ── Enrollment gate: last, and it self-checks ───────────────────────────────
+  'STEP 8 (CODE + DATA, last): set enrollment_enabled = true in base44/shared/autoFundFinalConfig.ts, then invoke manageAutoFundLaunch with action enable_enrollment. That call re-reads the real configuration and refuses if any prerequisite is unmet, so it is the final self-check rather than a formality.',
+  'STEP 9 (VERIFY, after every switch): re-run manageAutoFundLaunch preflight and confirm permitted = true with zero blockers, then re-run this endpoint and the Auto-Fund financial verification at the live $120 and the live fee schedule.',
+  // ── Rollback ────────────────────────────────────────────────────────────────
+  'ROLLBACK: set the master gate back to false (manageAutoFundLaunch disable_enrollment) and revert the code flags. The emergency stop (autofund_emergency_stop) halts new enrollment, new fee billing and new funding issuance while leaving cancellation, pause/resume, redemption, refunds, disputes and support working — so existing customers keep service through any rollback.',
 ];
 
 /** Numeric/string leaves of a config object, by path, so two records can be compared. */
@@ -233,7 +245,7 @@ export default async function (req: Request): Promise<Response> {
       activation_sequence: ACTIVATION_SEQUENCE,
       monitoring_plan: MONITORING,
       legal_gate_note:
-        'This prepares and verifies the PRICING change only. Launch still requires the legal approvals and the owner activation gates; enrollment and fee billing remain off and are not touched by this endpoint.',
+        'COORDINATED ACTIVATION PREPARED — NOTHING ACTIVATED. This endpoint verifies the V2 pricing half and reports the full coordinated sequence for pricing, membership-fee billing and sales-assisted enrollment. Every switch is still off: V2 is inactive, fee billing is off, the master enrollment gate is unset, public self-service is disabled and the emergency stop is inactive. Enrollment still requires the recorded legal clearance (terms and wallet terms, each with its counsel_reference) plus the owner activation gates; none of it is touched by this endpoint.',
       note: 'Read-only preparation. No price, record, flag, fee, tier or customer record was changed.',
     });
   } catch (error: any) {

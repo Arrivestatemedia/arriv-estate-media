@@ -143,12 +143,12 @@ export const MLS_ALLOWANCE_DERIVATION: Record<number, MlsAllowanceDerivation> = 
   350: {
     max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
     lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
-    note: 'No count cap. Promotional exposure is bounded by the $630/year bonus pool, offset by the $25/month membership fee, which is collected revenue and not spendable Booking Value. Certified against the approved planning assumptions.',
+    note: 'No count cap. Promotional exposure is bounded by the $630/year bonus pool, offset by the monthly membership fee for that tier, which is collected revenue and not spendable Booking Value. Certified against the approved planning assumptions.',
   },
   500: {
     max_sustainable_allowance: null, allowance_binds: false, reason: 'POOL_LIMITED',
     lifetime_margin_at_allowance_1_pct: null, annual_shortfall_at_allowance_1: null,
-    note: 'No count cap. Promotional exposure is bounded by the $1,200/year bonus pool, offset by the $25/month membership fee. Certified against the approved planning assumptions.',
+    note: 'No count cap. Promotional exposure is bounded by the $1,200/year bonus pool, offset by the monthly membership fee for that tier. Certified against the approved planning assumptions.',
   },
   1000: {
     max_sustainable_allowance: 0, allowance_binds: true, reason: 'VIP_PROMO_BARRED_FROM_STANDALONE_MLS',

@@ -8,12 +8,18 @@
 //
 // Approved structure:
 //
-//   Tier          Deposit   Fee   Promo bonus   Total Booking Value   Total charge
-//   Starter        $150     $0     $7.50        $157.50               $150
-//   Growth         $250     $0     $25          $275                  $250
-//   Professional   $350     $25    $52.50       $402.50               $375
-//   Premier        $500     $25    $100         $600                  $525
-//   VIP            $1,000   $25    $250         $1,250                $1,025
+//   Tier          Deposit      Fee      Promo bonus   Total Booking Value   Total charge
+//   Starter        $150        $5.99     $7.50        $157.50               $155.99
+//   Growth         $250        $10       $25          $275                  $260
+//   Professional   $350        $25       $52.50       $402.50               $375
+//   Premier        $500        $27       $100         $600                  $527
+//   VIP            $1,000      $30       $250         $1,250                $1,030
+//
+// FINAL APPROVED COMMERCIAL CONFIGURATION (owner, 2026-10-11). The fee amounts were
+// revised from the earlier draft schedule ($0 / $0 / $25 / $25 / $25), so every tier's
+// total recurring charge changed and the membership-terms version advanced to
+// autofund_membership_v2. The material change and the recorded clearance are set out
+// in ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.
 //
 // FIVE TIERS. The former $50 / $100 / $200 entry options are RETIRED from new
 // enrollment and are replaced by the $150 Starter and $250 Growth tiers.
@@ -50,9 +56,17 @@ export function isEnrollmentOpen(appSettingValue: string | null | undefined): bo
   return AUTOFUND_FINAL_FLAGS.enrollment_enabled && appSettingValue === 'true';
 }
 
-/** Approved monthly membership fee by deposit amount. */
+/**
+ * Approved monthly membership fee by deposit amount.
+ *
+ * FINAL APPROVED COMMERCIAL CONFIGURATION (owner, 2026-10-11). These amounts differ
+ * MATERIALLY from the earlier draft schedule ($0 / $0 / $25 / $25 / $25) that was
+ * prepared for legal review, which is why the membership-terms version advanced to
+ * `autofund_membership_v2`. The interlock still refuses launch while the fee switch is
+ * off, so no customer can be charged any of these amounts before activation.
+ */
 export const AUTOFUND_MEMBERSHIP_FEE: Record<number, number> = {
-  150: 0, 250: 0, 350: 25, 500: 25, 1000: 25,
+  150: 5.99, 250: 10, 350: 25, 500: 27, 1000: 30,
 };
 
 // ┌────────────────────────────────────────────────────────────────────────────

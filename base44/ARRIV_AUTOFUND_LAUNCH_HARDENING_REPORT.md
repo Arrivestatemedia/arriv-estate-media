@@ -6,11 +6,12 @@
 
 ---
 
-## 1. Membership-fee refund policy — ADOPTED (business policy, not legal approval)
+## 1. Membership-fee refund policy — ADOPTED; legal clearance asserted, not yet recorded
 
-The $25 monthly membership-fee refund policy approved by the owner is now the live
-policy, encoded clause by clause in `base44/shared/autoFundFeePolicy.ts` (version
-`autofund_fee_policy_v1`) and persisted as an audit record.
+The owner-approved monthly membership-fee refund policy is now the live policy, encoded
+clause by clause in `base44/shared/autoFundFeePolicy.ts` (version `autofund_fee_policy_v2`
+— re-issued in amount-neutral terms when the final fee schedule set a different fee on
+every tier) and persisted as an audit record. The refundability itself is unchanged.
 
 | Clause | Where it is enforced |
 | --- | --- |
@@ -23,14 +24,21 @@ policy, encoded clause by clause in `base44/shared/autoFundFeePolicy.ts` (versio
 | 7. Disclose the complete monthly recurring charge before authorization | `buildChargeDisclosure()` / enrollment disclosure |
 | 8. Preserve accepted fee, contract version, authorization evidence | `AutoFundConsentRecord` + `AutoFundMembershipNotice` |
 
-**Counsel review status: NOT COMPLETED.** Owner adoption is a business decision and
-does not record legal approval of the membership terms, the separate wallet terms or
-the renewal-notice cadence. The launch interlock still requires those, and the fee
-policy gate is the only legal gate that is now satisfied.
+**Legal clearance: ASSERTED BY THE OWNER, NOT YET RECORDED.** The owner attests
+(2026-10-11) that external counsel has reviewed and approved the Auto-Fund program for
+launch. No approving counsel, approval date or approved document versions were supplied,
+so nothing in this system records that approval, and `FEE_POLICY_COUNSEL_REVIEW_STATUS`
+stays `not_completed`. Separately, the final approved fee schedule
+($5.99 / $10 / $25 / $27 / $30, totalling $155.99 / $260 / $375 / $527 / $1,030) differs
+materially from the schedule in the drafts first reviewed, and the membership-terms
+version advanced to `autofund_membership_v2` for that reason. Both points are recorded in
+`ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md`.
 
 **Effect on launch blockers:** the requirement `FEE_REFUND_POLICY_UNDETERMINED` is
 gone from the real configuration. `LEGAL_TERMS_NOT_APPROVED` and
-`WALLET_TERMS_NOT_APPROVED` remain.
+`WALLET_TERMS_NOT_APPROVED` remain until the clearance is recorded through
+`manageAutoFundLaunch` with its `counsel_reference` — which is a prerequisite, not an
+activation, and charges nobody.
 
 ---
 
@@ -121,6 +129,18 @@ $1.22 per month, and 0.12% of the $12,300 collected per VIP member-year.
 Equivalent alternatives: reduce the priority-support retainer from $6.00 to $4.78/month
 (trims the cost assumption rather than adding revenue), or a further increment on the
 MLS base price (shared by every tier, so it is the bluntest of the three).
+
+> **PARTLY ADDRESSED by the final approved configuration (2026-10-11).** The VIP fee is
+> **$30/month**, $5/month above the $25 analysed here. Because collected revenue carries
+> payment-processing cost, that $60/year adds about **$4.86/year** of contribution, taking
+> the measured-basis position from −$14.66 to **−$9.80**. VIP is therefore still short
+> **$9.80 per member-year** on the measured cost basis; on the planning basis it is
+> positive at **+$54.99**.
+>
+> **Smallest remaining corrective option:** VIP fee **$30 → $32/month** (+$24/year gross,
+> about +$23/year net of processing), which clears the $9.80 with margin, applies to VIP
+> only and issues no Booking Value. Alternatives: reduce the priority-support retainer from
+> $6.00 to $5.18/month, or a further increment on the MLS base price.
 
 **The price basis matters more than anything else here.** At today's $100 the same
 finalized benefit loses $631.04 per VIP member-year on the planning basis and $1,590.70

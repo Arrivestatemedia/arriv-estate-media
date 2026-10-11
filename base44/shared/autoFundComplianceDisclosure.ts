@@ -35,7 +35,7 @@ export const AUTOFUND_SUPPORT_URL = `${APP_URL}/AutoFund`;
  * deploy cannot grant it. The launch interlock refuses enrollment until the
  * AppSetting names the current version.
  */
-export const AUTOFUND_TERMS_VERSION = 'autofund_membership_v1';
+export const AUTOFUND_TERMS_VERSION = 'autofund_membership_v2';
 export const AUTOFUND_TERMS_LEGAL_APPROVAL_KEY = 'autofund_terms_legal_approval';
 export const AUTOFUND_FEE_REFUND_POLICY_KEY = 'autofund_fee_refund_policy';
 export const AUTOFUND_WALLET_TERMS_APPROVAL_KEY = 'autofund_wallet_terms_approval';

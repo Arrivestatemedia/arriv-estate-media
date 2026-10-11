@@ -1,8 +1,11 @@
 // ============================================================================
 // ARRIV AUTO-FUND — MEMBERSHIP-FEE REFUND POLICY (OWNER-APPROVED BUSINESS POLICY)
 // ============================================================================
-// The owner adopted the $25 monthly membership-fee refund policy as Arriv Estate
-// Media's official business policy on 2026-10-11.
+// The owner adopted the monthly membership-fee refund policy as Arriv Estate
+// Media's official business policy on 2026-10-11, and re-confirmed it against the
+// FINAL approved commercial configuration on the same date. The policy is expressed in
+// amount-neutral terms: each tier's fee lives in the approved schedule
+// (autoFundFinalConfig.ts), so a fee change cannot silently restate this policy.
 //
 // WHAT THIS IS: a business-policy decision taken by the owner, who is entitled to
 // set the company's refund policy. It resolves the "refundability is undetermined"
@@ -15,8 +18,15 @@
 // on those approvals, and adopting this policy does not satisfy them.
 // ============================================================================
 
-/** Immutable version label for the adopted policy. */
-export const FEE_POLICY_VERSION = 'autofund_fee_policy_v1';
+/**
+ * Immutable version label for the adopted policy.
+ *
+ * v2: re-issued with the FINAL approved commercial configuration (2026-10-11). The
+ * refundability policy itself is UNCHANGED; the single-amount reference was removed,
+ * because naming one figure stated the policy for only some tiers once the final
+ * schedule set a different fee on every tier.
+ */
+export const FEE_POLICY_VERSION = 'autofund_fee_policy_v2';
 
 /** Owner adoption state. */
 export const FEE_POLICY_STATUS = 'OWNER_APPROVED_ADOPTED' as const;
@@ -47,7 +57,7 @@ export const ADOPTED_FEE_REFUND_POLICY = 'non_refundable' as const;
 
 /** The adopted policy, clause by clause, as directed by the owner. */
 export const FEE_POLICY_CLAUSES: string[] = [
-  'The $25 fee is a separate monthly charge for access to membership benefits, not a wallet deposit.',
+  'The membership fee is a separate monthly charge for access to membership benefits, not a wallet deposit. The amount is the one set for the tier in the approved schedule.',
   'Properly authorized membership fees are ordinarily nonrefundable once the membership period begins and benefits are available.',
   'Refund unauthorized, duplicate, or erroneous fees and fees charged after effective cancellation.',
   'Provide an appropriate refund or remedy if Arriv materially fails to make the contracted membership benefits available.',
@@ -87,7 +97,7 @@ export function feePolicyAuditRecord() {
     adopted_by: FEE_POLICY_ADOPTED_BY,
     counsel_review_status: FEE_POLICY_COUNSEL_REVIEW_STATUS,
     counsel_review_note:
-      'External counsel review is NOT completed. The owner adopted the business policy; that is not legal approval of the membership terms, the wallet terms or the renewal-notice cadence, and the launch interlock still requires those.',
+      'The owner attests (2026-10-11) that external counsel has reviewed and approved the Auto-Fund program for launch. No approving counsel, approval date or approved document versions were supplied, so this module does NOT record counsel approval and FEE_POLICY_COUNSEL_REVIEW_STATUS stays not_completed. The recorded clearance, and the material fee-schedule change counsel must confirm, are set out in ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.',
     refund_policy_encoded: ADOPTED_FEE_REFUND_POLICY,
     clauses: FEE_POLICY_CLAUSES,
     enforcement_map: FEE_POLICY_ENFORCEMENT,

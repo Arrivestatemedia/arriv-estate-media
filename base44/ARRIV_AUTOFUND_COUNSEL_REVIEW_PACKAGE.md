@@ -10,9 +10,9 @@ counsel review. **No approval is recorded, implied or pre-filled anywhere.**
 
 | Document | Version | Path | Purpose |
 | --- | --- | --- | --- |
-| Membership Agreement (final) | `autofund_membership_v1` | `base44/ARRIV_AUTOFUND_MEMBERSHIP_AGREEMENT_FINAL.md` | Recurring charges, fee, promotional and cash-funded value, rollover, cancellation, refunds, disputes, renewal notices, VIP enhanced support |
+| Membership Agreement (final) | `autofund_membership_v2` | `base44/ARRIV_AUTOFUND_MEMBERSHIP_AGREEMENT_FINAL.md` | Recurring charges, fee, promotional and cash-funded value, rollover, cancellation, refunds, disputes, renewal notices, VIP enhanced support. **v2 revises every tier's fee and total recurring charge from v1** |
 | Wallet Agreement (final) | `autofund_wallet_v1` | `base44/ARRIV_AUTOFUND_WALLET_AGREEMENT_FINAL.md` | Wallet value, lots and validity, rollover, cancellation, dormant balances, unclaimed property, disputes, cash-out |
-| Membership fee refund policy (owner-adopted) | `autofund_fee_policy_v1` | `base44/shared/autoFundFeePolicy.ts` | The adopted policy, clause by clause, with its enforcement map |
+| Membership fee refund policy (owner-adopted) | `autofund_fee_policy_v2` | `base44/shared/autoFundFeePolicy.ts` | The adopted policy, clause by clause, with its enforcement map. v2 is amount-neutral; the refundability is unchanged |
 | Wallet disclosure facts and open questions | — | `base44/shared/autoFundWalletTerms.ts` | Verified wallet facts versus unresolved questions, and the topic-by-topic status |
 
 The customer-visible wording is generated from these same modules, so the text
@@ -24,7 +24,7 @@ counsel reviews and the text a customer would see cannot drift apart.
 
 - **Membership-fee refundability** — the owner adopted the policy on 2026-10-11: ordinarily nonrefundable once the period begins and benefits are available, with refunds always provided for pre-period cancellation, duplicate/erroneous/unauthorized charges, post-cancellation charges, and material failure to provide benefits, and with applicable law overriding any conflicting provision.
 - **VIP enhanced support** — finalized by owner directive: priority Arriv Assist access with escalation when necessary. No promised number of human sessions, no guaranteed hours, no fixed consultations, and no reduction of existing support rights.
-- **Tier structure, funding amounts, promotional bonuses, membership fees and redemption policy** — approved and unchanged.
+- **Tier structure, funding amounts, promotional bonuses and membership fees** — the final approved configuration: Starter $150 + $5.99 = **$155.99** (5% bonus); Growth $250 + $10 = **$260** (10%); Professional $350 + $25 = **$375** (15%); Premier $500 + $27 = **$527** (20%); VIP $1,000 + $30 = **$1,030** (25%). The fee amounts are revised from the drafts first reviewed, which is why the membership-terms version advanced to `autofund_membership_v2`.
 - **Approved MLS V2 ladder** — $120 / $145 / $170 / $220 / $295 by property size.
 
 Owner adoption is a **business** decision. It is not counsel approval, and this
@@ -48,8 +48,8 @@ as a legal position.
 | 6 | **Refund of unused value outside cancellation** (on request) | If a cash-out right exists, the absence of a facility must be addressed | No cash-out facility exists; no right asserted or denied | Whether such a right exists and how it must be met |
 | 7 | **Treatment of value already redeemed in a period later disputed** | Determines what may be recovered from a member when a charge is reversed after the value was used | Dispute suspension and reversal apply to unspent value only | The permitted treatment of the redeemed portion |
 | 8 | **Billing-jurisdiction capture and validation** | Drives items 1–7; an incorrect jurisdiction applies the wrong rule set | Jurisdiction comes from the customer's billing address and is validated; conflicts with the payment method and non-US addresses are flagged for human review rather than auto-resolved | Confirmation of the validation approach and the required review workflow |
-| 9 | **Membership-terms approval of the exact version** | The agreement cannot be presented until the version is approved | Terms approval gate is unsatisfied; enrollment remains closed | Approval of `autofund_membership_v1` as submitted |
-| 10 | **Wallet-terms approval of the exact version** | Wallet value cannot be marketed until the wallet terms are approved | Wallet-terms gate is unsatisfied | Approval of `autofund_wallet_v1` as submitted |
+| 9 | **Membership-terms approval of the exact version** | The agreement cannot be presented until the version is approved | Terms approval gate is unsatisfied: approval is asserted by the owner but no counsel, date or version is recorded | Approval of `autofund_membership_v2` as submitted, **confirming the final fee schedule ($5.99 / $10 / $25 / $27 / $30)** — the drafts reviewed carried $0 / $0 / $25 / $25 / $25 |
+| 10 | **Wallet-terms approval of the exact version** | Wallet value cannot be marketed until the wallet terms are approved | Wallet-terms gate is unsatisfied: approval is asserted by the owner but not recorded | Approval of `autofund_wallet_v1` (content unchanged by the fee revision) |
 
 ---
 

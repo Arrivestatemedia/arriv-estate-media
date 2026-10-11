@@ -1,13 +1,16 @@
 # ARRIV AUTO-FUND WALLET AGREEMENT — FINAL TEXT FOR COUNSEL REVIEW
 
-**Version:** `autofund_wallet_v1` (companion to `autofund_membership_v1`)
-**Status:** FINAL DRAFT SUBMITTED FOR COUNSEL REVIEW — **NOT EFFECTIVE, NOT APPROVED**
+**Version:** `autofund_wallet_v1` (companion to `autofund_membership_v2`)
+**Status:** FINAL TEXT. Recorded legal clearance INCOMPLETE — see `ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md`.
 **Prepared:** 2026-10-11 · Arriv Estate Media
 
-> This document is the final customer-facing wallet agreement prepared for counsel
-> review. It is not in force. It states what the wallet does today and marks as
-> **undetermined** every treatment that requires a legal decision. It invents no
-> expiry, dormancy or forfeiture rule.
+> This document holds the final customer-facing wallet agreement. It is not yet
+> operative. It states what the wallet does today and marks as **undetermined** every
+> treatment that requires a legal decision. It invents no expiry, dormancy or
+> forfeiture rule. The owner attests that counsel has reviewed and approved the
+> Auto-Fund program for launch; the approving counsel, the approval date and the
+> approved document versions are not yet recorded, so no approval is recorded against
+> this version in the system.
 
 ---
 

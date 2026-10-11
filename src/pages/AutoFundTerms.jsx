@@ -6,7 +6,7 @@ import {
   AUTOFUND_TERMS_BANNER,
   AUTOFUND_TERMS_SECTIONS,
   AUTOFUND_TERMS_SUPPORT,
-} from "@/lib/autofundTermsV1";
+} from "@/lib/autoFundMembershipTerms";
 
 /**
  * AutoFundTerms — the complete, versioned Auto-Fund membership terms.

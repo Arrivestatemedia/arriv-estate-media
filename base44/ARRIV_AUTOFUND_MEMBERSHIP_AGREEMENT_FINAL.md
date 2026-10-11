@@ -1,13 +1,18 @@
 # ARRIV AUTO-FUND MEMBERSHIP AGREEMENT — FINAL TEXT FOR COUNSEL REVIEW
 
-**Version:** `autofund_membership_v1`
-**Status:** FINAL DRAFT SUBMITTED FOR COUNSEL REVIEW — **NOT EFFECTIVE, NOT APPROVED**
+**Version:** `autofund_membership_v2`
+**Status:** FINAL COMMERCIAL TERMS. Recorded legal clearance INCOMPLETE — see `ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md`.
 **Prepared:** 2026-10-11 · Arriv Estate Media
 
-> This document is the final customer-facing membership agreement prepared for
-> counsel review. It is not in force. Enrollment is closed, no membership fee is
-> billed, and no customer has been enrolled. Counsel approval of **this exact
-> version** is required before it may be presented to any customer.
+> This document holds the final customer-facing membership agreement for the
+> owner-approved commercial configuration. It is not yet operative: enrollment is
+> closed, no membership fee is billed, and no customer has been enrolled.
+>
+> **Why this is v2 and not v1:** v1 carried the draft fee schedule ($0 / $0 / $25 / $25 /
+> $25). The final approved configuration sets a fee on every tier ($5.99 / $10 / $25 /
+> $27 / $30) and a different total recurring charge on every tier. Those amounts are part
+> of the agreement, so v1's version label cannot be reused for them, and an approval
+> recorded against v1 does not carry to these amounts.
 
 ---
 
@@ -21,11 +26,11 @@ membership begins.
 
 | Tier | Monthly wallet funding | Promotional bonus | Monthly membership fee | Total monthly recurring charge |
 | --- | --- | --- | --- | --- |
-| Starter | $150 | 5% | $0 | $150 |
-| Growth | $250 | 10% | $0 | $250 |
+| Starter | $150 | 5% | $5.99 | $155.99 |
+| Growth | $250 | 10% | $10 | $260 |
 | Professional | $350 | 15% | $25 | $375 |
-| Premier | $500 | 20% | $25 | $525 |
-| VIP | $1,000 | 25% | $25 | $1,025 |
+| Premier | $500 | 20% | $27 | $527 |
+| VIP | $1,000 | 25% | $30 | $1,030 |
 
 ## 2. Recurring charges, authorization and renewal
 
@@ -106,7 +111,7 @@ Notices are sent to the member's registered email address. Support is available 
 
 | # | Item | Status |
 | --- | --- | --- |
-| 1 | Membership terms, fee characterization and recurring-charge disclosure | AWAITING REVIEW |
+| 1 | Membership terms, fee characterization and recurring-charge disclosure | REVIEWED on the draft fee schedule; the FINAL schedule ($5.99 / $10 / $25 / $27 / $30) requires explicit confirmation |
 | 2 | Adopted fee-refund policy wording and its statutory exceptions | AWAITING REVIEW (owner-adopted policy reflected) |
 | 3 | Cancellation and renewal-notice cadence per state | AWAITING REVIEW |
 | 4 | Cash-funded balance refund and expiry lawfulness | AWAITING REVIEW — deliberately not asserted |
@@ -114,6 +119,9 @@ Notices are sent to the member's registered email address. Support is available 
 | 6 | Treatment of redeemed value in a disputed period | AWAITING REVIEW |
 | 7 | VIP enhanced-support wording (no session promise) | AWAITING REVIEW |
 
-**No counsel approval is recorded anywhere in this system.** The launch interlock
-reads the versioned legal-approval gate directly and still reports
-`LEGAL_TERMS_NOT_APPROVED` and `WALLET_TERMS_NOT_APPROVED`.
+**The owner attests (2026-10-11) that counsel has reviewed and approved the Auto-Fund
+program for launch.** No approving counsel, approval date or approved document versions
+are on record, so this system does not record an approval for this version and the launch
+interlock still reports `LEGAL_TERMS_NOT_APPROVED` and `WALLET_TERMS_NOT_APPROVED`.
+Recording the clearance is what satisfies those gates. It is a prerequisite, not an
+activation, and it charges nobody. See `ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md`.

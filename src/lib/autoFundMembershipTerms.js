@@ -1,28 +1,36 @@
 /**
- * Auto-Fund Membership Terms — V1 (customer-facing content).
+ * Auto-Fund Membership Terms — V2 (customer-facing content).
  *
- * Version: autofund_membership_v1 — must stay in step with CURRENT_TERMS_VERSION
- * in base44/shared/autoFundEnrollment.ts. A material change to this content
- * requires a new version label and refreshed customer consent.
+ * Version: autofund_membership_v2. The single source of truth for the version label is
+ * AUTOFUND_TERMS_VERSION in base44/shared/autoFundComplianceDisclosure.ts, which
+ * base44/shared/autoFundEnrollment.ts re-exports as CURRENT_TERMS_VERSION. A material
+ * change to this content requires a new version label and refreshed customer consent.
  *
- * STATUS: draft prepared for legal review. The terms are NOT served as final
- * until the refund policy and the separate wallet terms receive legal approval,
- * so the page states that plainly rather than presenting unapproved language as
- * settled contract terms.
+ * WHY V2 IS A NEW VERSION: the final approved commercial configuration (owner,
+ * 2026-10-11) sets a membership fee on EVERY tier ($5.99 / $10 / $25 / $27 / $30) and a
+ * different total recurring charge on every tier, against the draft schedule v1
+ * described ($0 / $0 / $25 / $25 / $25). The fee amounts are part of the terms, so v1's
+ * version label cannot be reused for them.
+ *
+ * STATUS: the commercial terms are final. The recorded legal clearance is NOT yet
+ * complete — no approving counsel, approval date or approved document versions are on
+ * record — so this version is not presented as an approved operative agreement and
+ * Auto-Fund enrollment remains closed. See
+ * base44/ARRIV_AUTOFUND_LEGAL_CLEARANCE_RECORD.md.
  */
 
-export const AUTOFUND_TERMS_VERSION = "autofund_membership_v1";
+export const AUTOFUND_TERMS_VERSION = "autofund_membership_v2";
 
-export const AUTOFUND_TERMS_STATUS = "pending_legal_review";
+export const AUTOFUND_TERMS_STATUS = "pending_recorded_legal_clearance";
 
 export const AUTOFUND_TERMS_BANNER =
-  "These membership terms are a draft prepared for legal review. The membership-fee refund policy and the separate wallet terms are not yet final, so this version is not yet the operative agreement. Auto-Fund enrollment remains closed.";
+  "These membership terms are the final commercial terms for the Auto-Fund program. The recorded legal clearance for this version is not yet complete, so this version is not yet the operative agreement and Auto-Fund enrollment remains closed.";
 
 export const AUTOFUND_TERMS_SECTIONS = [
   {
     heading: "1. What you are enrolling in",
     paragraphs: [
-      "Auto-Fund is a recurring monthly arrangement. Each month you are charged your total recurring monthly charge, made up of a wallet deposit and, on the Professional, Premier and VIP tiers, a separate membership fee.",
+      "Auto-Fund is a recurring monthly arrangement. Each month you are charged your total recurring monthly charge, made up of a wallet deposit and a separate membership fee.",
       "The total recurring monthly charge for each tier is shown on your enrollment screen and repeated in your enrollment confirmation.",
     ],
   },
@@ -36,9 +44,9 @@ export const AUTOFUND_TERMS_SECTIONS = [
     ],
   },
   {
-    heading: "3. Your membership fee (Professional, Premier and VIP)",
+    heading: "3. Your membership fee",
     paragraphs: [
-      "Your membership fee is $25 per month. It is charged for access to the membership benefits listed in your disclosure during that monthly period.",
+      "Your membership fee is a separate monthly charge set by your tier: $5.99 on Starter, $10 on Growth, $25 on Professional, $27 on Premier and $30 on VIP. Your exact amount, and the total you are charged each month, are stated in your enrollment disclosure and repeated in your enrollment confirmation.",
       "Your membership fee is not added to your wallet and is not spendable. It does not earn promotional Booking Value.",
       "It is billed as part of your single recurring charge, but is itemised separately on your receipt and in your billing history.",
     ],
