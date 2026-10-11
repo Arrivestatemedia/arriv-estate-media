@@ -232,6 +232,13 @@ export async function sweepStaleCertRuns(client: any, olderThanMinutes = 30) {
     { entity: 'AutoFundPaymentEvent', field: 'payment_event_id' },
     { entity: 'AutoFundConsentRecord', field: 'consent_record_id' },
     { entity: 'AutoFundSubscription', field: 'subscription_id' },
+    // These two key their own ids with afconsent_/afjur_ prefixes that do NOT carry the
+    // run id, so a run interrupted before its teardown could hide here permanently: the
+    // run was undiscoverable and its records were never swept. Their denormalized
+    // customer_email does carry the run id, so the run is discovered from that instead.
+    { entity: 'AutoFundConsentRecord', field: 'customer_email' },
+    { entity: 'AutoFundJurisdictionAudit', field: 'customer_email' },
+    { entity: 'AutoFundSubscription', field: 'customer_email' },
   ];
   for (const probe of probes) {
     const entity = client.entities?.[probe.entity];
