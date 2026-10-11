@@ -205,7 +205,9 @@ export function buildComplianceDisclosure({
     renewal_date_is_estimate: true,
     benefits,
     promotional_credit_restrictions: promotionalRestrictions,
-    promotional_credit_usable_on_standalone_mls: base.promotional_credit_usable_on_standalone_mls,
+    // NOTE: the builder returns this under its full name. Reading the truncated
+    // name left the field undefined, so the restriction flag was never populated.
+    promotional_credit_usable_on_standalone_mls: base.promotional_credit_usable_on_standalone_mls_walkthrough,
     cancellation_procedure: CANCELLATION_PROCEDURE,
     fee_refund_policy: refund.policy,
     fee_refund_policy_statement: refund.statement,

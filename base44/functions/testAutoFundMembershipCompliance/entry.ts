@@ -184,10 +184,14 @@ export default async function (req) {
       `${LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS.length} exceptions incl. statutory override`
     );
 
+    // Built with NO policy argument, i.e. the live default the customer receives.
+    const pendingRefund = buildFeeRefundDisclosure();
     check(
       'B9 · Refundability is not claimed as approved while pending',
-      refund.is_approved === false && DEFAULT_FEE_REFUND_POLICY === 'undetermined',
-      'default policy remains undetermined — no refundability configuration activated'
+      pendingRefund.is_approved === false
+        && pendingRefund.policy === 'undetermined'
+        && DEFAULT_FEE_REFUND_POLICY === 'undetermined',
+      `live default=${pendingRefund.policy}, approved=${pendingRefund.is_approved}`
     );
 
     const wallet = buildWalletTermsDisclosure();
