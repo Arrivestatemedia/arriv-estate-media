@@ -55,6 +55,34 @@ export const AUTOFUND_MEMBERSHIP_FEE: Record<number, number> = {
   150: 0, 250: 0, 350: 25, 500: 25, 1000: 25,
 };
 
+// ┌────────────────────────────────────────────────────────────────────────────
+// LEGACY TIER GRANDFATHERING (owner-confirmed 2026-10-11)
+// ─────────────────────────────────────────────────────────────────────────────
+// The retired tiers and their exact contractual terms:
+//   $50  deposit, 0% bonus, $50.00 Booking Value
+//   $100 deposit, 5% bonus, $105.00 Booking Value
+//   $200 deposit, 10% bonus, $220.00 Booking Value
+//
+// These are NEVER offered to a new customer and are absent from the enrollable
+// tier list. They exist only so an existing legacy subscription or contractual
+// entitlement continues to fund at its contracted terms. The operative resolver
+// is getAutoFundConfig in prepaidEngine.ts.
+//
+// A live audit on 2026-10-11 found ZERO AutoFundSubscription records (zero
+// active, zero paused legacy subscribers) and zero real customer wallets, so the
+// terms are preserved for historical compatibility WITHOUT creating migration
+// records. No customer is silently migrated and no earned Booking Value is
+// removed.
+// ─────────────────────────────────────────────────────────────────────────────
+export const AUTOFUND_LEGACY_TIER_TERMS: Record<number, { bonus_pct: number; booking_value: number }> = {
+  50: { bonus_pct: 0, booking_value: 50 },
+  100: { bonus_pct: 5, booking_value: 105 },
+  200: { bonus_pct: 10, booking_value: 220 },
+};
+
+/** Retired tiers. Preserved for grandfathering; never enrollable. */
+export const AUTOFUND_LEGACY_TIER_AMOUNTS = [50, 100, 200];
+
 /** Monthly membership fee actually chargeable right now (zero while the flag is off). */
 export function getMembershipFee(amount: number): number {
   if (!AUTOFUND_FINAL_FLAGS.membership_fee_enabled) return 0;

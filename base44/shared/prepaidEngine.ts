@@ -530,8 +530,101 @@ export const AUTO_FUND_AMOUNT_OPTIONS = [150, 250, 350, 500, 1000];
 /** Tiers retired from NEW enrollment (existing subscriptions keep their terms). */
 export const AUTO_FUND_RETIRED_AMOUNTS = [50, 100, 200];
 
+// ┌────────────────────────────────────────────────────────────────────────────
+// LEGACY AUTO-FUND TIERS — OWNER-CONFIRMED GRANDFATHERING TERMS
+// ─────────────────────────────────────────────────────────────────────────────
+// Preserved for HISTORICAL COMPATIBILITY ONLY. These are the exact contractual
+// terms of the retired tiers, confirmed by the owner on 2026-10-11:
+//
+//   $50  monthly deposit  →   0% bonus  →   $50.00 Booking Value
+//   $100 monthly deposit  →   5% bonus  →  $105.00 Booking Value
+//   $200 monthly deposit  →  10% bonus  →  $220.00 Booking Value
+//
+// They are DELIBERATELY kept out of AUTO_FUND_AMOUNT_OPTIONS, which is the only
+// list that enrollment, tier display, promotional-allowance and financial-model
+// code iterates. A legacy tier therefore stays fully resolvable for an existing
+// subscription's recurring payment while being impossible to enroll into.
+//
+// Nothing here creates, migrates, rewrites or removes a customer record, and no
+// migration record is required: a live audit on 2026-10-11 found ZERO
+// AutoFundSubscription records — no active and no paused legacy subscriber. An
+// existing legacy subscription keeps its funding amount, bonus and schedule
+// exactly as contracted, and earned Booking Value is never touched.
+// ─────────────────────────────────────────────────────────────────────────────
+export const AUTO_FUND_LEGACY_AMOUNTS: Record<number, AutoFundAmountConfig> = {
+  50: {
+    amount: 50,
+    plan_id: "autofund_50_legacy",
+    tier_name: "Legacy $50",
+    booking_value: 50,
+    bonus_pct: 0,
+    bonus_booking_value: 0,
+    credits: 50 / 275,
+    support_tier: "AUTOFUND_50_LEGACY",
+    support_priority: "standard",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+    ],
+    validity_months: 12,
+  },
+  100: {
+    amount: 100,
+    plan_id: "autofund_100_legacy",
+    tier_name: "Legacy $100",
+    booking_value: 105,
+    bonus_pct: 5,
+    bonus_booking_value: 5,
+    credits: 105 / 275,
+    support_tier: "AUTOFUND_100_LEGACY",
+    support_priority: "standard",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "5% monthly bonus Booking Value",
+    ],
+    validity_months: 12,
+  },
+  200: {
+    amount: 200,
+    plan_id: "autofund_200_legacy",
+    tier_name: "Legacy $200",
+    booking_value: 220,
+    bonus_pct: 10,
+    bonus_booking_value: 20,
+    credits: 220 / 275,
+    support_tier: "AUTOFUND_200_LEGACY",
+    support_priority: "standard",
+    benefits: [
+      "Customer 360",
+      "Arriv Wallet",
+      "Automatic monthly funding",
+      "Rollover Booking Value",
+      "10% monthly bonus Booking Value",
+    ],
+    validity_months: 12,
+  },
+};
+
+/** True when an amount is a retired tier preserved for historical compatibility. */
+export function isLegacyAutoFundAmount(amount: number): boolean {
+  return AUTO_FUND_RETIRED_AMOUNTS.includes(amount);
+}
+
+/**
+ * Resolve the funding configuration for an Auto-Fund amount.
+ *
+ * An enrollable tier resolves from AUTO_FUND_AMOUNTS. A retired tier falls back
+ * to its preserved legacy terms so an existing subscription's recurring payment
+ * still issues the contracted Booking Value. An unknown amount returns null and
+ * the processor fails closed (cash only, no bonus).
+ */
 export function getAutoFundConfig(amount: number): AutoFundAmountConfig | null {
-  return AUTO_FUND_AMOUNTS[amount] || null;
+  return AUTO_FUND_AMOUNTS[amount] || AUTO_FUND_LEGACY_AMOUNTS[amount] || null;
 }
 
 // ┌────────────────────────────────────────────────────────────────────────────

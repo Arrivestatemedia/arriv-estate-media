@@ -2,8 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 // autoFundProcessor: wallet lookup uses .filter(customer_id) + id match (not .get)
 // v2: supports prepaid_purchase event_type with canonical tier bonus
+// v3 (2026-10-11): processor table corrected to the approved FIVE tiers
+//   ($150 / $250 / $350 / $500 / $1,000). The retired $50 / $100 / $200 tiers
+//   resolve through the preserved legacy configuration for grandfathering only
+//   and can no longer be enrolled into. Contains NO pricing activation and NO
+//   enrollment enablement.
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
-import { PREPAID_FEATURE_FLAG_KEY, AUTO_FUND_AMOUNT_OPTIONS } from '../../shared/prepaidEngine.ts';
+import { PREPAID_FEATURE_FLAG_KEY, AUTO_FUND_AMOUNT_OPTIONS, AUTO_FUND_RETIRED_AMOUNTS } from '../../shared/prepaidEngine.ts';
 import { verifyCanonicalRequest, isTimestampFresh } from '../../shared/payrollCrypto.ts';
 import { evaluateCertificationBypass } from '../../shared/certificationMode.ts';
 import {
@@ -24,7 +29,10 @@ function normalizeAmountCharged(raw: number): number {
   // Explicit cents field takes precedence
   // (Arriv Pay may send amount_charged_cents as an explicit integer)
   // This is handled by the caller before calling this function.
-  const PLAN_AMOUNTS = AUTO_FUND_AMOUNT_OPTIONS; // [50, 100, 200, 350, 500, 1000]
+  // Enrollable tiers PLUS the retired tiers preserved for grandfathering, so a
+  // legacy customer's payment is never misread as dollars when Arriv Pay sends
+  // integer cents. Enrollment itself still iterates AUTO_FUND_AMOUNT_OPTIONS.
+  const PLAN_AMOUNTS = [...AUTO_FUND_AMOUNT_OPTIONS, ...AUTO_FUND_RETIRED_AMOUNTS];
   if (PLAN_AMOUNTS.includes(raw)) return raw; // dollars
   if (PLAN_AMOUNTS.includes(raw / 100)) return raw / 100; // cents → dollars
   return raw; // backward compatible: treat as dollars
@@ -369,7 +377,7 @@ export default async function(req) {
       _debug_event_type: event_type,
       _debug_body_event_type: body.event_type,
       _debug_body_keys: Object.keys(body),
-      _webhook_version: 'v2_prepaid_20261009',
+      _webhook_version: 'v3_five_tier_20261011',
       recovery: recoveryResult,
       certification_mode: certResult.isCertification,
       cert_id: certResult.certId,
