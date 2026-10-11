@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   getMlsPromotionalAllowance,
+  MLS_NO_COUNT_CAP,
   evaluateCart,
   resolveMlsPromoEligibility,
   MLS_PROMOTIONAL_ALLOWANCE,
@@ -46,7 +47,10 @@ export default async function (req) {
     // ═══════════════════════════════════════════════════════════════════════
     // 1. TIER-SPECIFIC ALLOWANCE ENFORCEMENT
     // ═══════════════════════════════════════════════════════════════════════
-    const expected: Record<number, number> = { 50: 0, 100: 1, 200: 1, 350: 0, 500: 0, 1000: 0 };
+    // Balance-governed model: the four non-VIP tiers carry NO monthly booking-count
+    // cap (MLS_NO_COUNT_CAP). VIP is 0 because promotional Booking Value is barred from
+    // a standalone MLS Walkthrough, enforced at the transaction against the promo lot.
+    const expected: Record<number, number> = { 150: -1, 250: -1, 350: -1, 500: -1, 1000: 0 };
     let tierOk = true;
     const tierDetail: string[] = [];
     for (const [tier, allowance] of Object.entries(expected)) {
@@ -60,8 +64,8 @@ export default async function (req) {
     // 2. ALLOWANCE RESET AND NON-ACCUMULATION
     // ═══════════════════════════════════════════════════════════════════════
     // A cycle that ends unused does not carry forward: the next cycle opens at 0 used.
-    const cycleA = { granted: getMlsPromotionalAllowance(200), used: 1 };
-    const cycleB = { granted: getMlsPromotionalAllowance(200), used: 0 };
+    const cycleA = { granted: getMlsPromotionalAllowance(350), used: 1 };
+    const cycleB = { granted: getMlsPromotionalAllowance(350), used: 0 };
     const nonAccumulation = cycleB.granted === cycleA.granted && cycleB.used === 0;
     check('2. Allowance reset and non-accumulation', nonAccumulation,
       `Cycle A used ${cycleA.used}/${cycleA.granted}; cycle B opens at ${cycleB.used}/${cycleB.granted}.`);
@@ -71,18 +75,24 @@ export default async function (req) {
     // 4. DIRECT-PAYMENT PURCHASES
     // ═══════════════════════════════════════════════════════════════════════
     const mlsCart = [{ pkg: 'mls', sqft: 2000 }];
-    const exhausted = resolveMlsPromoEligibility({
-      tier_amount: 1000, items: mlsCart, is_standalone_mls: true, allowance_used_this_cycle: 0,
+    // Non-VIP tiers: no monthly count cap. Promotional value stays eligible on a
+    // standalone MLS Walkthrough no matter how many were already taken this cycle —
+    // the customer's available balance is the only bound.
+    const uncappedTier = resolveMlsPromoEligibility({
+      tier_amount: 350, items: mlsCart, is_standalone_mls: true, allowance_used_this_cycle: 99,
     });
-    check('3. Cash-funded MLS after exhaustion permitted', exhausted.promo_eligible === false,
-      `Standalone MLS with allowance exhausted → promotional eligible: ${exhausted.promo_eligible}; cash-funded path remains open.`);
+    check('3. Non-VIP tiers carry no monthly count cap on promotional MLS spend',
+      uncappedTier.promo_eligible === true && uncappedTier.consumes_allowance === false && uncappedTier.count_capped === false,
+      `promo_eligible=${uncappedTier.promo_eligible} consumes_allowance=${uncappedTier.consumes_allowance} count_capped=${uncappedTier.count_capped} after 99 prior bookings this cycle.`);
 
-    const direct = resolveMlsPromoEligibility({
+    // VIP: promotional value is barred from a standalone MLS Walkthrough entirely.
+    // Cash-funded Booking Value, additional deposits and direct payment stay open.
+    const vipBarred = resolveMlsPromoEligibility({
       tier_amount: 1000, items: mlsCart, is_standalone_mls: true, allowance_used_this_cycle: 0,
     });
-    check('4. Direct-payment purchase consumes no allowance',
-      direct.consumes_allowance === false || direct.promo_eligible === false,
-      `Direct payment path: consumes_allowance=${direct.consumes_allowance}.`);
+    check('4. VIP promotional value barred from standalone MLS; cash-funded path open',
+      vipBarred.promo_eligible === false && vipBarred.consumes_allowance === false,
+      `VIP promo_eligible=${vipBarred.promo_eligible}; cash-funded Booking Value remains fully usable.`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // 5. QUALIFYING BUNDLES
@@ -149,7 +159,7 @@ export default async function (req) {
     }
 
     try {
-      const fx = await makeFixture(200, 'a'); // $200 tier → allowance 1
+      const fx = await makeFixture(350, 'a'); // $350 → no monthly booking-count cap
 
       const mk = async (payload: any) => {
         try {
@@ -162,13 +172,13 @@ export default async function (req) {
       };
 
       const status0 = await mk({ action: 'get_status', subscription_id: fx.sub.id });
-      check('9. Allowance status opens at zero used',
-        status0?.allowance_granted === 1 && status0?.allowance_used === 0,
-        `granted=${status0?.allowance_granted} used=${status0?.allowance_used}`);
+      check('9. Cycle opens uncapped at zero used',
+        status0?.allowance_granted === MLS_NO_COUNT_CAP && status0?.allowance_used === 0 && status0?.allowance_uncapped === true,
+        `granted=${status0?.allowance_granted} used=${status0?.allowance_used} uncapped=${status0?.allowance_uncapped}`);
 
-      // Consume once → 1/1
+      // Consumption is still recorded for idempotency and audit — it just never caps.
       const c1 = await mk({ action: 'consume', subscription_id: fx.sub.id, booking_id: `${runId}_bk1` });
-      check('10. Allowance consumption', c1?.status === 'consumed' && c1?.allowance_used === 1,
+      check('10. Consumption recorded without a count cap', c1?.status === 'consumed' && c1?.allowance_used === 1,
         `status=${c1?.status} used=${c1?.allowance_used}`);
 
       // Idempotency — same booking id again
@@ -176,14 +186,15 @@ export default async function (req) {
       check('11. Idempotent consumption (same booking)', c1b?.status === 'noop' && c1b?.allowance_used === 1,
         `status=${c1b?.status} used=${c1b?.allowance_used}`);
 
-      // Concurrent-style second distinct booking → blocked
+      // A second distinct standalone walkthrough must NOT be blocked on a non-VIP tier.
       const c2 = await mk({ action: 'consume', subscription_id: fx.sub.id, booking_id: `${runId}_bk2` });
-      check('12. Second distinct booking blocked at exhaustion', c2?.status === 'blocked',
-        `status=${c2?.status} reason=${c2?.reason}`);
+      check('12. A second standalone walkthrough is not blocked (no count cap)',
+        c2?.status === 'consumed' && c2?.allowance_used === 2,
+        `status=${c2?.status} used=${c2?.allowance_used} reason=${c2?.reason || 'none'}`);
 
       // Restore on cancellation
       const r1 = await mk({ action: 'restore', subscription_id: fx.sub.id, booking_id: `${runId}_bk1` });
-      check('13. Refund/cancellation restores the allowance unit', r1?.status === 'restored' && r1?.allowance_used === 0,
+      check('13. Refund/cancellation restores the consumption record', r1?.status === 'restored' && r1?.allowance_used === 1,
         `status=${r1?.status} used=${r1?.allowance_used}`);
 
       // Restore again → no-op (idempotent)
@@ -202,15 +213,15 @@ export default async function (req) {
       await svc.entities.AutoFundSubscription.update(fx2.sub.id, { amount: 250, plan_id: 'autofund_250', updated_at: new Date().toISOString() });
       await mk({ action: 'reset_cycle', subscription_id: fx2.sub.id });
       const afterChange = await mk({ action: 'get_status', subscription_id: fx2.sub.id });
-      check('16. Subscription tier change re-derives allowance on the next cycle',
-        afterChange?.allowance_granted === getMlsPromotionalAllowance(200),
-        `new granted=${afterChange?.allowance_granted} (expected ${getMlsPromotionalAllowance(200)})`);
+      check('16. Subscription tier change takes effect on the next cycle',
+        afterChange?.tier_amount === 250,
+        `tier after change=${afterChange?.tier_amount} granted=${afterChange?.allowance_granted}`);
 
       // Pause does not consume or grant
       await svc.entities.AutoFundSubscription.update(fx.sub.id, { status: 'paused', updated_at: new Date().toISOString() });
       const pausedStatus = await mk({ action: 'get_status', subscription_id: fx.sub.id });
       check('17. Pause preserves the allowance without granting more',
-        pausedStatus?.allowance_granted === 1,
+        pausedStatus?.allowance_granted === MLS_NO_COUNT_CAP,
         `paused granted=${pausedStatus?.allowance_granted} used=${pausedStatus?.allowance_used}`);
 
       // Collect created allowance records for cleanup
@@ -231,8 +242,9 @@ export default async function (req) {
     check('18. Commission suppression preserved', bookingCommissionRate === 0,
       'Any booking that applies wallet value (including partial cash shortfalls) carries 0% booking-level commission. A fully direct-paid booking applies no wallet value and is a standard marketplace booking (15%).');
 
-    check('19. Specialist payout preserved', MLS_PAYOUT === 50 && MLS_RETAIL === 100,
-      `MLS guaranteed payout unchanged at $${MLS_PAYOUT} on $${MLS_RETAIL} retail.`);
+    check('19. Specialist payout preserved on the owner-approved price',
+      MLS_PAYOUT === 50 && MLS_RETAIL === 120,
+      `MLS guaranteed payout unchanged at $${MLS_PAYOUT}; allowance math is valued at the owner-approved $${MLS_RETAIL} retail while the live retail price stays $100 until V2 is activated.`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // 20. BYPASS RESISTANCE — package reclassification and manipulation
@@ -270,9 +282,11 @@ export default async function (req) {
     // ═══════════════════════════════════════════════════════════════════════
     // 23. THE ALLOWANCE IS A BOOKING-COUNT LIMIT ONLY, NOT A DOLLAR LIMIT
     // ═══════════════════════════════════════════════════════════════════════
-    check('23. Allowance is a booking-count limit only',
-      MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY === true && MLS_ALLOWANCE_MECHANICS.dollar_value_cap === null,
-      'One eligible standalone walkthrough consumes one allowance unit regardless of how much of its price promotional credits cover.');
+    check('23. The allowance is balance-governed, not count-governed',
+      MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY === false &&
+      MLS_ALLOWANCE_MECHANICS.monthly_booking_count_cap === null &&
+      MLS_ALLOWANCE_MECHANICS.dollar_value_cap === null,
+      `count_governed=${MLS_ALLOWANCE_IS_BOOKING_COUNT_ONLY} monthly_count_cap=${MLS_ALLOWANCE_MECHANICS.monthly_booking_count_cap} dollar_cap=${MLS_ALLOWANCE_MECHANICS.dollar_value_cap}`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // 24. NO SILENT ZEROS — every zero carries its reason and exact shortfall

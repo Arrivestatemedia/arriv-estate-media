@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   getMlsPromotionalAllowance,
+  MLS_NO_COUNT_CAP,
   evaluateCart,
   resolveMlsPromoEligibility,
   describeAllowance,
@@ -139,7 +140,8 @@ export default async function (req) {
         tier_amount: sub.amount,
         allowance_granted: granted,
         allowance_used: used,
-        allowance_remaining: Math.max(0, granted - used),
+        allowance_uncapped: granted === MLS_NO_COUNT_CAP,
+        allowance_remaining: granted === MLS_NO_COUNT_CAP ? null : Math.max(0, granted - used),
         billing_cycle_start: rec.billing_cycle_start,
         billing_cycle_end: rec.billing_cycle_end,
         rules_version: rec.rules_version,
@@ -189,7 +191,14 @@ export default async function (req) {
       if (consumed.includes(bookingId)) {
         return Response.json({ status: 'noop', reason: 'already_consumed', allowance_used: rec.allowance_used });
       }
-      if ((rec.allowance_used ?? 0) >= (rec.allowance_granted ?? 0)) {
+      // Balance-governed tiers carry NO monthly booking-count cap. Promotional spend on
+      // a standalone walkthrough is bounded only by the customer's available balance,
+      // so the consumption is recorded for idempotency and audit but never blocked.
+      // A capped tier (or an explicit admin override) still blocks at exhaustion, and a
+      // $0 grant — the VIP tier — still blocks promotional use entirely.
+      const granted = rec.allowance_granted ?? 0;
+      const uncapped = granted === MLS_NO_COUNT_CAP;
+      if (!uncapped && (rec.allowance_used ?? 0) >= granted) {
         return Response.json({
           status: 'blocked',
           reason: 'allowance_exhausted',
