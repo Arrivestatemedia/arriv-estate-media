@@ -88,10 +88,12 @@ export default async function (req) {
         && realCodes.includes('ENROLLMENT_NOT_ENABLED')
         && realCodes.includes('FEE_NOT_ENABLED')
         && realCodes.includes('LEGAL_TERMS_NOT_APPROVED')
-        && realCodes.includes('FEE_REFUND_POLICY_UNDETERMINED')
         && realCodes.includes('WALLET_TERMS_NOT_APPROVED')
-        && realCodes.includes('VIP_RESTRICTION_INACTIVE'),
-      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')}`);
+        && realCodes.includes('VIP_RESTRICTION_INACTIVE')
+        // The fee refund policy is now OWNER-ADOPTED, so that gate is satisfied and
+        // must no longer appear as a blocker. Its failure mode stays injectable (K5d).
+        && !realCodes.includes('FEE_REFUND_POLICY_UNDETERMINED'),
+      `${real.blockers.length} unmet requirement(s): ${realCodes.join(', ')} — fee refund policy is OWNER-ADOPTED (satisfied); the legal approvals remain unmet`);
 
     const realRefusal = track(await enrollCert({
       email: 'cert_interlock_real@example.com',
