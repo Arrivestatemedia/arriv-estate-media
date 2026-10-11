@@ -19,7 +19,16 @@ import {
   MLS_PRICE_STANDARD_LIVE,
   MLS_PRICE_STANDARD_APPROVED,
   MLS_PRICING_VERSION_LIVE,
+  MLS_PRICE_V1_BY_TIER,
+  MLS_PRICE_V2_BY_TIER,
+  mlsPriceVersionFromLabel,
 } from '../../shared/mlsPricing.ts';
+import {
+  VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
+  VIP_SUPPORT_ASSUMED_COST_PER_SESSION,
+  buildVipSupportProposalDisclosure,
+} from '../../shared/autoFundVipSupportProposal.ts';
+import { feePolicyAuditRecord } from '../../shared/autoFundFeePolicy.ts';
 import { AUTOFUND_MEMBERSHIP_FEE, AUTOFUND_FINAL_FLAGS } from '../../shared/autoFundFinalConfig.ts';
 
 /**
@@ -397,6 +406,15 @@ export default async function (req: Request): Promise<Response> {
       // Disputes, held apart from operating results. Never presented as normal.
       const dispute2 = runScenario(tier, price, EXPECTED_BASIS, VIP_SUPPORT_EXPECTED, 2, false);
       const dispute4 = runScenario(tier, price, CONSERVATIVE_BASIS, VIP_SUPPORT_MAX_CONTRACTUAL, 4, false);
+      // The owner's PROPOSED VIP benefit (up to 12 qualifying sessions a year),
+      // tested as an operating arm under BOTH cost bases. It is a proposal, not a
+      // contractual entitlement, so it informs pricing rather than asserting a right.
+      const vipProposalArm = {
+        sessions_per_year: VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
+        cost_per_session: VIP_SUPPORT_ASSUMED_COST_PER_SESSION,
+      };
+      const vip12Expected = runScenario(tier, price, EXPECTED_BASIS, vipProposalArm, 0, true);
+      const vip12HighCost = runScenario(tier, price, CONSERVATIVE_BASIS, vipProposalArm, 0, true);
 
       return {
         tier,
@@ -425,6 +443,16 @@ export default async function (req: Request): Promise<Response> {
           ...summarize(vipFullSupport.worst, tier, vipFullSupport.overlaid),
           applies_to_this_tier: tier === VIP_TIER,
           entitlement: 'The full contractual 48 enhanced-support sessions per year. Serving it is required by the contract.',
+        },
+        vip_12_session_proposal: {
+          ...summarize(vip12Expected.worst, tier, vip12Expected.overlaid),
+          applies_to_this_tier: tier === VIP_TIER,
+          proposal_status: 'PROPOSED_AWAITING_OWNER_APPROVAL — not a contractual entitlement',
+          sessions_per_year: VIP_SUPPORT_PROPOSED_SESSIONS_PER_YEAR,
+          cost_basis_expected_contribution_dollars: vip12Expected.overlaid.contribution_dollars,
+          cost_basis_high_cost_contribution_dollars: vip12HighCost.overlaid.contribution_dollars,
+          full_utilization_contribution_positive_expected_basis: vip12Expected.overlaid.passes,
+          full_utilization_contribution_positive_high_cost_basis: vip12HighCost.overlaid.passes,
         },
         dispute_stress_2_chargebacks: summarize(dispute2.worst, tier, dispute2.overlaid),
         dispute_stress_4_chargebacks_max_adverse: summarize(dispute4.worst, tier, dispute4.overlaid),
@@ -486,6 +514,7 @@ export default async function (req: Request): Promise<Response> {
       normal_operations_measured_cost: 'operating_profitability',
       normal_operations_fee_not_collectible: 'operating_profitability',
       vip_full_contractual_support: 'contractual_usage_requirement',
+      vip_12_session_proposal: 'owner_proposed_vip_benefit',
       dispute_stress_2_chargebacks: 'dispute_stress_exceptional',
       dispute_stress_4_chargebacks_max_adverse: 'dispute_stress_exceptional',
     };
@@ -583,6 +612,33 @@ export default async function (req: Request): Promise<Response> {
         no_negative_operating_scenarios: operatingNegatives.length === 0,
       },
       price_verification: priceVerification,
+      price_activation_readiness: {
+        note: 'Condition D — a synchronized V2 deployment with no V1 fallback inconsistency.',
+        active_pricing_version: activeRecord?.pricing_version ?? null,
+        active_version_resolves_to: mlsPriceVersionFromLabel(activeRecord?.pricing_version),
+        code_live_version: MLS_PRICING_VERSION_LIVE,
+        code_matches_active_record:
+          mlsPriceVersionFromLabel(activeRecord?.pricing_version) === MLS_PRICING_VERSION_LIVE,
+        v1_fallback_inconsistency_present:
+          mlsPriceVersionFromLabel(activeRecord?.pricing_version) !== MLS_PRICING_VERSION_LIVE,
+        ladders: { v1: MLS_PRICE_V1_BY_TIER, v2: MLS_PRICE_V2_BY_TIER },
+        activation_is_atomic:
+          'Both changes must land together. Activating only the pricing record would leave every constant-reading surface on V1 — exactly the fallback inconsistency this check exists to catch.',
+        atomic_activation_steps: [
+          'Set the approved V2 MediaPricingConfig record to is_active = true and the V1 record to false.',
+          "Set MLS_PRICING_VERSION_LIVE to 'V2' in base44/shared/mlsPricing.ts so the constant-reading surfaces follow the record.",
+          'Re-run this verification: code_matches_active_record must be true and v1_fallback_inconsistency_present false.',
+        ],
+        surfaces_to_reverify_after_activation: [
+          'retail checkout pricing',
+          'booking totals and their stored pricing snapshots',
+          'invoices (pay-up-front, deposit, final closing, B2B)',
+          'B2B media-credit costing',
+          'Auto-Fund MLS allowance and redemption math',
+        ],
+      },
+      vip_support_proposal: buildVipSupportProposalDisclosure(),
+      fee_policy_adoption: feePolicyAuditRecord(),
       scenario_definitions: SCENARIO_DEFINITIONS,
       table_at_production_price: tableAtProduction,
       table_at_approved_price_not_activated: tableAtApprovedPrice,

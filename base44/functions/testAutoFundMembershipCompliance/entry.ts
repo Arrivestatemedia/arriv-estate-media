@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { FEE_POLICY_COUNSEL_REVIEW_STATUS, feePolicyCounselReviewCompleted } from '../../shared/autoFundFeePolicy.ts';
 import { enrollAutoFund, CURRENT_TERMS_VERSION } from '../../shared/autoFundEnrollment.ts';
 import {
   AUTOFUND_ENROLLMENT_FLAG_KEY,
@@ -268,10 +269,14 @@ export default async function (req) {
         && refund.exceptions.some(e => /materially fails/i.test(e)),
       `${LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS.length} exceptions incl. statutory override`);
 
-    const pendingRefund = buildFeeRefundDisclosure();
-    check('B9 · Refundability is not claimed as approved while pending',
-      pendingRefund.is_approved === false && pendingRefund.policy === 'undetermined' && DEFAULT_FEE_REFUND_POLICY === 'undetermined',
-      `live default=${pendingRefund.policy}, approved=${pendingRefund.is_approved}`);
+    const liveRefund = buildFeeRefundDisclosure();
+    check('B9 · Live refund policy is the OWNER-ADOPTED policy and is NOT counsel-approved',
+      liveRefund.policy === 'non_refundable'
+        && DEFAULT_FEE_REFUND_POLICY === 'non_refundable'
+        && liveRefund.is_approved === true
+        && FEE_POLICY_COUNSEL_REVIEW_STATUS === 'not_completed'
+        && !feePolicyCounselReviewCompleted(),
+      `live default=${liveRefund.policy}, policy_decided=${liveRefund.is_approved}, counsel_review=${FEE_POLICY_COUNSEL_REVIEW_STATUS}`);
 
     const wallet = buildWalletTermsDisclosure();
     check('B10 · Wallet terms state only verified behaviour',
@@ -713,7 +718,7 @@ export default async function (req) {
     // ─────────────────────────────────────────────────────────────────────
     const cleanup = await cleanupAll();
 
-    blockers.push('Membership-fee refundability is undetermined and unapproved — cannot be verified as compliant.');
+    blockers.push('Membership-fee refund policy is OWNER-ADOPTED (nonrefundable in the ordinary case, with statutory and error exceptions), but external counsel review is NOT completed — the membership terms and the separate wallet terms remain unapproved.');
     blockers.push('Separate wallet refund, expiration and unclaimed-property terms are unapproved.');
     blockers.push('Renewal-notice statutory cadence is unconfirmed for every jurisdiction.');
     blockers.push('Jurisdiction conflicts and non-US billing addresses are flagged for review but have no review workflow yet.');

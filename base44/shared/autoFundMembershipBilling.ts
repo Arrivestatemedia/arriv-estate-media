@@ -16,10 +16,11 @@
 // Every write is idempotent on `payment_event_id`, so a duplicated Arriv Pay
 // webhook cannot charge a fee twice or record it twice.
 //
-// REFUNDABILITY: the policy is CONFIGURABLE and deliberately defaults to
-// 'undetermined'. This module does not assume fees are non-refundable. The legal
-// disclosure requirement is flagged for owner review before launch — see
-// FEE_REFUND_POLICY_DISCLOSURE and the launch blockers in the certification report.
+// REFUNDABILITY: the owner ADOPTED the $25 membership-fee refund policy as official
+// business policy on 2026-10-11, so the default is the adopted policy rather than
+// 'undetermined' (see autoFundFeePolicy.ts). Owner adoption is a business decision
+// and is NOT counsel approval: the launch interlock's legal gates remain
+// unsatisfied and feePolicyCounselReviewCompleted() stays false.
 // ============================================================================
 
 import {
@@ -29,6 +30,12 @@ import {
   getTotalMonthlyCharge,
 } from './autoFundFinalConfig.ts';
 import { round2 } from './prepaidEngine.ts';
+import {
+  ADOPTED_FEE_REFUND_POLICY,
+  buildAdoptedFeePolicyStatement,
+  FEE_POLICY_COUNSEL_REVIEW_STATUS,
+} from './autoFundFeePolicy.ts';
+import { emergencyStopRefusal, isAutoFundEmergencyStopped } from './autoFundEmergencyStop.ts';
 
 export const MEMBERSHIP_FEE_EVENT_TYPE = 'membership_fee';
 export const WALLET_FUNDING_COMPONENT = 'wallet_funding';
@@ -42,11 +49,15 @@ export type FeeRefundPolicy =
   | 'refundable_prorated';
 
 /**
- * Default policy. 'undetermined' is intentional: the system records fees and
- * refuses to make a refund decision it has no authority to make. The owner sets
- * the real policy before launch.
+ * Default policy — the OWNER-ADOPTED business policy (autoFundFeePolicy.ts).
+ *
+ * 'non_refundable' applies to the ordinary case and is never applied bare: every
+ * disclosure carries the exceptions and the statutory-override clause. Counsel
+ * review of the membership terms and the separate wallet terms remains outstanding
+ * (FEE_POLICY_COUNSEL_REVIEW_STATUS = 'not_completed'), so this value records the
+ * owner's business decision only — never a legal determination.
  */
-export const DEFAULT_FEE_REFUND_POLICY: FeeRefundPolicy = 'undetermined';
+export const DEFAULT_FEE_REFUND_POLICY: FeeRefundPolicy = ADOPTED_FEE_REFUND_POLICY;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REFUND LANGUAGE — LEGALLY CONSERVATIVE
@@ -67,9 +78,10 @@ export const LEGALLY_REQUIRED_FEE_REFUND_EXCEPTIONS: string[] = [
 
 export const FEE_REFUND_POLICY_DISCLOSURE: Record<FeeRefundPolicy, string> = {
   undetermined:
-    'The refund policy for the membership fee has not been finalised and is under legal review. Nothing here waives any refund right you have under applicable law.',
-  non_refundable:
-    'A correctly charged membership fee is generally not refundable once the membership period has begun and the membership benefits for that period have been made available to you.',
+    'The refund policy for the membership fee has not been finalised. Nothing here waives any refund right you have under applicable law.',
+  // The owner-adopted policy, built from the adopted clauses so the wording a
+  // customer sees cannot drift from the policy the owner adopted.
+  non_refundable: buildAdoptedFeePolicyStatement(),
   refundable_full:
     'The membership fee is refundable in full on request.',
   refundable_prorated:
@@ -80,9 +92,18 @@ export function describeFeeRefundPolicy(policy: FeeRefundPolicy): string {
   return FEE_REFUND_POLICY_DISCLOSURE[policy] || FEE_REFUND_POLICY_DISCLOSURE.undetermined;
 }
 
-/** True only once the owner has selected a real policy after legal approval. */
+/**
+ * True once a real policy is in force — now the owner-adopted policy. This says
+ * the policy is DECIDED, not that counsel approved it: see
+ * FEE_POLICY_COUNSEL_REVIEW_STATUS, which remains 'not_completed'.
+ */
 export function feeRefundPolicyApproved(policy: FeeRefundPolicy): boolean {
   return policy !== 'undetermined';
+}
+
+/** True only when external counsel has genuinely completed review. Never inferred. */
+export function feePolicyCounselApproved(): boolean {
+  return FEE_POLICY_COUNSEL_REVIEW_STATUS === 'completed';
 }
 
 export interface FeeRefundDisclosure {
@@ -298,6 +319,14 @@ export async function processMembershipFee({
 }) {
   if (!payment_event_id) {
     return { status: 'error', error: 'payment_event_id is required', error_code: 'FEE_EVENT_ID_REQUIRED' };
+  }
+
+  // ── Emergency stop: no NEW fee may be billed while it is active ───────────
+  // Evaluated BEFORE the billing switch, so an active stop refuses with its own
+  // unambiguous code and is verifiable without having to enable billing first.
+  // Certification runs bypass it so the isolated suites stay exercisable.
+  if (cert_mode !== true && await isAutoFundEmergencyStopped(base44)) {
+    return emergencyStopRefusal('membership-fee billing', { payment_event_id });
   }
 
   // ── Fail closed while billing is switched off ─────────────────────────────

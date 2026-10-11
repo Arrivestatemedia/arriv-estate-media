@@ -92,6 +92,63 @@ export const AUTOFUND_WALLET_UNRESOLVED: UnresolvedWalletQuestion[] = [
     why_it_blocks:
       'Current behaviour preserves the balance as usable Booking Value. Whether that satisfies applicable law is undetermined.',
   },
+  {
+    id: 'DORMANT_BALANCE_TRACKING',
+    question: 'Must dormant balances be tracked, reported or treated in a particular way, and from what dormancy period?',
+    why_it_blocks:
+      'No dormancy tracking exists. Balances simply persist as usable value until their lot expires, so any dormancy obligation is currently unmeasured rather than satisfied.',
+  },
+];
+
+/**
+ * The owner-listed wallet topics, each marked DETERMINED (a verified fact that is
+ * safe to state) or UNRESOLVED (blocked on a legal determination, and therefore
+ * never turned into customer copy). No expiry rule, forfeiture rule or cash-out
+ * right is invented here: an unresolved topic stays unresolved until counsel
+ * decides it.
+ */
+export interface WalletTopic {
+  topic: string;
+  status: 'determined' | 'unresolved';
+  statement?: string;
+  unresolved_id?: string;
+}
+
+export const AUTOFUND_WALLET_TOPICS: WalletTopic[] = [
+  {
+    topic: 'Cash-funded versus promotional Booking Value',
+    status: 'determined',
+    statement:
+      'Booking Value is either cash-funded (from your own deposits) or promotional (granted by Arriv at no cash cost to you). A lot records which it is, so promotional value can never be mistaken for cash-funded value.',
+  },
+  {
+    topic: 'Rollover of unused value between cycles',
+    status: 'determined',
+    statement:
+      'Unused Booking Value is not re-issued, extended or reset at a billing-cycle boundary. Each funding lot keeps the validity it was issued with, and your balance is the total of the lots that have not expired.',
+  },
+  {
+    topic: 'Redemption eligibility',
+    status: 'determined',
+    statement:
+      'Cash-funded Booking Value can be redeemed against any Arriv service. Promotional Booking Value applies only up to the retail value of eligible services actually present in the cart, and on the VIP tier it cannot be applied to a standalone MLS Walkthrough.',
+  },
+  {
+    topic: 'Cancellation',
+    status: 'determined',
+    statement:
+      'Cancelling stops future recurring charges and does not erase, forfeit or confiscate cash-funded Booking Value; the balance stays in the wallet and remains usable. Whether an unused balance must instead be returned is a separate open question (BALANCE_AT_CANCELLATION).',
+  },
+  { topic: 'Refunds of unused wallet balance', status: 'unresolved', unresolved_id: 'WALLET_REFUND_RIGHTS' },
+  { topic: 'Dormant balances', status: 'unresolved', unresolved_id: 'DORMANT_BALANCE_TRACKING' },
+  { topic: 'Unclaimed-property and escheat obligations', status: 'unresolved', unresolved_id: 'UNCLAIMED_PROPERTY' },
+  {
+    topic: 'Treatment of balances following a dispute',
+    status: 'determined',
+    statement:
+      'An open dispute suspends the unspent value it relates to, per lot, so the suspended value cannot be spent; it is not redeemed, expired or charged as a fee, and the lot keeps its remaining value. If the dispute is resolved in your favour the exact amount is restored. If it is lost, the suspended value is reversed. Treatment of any already-redeemed portion is a separate open question (REDEEMED_CREDIT_REVERSAL).',
+  },
+  { topic: 'Expiry of cash-funded value', status: 'unresolved', unresolved_id: 'WALLET_EXPIRY_LAWFULNESS' },
 ];
 
 /** True when the wallet terms are still awaiting legal approval. */
@@ -111,6 +168,8 @@ export interface WalletTermsDisclosure {
   balance_preserved_on_cancellation: boolean;
   /** Validity applied to a funding lot, in months. */
   lot_validity_months: number;
+  /** Every owner-listed wallet topic, marked determined or unresolved. */
+  topics: WalletTopic[];
 }
 
 /**
@@ -132,5 +191,6 @@ export function buildWalletTermsDisclosure(): WalletTermsDisclosure {
       'Arriv does not currently offer cash withdrawal, cash-out or a customer-requested refund of wallet balance. Wallet balance is used toward services.',
     ],
     unresolved_questions: AUTOFUND_WALLET_UNRESOLVED.map(q => q.question),
+    topics: AUTOFUND_WALLET_TOPICS,
   };
 }

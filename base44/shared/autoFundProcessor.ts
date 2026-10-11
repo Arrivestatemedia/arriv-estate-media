@@ -25,6 +25,7 @@ import {
   PREPAID_TIERS,
 } from './prepaidEngine.ts';
 import { isCertificationId } from './certificationMode.ts';
+import { emergencyStopRefusal, isAutoFundEmergencyStopped } from './autoFundEmergencyStop.ts';
 
 import { AUTOFUND_FINAL_FLAGS } from './autoFundFinalConfig.ts';
 import { isFeeComponent } from './autoFundMembershipBilling.ts';
@@ -126,6 +127,12 @@ async function isFirstAutoFundPayment(base44, customerId, currentPaymentEventId)
 export async function processAutoFundPayment(params: ProcessPaymentParams) {
   const { base44, ...data } = params;
   const idPrefix = data.cert_mode ? 'cert_' : '';
+
+  // ── Emergency stop — fail fast, BEFORE identity resolution, wallet lookup and
+  // any value issuance, so nothing can be issued behind an active stop.
+  if (!data.cert_mode && await isAutoFundEmergencyStopped(base44)) {
+    return emergencyStopRefusal('wallet funding', { payment_event_id: data.payment_event_id });
+  }
   // Deployed payment contract — supports prepaid_purchase, topup, recurring/retry
 
   // ── Idempotency: check if this payment event was already processed ─────────

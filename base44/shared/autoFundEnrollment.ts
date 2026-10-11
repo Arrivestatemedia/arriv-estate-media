@@ -30,6 +30,7 @@ import {
   buildEnrollmentDisclosure,
 } from './autoFundFinalConfig.ts';
 import { evaluateEnrollmentGate, EMERGENCY_SWITCH_SEMANTICS } from './enrollmentCohort.ts';
+import { emergencyStopRefusal, isAutoFundEmergencyStopped } from './autoFundEmergencyStop.ts';
 
 /**
  * Retention for consent-evidence personal data (IP address and user agent).
@@ -216,6 +217,13 @@ export async function enrollAutoFund(req: EnrollmentRequest): Promise<Enrollment
     !!bypass?.admin_email &&
     !!bypass?.launch_configuration &&
     /^cert_/i.test(String(req.customer_email || ''));
+
+  // ── Emergency stop — evaluated BEFORE the launch gate, so a stop refusal is
+  // unambiguous and is the first thing a caller sees. Nothing downstream (cohort
+  // lookup, consent record, interlock evaluation) runs behind it.
+  if (!isCertificationRun && await isAutoFundEmergencyStopped(base44)) {
+    return emergencyStopRefusal('new enrollment') as EnrollmentResult;
+  }
 
   if (!isCertificationRun && !isEnrollmentOpen(flagArr.length > 0 ? flagArr[0].value : null)) {
     return { status: 'enrollment_closed', error: 'Auto-Fund enrollment is closed pending owner launch authorization.' };
