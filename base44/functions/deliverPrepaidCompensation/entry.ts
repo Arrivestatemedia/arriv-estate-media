@@ -3,6 +3,7 @@ import { secrets } from 'base44:runtime';
 import { signRequest, isNonRetryableError, backoffDelayMs } from '../../shared/payrollCrypto.ts';
 import { PREPAID_FEATURE_FLAG_KEY } from '../../shared/prepaidEngine.ts';
 import { checkDeliveryGuard, partitionByDeliveryGuard } from '../../shared/certificationDeliveryGuard.ts';
+import { getPayrollConfig } from '../../shared/payrollSettings.ts';
 
 /**
  * Prepaid Compensation Delivery Pipeline
@@ -153,13 +154,21 @@ async function deliverOneEvent(base44, eventId, existingEvent = null) {
   }
 
   const apiSecret = secrets.get("ARRIV_PAYROLL_API_SECRET");
-  const payEndpoint = secrets.get("ARRIV_PAYROLL_API_ENDPOINT");
+
+  // ENDPOINT SOURCE OF TRUTH (verified defect repair):
+  // this previously read ARRIV_PAYROLL_API_ENDPOINT directly, which pointed at
+  // https://arriv-payroll.core.base44.app — a host that answers no TLS handshake at all
+  // (Cloudflare 525). It now resolves through the same authoritative resolver employee
+  // sync uses, so one corrected value governs every outbound payroll path and a stale
+  // secret can no longer send compensation into a dead host.
+  const payrollConfig = await getPayrollConfig(base44);
+  const payEndpoint = payrollConfig.endpoint;
 
   if (!apiSecret) {
     return { error: 'ARRIV_PAYROLL_API_SECRET not configured', status: 'FAILED' };
   }
   if (!payEndpoint) {
-    return { error: 'ARRIV_PAYROLL_API_ENDPOINT not configured', status: 'FAILED' };
+    return { error: 'Arriv Payroll endpoint not configured', status: 'FAILED' };
   }
 
   // Build the compensation payload for Arriv Pay

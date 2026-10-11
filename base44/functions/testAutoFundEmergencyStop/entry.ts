@@ -8,6 +8,7 @@ import {
 import { processMembershipFee, recordFeeRefund } from '../../shared/autoFundMembershipBilling.ts';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
+import { cleanupCertRun } from '../../shared/certRunCleanup.ts';
 
 /**
  * ADMIN-ONLY CERTIFICATION — AUTO-FUND EMERGENCY STOP.
@@ -25,6 +26,8 @@ import { enrollAutoFund } from '../../shared/autoFundEnrollment.ts';
  */
 
 export default async function (req: Request): Promise<Response> {
+  // Declared outside the try so the exception path can still tear the run down.
+  const RUN = `cert_emstop_${Date.now()}`;
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -33,7 +36,6 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const b = base44.asServiceRole;
-    const RUN = `cert_emstop_${Date.now()}`;
     const results: { name: string; passed: boolean; details: any }[] = [];
     const check = (name: string, passed: boolean, details: any = '') =>
       results.push({ name, passed: !!passed, details: typeof details === 'string' ? details : JSON.stringify(details) });
@@ -211,16 +213,12 @@ export default async function (req: Request): Promise<Response> {
     );
 
     // ── Cleanup ──────────────────────────────────────────────────────────────
-    const cleanupErrors: string[] = [];
-    for (const id of [`${RUN}_fee`, `${RUN}_fee_declared`]) {
-      try {
-        const rows = await b.entities.AutoFundPaymentEvent.filter({ payment_event_id: id }, undefined, 5);
-        const arr = Array.isArray(rows) ? rows : (rows?.data || []);
-        for (const r of arr) await b.entities.AutoFundPaymentEvent.delete(r.id);
-      } catch (e: any) {
-        cleanupErrors.push(`${id}: ${e.message}`);
-      }
-    }
+    // Shared run-scoped teardown. The previous inline version removed only the two fee
+    // events; once enrollment opened this suite began SUCCEEDING at its baseline
+    // enrollment, and the subscription, wallet, consent record and jurisdiction audit it
+    // created were never removed. Teardown now covers every dependent object.
+    const cleanup = await cleanupCertRun(b, RUN);
+    const cleanupErrors: string[] = [...cleanup.errors];
     try {
       await setStop(null);
     } catch (e: any) {
@@ -229,16 +227,10 @@ export default async function (req: Request): Promise<Response> {
 
     const remainingFlag = await b.entities.AppSetting.filter({ key: AUTOFUND_EMERGENCY_STOP_KEY }, undefined, 5);
     const remainingArr = Array.isArray(remainingFlag) ? remainingFlag : (remainingFlag?.data || []);
-    const remainingFees = await b.entities.AutoFundPaymentEvent.filter(
-      { payment_event_id: { $regex: `^${RUN}` } },
-      undefined,
-      5,
-    );
-    const remainingFeesArr = Array.isArray(remainingFees) ? remainingFees : (remainingFees?.data || []);
     check(
-      'E12 · Stop switch, synthetic events and the stop state are fully removed',
-      remainingArr.length === 0 && remainingFeesArr.length === 0,
-      `switch_rows=${remainingArr.length} synthetic_events=${remainingFeesArr.length}`,
+      'E12 · Stop switch, and every synthetic record this run created, are fully removed',
+      remainingArr.length === 0 && cleanup.remaining === 0,
+      `switch_rows=${remainingArr.length} fixtures_removed=${cleanup.deleted.length} remaining=${cleanup.remaining} by_entity=${JSON.stringify(cleanup.remaining_by_entity)}`,
     );
 
     const failed = results.filter(r => !r.passed);
@@ -256,6 +248,14 @@ export default async function (req: Request): Promise<Response> {
       note: 'Isolated certification run. Only the stop switch and one synthetic fee event were written, and both were removed. No customer was enrolled or charged.',
     });
   } catch (error: any) {
-    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
+    // Interrupted-run teardown: an exception must not leave synthetic records behind.
+    let cleanup: any = null;
+    try { cleanup = await cleanupCertRun(createClientFromRequest(req).asServiceRole, RUN); } catch (_e) { cleanup = null; }
+    return Response.json({
+      error: error.message,
+      stack: error.stack,
+      fixtures_remaining: cleanup ? cleanup.remaining : null,
+      cleanup_errors: cleanup ? cleanup.errors : ['cleanup did not run'],
+    }, { status: 500 });
   }
 }

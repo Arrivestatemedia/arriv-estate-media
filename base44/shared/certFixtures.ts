@@ -185,8 +185,11 @@ export async function cleanupCertFixtures(
     return { deleted, errors: ['Refusing to clean up non-cert_ run ID'] };
   }
 
-  // Find all cert_ records for this run
-  const emailPattern = `${runId}_`;
+  // Find all cert_ records for this run.
+  // Was `${runId}_`, which failed to match the common fixture email shape
+  // `<runId>@cert.test` (no underscore after the run id), so real fixtures were
+  // silently left behind. Anchored prefix matching on the run id.
+  const emailPattern = `^${runId}`;
 
   // Clean up payment events
   try {
@@ -315,6 +318,40 @@ export async function cleanupCertFixtures(
       }
     }
   } catch (e) { errors.push(`Contact: ${e.message}`); }
+
+  // Clean up dispute cases. Matched on their dispute reference, NOT customer_email:
+  // a dispute opened by a redelivered provider webhook can carry an empty email, and
+  // these were surviving cleanup (one per run).
+  try {
+    const disputes = await base44.entities.AutoFundDisputeCase.filter(
+      { dispute_reference: { $regex: emailPattern } },
+      undefined,
+      200
+    );
+    const disputeArr = Array.isArray(disputes) ? disputes : (disputes?.data || []);
+    for (const d of disputeArr) {
+      if (isCertificationId(d.dispute_reference)) {
+        await base44.entities.AutoFundDisputeCase.delete(d.id);
+        deleted.push({ entity: 'AutoFundDisputeCase', id: d.id });
+      }
+    }
+  } catch (e) { errors.push(`AutoFundDisputeCase: ${e.message}`); }
+
+  // Clean up jurisdiction audit entries (written at enrollment; previously unswept)
+  try {
+    const audits = await base44.entities.AutoFundJurisdictionAudit.filter(
+      { customer_email: { $regex: emailPattern } },
+      undefined,
+      200
+    );
+    const auditArr = Array.isArray(audits) ? audits : (audits?.data || []);
+    for (const a of auditArr) {
+      if (isCertificationId(a.customer_email) || isCertificationId(a.audit_id)) {
+        await base44.entities.AutoFundJurisdictionAudit.delete(a.id);
+        deleted.push({ entity: 'AutoFundJurisdictionAudit', id: a.id });
+      }
+    }
+  } catch (e) { errors.push(`AutoFundJurisdictionAudit: ${e.message}`); }
 
   return { deleted, errors };
 }

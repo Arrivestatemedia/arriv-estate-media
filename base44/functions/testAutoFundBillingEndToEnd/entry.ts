@@ -872,6 +872,10 @@ export default async function (req) {
       for (const c of cases) track('AutoFundDisputeCase', c.id);
       const cohortEntries = arr(await b.entities.AutoFundCohortMember.filter({ customer_email: CUSTOMER_EMAIL }, undefined, 20));
       for (const c of cohortEntries) track('AutoFundCohortMember', c.id);
+      // Jurisdiction audits are written during enrollment. Without this they survived the
+      // sweep and one row accumulated per run.
+      const jurisdictionAudits = arr(await b.entities.AutoFundJurisdictionAudit.filter({ customer_email: CUSTOMER_EMAIL }, undefined, 50));
+      for (const a of jurisdictionAudits) track('AutoFundJurisdictionAudit', a.id);
     } catch (e) {
       cleanupErrors.push(`fixture sweep: ${e.message}`);
     }

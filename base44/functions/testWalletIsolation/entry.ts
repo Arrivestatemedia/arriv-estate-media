@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { processAutoFundPayment } from '../../shared/autoFundProcessor.ts';
 import { isCertificationId } from '../../shared/certificationMode.ts';
 import { generateId } from '../../shared/prepaidEngine.ts';
+import { cleanupCertRun } from '../../shared/certRunCleanup.ts';
 
 /**
  * Wallet Isolation Test — verifies that certification events cannot
@@ -18,6 +19,13 @@ import { generateId } from '../../shared/prepaidEngine.ts';
  * All fixtures are cert_-prefixed and clearly synthetic.
  */
 export default async function(req) {
+  // Fixture identities are declared OUTSIDE the try so teardown can run on EVERY exit
+  // path, including an exception thrown mid-run. This suite previously had no teardown at
+  // all, so each run permanently left two contacts and two wallets behind (22 synthetic
+  // contacts had accumulated in production-backed data).
+  const certRunId = 'cert_' + Date.now();
+  const certEmail = `${certRunId}_customer@cert.arriv.internal`;
+  const prodEmail = `isolation_prod_${Date.now()}@arriv.internal`;
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -26,12 +34,7 @@ export default async function(req) {
 
     const b = base44.asServiceRole;
     const nowIso = new Date().toISOString();
-    const certRunId = 'cert_' + Date.now();
     const results = {};
-
-    // ── Create fixtures ──────────────────────────────────────────────────
-    // 1. Synthetic cert_ customer + wallet
-    const certEmail = `${certRunId}_customer@cert.arriv.internal`;
     const certContact = await b.entities.Contact.create({
       email: certEmail,
       firstname: 'CertTest',
@@ -65,7 +68,6 @@ export default async function(req) {
     });
 
     // 2. Simulated "production" customer + wallet (non-cert email to simulate real production)
-    const prodEmail = `isolation_prod_${Date.now()}@arriv.internal`;
     const prodContact = await b.entities.Contact.create({
       email: prodEmail,
       firstname: 'ProdTest',
@@ -225,6 +227,9 @@ export default async function(req) {
     const passCount = testNames.filter(n => results[n].status === 'PASS').length;
     const failCount = testNames.filter(n => results[n].status === 'FAIL').length;
 
+    // ── Teardown: remove every fixture this run created, including dependents ──
+    const cleanup = await cleanupCertRun(b, certRunId, [certEmail, prodEmail]);
+
     return Response.json({
       status: failCount === 0 ? 'PASS' : 'FAIL',
       cert_run_id: certRunId,
@@ -233,8 +238,23 @@ export default async function(req) {
       total_tests: testNames.length,
       results,
       production_wallet_untouched: prodWalletAfter.credits_balance === 0 && prodWalletAfter.booking_value_balance === 0,
+      fixtures_removed: cleanup.deleted.length,
+      fixtures_remaining: cleanup.remaining,
+      cleanup_errors: cleanup.errors,
     });
   } catch (error) {
-    return Response.json({ error: error.message, status: 'ERROR' }, { status: 500 });
+    // Teardown runs on the exception path too, so an interrupted run cannot leave
+    // synthetic records behind.
+    let cleanup: any = null;
+    try {
+      const recoveryClient = createClientFromRequest(req);
+      cleanup = await cleanupCertRun(recoveryClient.asServiceRole, certRunId, [certEmail, prodEmail]);
+    } catch (_e) { cleanup = null; }
+    return Response.json({
+      error: error.message,
+      status: 'ERROR',
+      fixtures_remaining: cleanup ? cleanup.remaining : null,
+      cleanup_errors: cleanup ? cleanup.errors : ['cleanup did not run'],
+    }, { status: 500 });
   }
 }

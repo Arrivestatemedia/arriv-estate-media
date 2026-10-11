@@ -141,7 +141,10 @@ export async function runSyncAttempt(base44, queueRecord) {
   });
 
   const base = config.endpoint.replace(/\/functions\/.*$/i, "").replace(/\/$/, "");
-  const url = base + "/functions/receiveEmployee";
+  // Verified against the live Arriv Payroll app: the deployed employee-sync route is
+  // receiveEmployeeSync. receiveEmployee is not deployed there and returns
+  // "Backend function 'receiveEmployee' not found or not deployed".
+  const url = base + "/functions/receiveEmployeeSync";
 
   let resp;
   let respData;
