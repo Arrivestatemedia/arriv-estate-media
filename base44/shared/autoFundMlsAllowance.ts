@@ -143,7 +143,13 @@ export const MLS_ALLOWANCE_DERIVATION: Record<number, MlsAllowanceDerivation> = 
 };
 
 // ── Canonical service unit economics ────────────────────────────────────────
-export const MLS_RETAIL = 100;
+// Owner-approved standard MLS Walkthrough price, 2026-10-10, is $120 (V2). The
+// Auto-Fund program is valued against the approved price, so bundle-margin and
+// disclosure math use $120. The live retail price remains governed by the active
+// MediaPricingConfig record until the owner activates the V2 config.
+export const MLS_RETAIL = 120;
+/** The price that remains live for retail customers until V2 is activated. */
+export const MLS_RETAIL_LIVE = 100;
 export const MLS_PAYOUT = 50;
 export const MLS_EDITING = 20;
 const SPECIALIST_PAYOUT_RATE = 0.34;

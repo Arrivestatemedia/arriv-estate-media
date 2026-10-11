@@ -288,3 +288,53 @@ export const DEFAULT_PRICING_CONFIG: MediaPricingConfig = {
     mls_discount_type: "flat",
   },
 };
+
+// ============================================================================
+// MLS WALKTHROUGH PRICE V2 — OWNER-APPROVED STANDARD PRICE $120
+// ============================================================================
+// Owner approval of 2026-10-10 sets the standard MLS Walkthrough price to $120.
+//
+// The V2 ladder PRESERVES the existing square-footage adjustments — the
+// increments above the standard tier (+$25, +$25, +$50, +$75) are carried over
+// unchanged, so the ladder stays monotonic and proportionate. Only the standard
+// (≤2,500 sqft) base moves from $100 to $120.
+//
+// This constant is INERT. The live price is whatever MediaPricingConfig record
+// has `is_active: true`, and V1 ($100) remains the active record. Activation is a
+// data change (activate the V2 record), never a code deploy, so the live price
+// cannot move as a side effect of shipping code.
+// ============================================================================
+
+/** The standard (≤2,500 sqft) MLS Walkthrough price now approved. */
+export const MLS_PRICE_STANDARD_V2 = 120;
+
+/** The price that remains live until the owner activates the V2 config. */
+export const MLS_PRICE_STANDARD_CURRENT = 100;
+
+/** Square-footage increments carried over unchanged from the V1 ladder. */
+export const MLS_SQFT_ADJUSTMENTS = [0, 25, 25, 50, 75] as const;
+
+/** The approved V2 MLS column, keyed by tier. */
+export const MLS_PRICE_V2_BY_TIER: Record<string, number> = {
+  TIER_1: 120,
+  TIER_2: 145,
+  TIER_3: 170,
+  TIER_4: 220,
+  TIER_5: 295,
+};
+
+/**
+ * The complete approved V2 pricing config: identical to V1 in every respect
+ * except the MLS Walkthrough column. Seeded as an INACTIVE record so it can be
+ * reviewed and activated in staging without touching the live price.
+ */
+export const MLS_PRICING_V2_CONFIG: MediaPricingConfig = {
+  ...DEFAULT_PRICING_CONFIG,
+  pricing_version: "AEM_MEDIA_PRICING_V2",
+  is_active: false,
+  effective_date: "2026-10-10",
+  tier_prices: DEFAULT_PRICING_CONFIG.tier_prices.map((t) => ({
+    ...t,
+    prices: { ...t.prices, mls_walkthrough: MLS_PRICE_V2_BY_TIER[t.tier] ?? t.prices.mls_walkthrough },
+  })),
+};
