@@ -1,6 +1,9 @@
-# ARRIV PROPERTY VISIBILITY — STAGING CERTIFICATION PLAN (PHASE 2, NOT EXECUTED)
+# ARRIV PROPERTY VISIBILITY — STAGING CERTIFICATION PLAN (PHASE 2)
 
-**Date:** 2026-10-12 · **Mode:** read-only planning · **Nothing executed, created, enabled, deployed or changed.**
+**Date:** 2026-10-12 · When written: read-only planning, nothing executed. **Since then: executed once — see
+§11** (the outcome, and the one decision it needs).
+
+§1–§10 are the plan as approved and are left unedited as the record of what was authorised.
 
 State confirmed by inspection this turn (not assumed):
 
@@ -160,3 +163,47 @@ Activation (public hostname, `PROPERTY_PUBLIC_ORIGIN`, enabling the flag, first 
 - **CP4 — sweeper hardening:** approve adding the three property entities to the stale-run sweeper, or accept the manual post-run check.
 - **CP5 — post-run acceptance:** accept the report, then remove the certification variable and re-confirm zero records and the untouched flag.
 - **CP6 — activation (separate phase, not requested here):** public hostname + `PROPERTY_PUBLIC_ORIGIN` + enable the flag + one real listing + 7-day observation.
+
+---
+
+## 11. Execution record — controlled staging run, 2026-10-12 (NOT ACCEPTED)
+
+Executed once as approved, then a second identical run to recover the failure list (the first response was
+truncated at 8.8 KB, before the failures; the failure list now prints first so it cannot be hidden again).
+
+| Run | Assertions | Result |
+|---|---|---|
+| `cert_prop_1791823036469` | 38 | 32 passed / 6 failed |
+| `cert_prop_1791823156837` | 38 | 31 passed / 7 failed — names captured |
+
+**Held in both runs:** feature flag `false` before and after, that record's `updated_date` untouched; all
+10 financial deltas `0`; run lock taken and released; the sweep deleted 13 artefacts with 0 remaining; an
+independent read afterwards found **0 listings, 0 events, 0 inquiries, 0 synthetic jobs**. Requirement 4
+holds: the production-scope checks never saw the synthetic listing.
+
+**Run 2's seven failures** — 1–6 are one root cause, 7 is a read-consistency artifact:
+
+| # | Assertion | Cause |
+|---|---|---|
+| 1 | `public_url_rendering` | page `ok=false` for the published synthetic listing |
+| 2 | `seo_metadata_and_crawlable_html` | nothing to inspect (404 body) |
+| 3 | `buyer_inquiry_routing` | inquiry refused, so nothing recorded or routed |
+| 4 | `inquiry_validation_and_spam_prevention` | honeypot branch needs an accepted inquiry |
+| 5 | `listing_status_change_removes_from_active_search` | availability flags absent (404) |
+| 6 | `certification_scope_is_disjoint` | test-mode page not served |
+| 7 | `no_production_property_records_touched` | `after=1` transient — a direct read now shows 0 |
+
+**Root cause:** `isPubliclyReachable()` and `isPubliclyActive()` exclude `certification_mode === true`
+unconditionally, so a published synthetic listing can never be rendered or receive an inquiry in any
+scope, test mode included — while the suite expects test mode to exercise those real paths. Six assertions
+are unsatisfiable as written. The failure direction was the safe one: no ordinary request ever reached the
+synthetic listing.
+
+**Decision required (owner):** **(A)** let test mode exercise the real public path by threading the acting
+scope into those two predicates — production scope stays dark, and the §6 residual applies only while the
+certification variable exists; or **(B)** keep the absolute block and rewrite the suite so publication,
+rendering and inquiry become refusal assertions — the real rendering and inquiry paths then stay
+unexercised.
+
+**Outstanding:** `PROPERTY_VISIBILITY_TEST_MODE` was still set when this was written. The owner must remove
+it (the app cannot delete a secret value); test mode being unreachable is verified afterwards.

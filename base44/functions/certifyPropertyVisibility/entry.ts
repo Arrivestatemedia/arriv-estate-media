@@ -94,6 +94,8 @@ async function countEntity(base44: any, name: string) {
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
+  // Reporting options only — this never affects what the run asserts or what it does.
+  const body: any = await req.clone().json().catch(() => ({}));
 
   // ================= 1. AUTHORIZATION =================
   // The FIRST thing this endpoint does. The identity comes from the platform-verified session
@@ -533,6 +535,9 @@ Deno.serve(async (req) => {
     run_id: RUN,
     passed: tests.length - failed.length,
     failed: failed.length,
+    // Kept at the very top on purpose: the failure list must survive a truncated response, because
+    // accepting a run on a passing summary alone would hide exactly the assertions that did not pass.
+    outstanding_failures: failed.map((f) => ({ name: f.name, detail: f.detail })),
     flag_value_before: flagBeforeValue,
     flag_untouched: flagUntouched,
     isolated_test_mode: true,
@@ -548,7 +553,6 @@ Deno.serve(async (req) => {
       : null,
     cleanup: cleanupReport,
     financial_deltas: financialDeltas,
-    tests,
-    outstanding_failures: failed.map((f) => ({ name: f.name, detail: f.detail })),
+    ...(body?.compact === true ? {} : { tests }),
   }, { status: failed.length ? 207 : 200 });
 });
