@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
-import { isPubliclyReachable, recordInScope, resolveFeatureGate, testModeRequested } from "../../shared/propertyVisibility.ts";
+import { isPubliclyReachable, recordInScope, resolveFeatureGate } from "../../shared/propertyVisibility.ts";
 import { fetchJobFile } from "../../shared/jobMedia.ts";
 
 // Public media delivery for a published property page.
@@ -18,14 +18,17 @@ Deno.serve(async (req) => {
     const fileId = String(url.searchParams.get("file") || "");
     if (!listingId || !fileId) return Response.json({ error: "listing and file are required" }, { status: 400 });
 
-    const gate = await resolveFeatureGate(base44, testModeRequested(url.searchParams.get("test_mode")));
+    // ABSOLUTE BLOCK on synthetic records: no test-mode parameter is accepted here, so this endpoint
+    // cannot be put into a mode that resolves a certification record. A synthetic listing's assets are
+    // never served to a public request, in any circumstance.
+    const gate = await resolveFeatureGate(base44, false);
     if (!gate.enabled) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
     const rows = await base44.asServiceRole.entities.PropertyListing.filter({ listing_id: listingId });
     const listing = (Array.isArray(rows) ? rows : (rows?.items || []))[0];
-    if (!listing || !recordInScope(listing, gate.test_mode) || !isPubliclyReachable(listing)) {
+    if (!listing || !recordInScope(listing, false) || !isPubliclyReachable(listing)) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 

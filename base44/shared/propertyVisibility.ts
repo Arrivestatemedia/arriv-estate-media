@@ -176,6 +176,30 @@ export function isPubliclyReachable(listing: any): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Certification-only reach
+//
+// The two predicates above are the ABSOLUTE public block: they refuse a synthetic record in every
+// circumstance — with or without the certification configuration, and whether or not a request asks
+// for test mode. Nothing may relax them.
+//
+// Certification still has to exercise the real renderer and the real inquiry logic, so it reaches
+// its records through the certification-only endpoint (certifyPropertyRender), which uses the
+// predicates below. They apply the identical availability rules to a record that the CALLER has
+// already proven is synthetic and owned by its own active run — the proof belongs to that caller, so
+// these predicates never widen what a public request can reach.
+// ---------------------------------------------------------------------------
+export function isCertificationListingReachable(listing: any): boolean {
+  return !!listing && listing.certification_mode === true && listing.publication_state === "PUBLISHED";
+}
+
+export function isCertificationListingAvailable(listing: any, now = new Date()): boolean {
+  if (!isCertificationListingReachable(listing)) return false;
+  if (!AVAILABLE_LISTING_STATUSES.includes(listing.listing_status)) return false;
+  const reference = listing.last_status_confirmed_at || listing.published_at;
+  return daysSince(reference, now) <= STATUS_CONFIRMATION_WINDOW_DAYS;
+}
+
+// ---------------------------------------------------------------------------
 // URLs, slugs and duplicate prevention
 // ---------------------------------------------------------------------------
 export function slugify(value: string): string {

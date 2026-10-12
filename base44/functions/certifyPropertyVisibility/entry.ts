@@ -9,8 +9,10 @@ import {
   canApprovePublication,
   duplicateKey,
   estimateCostPerProperty,
+  isCertificationListingAvailable,
   isJobEligibleForPropertyPage,
   isPubliclyActive,
+  isPubliclyReachable,
   needsStatusConfirmation,
   normalizeSelection,
   resoProjection,
@@ -21,6 +23,7 @@ import { certificationAdminVerdict } from "../../shared/propertyCertRunGuard.ts"
 import {
   acquirePropertyCertRunLock,
   assertNoForeignPropertyCertArtifacts,
+  propertyCertRunLockStatus,
   releasePropertyCertRunLock,
 } from "../../shared/propertyCertRunLock.ts";
 import { cleanupPropertyCertRun } from "../../shared/certRunCleanup.ts";
@@ -36,9 +39,15 @@ import { cleanupPropertyCertRun } from "../../shared/certRunCleanup.ts";
 //   3. no production property listing is created or modified,
 //   4. payroll, commission, Auto-Fund, wallet and invoicing counts are untouched.
 //
-// The suite no longer switches the production feature flag on. Every call opts into the
-// isolated certification test mode instead, which is honoured only when the certification-only
+// The suite no longer switches the production feature flag on. Directory and sitemap scope work opts
+// into the isolated certification test mode, which is honoured only when the certification-only
 // configuration (PROPERTY_VISIBILITY_TEST_MODE) is present.
+//
+// The public page, the public inquiry endpoint and the media endpoint refuse synthetic records
+// ABSOLUTELY — in every scope, and whether or not a request asks for test mode — so rendering and
+// inquiry handling are exercised through the separate, administrator-authorized certification-only
+// endpoint (certifyPropertyRender), which requires this run's lock and this run's own synthetic
+// records. §20 asserts that public refusal, so the block cannot silently disappear.
 //
 // Policy assertions run against the shared engine — the same module the API and the public
 // surfaces use — and the end-to-end assertions run against the deployed functions.
@@ -74,6 +83,13 @@ async function callFn(name: string, payload: any) {
   } catch (err: any) {
     return { status: 0, data: { error: err.message } };
   }
+}
+
+// The certification-only execution path: rendering and inquiry handling for THIS run's own synthetic
+// records. It requires a platform administrator who holds this run's lock and a record that is
+// synthetic and owned by the same run; the public surfaces stay absolutely blocked.
+async function certPath(payload: any) {
+  return callFn("certifyPropertyRender", { run_id: RUN, action: "render", ...payload });
 }
 
 async function getSetting(base44: any, key: string) {
@@ -329,15 +345,19 @@ Deno.serve(async (req) => {
     add("publication_history_recorded", history.length >= 3 && !!published.data?.listing?.approved_property_details_snapshot && (published.data?.listing?.approved_media_snapshot || []).length === 3,
       `${history.length} history entries, approved details + ${(published.data?.listing?.approved_media_snapshot || []).length} approved media assets`);
 
-    // ================= 12. Public rendering and SEO =================
-    const publicJson = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
-    const publicHtml = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug, format: "html" });
-    const html = typeof publicHtml.data === "string" ? publicHtml.data : String(publicHtml.data?.raw || "");
+    // ================= 12. Certification-only rendering and SEO =================
+    // The synthetic record is rendered through the certification-only path (administrator + run
+    // ownership + synthetic-record validation). §20 asserts that the ordinary public surfaces refuse
+    // this same record in every mode, so the real renderer is exercised without widening what a
+    // public request can reach.
+    const certJson = await certPath({ listing_id: listing.listing_id });
+    const certHtml = await certPath({ listing_id: listing.listing_id, format: "html" });
+    const html = typeof certHtml.data === "string" ? certHtml.data : String(certHtml.data?.raw || "");
     const htmlOk = /<title>/.test(html) && /name="description"/.test(html) && /rel="canonical"/.test(html) && /application\/ld\+json/.test(html) && /RealEstateListing/.test(html);
-    add("public_url_rendering", publicJson.data?.ok === true && publicJson.data?.publicly_available === true && (publicJson.data?.media || []).length === 3,
-      `json ok=${publicJson.data?.ok}, media=${(publicJson.data?.media || []).length}, order=${(publicJson.data?.media || []).map((m: any) => m.kind).join(">")}`);
-    add("seo_metadata_and_crawlable_html", htmlOk && !!publicJson.data?.canonical_url && !!publicJson.data?.structured_data?.["@type"],
-      `server-rendered HTML contains title, meta description, canonical, JSON-LD (${String(publicJson.data?.structured_data?.["@type"] || "none")})`);
+    add("public_url_rendering", certJson.data?.ok === true && certJson.data?.publicly_available === true && (certJson.data?.media || []).length === 3,
+      `certification render ok=${certJson.data?.ok}, media=${(certJson.data?.media || []).length}, order=${(certJson.data?.media || []).map((m: any) => m.kind).join(">")}`);
+    add("seo_metadata_and_crawlable_html", htmlOk && !!certJson.data?.canonical_url && !!certJson.data?.structured_data?.["@type"],
+      `certification render: HTML contains title, meta description, canonical, JSON-LD (${String(certJson.data?.structured_data?.["@type"] || "none")})`);
 
     const sitemapPublished = await fetch(`${ORIGIN}/functions/generatePropertySitemap?test_mode=true`);
     const sitemapXml = await sitemapPublished.text();
@@ -350,9 +370,12 @@ Deno.serve(async (req) => {
     add("directory_search_returns_published_listing", !!found && search.data?.ok === true,
       `total=${search.data?.total}, found=${!!found}`);
 
-    // ================= 14. Buyer inquiry routing =================
-    const inquiry = await callFn("submitPropertyInquiry", {
-      slug: published.data?.listing?.public_slug, name: "Certification Buyer", email: `${RUN}.buyer@cert.test`,
+    // ================= 14. Buyer inquiry routing (certification-only path) =================
+    // The real inquiry engine — validation, spam screening, routing, persistence — exercised against
+    // this run's own synthetic record. The public inquiry endpoint refuses it (§20).
+    const inquiry = await certPath({
+      action: "inquire", listing_id: listing.listing_id,
+      name: "Certification Buyer", email: `${RUN}.buyer@cert.test`,
       phone: "5551112222", message: "I would like to arrange a viewing of this property next week.", consent_privacy: true, company_website: "",
     });
     const inquiryRecord = inquiry.data?.ok === true
@@ -362,15 +385,15 @@ Deno.serve(async (req) => {
     add("buyer_inquiry_routing", inquiry.data?.ok === true && inquiryRecord?.routed_to_email === AGENT_EMAIL && inquiryRecord?.lead_sharing_status === "not_shared",
       `routed to ${inquiryRecord?.routed_to_email || "n/a"}, lead sharing=${inquiryRecord?.lead_sharing_status || "n/a"}`);
 
-    const invalid = await callFn("submitPropertyInquiry", { slug: published.data?.listing?.public_slug, name: "A", email: "not-an-email", message: "short", consent_privacy: false });
-    const honeypot = await callFn("submitPropertyInquiry", { slug: published.data?.listing?.public_slug, name: "Certification Bot", email: `${RUN}.bot@cert.test`, message: "Buy now cheap offers available today", consent_privacy: true, company_website: "http://spam.example" });
+    const invalid = await certPath({ action: "inquire", listing_id: listing.listing_id, name: "A", email: "not-an-email", message: "short", consent_privacy: false });
+    const honeypot = await certPath({ action: "inquire", listing_id: listing.listing_id, name: "Certification Bot", email: `${RUN}.bot@cert.test`, message: "Buy now cheap offers available today", consent_privacy: true, company_website: "http://spam.example" });
     add("inquiry_validation_and_spam_prevention", invalid.status === 400 && invalid.data?.reason === "VALIDATION_FAILED" && honeypot.data?.filtered === true,
       `invalid → ${invalid.status} ${invalid.data?.reason}; honeypot → filtered=${honeypot.data?.filtered}`);
 
     // ================= 15. Listing status lifecycle =================
     const soldUpdate = await callFn("managePropertyListing", { action: "update_listing_status", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, status: "sold" });
     const searchAfterSold = await callFn("searchProperties", { q: "Bethesda" });
-    const pageAfterSold = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
+    const pageAfterSold = await certPath({ listing_id: listing.listing_id });
     const sitemapAfterSold = await (await fetch(`${ORIGIN}/functions/generatePropertySitemap?test_mode=true`)).text();
     add("listing_status_change_removes_from_active_search", soldUpdate.data?.ok === true
       && !(searchAfterSold.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug)
@@ -385,7 +408,7 @@ Deno.serve(async (req) => {
     // ================= 16. Unpublishing =================
     const activeAgain = await callFn("managePropertyListing", { action: "update_listing_status", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, status: "active" });
     const unpublished = await callFn("managePropertyListing", { action: "unpublish", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, reason: "certification" });
-    const pageAfterUnpublish = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
+    const pageAfterUnpublish = await certPath({ listing_id: listing.listing_id });
     const searchAfterUnpublish = await callFn("searchProperties", { q: "Bethesda" });
     add("unpublish_removes_public_access", activeAgain.data?.ok === true && unpublished.data?.listing?.publication_state === "UNPUBLISHED"
       && pageAfterUnpublish.status === 404 && !(searchAfterUnpublish.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug),
@@ -426,8 +449,27 @@ Deno.serve(async (req) => {
       : pageNoTestMode.status === 404 && searchNoTestMode.data?.feature_disabled === true;
     add("certification_never_reaches_production_scope", certVisibleToProduction === false && productionScopeHolds && searchNoTestMode.data?.ok !== true,
       `production scope: directory exposed the certification listing=${certVisibleToProduction}, page ${pageNoTestMode.status}, directory disabled=${searchNoTestMode.data?.feature_disabled === true} (production flag=${flagBeforeValue ?? "absent"})`);
-    add("certification_scope_is_disjoint", pageNoTestMode.status === 404 && publicJson.data?.ok === true,
-      `same slug with no test mode → ${pageNoTestMode.status}; with test mode → served (${publicJson.data?.ok === true})`);
+    // The absolute block itself: a synthetic listing is refused by the public surfaces in EVERY mode.
+    // The engine predicates are asserted directly too, because an HTTP status alone cannot distinguish
+    // "refused the synthetic record" from "refused because the feature is switched off".
+    const publicPageWithTestMode = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
+    const publicInquiryWithTestMode = await callFn("submitPropertyInquiry", {
+      slug: published.data?.listing?.public_slug, name: "Certification Buyer", email: `${RUN}.buyer@cert.test`,
+      phone: "5551112222", message: "A public request must never reach a synthetic listing.", consent_privacy: true,
+    });
+    const certShape = { certification_mode: true, publication_state: "PUBLISHED", listing_status: "active", last_status_confirmed_at: new Date().toISOString() };
+    add("public_surfaces_refuse_synthetic_records_in_every_mode",
+      publicPageWithTestMode.status === 404 && publicInquiryWithTestMode.status === 404
+      && isPubliclyReachable(certShape) === false && isPubliclyActive(certShape) === false
+      && isCertificationListingAvailable(certShape) === true,
+      `public page with test_mode → ${publicPageWithTestMode.status}; public inquiry with test_mode → ${publicInquiryWithTestMode.status}; the public predicates refuse this synthetic record while the certification-only predicate accepts it`);
+
+    // Strict run ownership and synthetic-record validation on the certification-only path.
+    const unownedRun = await callFn("certifyPropertyRender", { run_id: `${CERT_PREFIX}0000000000`, action: "render", listing_id: listing.listing_id });
+    const foreignRecord = await callFn("certifyPropertyRender", { run_id: RUN, action: "render", listing_id: "prop_not_a_synthetic_record" });
+    add("certification_path_requires_run_ownership_and_synthetic_records",
+      unownedRun.status === 403 && foreignRecord.status === 403,
+      `render with a run id that holds no lock → ${unownedRun.status}; render for a record outside this run → ${foreignRecord.status}`);
   } catch (err: any) {
     add("suite_execution", false, `Suite aborted: ${err.message}`);
   } finally {
@@ -518,13 +560,34 @@ Deno.serve(async (req) => {
   const financialDeltas = Object.fromEntries(FINANCIAL_ENTITIES.map((e) => [e, (afterFinancial[e] || 0) - (beforeFinancial[e] || 0)]));
   const financialIsolated = Object.values(financialDeltas).every((d) => d === 0);
 
-  const certLeftovers = await base44.asServiceRole.entities.PropertyListing.filter({ certification_run_id: RUN });
-  const leftovers = (Array.isArray(certLeftovers) ? certLeftovers : (certLeftovers?.items || [])).length;
+  // Cleanup is judged by MARKER, not by a raw total: a total can move for reasons that have nothing to
+  // do with this run (a real customer creating a page once the feature is live), and a read taken
+  // immediately after a burst of deletes can still return a record that is already gone. Any residue
+  // is named by count, and the probe is re-read a bounded number of times, so a real leak can neither
+  // hide behind a passing total nor be inferred from a stale one.
+  const asList = (r: any) => (Array.isArray(r) ? r : (r?.items || []));
+  const residueProbe = async () => ({
+    listings: [
+      ...asList(await base44.asServiceRole.entities.PropertyListing.filter({ certification_run_id: RUN })),
+      ...asList(await base44.asServiceRole.entities.PropertyListing.filter({ client_email: { $regex: `^${CERT_PREFIX}` } })),
+    ],
+    events: asList(await base44.asServiceRole.entities.PropertyListingEvent.filter({ certification_mode: true })),
+    inquiries: asList(await base44.asServiceRole.entities.PropertyInquiry.filter({ certification_mode: true })),
+  });
+  let residue = await residueProbe();
+  for (let attempt = 0; attempt < 3 && (residue.listings.length || residue.events.length || residue.inquiries.length); attempt++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    residue = await residueProbe();
+  }
   const productionListingsAfter = await countEntity(base44, "PropertyListing");
+  const runLockAfter = await propertyCertRunLockStatus(base44.asServiceRole);
 
   add("financial_system_isolation", financialIsolated, `deltas: ${JSON.stringify(financialDeltas)}`);
-  add("no_production_property_records_touched", productionListingsAfter === beforeProductionListings && leftovers === 0,
-    `property listings before=${beforeProductionListings} after=${productionListingsAfter}, cert leftovers=${leftovers}`);
+  add("no_synthetic_records_remain",
+    residue.listings.length === 0 && residue.events.length === 0 && residue.inquiries.length === 0,
+    `marker residue: listings=${residue.listings.length}, events=${residue.events.length}, inquiries=${residue.inquiries.length} (property listings total before=${beforeProductionListings} after=${productionListingsAfter})`);
+  add("run_lock_released_after_cleanup", runLockAfter.active === false,
+    `certification run lock active=${runLockAfter.active}, run_id=${runLockAfter.run_id || "none"}`);
   add("production_feature_flag_untouched", flagUntouched,
     `flag value "${flagBeforeValue ?? "(absent)"}" and the setting record's updated_date are unchanged — no test writes the production flag`);
 
