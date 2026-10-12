@@ -91,15 +91,17 @@ async function callFn(name: string, payload: any) {
 //
 // The endpoint verifies an administrator SESSION before it validates anything else, and this suite
 // deliberately sends no session on its public calls — they have to look exactly like a visitor's.
-// The certification calls therefore go through the service role (the platform's server-side
-// function-to-function path, already used across this app), so the endpoint receives the
-// administrator session it requires. An unauthenticated fetch here is refused with 401 before the
-// endpoint reads a single record, so it must not be used for this path: doing so made the render and
-// inquiry assertions unsatisfiable.
+// The certification calls therefore go through the request-scoped client, which invokes the endpoint
+// as the administrator running this suite: the same identity that holds this run's lock, which is
+// exactly what the endpoint's run-ownership check compares against. Both alternatives were probed
+// against the deployed endpoint and both are unusable here — a service-role call is authorized as an
+// administrator but is not the lock owner and is refused 403, and an unauthenticated fetch is refused
+// 401 before the endpoint reads a single record — so either one makes the render, inquiry and
+// ownership assertions unsatisfiable.
 async function certPath(base44: any, payload: any) {
   const body = { run_id: RUN, action: "render", ...payload };
   try {
-    const res = await base44.asServiceRole.functions.invoke("certifyPropertyRender", body);
+    const res = await base44.functions.invoke("certifyPropertyRender", body);
     const data = res && typeof res === "object" && "data" in res ? (res as any).data : res;
     return { status: 200, data };
   } catch (err: any) {

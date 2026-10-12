@@ -275,3 +275,60 @@ guard suite's 31/0 pass.
 **Still outstanding (owner):** `PROPERTY_VISIBILITY_TEST_MODE` must be removed — it was still set when
 this record was written. `PROPERTY_VISIBILITY_ENABLED` remains `false` with its record untouched and no
 public listing exists.
+
+---
+
+## 13. Phase 2 execution — certified, with two certification-path defects repaired (2026-10-12)
+
+Executed on synthetic records with the production flag never written. Full detail:
+`ARRIV_PROPERTY_VISIBILITY_PHASE2_VERIFICATION_REPORT.md`.
+
+**Test mode — resolved.** `PROPERTY_VISIBILITY_TEST_MODE` is **not present** among the app's secrets, so
+the item left outstanding in §12 is closed: the certification scope cannot be entered from the deployed
+app. This phase set it only inside its own in-process verification process, which never touched the
+deployed environment.
+
+**Two defects in the certification path itself, repaired** (no production behaviour changed — the
+shared engine, the API, the renderer, the public endpoints, the edge worker and the frontend are
+untouched):
+
+1. `certPath` invoked `certifyPropertyRender` over an unauthenticated `fetch`, so every
+   certification-path call was refused `401` before the endpoint read a record — the render, inquiry
+   and ownership assertions were unsatisfiable, which is precisely the failure recorded in §11. It now
+   invokes through the request-scoped client, which carries the session of the administrator running
+   the suite: the identity that holds the run's lock. Probed live against the deployed endpoint —
+   unauthenticated → `401`, `asServiceRole` → `403` (authorized, but not the lock owner),
+   request-scoped session → `200`.
+2. The two probes behind `certification_path_requires_run_ownership_and_synthetic_records` were
+   themselves unauthenticated, so they could only ever observe the `401` that precedes both checks and
+   never tested run ownership or synthetic-record validation. They now use the authenticated path and
+   return the intended `403` for a run id holding no lock and for a record outside the run.
+
+**Certification: 40 / 40.** Run `cert_prop_1791836353740` — 40 passed, 0 failed, 41.5 s (39/40 before
+the repairs, 40/40 after). Cleanup deleted 15 artifacts with 0 remaining; financial deltas 0 across all
+ten financial entities; feature flag value **and** `updated_date` byte-identical; run lock released.
+
+**Deployed-path probes** (live, each with its own synthetic fixture, both removed afterwards): render
+through the administrator session → `200` with the canonical `properties.arrivestatemedia.com` URL,
+approved media in order, JSON-LD `RealEstateListing` with the price, and crawlable HTML that carries no
+`noindex` and no `app.arrivestatemedia.com` URL; video excluded (2 media, empty `video_url`) until
+expressly approved; the real inquiry engine routed only to the authorized listing contact with
+`not_shared` lead state, `400` on invalid input, honeypot filtered; public page, inquiry, media, sitemap
+and directory all refuse the synthetic record (flag off → fail closed); certification endpoint —
+anonymous `401`, unowned run `403`, foreign record `403`.
+
+**Cache invalidation: 11 signed purges** (HTTP `200`) across `update_details`, `generate_seo`,
+`approve_content`, `record_authorizations`, `submit_for_review`, `approve_publication`, `publish`,
+`update_listing_status` ×2, `confirm_status` and `unpublish` — each scoped to one listing and each
+carrying that listing's media and cover keys — plus **1 purge** on administrator archive
+(`PUBLISHED → ARCHIVED`, `archived_at` set, `sitemap_included` cleared). No purge payload ever
+referenced another listing.
+
+**Edge suite: 37 / 37.** `worker.test.mjs` is a Node entry point rather than an HTTP endpoint, so the
+earlier attempt correctly reported "no handler captured". It now runs against the real worker file in
+~30 ms and is registered as `npm run test:edge` (reports `37/37 passed`).
+
+**Still outstanding (owner, unchanged from §10–§12):** the production edge hostname/route decision for
+`properties.arrivestatemedia.com`, the Cloudflare production deployment, and explicit approval to flip
+`PROPERTY_VISIBILITY_ENABLED`. The flag remains `false`, the run lock is inactive, and no property
+listing exists.
