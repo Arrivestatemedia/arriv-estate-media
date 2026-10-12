@@ -196,8 +196,15 @@ export function buildSlug(address: string, city: string, state: string, listingI
   return [...parts, suffix].filter(Boolean).join("-");
 }
 
+// The origin the PUBLIC property pages are canonical on.
+//
+// PROPERTY_PUBLIC_ORIGIN is the property layer's own setting and is preferred when present, so
+// the public host can change without touching BASE44_APP_DOMAIN — which 50+ other modules read
+// for client emails, onboarding links, signing links and Twilio validation. With
+// PROPERTY_PUBLIC_ORIGIN unset the behaviour is exactly as before.
 export function publicOrigin(): string {
-  const configured = (globalThis as any)?.process?.env?.BASE44_APP_DOMAIN;
+  const configured = (globalThis as any)?.process?.env?.PROPERTY_PUBLIC_ORIGIN
+    || (globalThis as any)?.process?.env?.BASE44_APP_DOMAIN;
   const raw = String(configured || "https://arrivestatemedia.base44.app").trim().replace(/\/+$/, "");
   if (/^https?:\/\//i.test(raw)) return raw;
   return `https://${raw}`;
