@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { money } from "@/lib/propertyVisibility";
-import { Loader2, MapPin, Share2, BedDouble, Bath, Ruler, Home, Check } from "lucide-react";
+import { Loader2, Home, ArrowLeft } from "lucide-react";
+import PropertyMarketingHero from "@/components/property/PropertyMarketingHero";
+import PropertyMediaGallery from "@/components/property/PropertyMediaGallery";
+import PropertyInfoPanel from "@/components/property/PropertyInfoPanel";
 import PropertyInquiryForm from "@/components/property/PropertyInquiryForm";
 
-// Public property page. Reachable without signing in. Reads only through the public function,
-// so a draft or private asset can never be displayed here.
+// Public property marketing page. Reachable without signing in, and styled in the same visual
+// language as the client delivery gallery — dark cinematic frame, gold accent system, media
+// first — with off-white reading surfaces for the property facts and the inquiry form.
+// It reads only through the public function, so a draft or private asset can never appear here.
 export default function PublicPropertyPage() {
   const { slug } = useParams();
   const [page, setPage] = useState(null);
@@ -57,16 +61,25 @@ export default function PublicPropertyPage() {
   }, [page]);
 
   if (loading) {
-    return <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#B8956A]" /></div>;
+    return (
+      <div className="min-h-screen bg-[#0a0b0f] flex items-center justify-center">
+        <div className="relative">
+          <Loader2 className="w-10 h-10 animate-spin text-[#B8956A]" />
+          <div className="absolute inset-0 blur-md bg-[#B8956A]/30 rounded-full" />
+        </div>
+      </div>
+    );
   }
 
   if (notFound || !page) {
     return (
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0a0b0f] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <Home className="w-10 h-10 text-[#B8956A] mx-auto mb-3" />
-          <h1 className="text-2xl font-serif text-[#1A1A1A] mb-2">Property page unavailable</h1>
-          <p className="text-sm text-[#1A1A1A]/55 mb-4">This property page is not published, or the feature is not yet enabled.</p>
+          <div className="w-16 h-16 rounded-2xl bg-[#B8956A]/10 border border-[#B8956A]/20 flex items-center justify-center mx-auto mb-5">
+            <Home className="w-8 h-8 text-[#B8956A]" />
+          </div>
+          <h1 className="text-2xl font-serif text-white mb-2">Property page unavailable</h1>
+          <p className="text-sm text-white/40 mb-6">This property page is not published, or the feature is not yet enabled.</p>
           <Link to="/properties" className="text-sm text-[#B8956A] hover:underline">Browse properties</Link>
         </div>
       </div>
@@ -84,116 +97,79 @@ export default function PublicPropertyPage() {
     } catch { /* share dismissed */ }
   };
 
-  const facts = [
-    { icon: BedDouble, label: page.bedrooms != null ? `${page.bedrooms} bedrooms` : null },
-    { icon: Bath, label: page.bathrooms != null ? `${page.bathrooms} bathrooms` : null },
-    { icon: Ruler, label: page.square_footage != null ? `${Number(page.square_footage).toLocaleString("en-US")} sq ft` : null },
-  ].filter((f) => f.label);
-
   const photos = (page.media || []).filter((m) => m.kind === "photo");
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5]">
-      <header className="bg-[#1A1A1A] px-4 sm:px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" className="text-[#FFFBF5] font-serif text-lg tracking-wide">Arriv Estate Media</Link>
-          <Link to="/properties" className="text-xs text-[#FFFBF5]/70 hover:text-[#FFFBF5]">Properties</Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0a0b0f] relative overflow-hidden">
+      {/* Ambient gold glow, as on the delivery gallery */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-[#B8956A]/8 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-[#B8956A]/6 blur-[100px]" />
+      </div>
 
-      {!page.publicly_available && (
-        <div className="bg-[#B8956A] text-[#1A1A1A] text-center text-sm font-semibold py-2">
-          This property is {page.status_label.toLowerCase()} and is not currently available.
-        </div>
-      )}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: "linear-gradient(#B8956A 1px, transparent 1px), linear-gradient(90deg, #B8956A 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {page.cover_url && (
-          <img src={page.cover_url} alt={photos[0]?.alt_text || page.property_address} className="w-full aspect-video object-cover rounded-2xl mb-8" />
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10">
+        <div className="flex items-center justify-between mb-8">
+          <Link to="/properties" className="flex items-center gap-2 text-sm text-white/40 hover:text-white/80 transition-colors group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Properties
+          </Link>
+          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#B8956A]">Arriv Estate Media</span>
+        </div>
+
+        {!page.publicly_available && (
+          <div className="mb-6 px-4 py-3 rounded-xl bg-[#B8956A]/10 border border-[#B8956A]/30 flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#B8956A] text-[#0a0b0f] shrink-0">
+              {page.status_label.toUpperCase()}
+            </span>
+            <p className="text-sm text-white/70">
+              This property is {page.status_label.toLowerCase()} and is not currently available.
+            </p>
+          </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <h1 className="text-3xl sm:text-4xl font-serif text-[#1A1A1A] mb-3">{page.seo_title || page.property_address}</h1>
-            <p className="flex items-center gap-2 text-sm text-[#1A1A1A]/60 mb-4">
-              <MapPin className="w-4 h-4 text-[#B8956A]" />
-              {[page.property_address, page.city, page.state, page.zip].filter(Boolean).join(", ")}
-            </p>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              {page.listing_price != null && <span className="text-2xl text-[#1A1A1A] font-medium">{money(page.listing_price)}</span>}
-              <span className="px-3 py-1 rounded-full bg-[#B8956A]/15 text-[#B8956A] text-xs font-semibold">{page.status_label}</span>
-              <button onClick={share} className="inline-flex items-center gap-2 text-sm text-[#1A1A1A]/60 hover:text-[#1A1A1A]">
-                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                {copied ? "Link copied" : "Share"}
-              </button>
+        <PropertyMarketingHero page={page} copied={copied} onShare={share} />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-16">
+        <PropertyMediaGallery
+          photos={photos}
+          videoUrl={page.video_url}
+          address={page.property_address}
+          coverUrl={page.cover_url}
+        />
+      </div>
+
+      {/* Off-white reading surface */}
+      <div className="relative bg-[#FFFBF5] border-t border-[#B8956A]/20 rounded-t-[2rem]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <PropertyInfoPanel page={page} />
             </div>
 
-            {facts.length > 0 && (
-              <div className="flex flex-wrap gap-6 mb-8">
-                {facts.map((f) => (
-                  <div key={f.label} className="flex items-center gap-2 text-sm text-[#1A1A1A]/70">
-                    <f.icon className="w-4 h-4 text-[#B8956A]" /> {f.label}
+            <aside className="lg:col-span-1">
+              <div className="lg:sticky lg:top-6">
+                {page.inquiries_enabled ? (
+                  <PropertyInquiryForm slug={page.public_slug} reference={page.property_reference} />
+                ) : (
+                  <div className="rounded-2xl border border-black/5 bg-white p-6 text-sm text-[#1A1A1A]/60">
+                    This property is not currently accepting inquiries.
                   </div>
-                ))}
-                {page.property_type && <div className="flex items-center gap-2 text-sm text-[#1A1A1A]/70 capitalize">{page.property_type.replace(/_/g, " ")}</div>}
-              </div>
-            )}
-
-            {page.property_description && (
-              <p className="text-[#1A1A1A]/80 leading-relaxed whitespace-pre-line mb-8">{page.property_description}</p>
-            )}
-
-            {(page.amenities || []).length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-medium text-[#1A1A1A] mb-2">Amenities</h2>
-                <ul className="flex flex-wrap gap-2">
-                  {page.amenities.map((a) => <li key={a} className="px-3 py-1 rounded-full bg-white border border-black/5 text-sm text-[#1A1A1A]/70">{a}</li>)}
+                )}
+                <ul className="text-xs text-[#1A1A1A]/50 mt-5 space-y-2 list-disc pl-5">
+                  {(page.disclosures || []).map((d) => <li key={d}>{d}</li>)}
                 </ul>
               </div>
-            )}
-
-            {page.video_url && (
-              <div className="mb-8">
-                <h2 className="text-lg font-medium text-[#1A1A1A] mb-2">Video tour</h2>
-                <video controls preload="metadata" src={page.video_url} className="w-full rounded-xl bg-black" />
-              </div>
-            )}
-
-            {photos.length > 1 && (
-              <div className="mb-10">
-                <h2 className="text-lg font-medium text-[#1A1A1A] mb-3">Photographs</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {photos.map((p) => (
-                    <img key={p.drive_file_id} src={p.url} alt={p.alt_text || p.name} loading="lazy" className="rounded-lg aspect-[4/3] object-cover" />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-2xl border border-black/5 bg-white p-5">
-              <h2 className="text-base font-medium text-[#1A1A1A] mb-2">Listing contact</h2>
-              <p className="text-sm text-[#1A1A1A]/70">
-                {page.agent.name || "Listing agent"}{page.agent.brokerage ? ` · ${page.agent.brokerage}` : ""}
-              </p>
-              {page.agent.license_number && <p className="text-xs text-[#1A1A1A]/50 mt-1">License {page.agent.license_number}</p>}
-              {page.agent.contact_phone && <p className="text-sm text-[#1A1A1A]/60 mt-1">{page.agent.contact_phone}</p>}
-            </div>
+            </aside>
           </div>
-
-          <aside className="lg:col-span-1">
-            <div className="lg:sticky lg:top-6">
-              {page.inquiries_enabled ? (
-                <PropertyInquiryForm slug={page.public_slug} reference={page.property_reference} />
-              ) : (
-                <div className="rounded-2xl border border-black/5 bg-white p-6 text-sm text-[#1A1A1A]/60">
-                  This property is not currently accepting inquiries.
-                </div>
-              )}
-              <ul className="text-xs text-[#1A1A1A]/50 mt-5 space-y-2 list-disc pl-5">
-                {(page.disclosures || []).map((d) => <li key={d}>{d}</li>)}
-              </ul>
-            </div>
-          </aside>
         </div>
       </div>
     </div>
