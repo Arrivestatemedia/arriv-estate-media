@@ -45,7 +45,12 @@ export default function PropertyDirectory() {
       <header className="bg-[#1A1A1A] px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-[#FFFBF5] font-serif text-lg tracking-wide">Arriv Estate Media</Link>
-          <span className="text-xs text-[#FFFBF5]/60">Property directory</span>
+          <a
+            href="https://arrivestatemedia.com"
+            className="text-xs font-semibold px-3.5 py-2 rounded-full bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559] transition-colors"
+          >
+            Need media services?
+          </a>
         </div>
       </header>
 

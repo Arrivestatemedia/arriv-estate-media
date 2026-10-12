@@ -265,6 +265,21 @@ export function inquiryEndpointUrl(): string {
   return `${appOrigin()}/functions/submitPropertyInquiry`;
 }
 
+// The public directory lives on the property host beside the individual listings, so it is
+// addressed root-relative: the same link is correct on the property host and on the app host.
+export const DIRECTORY_PATH = "/properties";
+
+// The reserved path the property host's single page route resolves to the directory. A listing
+// slug is address-derived and always carries a suffix, so it can never collide with this.
+export const DIRECTORY_SLUG = "properties";
+
+// Where a visitor who needs photography of their own property goes. The marketing site, not the app.
+export const MEDIA_SERVICES_URL = "https://arrivestatemedia.com";
+
+export function directoryUrl(): string {
+  return `${publicOrigin()}${DIRECTORY_PATH}`;
+}
+
 // Deterministic key that stops a second page being created for the same job/property.
 export function duplicateKey(jobId: string, address: string): string {
   return `${String(jobId || "").trim()}::${slugify(address)}`;

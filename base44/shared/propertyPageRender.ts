@@ -13,7 +13,9 @@
 import {
   ADVERTISING_DISCLOSURES,
   AVAILABLE_LISTING_STATUSES,
+  DIRECTORY_PATH,
   INQUIRY_PRIVACY_DISCLOSURES,
+  MEDIA_SERVICES_URL,
   inquiryEndpointUrl,
   mediaStreamUrl,
   propertyPageUrl,
@@ -305,12 +307,17 @@ img, video { max-width: 100%; }
 .frame { position: relative; z-index: 1; }
 .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 .topbar { padding: 22px 0 4px; }
-.bar { display: flex; align-items: center; gap: 12px; }
-.lock { display: flex; align-items: center; gap: 11px; }
+.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lock { display: flex; align-items: center; gap: 11px; text-decoration: none; }
 .mark { position: relative; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #b8956a, #8a6d4a); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 34px rgba(184, 149, 106, 0.35); }
 .mark svg { width: 20px; height: 20px; }
 .eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #b8956a; line-height: 1; }
 .sub { display: block; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255, 251, 245, 0.32); line-height: 1; margin-top: 6px; }
+.nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav a { display: inline-block; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; text-decoration: none; color: rgba(255, 251, 245, 0.72); background: rgba(255, 251, 245, 0.05); border: 1px solid rgba(255, 251, 245, 0.12); }
+.nav a:hover { color: #fffbf5; border-color: rgba(184, 149, 106, 0.5); }
+.nav a.gold { background: linear-gradient(135deg, #c9a87b, #b8956a); border-color: transparent; color: #0a0b0f; box-shadow: 0 10px 26px rgba(184, 149, 106, 0.28); }
+.nav a.gold:hover { opacity: 0.94; }
 .status { margin-left: auto; flex: 0 0 auto; padding: 7px 14px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(184, 149, 106, 0.15); border: 1px solid rgba(184, 149, 106, 0.3); color: #b8956a; }
 h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; color: #fffbf5; font-size: clamp(1.9rem, 6.2vw, 3rem); line-height: 1.12; letter-spacing: -0.015em; margin: 26px 0 12px; }
 .loc { display: flex; align-items: center; gap: 8px; color: rgba(255, 251, 245, 0.5); font-size: 14px; margin: 0 0 8px; }
@@ -359,6 +366,10 @@ button.submit[disabled] { opacity: 0.6; cursor: default; }
 .disc li { margin-bottom: 5px; }
 .foot { padding: 28px 0 44px; }
 .foot p { margin: 10px 0 0; font-size: 11.5px; color: rgba(255, 251, 245, 0.35); }
+.foot a { color: #b8956a; text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+.footlinks { margin-top: 14px !important; }
+.footlinks a { font-weight: 600; }
 .lightbox { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(5, 5, 7, 0.95); }
 .lightbox[hidden] { display: none; }
 .lightbox img { max-width: 95vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
@@ -376,10 +387,14 @@ button.submit[disabled] { opacity: 0.6; cursor: default; }
 <div class="gridlines" aria-hidden="true"></div>
 <div class="frame">
 <header class="topbar"><div class="wrap bar">
-  <div class="lock">
+  <a class="lock" href="${DIRECTORY_PATH}">
     <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#0a0b0f"><path d="M12 3 3 10.2V21h6.2v-6.1h5.6V21H21V10.2z"/></svg></span>
     <span><span class="eyebrow">Arriv Estate Media</span><span class="sub">Property Marketing</span></span>
-  </div>
+  </a>
+  <nav class="nav">
+    <a href="${DIRECTORY_PATH}">Browse properties</a>
+    <a class="gold" href="${MEDIA_SERVICES_URL}">Need media services?</a>
+  </nav>
   <span class="status">${escapeHtml(statusLabel(payload.listing_status))}</span>
 </div></header>
 <main class="wrap">
@@ -424,6 +439,7 @@ ${inquiry}
 <footer class="foot"><div class="wrap">
 <span class="eyebrow">Arriv Estate Media</span>
 <p>Media and marketing page delivered by Arriv Estate Media. Property details and photographs on this page are published on behalf of the listing contact identified above.</p>
+<p class="footlinks"><a href="${DIRECTORY_PATH}">Browse all properties</a> &middot; <a href="${MEDIA_SERVICES_URL}">Need media services?</a></p>
 </div></footer>
 </div>
 ${lightbox}

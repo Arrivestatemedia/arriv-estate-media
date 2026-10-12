@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
+  DIRECTORY_SLUG,
   isPubliclyActive,
   isPubliclyReachable,
   recordInScope,
@@ -9,6 +10,11 @@ import {
   buildPropertyPagePayload,
   renderPropertyPageHtml,
 } from "../../shared/propertyPageRender.ts";
+import {
+  buildDirectoryPayload,
+  renderPropertyDirectoryHtml,
+} from "../../shared/propertyDirectoryRender.ts";
+import { DIRECTORY_MAX_RESULTS, directoryQuery } from "../../shared/propertyDirectoryQuery.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -28,6 +34,26 @@ Deno.serve(async (req) => {
     const gate = await resolveFeatureGate(base44, false);
     if (!gate.enabled) {
       return Response.json({ ok: false, feature_disabled: true, message: "Property pages are not yet available." }, { status: 404 });
+    }
+
+    // The property host has one page route, so the directory is served from this same endpoint:
+    // /properties resolves here with the reserved slug "properties" (a listing slug is
+    // address-derived and always carries a suffix, so it can never collide with it). Same gate,
+    // same eligibility query and same rendering as the directory search endpoint, so a visitor
+    // can never be shown a listing the search endpoint would withhold.
+    if (!listingId && slug === DIRECTORY_SLUG) {
+      const page = await base44.asServiceRole.entities.PropertyListing.filter(
+        directoryQuery({ testMode: false }),
+        { sort: "-published_at", limit: DIRECTORY_MAX_RESULTS },
+      );
+      const payload = buildDirectoryPayload(page?.items || []);
+      if (format === "html") {
+        return new Response(renderPropertyDirectoryHtml(payload), {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" },
+        });
+      }
+      return Response.json(payload);
     }
 
     const query = slug ? { public_slug: slug } : { listing_id: listingId };

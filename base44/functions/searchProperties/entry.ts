@@ -1,13 +1,12 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
   AVAILABLE_LISTING_STATUSES,
-  STATUS_CONFIRMATION_WINDOW_DAYS,
-  certificationScope,
   resolveFeatureGate,
   testModeRequested,
   mediaStreamUrl,
   propertyPageUrl,
 } from "../../shared/propertyVisibility.ts";
+import { DIRECTORY_MAX_RESULTS, directoryQuery } from "../../shared/propertyDirectoryQuery.ts";
 
 // Public property directory search.
 //
@@ -16,7 +15,7 @@ import {
 // confirmed inside the documented window can ever be returned. Sold, withdrawn, expired and
 // stale-unconfirmed listings are structurally absent from active results.
 
-const MAX_LIMIT = 24;
+const MAX_LIMIT = DIRECTORY_MAX_RESULTS;
 
 Deno.serve(async (req) => {
   try {
@@ -30,13 +29,8 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, feature_disabled: true, results: [], total: 0, message: "The property directory is not yet available." });
     }
 
-    const cutoff = new Date(Date.now() - STATUS_CONFIRMATION_WINDOW_DAYS * 86400000).toISOString();
-    const query: Record<string, any> = {
-      publication_state: "PUBLISHED",
-      listing_status: { $in: AVAILABLE_LISTING_STATUSES },
-      certification_mode: certificationScope(gate.test_mode),
-      last_status_confirmed_at: { $gte: cutoff },
-    };
+    // One definition of directory eligibility, shared with the server-rendered directory page.
+    const query: Record<string, any> = directoryQuery({ testMode: gate.test_mode });
 
     const q = String(p("q") || "").trim();
     if (q) {

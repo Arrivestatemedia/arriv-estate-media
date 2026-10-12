@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Home, ArrowLeft } from "lucide-react";
+import { Loader2, Home } from "lucide-react";
 import PropertyMarketingHero from "@/components/property/PropertyMarketingHero";
 import PropertyMediaGallery from "@/components/property/PropertyMediaGallery";
 import PropertyInfoPanel from "@/components/property/PropertyInfoPanel";
@@ -116,12 +116,24 @@ export default function PublicPropertyPage() {
       />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10">
-        <div className="flex items-center justify-between mb-8">
-          <Link to="/properties" className="flex items-center gap-2 text-sm text-white/40 hover:text-white/80 transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Properties
+        <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+          <Link to="/properties" className="flex items-center gap-3 group">
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#c9a87b] to-[#8a6d4a] flex items-center justify-center shadow-[0_12px_34px_rgba(184,149,106,0.35)]">
+              <Home className="w-4 h-4 text-[#0a0b0f]" />
+            </span>
+            <span>
+              <span className="block text-[10px] font-bold tracking-[0.2em] uppercase text-[#B8956A] leading-none">Arriv Estate Media</span>
+              <span className="block text-[10px] tracking-[0.15em] uppercase text-white/30 leading-none mt-1.5">Property Marketing</span>
+            </span>
           </Link>
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#B8956A]">Arriv Estate Media</span>
+          <nav className="flex items-center gap-2 ml-auto">
+            <Link to="/properties" className="px-3.5 py-2 rounded-full text-xs font-semibold text-white/70 bg-white/5 border border-white/10 hover:text-white hover:border-[#B8956A]/50 transition-colors">
+              Browse properties
+            </Link>
+            <a href="https://arrivestatemedia.com" className="px-3.5 py-2 rounded-full text-xs font-semibold text-[#0a0b0f] bg-gradient-to-br from-[#c9a87b] to-[#B8956A] hover:opacity-90 transition-opacity">
+              Need media services?
+            </a>
+          </nav>
         </div>
 
         {!page.publicly_available && (
