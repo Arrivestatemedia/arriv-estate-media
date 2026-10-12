@@ -148,30 +148,61 @@ export async function releasePropertyCertRunLock(client, runId) {
  * Certification records only, and never customer data.
  */
 export async function assertNoForeignPropertyCertArtifacts(client, ownRunId) {
-  const own = String(ownRunId || "");
-  const probe = async (entityName, field) => {
+  const own = String(ownRunId || "").toLowerCase();
+
+  // A publication event or an inquiry carries no run marker of its own, so ownership is resolved
+  // through the listing it hangs off. Cached per listing id, and only consulted for marker-less
+  // rows, so the check stays to a handful of queries.
+  const listingCache = new Map();
+  const listingRun = async (listingId) => {
+    if (!listingId) return null;
+    if (listingCache.has(listingId)) return listingCache.get(listingId);
+    let marker = null;
+    try {
+      const res = await client.entities.PropertyListing.filter({ listing_id: listingId }, "-created_date", 1);
+      const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
+      marker = rows[0] ? String(rows[0].certification_run_id || rows[0].client_email || "") : null;
+    } catch {
+      marker = null;
+    }
+    listingCache.set(listingId, marker);
+    return marker;
+  };
+
+  const probe = async (entityName) => {
     const api = client.entities?.[entityName];
-    if (!api) return { entity: entityName, foreign: [], error: "entity unavailable" };
+    if (!api) return { entity: entityName, foreign: [], unattributed: 0, error: "entity unavailable" };
     try {
       const res = await api.filter({ certification_mode: true }, "-created_date", 50);
       const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
-      const foreign = rows
-        .filter((row) => {
-          const marker = String(row.certification_run_id || row.client_email || row.email || "");
-          return !(own && marker.toLowerCase().startsWith(own.toLowerCase()));
-        })
-        .map((row) => ({ id: row.id, run: String(row.certification_run_id || "").slice(0, 60) }));
-      return { entity: entityName, foreign };
+      const foreign = [];
+      let unattributed = 0;
+      for (const row of rows) {
+        const marker = String(row.certification_run_id || row.client_email || row.email || "").toLowerCase();
+        if (marker) {
+          if (!own || !marker.startsWith(own)) foreign.push({ id: row.id, entity: entityName, run: marker.slice(0, 60) });
+          continue;
+        }
+        const viaListing = await listingRun(String(row.listing_id || ""));
+        if (viaListing && (!own || !viaListing.toLowerCase().startsWith(own))) {
+          foreign.push({ id: row.id, entity: entityName, run: viaListing.slice(0, 60), attributed_via: "listing" });
+        } else if (!viaListing) {
+          // Neither its own markers nor its listing identify a run: surfaced, never guessed at.
+          unattributed++;
+        }
+      }
+      return { entity: entityName, foreign, unattributed };
     } catch (e) {
-      return { entity: entityName, foreign: [], error: String(e?.message || e) };
+      return { entity: entityName, foreign: [], unattributed: 0, error: String(e?.message || e) };
     }
   };
 
   const results = [
-    await probe("PropertyListing", "certification_run_id"),
-    await probe("PropertyListingEvent", "certification_run_id"),
-    await probe("PropertyInquiry", "certification_run_id"),
+    await probe("PropertyListing"),
+    await probe("PropertyListingEvent"),
+    await probe("PropertyInquiry"),
   ];
   const foreign_count = results.reduce((n, r) => n + r.foreign.length, 0);
-  return { clear: foreign_count === 0, foreign_count, by_entity: results, own_run_id: own };
+  const unattributed_count = results.reduce((n, r) => n + (r.unattributed || 0), 0);
+  return { clear: foreign_count === 0, foreign_count, unattributed_count, by_entity: results, own_run_id: ownRunId };
 }

@@ -37,6 +37,8 @@ import { PROPERTY_FEATURE_FLAG_KEY, certificationTestModeAvailable } from '../..
  */
 export default async function (req) {
   const base44 = createClientFromRequest(req);
+  const body = await req.json().catch(() => ({}));
+  const compact = body?.compact === true;
   const tests = [];
   const add = (name, passed, detail = '') => tests.push({ name, passed, detail });
 
@@ -326,6 +328,25 @@ export default async function (req) {
   const certListingsLeft = await b.entities.PropertyListing.count({ certification_mode: true }).catch(() => null);
 
   const failed = tests.filter((t) => !t.passed);
+
+  if (compact) {
+    return Response.json({
+      suite: 'Property Visibility certification — guard tests (compact)',
+      passed: tests.length - failed.length,
+      failed: failed.length,
+      failures: failed,
+      environment: {
+        property_visibility_enabled: String(flagValue ?? '(absent)'),
+        certification_test_mode_configured: certificationTestModeAvailable(),
+      },
+      side_effects: {
+        contacts: `${beforeContacts} → ${afterContacts}`,
+        prepaid_wallets: `${beforeWallets} → ${afterWallets}`,
+        certification_listings_remaining: certListingsLeft,
+      },
+      cleanup,
+    }, { status: failed.length ? 207 : 200 });
+  }
 
   return Response.json({
     suite: 'Property Visibility certification — guard tests',
