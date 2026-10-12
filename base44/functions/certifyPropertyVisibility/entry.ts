@@ -88,8 +88,26 @@ async function callFn(name: string, payload: any) {
 // The certification-only execution path: rendering and inquiry handling for THIS run's own synthetic
 // records. It requires a platform administrator who holds this run's lock and a record that is
 // synthetic and owned by the same run; the public surfaces stay absolutely blocked.
-async function certPath(payload: any) {
-  return callFn("certifyPropertyRender", { run_id: RUN, action: "render", ...payload });
+//
+// The endpoint verifies an administrator SESSION before it validates anything else, and this suite
+// deliberately sends no session on its public calls — they have to look exactly like a visitor's.
+// The certification calls therefore go through the service role (the platform's server-side
+// function-to-function path, already used across this app), so the endpoint receives the
+// administrator session it requires. An unauthenticated fetch here is refused with 401 before the
+// endpoint reads a single record, so it must not be used for this path: doing so made the render and
+// inquiry assertions unsatisfiable.
+async function certPath(base44: any, payload: any) {
+  const body = { run_id: RUN, action: "render", ...payload };
+  try {
+    const res = await base44.asServiceRole.functions.invoke("certifyPropertyRender", body);
+    const data = res && typeof res === "object" && "data" in res ? (res as any).data : res;
+    return { status: 200, data };
+  } catch (err: any) {
+    return {
+      status: err?.response?.status ?? 0,
+      data: err?.response?.data ?? { error: String(err?.message || err) },
+    };
+  }
 }
 
 async function getSetting(base44: any, key: string) {
@@ -350,8 +368,8 @@ Deno.serve(async (req) => {
     // ownership + synthetic-record validation). §20 asserts that the ordinary public surfaces refuse
     // this same record in every mode, so the real renderer is exercised without widening what a
     // public request can reach.
-    const certJson = await certPath({ listing_id: listing.listing_id });
-    const certHtml = await certPath({ listing_id: listing.listing_id, format: "html" });
+    const certJson = await certPath(base44, { listing_id: listing.listing_id });
+    const certHtml = await certPath(base44, { listing_id: listing.listing_id, format: "html" });
     const html = typeof certHtml.data === "string" ? certHtml.data : String(certHtml.data?.raw || "");
     const htmlOk = /<title>/.test(html) && /name="description"/.test(html) && /rel="canonical"/.test(html) && /application\/ld\+json/.test(html) && /RealEstateListing/.test(html);
     add("public_url_rendering", certJson.data?.ok === true && certJson.data?.publicly_available === true && (certJson.data?.media || []).length === 3,
@@ -373,7 +391,7 @@ Deno.serve(async (req) => {
     // ================= 14. Buyer inquiry routing (certification-only path) =================
     // The real inquiry engine — validation, spam screening, routing, persistence — exercised against
     // this run's own synthetic record. The public inquiry endpoint refuses it (§20).
-    const inquiry = await certPath({
+    const inquiry = await certPath(base44, {
       action: "inquire", listing_id: listing.listing_id,
       name: "Certification Buyer", email: `${RUN}.buyer@cert.test`,
       phone: "5551112222", message: "I would like to arrange a viewing of this property next week.", consent_privacy: true, company_website: "",
@@ -385,15 +403,15 @@ Deno.serve(async (req) => {
     add("buyer_inquiry_routing", inquiry.data?.ok === true && inquiryRecord?.routed_to_email === AGENT_EMAIL && inquiryRecord?.lead_sharing_status === "not_shared",
       `routed to ${inquiryRecord?.routed_to_email || "n/a"}, lead sharing=${inquiryRecord?.lead_sharing_status || "n/a"}`);
 
-    const invalid = await certPath({ action: "inquire", listing_id: listing.listing_id, name: "A", email: "not-an-email", message: "short", consent_privacy: false });
-    const honeypot = await certPath({ action: "inquire", listing_id: listing.listing_id, name: "Certification Bot", email: `${RUN}.bot@cert.test`, message: "Buy now cheap offers available today", consent_privacy: true, company_website: "http://spam.example" });
+    const invalid = await certPath(base44, { action: "inquire", listing_id: listing.listing_id, name: "A", email: "not-an-email", message: "short", consent_privacy: false });
+    const honeypot = await certPath(base44, { action: "inquire", listing_id: listing.listing_id, name: "Certification Bot", email: `${RUN}.bot@cert.test`, message: "Buy now cheap offers available today", consent_privacy: true, company_website: "http://spam.example" });
     add("inquiry_validation_and_spam_prevention", invalid.status === 400 && invalid.data?.reason === "VALIDATION_FAILED" && honeypot.data?.filtered === true,
       `invalid → ${invalid.status} ${invalid.data?.reason}; honeypot → filtered=${honeypot.data?.filtered}`);
 
     // ================= 15. Listing status lifecycle =================
     const soldUpdate = await callFn("managePropertyListing", { action: "update_listing_status", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, status: "sold" });
     const searchAfterSold = await callFn("searchProperties", { q: "Bethesda" });
-    const pageAfterSold = await certPath({ listing_id: listing.listing_id });
+    const pageAfterSold = await certPath(base44, { listing_id: listing.listing_id });
     const sitemapAfterSold = await (await fetch(`${ORIGIN}/functions/generatePropertySitemap?test_mode=true`)).text();
     add("listing_status_change_removes_from_active_search", soldUpdate.data?.ok === true
       && !(searchAfterSold.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug)
@@ -408,7 +426,7 @@ Deno.serve(async (req) => {
     // ================= 16. Unpublishing =================
     const activeAgain = await callFn("managePropertyListing", { action: "update_listing_status", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, status: "active" });
     const unpublished = await callFn("managePropertyListing", { action: "unpublish", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, reason: "certification" });
-    const pageAfterUnpublish = await certPath({ listing_id: listing.listing_id });
+    const pageAfterUnpublish = await certPath(base44, { listing_id: listing.listing_id });
     const searchAfterUnpublish = await callFn("searchProperties", { q: "Bethesda" });
     add("unpublish_removes_public_access", activeAgain.data?.ok === true && unpublished.data?.listing?.publication_state === "UNPUBLISHED"
       && pageAfterUnpublish.status === 404 && !(searchAfterUnpublish.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug),

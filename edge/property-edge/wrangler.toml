@@ -27,6 +27,11 @@ compatibility_date = "2026-10-01"
 # serves the app, because normaliseHosts() rewrites exactly that host to PUBLIC_HOST. With
 # PROPERTY_PUBLIC_ORIGIN set on the app (the production configuration) the origin already emits
 # property-domain URLs and this rewrite is a no-op safety net either way.
+# VERIFIED 2026-10-12: both app.arrivestatemedia.com and arrivestatemedia.base44.app serve this
+# app's functions identically (generatePropertySitemap → the app's XML, getPublicPropertyPage → the
+# app's JSON feature_disabled refusal, root → the app's SPA). The custom domain is the correct
+# ORIGIN_BASE: it is the app's own branded origin, so the proxy keeps working if the *.base44.app
+# alias ever changes. This is not a stale value.
 ORIGIN_BASE = "https://app.arrivestatemedia.com"
 # The public host these pages are canonical on. On staging use the workers.dev hostname.
 PUBLIC_HOST = "properties.arrivestatemedia.com"
