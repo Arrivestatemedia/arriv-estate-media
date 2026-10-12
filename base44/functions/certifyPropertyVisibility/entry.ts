@@ -483,8 +483,12 @@ Deno.serve(async (req) => {
       `public page with test_mode → ${publicPageWithTestMode.status}; public inquiry with test_mode → ${publicInquiryWithTestMode.status}; the public predicates refuse this synthetic record while the certification-only predicate accepts it`);
 
     // Strict run ownership and synthetic-record validation on the certification-only path.
-    const unownedRun = await callFn("certifyPropertyRender", { run_id: `${CERT_PREFIX}0000000000`, action: "render", listing_id: listing.listing_id });
-    const foreignRecord = await callFn("certifyPropertyRender", { run_id: RUN, action: "render", listing_id: "prop_not_a_synthetic_record" });
+    // Both probes must be AUTHORIZED calls, or they only ever prove that an anonymous caller is
+    // refused (401) and never reach the run-ownership and synthetic-record checks this assertion is
+    // about. They therefore go through the same authenticated certification path as every other
+    // certification call, with a run id that holds no lock and with a record outside this run.
+    const unownedRun = await certPath(base44, { run_id: `${CERT_PREFIX}0000000000`, action: "render", listing_id: listing.listing_id });
+    const foreignRecord = await certPath(base44, { action: "render", listing_id: "prop_not_a_synthetic_record" });
     add("certification_path_requires_run_ownership_and_synthetic_records",
       unownedRun.status === 403 && foreignRecord.status === 403,
       `render with a run id that holds no lock → ${unownedRun.status}; render for a record outside this run → ${foreignRecord.status}`);
