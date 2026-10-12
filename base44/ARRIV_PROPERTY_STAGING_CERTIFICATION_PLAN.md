@@ -257,9 +257,20 @@ outside the run.
   (checked before the lock is taken) and the sweep discovers and removes stale runs, so an interrupted
   run blocks the next run until it is reconciled rather than accumulating silently.
 
-**5. Verification of the new path.** `certifyPropertyRender` was called with a run id holding no lock →
-`403` (the admin authorization itself passed), so the path is unusable outside a live run and touches
-nothing. Certification was NOT re-run and nothing was published, per instruction.
+**5. Verification of the new path.** Before publish, `certifyPropertyRender` was called with a run id
+holding no lock → `403` (the admin authorization itself passed), so the path is unusable outside a live
+run and touches nothing. Certification itself was NOT re-run at this point.
+
+**6. Published and verified live (2026-10-12).** The corrections are live. Post-publish probes of the
+published app: `getPublicPropertyPage` → `404 feature_disabled`; `submitPropertyInquiry` → `404
+feature_disabled` (no record created); `searchProperties` → `200` with no results; `certifyPropertyRender`
+called anonymously → `401 Authentication required`. `PROPERTY_VISIBILITY_ENABLED` is still `false`, the
+run lock is inactive, and the three property entities hold 0 records with 0 synthetic residue of any kind.
+
+The synthetic-record refusal itself cannot be observed through a published probe while the feature flag
+is off, because the flag-off refusal answers first. It is asserted by the suite's test
+`public_surfaces_refuse_synthetic_records_in_every_mode` together with the engine predicates, and by the
+guard suite's 31/0 pass.
 
 **Still outstanding (owner):** `PROPERTY_VISIBILITY_TEST_MODE` must be removed — it was still set when
 this record was written. `PROPERTY_VISIBILITY_ENABLED` remains `false` with its record untouched and no
