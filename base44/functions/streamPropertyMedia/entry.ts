@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
-import { isPropertyVisibilityEnabled, isPubliclyReachable } from "../../shared/propertyVisibility.ts";
+import { isPubliclyReachable, recordInScope, resolveFeatureGate, testModeRequested } from "../../shared/propertyVisibility.ts";
 import { fetchJobFile } from "../../shared/jobMedia.ts";
 
 // Public media delivery for a published property page.
@@ -18,13 +18,14 @@ Deno.serve(async (req) => {
     const fileId = String(url.searchParams.get("file") || "");
     if (!listingId || !fileId) return Response.json({ error: "listing and file are required" }, { status: 400 });
 
-    if (!(await isPropertyVisibilityEnabled(base44))) {
+    const gate = await resolveFeatureGate(base44, testModeRequested(url.searchParams.get("test_mode")));
+    if (!gate.enabled) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
     const rows = await base44.asServiceRole.entities.PropertyListing.filter({ listing_id: listingId });
     const listing = (Array.isArray(rows) ? rows : (rows?.items || []))[0];
-    if (!listing || listing.certification_mode === true || !isPubliclyReachable(listing)) {
+    if (!listing || !recordInScope(listing, gate.test_mode) || !isPubliclyReachable(listing)) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 

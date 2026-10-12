@@ -1,0 +1,31 @@
+# Arriv Property Visibility — edge worker configuration.
+#
+# NOT DEPLOYED. Deployment requires owner approval (see the readiness report, Step 5-6).
+# No route is declared here on purpose: the worker is inert until a route or a custom domain
+# binds it to properties.arrivestatemedia.com.
+
+name = "arriv-property-edge"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+# The Base44 app host the worker proxies to (no trailing slash).
+ORIGIN_BASE = "https://app.arrivestatemedia.com"
+# The public host these pages are canonical on.
+PUBLIC_HOST = "properties.arrivestatemedia.com"
+# Hard kill switch. Setting this to "true" makes every public path return 503 with no cache
+# read, so nothing stored at the edge can be served. The signed purge endpoint stays reachable.
+PROPERTY_EDGE_DISABLED = "false"
+# Cache lifetimes, in seconds.
+HTML_TTL_SECONDS = "300"
+MEDIA_TTL_SECONDS = "300"
+SITEMAP_TTL_SECONDS = "900"
+NOT_FOUND_TTL_SECONDS = "60"
+
+# Secrets (set with `wrangler secret put`, never committed):
+#   PURGE_SECRET  — must equal the app's PROPERTY_EDGE_PURGE_SECRET.
+
+# Example binding, deliberately commented out until the subdomain is approved and DNS exists:
+# [[routes]]
+# pattern = "properties.arrivestatemedia.com/*"
+# zone_name = "arrivestatemedia.com"

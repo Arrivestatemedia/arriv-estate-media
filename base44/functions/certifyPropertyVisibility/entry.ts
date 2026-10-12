@@ -21,10 +21,17 @@ import {
 // Property Visibility v1.0 certification suite.
 //
 // Runs entirely on synthetic records (cert_prop_ prefixed, deleted in a finally block) and
-// asserts three things beyond the feature behaviour itself:
-//   1. the feature flag is restored to the value it had before the run (false in production),
-//   2. no production property listing is created or modified,
-//   3. payroll, commission, Auto-Fund, wallet and invoicing counts are untouched.
+// asserts four things beyond the feature behaviour itself:
+//   1. the production feature flag is NEVER written (value and the setting record's own
+//      updated_date are compared before and after the run),
+//   2. test mode reaches certification records only — the production scope never sees them and
+//      test mode never sees a real listing,
+//   3. no production property listing is created or modified,
+//   4. payroll, commission, Auto-Fund, wallet and invoicing counts are untouched.
+//
+// The suite no longer switches the production feature flag on. Every call opts into the
+// isolated certification test mode instead, which is honoured only when the certification-only
+// configuration (PROPERTY_VISIBILITY_TEST_MODE) is present.
 //
 // Policy assertions run against the shared engine — the same module the API and the public
 // surfaces use — and the end-to-end assertions run against the deployed functions.
@@ -40,12 +47,18 @@ const CLIENT_EMAIL = `${RUN}@cert.test`;
 const AGENT_EMAIL = `${RUN}.agent@cert.test`;
 const JOB_MARKER = `${RUN}_job`;
 
+// Every certification call opts into test mode. A call that must prove the production scope
+// still governs passes __no_test_mode, which sends the request exactly as a real visitor would.
 async function callFn(name: string, payload: any) {
+  const body = { ...payload };
+  const useTestMode = body.__no_test_mode !== true;
+  delete body.__no_test_mode;
+  if (useTestMode) body.test_mode = true;
   try {
     const res = await fetch(`${ORIGIN}/functions/${name}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     const text = await res.text();
     let data: any = null;
@@ -87,9 +100,10 @@ Deno.serve(async (req) => {
 
   const flagBefore = await getSetting(base44, PROPERTY_FEATURE_FLAG_KEY);
   const flagBeforeValue = flagBefore?.value ?? null;
+  const flagBeforeUpdated = flagBefore?.updated_date ?? null;
 
   const created = { listingIds: [] as string[], eventIds: [] as string[], inquiryIds: [] as string[], jobId: null as string | null };
-  let flagRestored = false;
+  let flagUntouched = false;
   let cleanupReport: any = null;
 
   try {
@@ -170,15 +184,8 @@ Deno.serve(async (req) => {
       `est. $${cost.monthly_total}/month per listing, $${cost.one_time_ai_content} one-time AI content; no media duplicated`);
 
     // ================= 8. End-to-end: synthetic job + draft =================
-    // The flag is enabled only for the duration of this suite and restored in the finally block.
-    const flagRows = await base44.asServiceRole.entities.AppSetting.filter({ key: PROPERTY_FEATURE_FLAG_KEY });
-    const flagRecord = (Array.isArray(flagRows) ? flagRows : (flagRows?.items || []))[0];
-    if (flagRecord) {
-      await base44.asServiceRole.entities.AppSetting.update(flagRecord.id, { value: "true" });
-    } else {
-      await base44.asServiceRole.entities.AppSetting.create({ key: PROPERTY_FEATURE_FLAG_KEY, value: "true" });
-    }
-
+    // The production feature flag is NOT touched. The job and the draft are created through the
+    // ordinary API in test mode, which marks the listing as a certification record.
     const job = await base44.asServiceRole.entities.Job.create({
       tenant_id: "tnt_estate_media",
       title: `${JOB_MARKER} 123 Maple Street`,
@@ -197,7 +204,7 @@ Deno.serve(async (req) => {
     });
     created.jobId = job.id;
 
-    const draft1 = await callFn("managePropertyListing", { action: "create_draft", jobId: job.id, clientEmail: CLIENT_EMAIL });
+    const draft1 = await callFn("managePropertyListing", { action: "create_draft", jobId: job.id, clientEmail: CLIENT_EMAIL, certification_run_id: RUN });
     const draft2 = await callFn("managePropertyListing", { action: "create_draft", jobId: job.id, clientEmail: CLIENT_EMAIL });
     const listing = draft1.data?.listing;
     if (listing) {
@@ -288,7 +295,7 @@ Deno.serve(async (req) => {
     add("seo_metadata_and_crawlable_html", htmlOk && !!publicJson.data?.canonical_url && !!publicJson.data?.structured_data?.["@type"],
       `server-rendered HTML contains title, meta description, canonical, JSON-LD (${String(publicJson.data?.structured_data?.["@type"] || "none")})`);
 
-    const sitemapPublished = await fetch(`${ORIGIN}/functions/generatePropertySitemap`);
+    const sitemapPublished = await fetch(`${ORIGIN}/functions/generatePropertySitemap?test_mode=true`);
     const sitemapXml = await sitemapPublished.text();
     add("sitemap_inclusion", sitemapXml.includes(published.data?.listing?.public_slug),
       "published listing appears in the sitemap");
@@ -320,7 +327,7 @@ Deno.serve(async (req) => {
     const soldUpdate = await callFn("managePropertyListing", { action: "update_listing_status", listingId: listing.listing_id, clientEmail: CLIENT_EMAIL, status: "sold" });
     const searchAfterSold = await callFn("searchProperties", { q: "Bethesda" });
     const pageAfterSold = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
-    const sitemapAfterSold = await (await fetch(`${ORIGIN}/functions/generatePropertySitemap`)).text();
+    const sitemapAfterSold = await (await fetch(`${ORIGIN}/functions/generatePropertySitemap?test_mode=true`)).text();
     add("listing_status_change_removes_from_active_search", soldUpdate.data?.ok === true
       && !(searchAfterSold.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug)
       && pageAfterSold.data?.publicly_available === false && pageAfterSold.data?.indexable === false
@@ -341,8 +348,8 @@ Deno.serve(async (req) => {
       `state=${unpublished.data?.listing?.publication_state}, public page status=${pageAfterUnpublish.status}, directory excludes it`);
 
     // ================= 17. Private media protection =================
-    const privateProbe = await fetch(`${ORIGIN}/functions/streamPropertyMedia?listing=${listing.listing_id}&file=cert_file_1`);
-    const foreignProbe = await fetch(`${ORIGIN}/functions/streamPropertyMedia?listing=${listing.listing_id}&file=some_other_file`);
+    const privateProbe = await fetch(`${ORIGIN}/functions/streamPropertyMedia?listing=${listing.listing_id}&file=cert_file_1&test_mode=true`);
+    const foreignProbe = await fetch(`${ORIGIN}/functions/streamPropertyMedia?listing=${listing.listing_id}&file=some_other_file&test_mode=true`);
     add("private_media_access_protection", privateProbe.status === 404 && foreignProbe.status === 404,
       `unpublished listing asset → ${privateProbe.status}; asset outside the approved selection → ${foreignProbe.status}`);
 
@@ -364,15 +371,19 @@ Deno.serve(async (req) => {
     add("existing_delivery_regression", galleryWrongOwner.status === 403 && galleryOwner.status === 200 && downloadWrongOwner.status === 403,
       `gallery: stranger ${galleryWrongOwner.status}, owner ${galleryOwner.status}; download: stranger ${downloadWrongOwner.status}`);
 
-    // ================= 20. Feature flag fail-closed =================
-    const flagRow = (await base44.asServiceRole.entities.AppSetting.filter({ key: PROPERTY_FEATURE_FLAG_KEY }))[0];
-    await base44.asServiceRole.entities.AppSetting.update(flagRow.id, { value: "false" });
-    const pageFlagOff = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug });
-    const searchFlagOff = await callFn("searchProperties", {});
-    const customerFlagOff = await callFn("managePropertyListing", { action: "create_draft", jobId: job.id, clientEmail: CLIENT_EMAIL });
-    add("feature_flag_fails_closed", pageFlagOff.status === 404 && searchFlagOff.data?.feature_disabled === true
-      && (customerFlagOff.data?.feature_disabled === true || customerFlagOff.data?.ok === true),
-      `public page ${pageFlagOff.status}, directory disabled=${searchFlagOff.data?.feature_disabled}`);
+    // ================= 20. Production scope still governs, read-only =================
+    // These two calls deliberately send no test mode, i.e. exactly what a real visitor sends.
+    // Nothing here writes the feature flag.
+    const pageNoTestMode = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug, __no_test_mode: true });
+    const searchNoTestMode = await callFn("searchProperties", { __no_test_mode: true });
+    const certVisibleToProduction = (searchNoTestMode.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug);
+    const productionScopeHolds = flagBeforeValue === "true"
+      ? pageNoTestMode.status === 200
+      : pageNoTestMode.status === 404 && searchNoTestMode.data?.feature_disabled === true;
+    add("certification_never_reaches_production_scope", certVisibleToProduction === false && productionScopeHolds && searchNoTestMode.data?.ok !== true,
+      `production scope: directory exposed the certification listing=${certVisibleToProduction}, page ${pageNoTestMode.status}, directory disabled=${searchNoTestMode.data?.feature_disabled === true} (production flag=${flagBeforeValue ?? "absent"})`);
+    add("certification_scope_is_disjoint", pageNoTestMode.status === 404 && publicJson.data?.ok === true,
+      `same slug with no test mode → ${pageNoTestMode.status}; with test mode → served (${publicJson.data?.ok === true})`);
   } catch (err: any) {
     add("suite_execution", false, `Suite aborted: ${err.message}`);
   } finally {
@@ -417,19 +428,16 @@ Deno.serve(async (req) => {
       cleanupReport = { error: err.message };
     }
 
-    // Restore the flag to exactly the value it had before the run.
+    // The suite never writes the production feature flag, so there is nothing to restore. Both
+    // the value and the setting record's own updated_date are compared after the run, which
+    // proves the record was not written at all.
     try {
       const rows = await base44.asServiceRole.entities.AppSetting.filter({ key: PROPERTY_FEATURE_FLAG_KEY });
       const record = (Array.isArray(rows) ? rows : (rows?.items || []))[0];
-      if (record) {
-        await base44.asServiceRole.entities.AppSetting.update(record.id, { value: flagBeforeValue ?? "false" });
-        const after = (await base44.asServiceRole.entities.AppSetting.filter({ key: PROPERTY_FEATURE_FLAG_KEY }))[0];
-        flagRestored = String(after?.value) === String(flagBeforeValue ?? "false");
-      } else {
-        flagRestored = flagBeforeValue === null;
-      }
+      flagUntouched = String(record?.value ?? "(absent)") === String(flagBeforeValue ?? "(absent)")
+        && String(record?.updated_date ?? "") === String(flagBeforeUpdated ?? "");
     } catch {
-      flagRestored = false;
+      flagUntouched = false;
     }
   }
 
@@ -446,7 +454,8 @@ Deno.serve(async (req) => {
   add("financial_system_isolation", financialIsolated, `deltas: ${JSON.stringify(financialDeltas)}`);
   add("no_production_property_records_touched", productionListingsAfter === beforeProductionListings && leftovers === 0,
     `property listings before=${beforeProductionListings} after=${productionListingsAfter}, cert leftovers=${leftovers}`);
-  add("feature_flag_restored", flagRestored, `flag restored to "${flagBeforeValue ?? "(absent)"}"`);
+  add("production_feature_flag_untouched", flagUntouched,
+    `flag value "${flagBeforeValue ?? "(absent)"}" and the setting record's updated_date are unchanged — no test writes the production flag`);
 
   const failed = tests.filter((t) => !t.passed);
 
@@ -456,7 +465,8 @@ Deno.serve(async (req) => {
     passed: tests.length - failed.length,
     failed: failed.length,
     flag_value_before: flagBeforeValue,
-    flag_restored: flagRestored,
+    flag_untouched: flagUntouched,
+    isolated_test_mode: true,
     cleanup: cleanupReport,
     financial_deltas: financialDeltas,
     tests,

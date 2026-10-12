@@ -2,7 +2,9 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
   AVAILABLE_LISTING_STATUSES,
   STATUS_CONFIRMATION_WINDOW_DAYS,
-  isPropertyVisibilityEnabled,
+  certificationScope,
+  resolveFeatureGate,
+  testModeRequested,
   mediaStreamUrl,
   propertyPageUrl,
 } from "../../shared/propertyVisibility.ts";
@@ -23,7 +25,8 @@ Deno.serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const p = (name: string) => body[name] ?? url.searchParams.get(name) ?? undefined;
 
-    if (!(await isPropertyVisibilityEnabled(base44))) {
+    const gate = await resolveFeatureGate(base44, testModeRequested(p("test_mode")));
+    if (!gate.enabled) {
       return Response.json({ ok: false, feature_disabled: true, results: [], total: 0, message: "The property directory is not yet available." });
     }
 
@@ -31,7 +34,7 @@ Deno.serve(async (req) => {
     const query: Record<string, any> = {
       publication_state: "PUBLISHED",
       listing_status: { $in: AVAILABLE_LISTING_STATUSES },
-      certification_mode: { $ne: true },
+      certification_mode: certificationScope(gate.test_mode),
       last_status_confirmed_at: { $gte: cutoff },
     };
 

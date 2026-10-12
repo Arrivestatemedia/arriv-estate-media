@@ -2,7 +2,9 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
   AVAILABLE_LISTING_STATUSES,
   STATUS_CONFIRMATION_WINDOW_DAYS,
-  isPropertyVisibilityEnabled,
+  certificationScope,
+  resolveFeatureGate,
+  testModeRequested,
   propertyPageUrl,
 } from "../../shared/propertyVisibility.ts";
 
@@ -24,8 +26,9 @@ function escapeXml(value: any) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const enabled = await isPropertyVisibilityEnabled(base44);
-    if (!enabled) {
+    const url = new URL(req.url);
+    const gate = await resolveFeatureGate(base44, testModeRequested(url.searchParams.get("test_mode")));
+    if (!gate.enabled) {
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`,
         { status: 200, headers: { "Content-Type": "application/xml; charset=utf-8" } },
@@ -36,7 +39,7 @@ Deno.serve(async (req) => {
     const rows = await base44.asServiceRole.entities.PropertyListing.filter({
       publication_state: "PUBLISHED",
       listing_status: { $in: AVAILABLE_LISTING_STATUSES },
-      certification_mode: { $ne: true },
+      certification_mode: certificationScope(gate.test_mode),
       last_status_confirmed_at: { $gte: cutoff },
     }, { sort: "-published_at", limit: 500 });
 

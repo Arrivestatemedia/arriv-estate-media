@@ -3,7 +3,9 @@ import {
   AVAILABLE_LISTING_STATUSES,
   ADVERTISING_DISCLOSURES,
   INQUIRY_PRIVACY_DISCLOSURES,
-  isPropertyVisibilityEnabled,
+  recordInScope,
+  resolveFeatureGate,
+  testModeRequested,
   isPubliclyActive,
   isPubliclyReachable,
   mediaStreamUrl,
@@ -94,15 +96,17 @@ Deno.serve(async (req) => {
 
     if (!slug && !listingId) return Response.json({ error: "slug is required" }, { status: 400 });
 
-    const enabled = await isPropertyVisibilityEnabled(base44);
-    if (!enabled) {
+    // Production reads the feature flag. A certification run opts into test mode instead of
+    // touching that flag, and test mode can only ever reach certification records.
+    const gate = await resolveFeatureGate(base44, testModeRequested(body.test_mode ?? url.searchParams.get("test_mode")));
+    if (!gate.enabled) {
       return Response.json({ ok: false, feature_disabled: true, message: "Property pages are not yet available." }, { status: 404 });
     }
 
     const query = slug ? { public_slug: slug } : { listing_id: listingId };
     const rows = await base44.asServiceRole.entities.PropertyListing.filter(query);
     const listing = (Array.isArray(rows) ? rows : (rows?.items || []))[0];
-    if (!listing || listing.certification_mode === true || !isPubliclyReachable(listing)) {
+    if (!listing || !recordInScope(listing, gate.test_mode) || !isPubliclyReachable(listing)) {
       return Response.json({ ok: false, error: "Property page not found" }, { status: 404 });
     }
 
@@ -111,6 +115,10 @@ Deno.serve(async (req) => {
       .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
     const video = media.find((m: any) => m.kind === "video");
     const active = isPubliclyActive(listing);
+    // A certification page must reference the same gated stream endpoint so the rendered HTML
+    // stays verifiable end to end. Production pages never carry the flag.
+    const testSuffix = gate.test_mode ? "&test_mode=true" : "";
+    const streamUrl = (fileId: string) => `${mediaStreamUrl(listing.listing_id, fileId)}${testSuffix}`;
 
     const payload: any = {
       ok: true,
@@ -141,10 +149,10 @@ Deno.serve(async (req) => {
         kind: m.kind,
         alt_text: m.alt_text || "",
         name: m.name,
-        url: mediaStreamUrl(listing.listing_id, m.drive_file_id),
+        url: streamUrl(m.drive_file_id),
       })),
-      cover_url: listing.cover_file_id ? mediaStreamUrl(listing.listing_id, listing.cover_file_id) : "",
-      video_url: video ? mediaStreamUrl(listing.listing_id, video.drive_file_id) : "",
+      cover_url: listing.cover_file_id ? streamUrl(listing.cover_file_id) : "",
+      video_url: video ? streamUrl(video.drive_file_id) : "",
       published_at: listing.published_at || null,
       last_status_confirmed_at: listing.last_status_confirmed_at || null,
       agent: {

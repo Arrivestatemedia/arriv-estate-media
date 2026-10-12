@@ -11,7 +11,9 @@ import {
   estimateCostPerProperty,
   generateSeoDraft,
   isJobEligibleForPropertyPage,
-  isPropertyVisibilityEnabled,
+  recordInScope,
+  resolveFeatureGate,
+  testModeRequested,
   canActorAccessListing,
   canApprovePublication,
   nextConfirmationDue,
@@ -24,6 +26,7 @@ import {
   transitionError,
 } from "../../shared/propertyVisibility.ts";
 import { listJobFiles } from "../../shared/jobMedia.ts";
+import { purgeListingFromEdge } from "../../shared/edgeCache.ts";
 
 // Customer-facing (and admin) authoring of a property page.
 //
@@ -105,7 +108,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "");
     const actor = await resolveActor(base44, body);
-    const flagEnabled = await isPropertyVisibilityEnabled(base44);
+    // Production reads the feature flag. A certification run opts into test mode, which only
+    // ever operates on certification records and never writes the production flag.
+    const gate = await resolveFeatureGate(base44, testModeRequested(body.test_mode));
+    const flagEnabled = gate.enabled;
+    const certScope = gate.test_mode;
+    const inScope = (candidate: any) => recordInScope(candidate, certScope);
 
     // Customer-facing authoring stays dark until the flag is switched on.
     if (!actor.isAdmin && !flagEnabled) {
@@ -131,7 +139,7 @@ Deno.serve(async (req) => {
       const eligibility = isJobEligibleForPropertyPage(job);
       const existing = (await listings.filter({ job_id: jobId })) || [];
       const bookingFacts = await buildFactsFromBooking(base44, job);
-      const existingListing = existing.find((l: any) => l.certification_mode !== true) || null;
+      const existingListing = existing.find((l: any) => inScope(l)) || null;
       const missing: string[] = [];
       if (!(bookingFacts?.property_address)) missing.push("property_address");
       if (!(bookingFacts?.city)) missing.push("city");
@@ -179,7 +187,7 @@ Deno.serve(async (req) => {
 
       // Duplicate page prevention: one property page per job / per property address.
       const byJob = (await listings.filter({ job_id: jobId })) || [];
-      const reusable = byJob.find((l: any) => l.certification_mode !== true);
+      const reusable = byJob.find((l: any) => inScope(l));
       if (reusable) return Response.json({ ok: true, listing: reusable, reused: true });
 
       const facts = (await buildFactsFromBooking(base44, job)) || {};
@@ -195,7 +203,7 @@ Deno.serve(async (req) => {
       const listingId = `prop_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       const dkey = duplicateKey(jobId, address);
       const existingByKey = (await listings.filter({ duplicate_key: dkey })) || [];
-      const duplicate = existingByKey.find((l: any) => l.certification_mode !== true);
+      const duplicate = existingByKey.find((l: any) => inScope(l));
       if (duplicate) return Response.json({ ok: true, listing: duplicate, reused: true });
 
       const slug = buildSlug(address, facts.city || "", facts.state || "", listingId);
@@ -235,7 +243,8 @@ Deno.serve(async (req) => {
         canonical_url: propertyPageUrl(slug),
         disclosures_snapshot: ADVERTISING_DISCLOSURES.join("\n"),
         reso: resoProjection({ listing_id: listingId, listing_status: "draft", property_type: "" }),
-        certification_mode: false,
+        certification_mode: certScope,
+        certification_run_id: certScope ? sanitizeText(body.certification_run_id, 120) : "",
         created_at: nowIso(),
         updated_at: nowIso(),
       });
@@ -255,7 +264,7 @@ Deno.serve(async (req) => {
     if (!authorizeListing(listing, actor)) {
       return Response.json({ error: "Unauthorized: this property page does not belong to you" }, { status: 403 });
     }
-    if (listing.certification_mode === true && !actor.isAdmin) {
+    if (listing.certification_mode === true && !actor.isAdmin && !certScope) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -265,6 +274,15 @@ Deno.serve(async (req) => {
       const fresh = { ...listing, ...patch };
       await recordEvent(base44, fresh, eventType, actor, details, states);
       listing = fresh;
+      // Any state, content or media change invalidates the exact edge keys for this listing:
+      // its page, the sitemap, and every media asset it can currently expose. Invalidating here
+      // covers publishing, unpublishing, archiving, listing-status changes and media
+      // authorization changes in one place. Inert until the edge secrets exist, and never
+      // allowed to fail the customer action.
+      const edgePurge = await purgeListingFromEdge(fresh);
+      if (edgePurge && edgePurge.ok === false && edgePurge.skipped !== true) {
+        console.log(`edge purge failed for ${fresh.listing_id}: ${edgePurge.error || edgePurge.status}`);
+      }
       return fresh;
     };
 

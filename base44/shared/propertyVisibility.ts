@@ -23,6 +23,63 @@ export async function isPropertyVisibilityEnabled(client: any): Promise<boolean>
 }
 
 // ---------------------------------------------------------------------------
+// Certification test mode — the SAFE substitute for temporarily setting the
+// production feature flag to "true" while a test suite ran.
+//
+// Test mode requires ALL THREE of the following, so it can never reach production traffic:
+//   1. the environment variable PROPERTY_VISIBILITY_TEST_MODE is exactly "true"
+//      (a certification-only configuration; deliberately absent in production),
+//   2. the individual request opts in explicitly with `test_mode: true`,
+//   3. every record involved is a certification record (certification_mode === true).
+//
+// Consequences that make it safe by construction:
+//   * production traffic never sends `test_mode`, so behaviour is unchanged;
+//   * a real customer listing can NEVER be reached in test mode (only certification records
+//     are in scope), and a certification record can never be reached in normal mode;
+//   * the production feature flag is never written by any test.
+export const PROPERTY_TEST_MODE_ENV = "PROPERTY_VISIBILITY_TEST_MODE";
+
+export function certificationTestModeAvailable(): boolean {
+  try {
+    const raw = (globalThis as any)?.process?.env?.[PROPERTY_TEST_MODE_ENV];
+    return String(raw ?? "false").trim().toLowerCase() === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function testModeRequested(input: unknown): boolean {
+  return input === true || String(input ?? "").trim().toLowerCase() === "true";
+}
+
+export interface FeatureGate {
+  enabled: boolean;
+  test_mode: boolean;
+}
+
+// Resolves the gate for one request. The production flag always wins; test mode is a
+// fallback that only exists when the certification configuration is present.
+export async function resolveFeatureGate(client: any, requested: boolean): Promise<FeatureGate> {
+  if (await isPropertyVisibilityEnabled(client)) return { enabled: true, test_mode: false };
+  if (requested === true && certificationTestModeAvailable()) return { enabled: true, test_mode: true };
+  return { enabled: false, test_mode: false };
+}
+
+// The certification_mode filter to apply to a query: test mode sees certification records
+// only, normal mode sees everything except them.
+export function certificationScope(testMode: boolean): any {
+  return testMode ? true : { $ne: true };
+}
+
+// Whether a loaded record is in scope for this gate. Both directions are enforced, so a
+// test-mode request can never read a real listing and a normal request can never read a
+// synthetic one.
+export function recordInScope(record: any, testMode: boolean): boolean {
+  const isCertification = record?.certification_mode === true;
+  return testMode ? isCertification : !isCertification;
+}
+
+// ---------------------------------------------------------------------------
 // Publication state machine
 // ---------------------------------------------------------------------------
 export const PUBLICATION_STATES = [

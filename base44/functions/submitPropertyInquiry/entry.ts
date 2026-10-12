@@ -3,7 +3,9 @@ import {
   INQUIRY_CONSENT_TEXT,
   INQUIRY_PRIVACY_DISCLOSURES,
   inquirySpamSignals,
-  isPropertyVisibilityEnabled,
+  recordInScope,
+  resolveFeatureGate,
+  testModeRequested,
   isPubliclyActive,
   isValidEmail,
   sanitizeText,
@@ -24,7 +26,8 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
 
-    if (!(await isPropertyVisibilityEnabled(base44))) {
+    const gate = await resolveFeatureGate(base44, testModeRequested(body.test_mode));
+    if (!gate.enabled) {
       return Response.json({ ok: false, feature_disabled: true, message: "Property inquiries are not yet available." }, { status: 404 });
     }
 
@@ -46,7 +49,7 @@ Deno.serve(async (req) => {
 
     const rows = await base44.asServiceRole.entities.PropertyListing.filter({ public_slug: slug });
     const listing = (Array.isArray(rows) ? rows : (rows?.items || []))[0];
-    if (!listing || listing.certification_mode === true || !isPubliclyActive(listing)) {
+    if (!listing || !recordInScope(listing, gate.test_mode) || !isPubliclyActive(listing)) {
       return Response.json({ ok: false, reason: "LISTING_NOT_AVAILABLE", message: "This property is no longer accepting inquiries." }, { status: 404 });
     }
 
@@ -106,7 +109,7 @@ Deno.serve(async (req) => {
       notification_status: "pending_agent_delivery",
       lead_sharing_status: "not_shared",
       arriv_one_lead_id: "",
-      certification_mode: false,
+      certification_mode: gate.test_mode,
       created_at: new Date().toISOString(),
     });
 
@@ -124,7 +127,7 @@ Deno.serve(async (req) => {
       new_state: listing.publication_state,
       details: { inquiry_id: inquiryId, routed_to: routedTo, spam_score: spam.score },
       recorded_at: new Date().toISOString(),
-      certification_mode: false,
+      certification_mode: gate.test_mode,
     });
 
     return Response.json({
