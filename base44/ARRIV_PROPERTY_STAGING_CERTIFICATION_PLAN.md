@@ -207,3 +207,60 @@ unexercised.
 
 **Outstanding:** `PROPERTY_VISIBILITY_TEST_MODE` was still set when this was written. The owner must remove
 it (the app cannot delete a secret value); test mode being unreachable is verified afterwards.
+
+---
+
+## 12. Corrections after the failed run — the public block stays absolute
+
+Owner direction: keep the absolute public block on synthetic certification listings; no anonymous or
+ordinary public request may render a synthetic page or submit an inquiry, even in test mode; give
+certification a separate administrator-authorized path with strict run ownership and synthetic-record
+validation; do not weaken the normal public endpoints.
+
+**1. The public block is now unconditional.** The three visitor-facing surfaces no longer accept a
+test-mode parameter at all, so no request can put them into a mode that resolves a synthetic record:
+`getPublicPropertyPage` (rendering), `submitPropertyInquiry` (input) and `streamPropertyMedia` (assets).
+`isPubliclyReachable()` / `isPubliclyActive()` still exclude `certification_mode === true`
+unconditionally, and the suite now asserts the refusal directly, so the block cannot silently disappear.
+Directory and sitemap scope checks keep their isolated test mode: they enumerate and verify, they render
+no page and they accept no visitor input.
+
+**2. Certification has its own path.** New `certifyPropertyRender` (administrator-only) proves three
+things before it reads or writes anything: the caller is a platform administrator (server-verified
+session role); the caller holds THIS run's active lock (a run id holding no lock is refused); and the
+target is a synthetic record belonging to that same run. It renders through the SAME shared renderer
+(`shared/propertyPageRender.ts`) and submits through the SAME shared inquiry engine
+(`shared/propertyInquiry.ts`) that the public surfaces use — extracted from those functions for exactly
+this reason, so certification exercises the real code and there is one implementation, not a copy.
+
+**3. The suite was rewired** so the six previously unsatisfiable assertions run through that path, and it
+now also asserts that the public page and public inquiry endpoint refuse the synthetic record even when
+the request carries `test_mode`, that the engine predicates refuse it while the certification-only
+predicate accepts it, and that the certification path refuses a run id holding no lock and a record
+outside the run.
+
+**4. Cleanup — investigation, correction, verification.**
+- *Investigation of the `after=1` reading:* the sweep deletes only records carrying this run's markers,
+  and it reported deleting the listing — so the record was a genuine certification record, never
+  production-scope residue. Independent reads then found 0 listings, 0 events, 0 inquiries and 0
+  synthetic jobs. The reading was a stale read taken immediately after a burst of deletes.
+- *Corrected:* the post-run check no longer compares a raw total. It probes by MARKER across all three
+  property entities, names any residue, and re-reads a bounded number of times (up to 3, 1s apart), so a
+  stale read cannot fail the run and a real leak cannot hide behind a passing count. A
+  `run_lock_released_after_cleanup` assertion was added for the same reason.
+- *Verified:* the guard suite passed 31/0 — run-scoped discovery, live-run protection, safe cleanup,
+  idempotency and stale/interrupted-run discovery included — with 0 certification listings remaining and
+  no change to contacts or wallets. Its three "not found" cleanup entries are the second, idempotent
+  delete pass over records the first pass had already removed. An independent marker scan across
+  `PropertyListing`, `PropertyListingEvent`, `PropertyInquiry` and `Job` found no synthetic residue.
+- *Interrupted runs:* the runner still refuses to start while ANY foreign certification artifact exists
+  (checked before the lock is taken) and the sweep discovers and removes stale runs, so an interrupted
+  run blocks the next run until it is reconciled rather than accumulating silently.
+
+**5. Verification of the new path.** `certifyPropertyRender` was called with a run id holding no lock →
+`403` (the admin authorization itself passed), so the path is unusable outside a live run and touches
+nothing. Certification was NOT re-run and nothing was published, per instruction.
+
+**Still outstanding (owner):** `PROPERTY_VISIBILITY_TEST_MODE` must be removed — it was still set when
+this record was written. `PROPERTY_VISIBILITY_ENABLED` remains `false` with its record untouched and no
+public listing exists.
