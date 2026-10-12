@@ -21,14 +21,27 @@ import { signRequest as signPayrollRequest } from "./payrollSigning.ts";
 import { getPayrollConfig } from "./payrollSettings.ts";
 import { writeAuditLog } from "./payrollAudit.ts";
 
+// Split the member's real full name into first/last parts. Used only where the dedicated
+// legal-name fields are blank — Arriv Payroll requires them non-empty, and a member synced
+// from Arriv One often carries only full_name. Nothing is invented: the parts come from the
+// member's own name.
+function namePartsFrom(member) {
+  const full = String(member.full_name || "").trim().replace(/\s+/g, " ");
+  if (!full) return { first: "", last: "" };
+  const parts = full.split(" ");
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
+
 // Fields Arriv One syncs to Arriv Payroll. Never includes bank accounts, full SSNs,
 // or Stripe secrets — those are collected via hosted Stripe onboarding.
 export function buildEmployeePayload(member) {
+  const nameParts = namePartsFrom(member);
   return {
     arriv_employee_id: member.arriv_employee_id || "",
-    legal_first_name: member.legal_first_name || "",
+    legal_first_name: member.legal_first_name || nameParts.first,
     legal_middle_name: member.legal_middle_name || "",
-    legal_last_name: member.legal_last_name || "",
+    legal_last_name: member.legal_last_name || nameParts.last,
     preferred_name: member.preferred_name || member.full_name || "",
     personal_email: member.personal_email || member.email || "",
     company_email: member.company_email || "",
@@ -44,6 +57,10 @@ export function buildEmployeePayload(member) {
     employment_status: member.employment_status || "pending_offer",
     original_hire_date: member.original_hire_date || "",
     current_effective_hire_date: member.current_effective_hire_date || "",
+    // The payroll route names this field `hire_date`; sent alongside the two source fields so
+    // the payroll app receives it under the name it validates. Never defaulted to a date this
+    // app cannot evidence — an empty value is reported back rather than guessed.
+    hire_date: member.current_effective_hire_date || member.original_hire_date || "",
     termination_date: member.termination_date || "",
     payroll_eligible: member.payroll_eligible === true,
     compensation_type: member.compensation_type || "commission_only",
@@ -135,14 +152,24 @@ export async function runSyncAttempt(base44, queueRecord) {
   // configuration because the value belongs to the payroll side's app registry: the receiver
   // answered "Invalid source_app" when this was hardcoded. The signature must cover exactly
   // the same value, and the body carries it too, because the receiver compares all three.
-  const sourceAppId = config.source_app || "arriv-one";
+  // Arriv Pay has confirmed this exact production identifier (underscores, not hyphens).
+  const sourceAppId = config.source_app || "arriv_estate_media";
   const employeeVersion = queueRecord.source_version || 1;
   const bodyStr = JSON.stringify({
+    // The receiver reads the employee fields at the top level of the payload, so the record
+    // is sent both flattened and under `employee`. Declared values come after the spread so
+    // the run's own identity fields always win.
+    ...(queueRecord.current_field_values || {}),
     company_id: config.company_id,
     // Sent explicitly so the payload's source app and the signed source app are the same
     // value; the receiver checks them against each other.
     source_app: sourceAppId,
+    // The receiver requires the request id inside the payload as well as in the signed header.
+    request_id: requestId,
+    arriv_employee_id: queueRecord.arriv_employee_id,
     event_type: queueRecord.event_type,
+    event_timestamp: queueRecord.event_timestamp,
+    source_version: employeeVersion,
     changed_fields: queueRecord.changed_fields || [],
     employee: queueRecord.current_field_values,
   });
