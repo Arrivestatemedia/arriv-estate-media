@@ -42,6 +42,35 @@ export async function listJobFiles(client: any, job: any): Promise<{ folderId: s
   return { folderId, files };
 }
 
+// A web-sized derivative of a delivered photograph.
+//
+// A delivered original is tens of megabytes. A property page showing twenty of them never finishes
+// loading on a phone, so the page streams the resized preview Drive already generates for every
+// image instead of the original. It is the same private file in the same private folder read with
+// the same credentials — nothing is copied, re-uploaded, or made publicly addressable. The
+// originals remain exactly what the client downloads from their delivery gallery.
+export async function fetchJobPhotoPreview(client: any, fileId: string, width = 1600) {
+  const accessToken = await client.asServiceRole.connectors.getAccessToken("googledrive");
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink,mimeType`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!metaRes.ok) return null;
+  const meta = await metaRes.json();
+  const link = String(meta?.thumbnailLink || "");
+  if (!link) return null;
+
+  const sized = /=s\d+/.test(link) ? link.replace(/=s\d+.*/, `=w${width}`) : `${link}=w${width}`;
+  const res = await fetch(sized);
+  if (!res.ok) return null;
+
+  const contentType = String(res.headers.get("content-type") || "");
+  return {
+    bytes: await res.arrayBuffer(),
+    mimeType: contentType.startsWith("image/") ? contentType : "image/jpeg",
+  };
+}
+
 export async function fetchJobFile(client: any, fileId: string) {
   const accessToken = await client.asServiceRole.connectors.getAccessToken("googledrive");
   const metaRes = await fetch(

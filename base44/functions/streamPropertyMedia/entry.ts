@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { isPubliclyReachable, recordInScope, resolveFeatureGate } from "../../shared/propertyVisibility.ts";
-import { fetchJobFile } from "../../shared/jobMedia.ts";
+import { fetchJobFile, fetchJobPhotoPreview } from "../../shared/jobMedia.ts";
 
 // Public media delivery for a published property page.
 //
@@ -36,6 +36,24 @@ Deno.serve(async (req) => {
     if (!asset) return Response.json({ error: "Not found" }, { status: 404 });
     if (asset.kind === "video" && listing.include_video !== true) {
       return Response.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // A photograph is served as a web-sized derivative of the delivered file. A page of twenty
+    // originals (tens of megabytes each) never finishes loading on a phone — the browser gives up
+    // and shows an empty frame. The resized copy is read from the same private Drive file with the
+    // same credentials, so nothing is copied, re-uploaded or made publicly addressable, and the
+    // client's own gallery still hands them the originals. Video is streamed exactly as delivered.
+    if (asset.kind === "photo") {
+      const preview = await fetchJobPhotoPreview(base44, fileId);
+      if (preview) {
+        return new Response(preview.bytes, {
+          status: 200,
+          headers: {
+            "Content-Type": preview.mimeType,
+            "Cache-Control": "public, max-age=86400",
+          },
+        });
+      }
     }
 
     const file = await fetchJobFile(base44, fileId);
