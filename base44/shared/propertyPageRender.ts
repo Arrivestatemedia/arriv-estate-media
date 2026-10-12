@@ -104,20 +104,37 @@ export function buildPropertyPagePayload(listing: any, opts: { publiclyAvailable
 // have to execute JavaScript to read a property page.
 //
 // The page a visitor actually lands on from a search result is this document, so it has to be a
-// finished, readable page on a phone as well as a crawler: brand-consistent presentation, the
-// approved facts, the approved media in the customer's order, the listing contact, and a working
-// inquiry form. The form posts cross-origin to the public inquiry endpoint on the app host (the
-// edge proxies GET content only); that endpoint validates, screens and rate-limits every submission
-// and routes it to the listing's own authorized contact, and nothing else.
+// finished, readable page on a phone as well as a crawler. It is built in the same visual language
+// as the client delivery gallery — dark cinematic frame, gold ambient glow and gold lockup, serif
+// display type, media first — with off-white (cream) reading surfaces carrying the approved facts,
+// the approved media in the customer's order, the listing contact and the inquiry form.
+//
+// The form posts cross-origin to the public inquiry endpoint on the app host (the edge proxies GET
+// content only); that endpoint validates, screens and rate-limits every submission and routes it to
+// the listing's own authorized contact, and nothing else.
 export function renderPropertyPageHtml(payload: any) {
   const agent = payload.agent || {};
-  const photos = (payload.media || [])
-    .filter((m: any) => m.kind === "photo")
-    .map(
-      (m: any) =>
-        `<figure><img src="${escapeHtml(m.url)}" alt="${escapeHtml(m.alt_text || m.name)}" loading="lazy" decoding="async" />${m.alt_text ? `<figcaption>${escapeHtml(m.alt_text)}</figcaption>` : ""}</figure>`,
-    )
-    .join("\n");
+  const address = String(payload.property_address || "").trim();
+  const location = [payload.property_address, payload.city, payload.state, payload.zip].filter(Boolean).join(", ");
+  const photos = (payload.media || []).filter((m: any) => m.kind === "photo");
+
+  const shot = (m: any, index: number) => {
+    const alt = String(m.alt_text || m.name || `Photograph of ${address}`);
+    return `<figure class="shot">
+  <button type="button" class="shot-btn" aria-label="View photograph full size: ${escapeHtml(alt)}">
+    <img src="${escapeHtml(m.url)}" alt="${escapeHtml(alt)}" loading="${index < 2 ? "eager" : "lazy"}" decoding="async" />
+  </button>
+  ${m.alt_text ? `<figcaption>${escapeHtml(m.alt_text)}</figcaption>` : ""}
+</figure>`;
+  };
+  const shots = photos.map(shot).join("\n");
+
+  const heroPills = [
+    payload.bedrooms != null ? `${payload.bedrooms} bed` : null,
+    payload.bathrooms != null ? `${payload.bathrooms} bath` : null,
+    payload.square_footage != null ? `${Number(payload.square_footage).toLocaleString("en-US")} sq ft` : null,
+    payload.property_type ? String(payload.property_type).replace(/_/g, " ") : null,
+  ].filter(Boolean) as string[];
 
   const facts: [string, string][] = ([
     payload.listing_price != null ? ["Price", `$${Number(payload.listing_price).toLocaleString("en-US")}`] : null,
@@ -130,6 +147,13 @@ export function renderPropertyPageHtml(payload: any) {
     ([label, value]) => `<li><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></li>`,
   ).join("\n");
 
+  const amenities = (payload.amenities || []).length
+    ? `<section class="card">
+  <h2>Amenities</h2>
+  <ul class="chips">${(payload.amenities || []).map((a: string) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>
+</section>`
+    : "";
+
   const contactLines = [agent.contact_email, agent.contact_phone].filter(Boolean);
   const agentCard = agent.name
     ? `<section class="card">
@@ -141,7 +165,7 @@ export function renderPropertyPageHtml(payload: any) {
     : "";
 
   const inquiry = payload.inquiries_enabled === true
-    ? `<section class="card" id="inquire">
+    ? `<section class="form-card" id="inquire">
   <h2>Ask about this property</h2>
   <p class="muted">Property reference ${escapeHtml(payload.property_reference)}</p>
   <form id="arriv-inquiry-form" novalidate>
@@ -155,9 +179,9 @@ export function renderPropertyPageHtml(payload: any) {
     <textarea id="arriv-message" name="message" rows="4" required></textarea>
     <input id="arriv-honeypot" name="company_website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot" />
     <label class="check"><input id="arriv-consent" type="checkbox" required /> I consent to being contacted about this property and I have read the privacy disclosures below.</label>
-    <ul class="small muted">${(payload.inquiry_disclosures || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
+    <ul class="small">${(payload.inquiry_disclosures || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
     <p id="arriv-inquiry-error" class="error" hidden></p>
-    <button type="submit" id="arriv-submit">Send inquiry</button>
+    <button type="submit" id="arriv-submit" class="submit">Send inquiry</button>
   </form>
   <p id="arriv-inquiry-sent" class="sent" hidden></p>
 </section>
@@ -204,6 +228,52 @@ export function renderPropertyPageHtml(payload: any) {
   });
 })();
 </script>`
+    : `<section class="form-card">
+  <h2>Enquiries</h2>
+  <p class="muted">This property is ${escapeHtml(statusLabel(payload.listing_status).toLowerCase())} and is not currently accepting inquiries.</p>
+</section>`;
+
+  const lightbox = photos.length
+    ? `<div id="arriv-lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photograph viewer">
+  <button type="button" class="lb-btn lb-close" aria-label="Close photograph viewer">&#10005;</button>
+  <button type="button" class="lb-btn lb-prev" aria-label="Previous photograph">&#8249;</button>
+  <img id="arriv-lightbox-img" alt="" />
+  <button type="button" class="lb-btn lb-next" aria-label="Next photograph">&#8250;</button>
+  <p id="arriv-lightbox-cap" class="lb-cap" hidden></p>
+</div>
+<script>
+(function () {
+  var buttons = [].slice.call(document.querySelectorAll(".shot-btn"));
+  if (!buttons.length) return;
+  var box = document.getElementById("arriv-lightbox");
+  var image = document.getElementById("arriv-lightbox-img");
+  var caption = document.getElementById("arriv-lightbox-cap");
+  var index = 0;
+  function show(next) {
+    index = (next + buttons.length) % buttons.length;
+    var source = buttons[index].querySelector("img");
+    image.src = source.getAttribute("src");
+    image.alt = source.getAttribute("alt") || "";
+    var figure = buttons[index].parentNode;
+    var label = figure ? figure.querySelector("figcaption") : null;
+    caption.textContent = label ? label.textContent : "";
+    caption.hidden = !caption.textContent;
+    box.hidden = false;
+  }
+  function close() { box.hidden = true; }
+  buttons.forEach(function (button, i) { button.addEventListener("click", function () { show(i); }); });
+  box.querySelector(".lb-close").addEventListener("click", close);
+  box.querySelector(".lb-prev").addEventListener("click", function () { show(index - 1); });
+  box.querySelector(".lb-next").addEventListener("click", function () { show(index + 1); });
+  box.addEventListener("click", function (event) { if (event.target === box) close(); });
+  document.addEventListener("keydown", function (event) {
+    if (box.hidden) return;
+    if (event.key === "Escape") close();
+    if (event.key === "ArrowLeft") show(index - 1);
+    if (event.key === "ArrowRight") show(index + 1);
+  });
+})();
+</script>`
     : "";
 
   return `<!doctype html>
@@ -224,63 +294,139 @@ ${payload.cover_url ? `<meta property="og:image" content="${escapeHtml(payload.c
 <script type="application/ld+json">${JSON.stringify(payload.structured_data)}</script>
 <style>
 * { box-sizing: border-box; }
-body { margin: 0; background: #fffbf5; color: #1a1a1a; font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; -webkit-text-size-adjust: 100%; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
-.band { background: #1a1a1a; padding: 14px 0; }
-.band .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand { color: #b8956a; text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px; }
-.band .status { color: #fffbf5; opacity: 0.75; font-size: 12px; }
-main.wrap { padding-top: 30px; padding-bottom: 60px; }
-h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: clamp(1.7rem, 4.4vw, 2.5rem); line-height: 1.15; margin: 0 0 8px; }
-h2 { font-size: 1.05rem; margin: 0 0 10px; }
-.addr { opacity: 0.65; margin: 0 0 20px; }
-.desc { margin: 0 0 22px; }
-.facts { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 0; margin: 0 0 28px; }
-.facts li { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; }
-.facts span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
-.facts strong { font-size: 1.02rem; }
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 0 0 28px; padding: 0; }
-.gallery figure { margin: 0; }
-.gallery img { width: 100%; height: auto; display: block; border-radius: 12px; background: #ffffff; }
-.gallery figcaption { font-size: 12px; opacity: 0.6; margin-top: 6px; }
-.video { width: 100%; height: auto; border-radius: 12px; margin-bottom: 28px; display: block; }
-.card { background: #ffffff; border: 1px solid rgba(184, 149, 106, 0.35); border-radius: 14px; padding: 22px; margin: 0 0 20px; }
-.muted { opacity: 0.6; font-size: 13px; margin: 0 0 12px; }
-.small { font-size: 12px; padding-left: 18px; }
-label { display: block; font-size: 13px; margin: 12px 0 4px; }
-input, textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #d7d2c8; border-radius: 10px; background: #fffbf5; }
-label.check { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; font-size: 13px; }
-label.check input { width: auto; margin-top: 3px; }
-.honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; }
-button { margin-top: 18px; width: 100%; font: inherit; font-weight: 600; padding: 13px 20px; border: 0; border-radius: 999px; background: #b8956a; color: #1a1a1a; cursor: pointer; }
-button[disabled] { opacity: 0.6; cursor: default; }
-.error { color: #b3261e; font-size: 13px; margin: 14px 0 0; }
-.sent { background: #f3efe9; border: 1px solid rgba(184, 149, 106, 0.35); border-radius: 12px; padding: 16px; margin: 14px 0 0; }
-.disclosures { border-top: 1px solid #e5e7eb; margin-top: 28px; padding-top: 18px; font-size: 12px; opacity: 0.65; }
-.disclosures li { margin-bottom: 6px; }
-@media (min-width: 720px) { .card { padding: 28px; } }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #0a0b0f; color: rgba(255, 251, 245, 0.72); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+img, video { max-width: 100%; }
+.glow { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.glow i { position: absolute; display: block; border-radius: 999px; background: #b8956a; filter: blur(110px); }
+.glow i.a { top: -180px; left: -10%; width: 620px; height: 620px; opacity: 0.10; }
+.glow i.b { bottom: -220px; right: -8%; width: 520px; height: 520px; opacity: 0.07; }
+.gridlines { position: fixed; inset: 0; pointer-events: none; opacity: 0.035; background-image: linear-gradient(#b8956a 1px, transparent 1px), linear-gradient(90deg, #b8956a 1px, transparent 1px); background-size: 44px 44px; }
+.frame { position: relative; z-index: 1; }
+.wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+.topbar { padding: 22px 0 4px; }
+.bar { display: flex; align-items: center; gap: 12px; }
+.lock { display: flex; align-items: center; gap: 11px; }
+.mark { position: relative; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #b8956a, #8a6d4a); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 34px rgba(184, 149, 106, 0.35); }
+.mark svg { width: 20px; height: 20px; }
+.eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #b8956a; line-height: 1; }
+.sub { display: block; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255, 251, 245, 0.32); line-height: 1; margin-top: 6px; }
+.status { margin-left: auto; flex: 0 0 auto; padding: 7px 14px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(184, 149, 106, 0.15); border: 1px solid rgba(184, 149, 106, 0.3); color: #b8956a; }
+h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; color: #fffbf5; font-size: clamp(1.9rem, 6.2vw, 3rem); line-height: 1.12; letter-spacing: -0.015em; margin: 26px 0 12px; }
+.loc { display: flex; align-items: center; gap: 8px; color: rgba(255, 251, 245, 0.5); font-size: 14px; margin: 0 0 8px; }
+.loc svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.price { font-family: Georgia, "Times New Roman", serif; color: #fffbf5; font-size: clamp(1.4rem, 4.4vw, 1.9rem); margin: 16px 0 0; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 24px; padding: 0; list-style: none; }
+.pills li { padding: 7px 14px; border-radius: 999px; background: rgba(255, 251, 245, 0.05); border: 1px solid rgba(255, 251, 245, 0.1); font-size: 12px; font-weight: 500; color: rgba(255, 251, 245, 0.72); }
+.notice { display: flex; align-items: center; gap: 10px; margin: 0 0 20px; padding: 13px 16px; border-radius: 14px; background: rgba(184, 149, 106, 0.1); border: 1px solid rgba(184, 149, 106, 0.3); font-size: 13.5px; color: rgba(255, 251, 245, 0.75); }
+.notice span { flex: 0 0 auto; padding: 4px 9px; border-radius: 6px; background: #b8956a; color: #0a0b0f; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.cover { margin: 0 0 26px; border-radius: 20px; overflow: hidden; border: 1px solid rgba(184, 149, 106, 0.28); box-shadow: 0 30px 80px rgba(184, 149, 106, 0.18); background: rgba(255, 255, 255, 0.04); }
+.cover img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+.shots { columns: 2; column-gap: 12px; margin: 0 0 30px; }
+.shot { margin: 0 0 12px; break-inside: avoid; display: inline-block; width: 100%; }
+.shot-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 251, 245, 0.08); transition: box-shadow 0.3s ease, transform 0.3s ease; }
+.shot-btn:hover { box-shadow: inset 0 0 0 1px rgba(184, 149, 106, 0.6), 0 18px 40px rgba(184, 149, 106, 0.22); transform: translateY(-2px); }
+.shot img { display: block; width: 100%; height: auto; }
+.shot figcaption { font-size: 11px; color: rgba(255, 251, 245, 0.4); padding-top: 6px; }
+.tour { width: 100%; display: block; border-radius: 18px; margin: 0 0 30px; border: 1px solid rgba(184, 149, 106, 0.25); background: #000; }
+.cream { background: #fffbf5; color: #1a1a1a; border-radius: 28px 28px 0 0; margin-top: 34px; padding: 34px 0 42px; }
+.cream h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.2rem; color: #1a1a1a; margin: 0 0 12px; }
+.cols { display: grid; gap: 20px; }
+.card { background: #ffffff; border: 1px solid rgba(26, 26, 26, 0.06); border-radius: 18px; padding: 22px; margin: 0 0 18px; }
+.card p { margin: 0 0 8px; }
+.card p:last-child { margin-bottom: 0; }
+.facts2 { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 10px; padding: 0; margin: 0; }
+.facts2 li { background: #fffbf5; border: 1px solid rgba(184, 149, 106, 0.22); border-radius: 14px; padding: 12px 14px; }
+.facts2 span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(26, 26, 26, 0.45); }
+.facts2 strong { display: block; font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.1rem; color: #1a1a1a; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+.chips li { padding: 6px 12px; border-radius: 999px; background: #fffbf5; border: 1px solid rgba(184, 149, 106, 0.22); font-size: 13px; color: rgba(26, 26, 26, 0.7); }
+.form-card { background: #ffffff; border: 1px solid rgba(184, 149, 106, 0.3); border-radius: 18px; padding: 22px; margin: 0 0 18px; box-shadow: 0 24px 60px rgba(26, 26, 26, 0.06); }
+.muted { color: rgba(26, 26, 26, 0.5); font-size: 12.5px; margin: 0 0 10px; }
+label { display: block; font-size: 12px; font-weight: 600; color: rgba(26, 26, 26, 0.6); margin: 14px 0 5px; }
+input, textarea { width: 100%; font: inherit; font-size: 15px; padding: 12px 14px; border: 1px solid rgba(26, 26, 26, 0.14); border-radius: 12px; background: #fffbf5; color: #1a1a1a; }
+input:focus, textarea:focus { outline: 2px solid rgba(184, 149, 106, 0.45); outline-offset: 1px; border-color: #b8956a; }
+label.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 12.5px; color: rgba(26, 26, 26, 0.7); margin-top: 16px; }
+label.check input { width: auto; flex: 0 0 auto; margin-top: 3px; }
+.honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.small { font-size: 11.5px; line-height: 1.5; color: rgba(26, 26, 26, 0.5); padding-left: 16px; margin: 12px 0 0; }
+button.submit { margin-top: 18px; width: 100%; font: inherit; font-size: 15px; font-weight: 600; padding: 15px 22px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #c9a87b, #b8956a); color: #0a0b0f; cursor: pointer; box-shadow: 0 16px 34px rgba(184, 149, 106, 0.32); }
+button.submit[disabled] { opacity: 0.6; cursor: default; }
+.error { color: #a33327; font-size: 13px; font-weight: 600; margin: 14px 0 0; }
+.sent { background: #fffbf5; border: 1px solid rgba(184, 149, 106, 0.35); border-radius: 14px; padding: 16px; margin: 14px 0 0; font-size: 14px; }
+.disc { font-size: 11.5px; line-height: 1.6; color: rgba(26, 26, 26, 0.5); }
+.disc ul { padding-left: 16px; margin: 8px 0 0; }
+.disc li { margin-bottom: 5px; }
+.foot { padding: 28px 0 44px; }
+.foot p { margin: 10px 0 0; font-size: 11.5px; color: rgba(255, 251, 245, 0.35); }
+.lightbox { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(5, 5, 7, 0.95); }
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: 95vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+.lb-btn { position: absolute; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255, 251, 245, 0.08); border: 1px solid rgba(255, 251, 245, 0.15); color: #fffbf5; font-size: 20px; line-height: 1; cursor: pointer; }
+.lb-close { top: 16px; right: 16px; }
+.lb-prev { left: 12px; top: 50%; transform: translateY(-50%); }
+.lb-next { right: 12px; top: 50%; transform: translateY(-50%); }
+.lb-cap { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 999px; background: rgba(255, 251, 245, 0.06); border: 1px solid rgba(255, 251, 245, 0.12); font-size: 12px; color: rgba(255, 251, 245, 0.8); max-width: 90vw; text-align: center; }
+@media (min-width: 720px) { .shots { columns: 3; column-gap: 14px; } .shot { margin-bottom: 14px; } .cream { padding: 46px 0 56px; } }
+@media (min-width: 900px) { .cols { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 30px; align-items: start; } .card, .form-card { padding: 26px; } }
 </style>
 </head>
 <body>
-<header class="band"><div class="wrap"><span class="brand">Arriv Estate Media</span><span class="status">${escapeHtml(statusLabel(payload.listing_status))}</span></div></header>
+<div class="glow" aria-hidden="true"><i class="a"></i><i class="b"></i></div>
+<div class="gridlines" aria-hidden="true"></div>
+<div class="frame">
+<header class="topbar"><div class="wrap bar">
+  <div class="lock">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#0a0b0f"><path d="M12 3 3 10.2V21h6.2v-6.1h5.6V21H21V10.2z"/></svg></span>
+    <span><span class="eyebrow">Arriv Estate Media</span><span class="sub">Property Marketing</span></span>
+  </div>
+  <span class="status">${escapeHtml(statusLabel(payload.listing_status))}</span>
+</div></header>
 <main class="wrap">
-<h1>${escapeHtml(payload.seo_title || payload.property_address)}</h1>
-<p class="addr">${escapeHtml([payload.property_address, payload.city, payload.state, payload.zip].filter(Boolean).join(", "))}</p>
-<p class="desc">${escapeHtml(payload.property_description)}</p>
-<ul class="facts">
-${facts}
-</ul>
-<section class="gallery">
-${photos}
-</section>
-${payload.video_url ? `<video class="video" controls preload="metadata" playsinline src="${escapeHtml(payload.video_url)}"></video>` : ""}
-${agentCard}
-${inquiry}
-<section class="disclosures">
-<p>Disclosures</p>
-<ul>${(payload.disclosures || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
-</section>
+<h1>${escapeHtml(address)}</h1>
+<p class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="#b8956a" stroke-width="1.7" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>${escapeHtml(location)}</p>
+${payload.publicly_available ? "" : `<div class="notice"><span>${escapeHtml(statusLabel(payload.listing_status))}</span>This property is ${escapeHtml(statusLabel(payload.listing_status).toLowerCase())} and is not currently available.</div>`}
+${payload.listing_price != null ? `<p class="price">$${Number(payload.listing_price).toLocaleString("en-US")}</p>` : ""}
+${heroPills.length ? `<ul class="pills">${heroPills.map((p: string) => `<li>${escapeHtml(p)}</li>`).join("")}</ul>` : ""}
+${payload.cover_url ? `<div class="cover"><img src="${escapeHtml(payload.cover_url)}" alt="${escapeHtml(photos[0]?.alt_text || `Photograph of ${address}`)}" decoding="async" /></div>` : ""}
+${shots ? `<section class="shots" aria-label="Photographs of this property">
+${shots}
+</section>` : ""}
+${payload.video_url ? `<video class="tour" controls preload="metadata" playsinline src="${escapeHtml(payload.video_url)}"></video>` : ""}
 </main>
+<section class="cream">
+<div class="wrap">
+<div class="cols">
+<div>
+${payload.property_description ? `<section class="card">
+  <h2>About this property</h2>
+  <p>${escapeHtml(payload.property_description)}</p>
+</section>` : ""}
+<section class="card">
+  <h2>Property details</h2>
+  <ul class="facts2">
+${facts}
+  </ul>
+</section>
+${amenities}
+${agentCard}
+</div>
+<div>
+${inquiry}
+<section class="card disc">
+  <h2>Disclosures</h2>
+  <ul>${(payload.disclosures || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
+</section>
+</div>
+</div>
+</div>
+</section>
+<footer class="foot"><div class="wrap">
+<span class="eyebrow">Arriv Estate Media</span>
+<p>Media and marketing page delivered by Arriv Estate Media. Property details and photographs on this page are published on behalf of the listing contact identified above.</p>
+</div></footer>
+</div>
+${lightbox}
 </body>
 </html>`;
 }
