@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageIcon, Play, X, ChevronLeft, ChevronRight, Zap } from "lucide-react";
 
@@ -12,6 +12,23 @@ export default function PropertyMediaGallery({ photos, videoUrl, address, coverU
   const step = useCallback((delta) => {
     setIndex((prev) => (prev == null || photos.length === 0 ? prev : (prev + delta + photos.length) % photos.length));
   }, [photos.length]);
+
+  // Swipe left / right inside the viewer, so a phone visitor moves between photographs
+  // without closing it and tapping another thumbnail.
+  const touchStart = useRef({ x: 0, y: 0 });
+  const handleTouchStart = (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchEnd = (e) => {
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    step(dx < 0 ? 1 : -1);
+  };
 
   useEffect(() => {
     if (index == null) return;
@@ -96,7 +113,7 @@ export default function PropertyMediaGallery({ photos, videoUrl, address, coverU
         <div className="mt-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-white/30">
             <Zap className="w-3 h-3 text-[#B8956A]" />
-            Click photos to view full size · Arrow keys to navigate
+            Click a photo to view it full size · Swipe or use the arrows to go back and forth
           </div>
         </div>
       )}
@@ -109,6 +126,8 @@ export default function PropertyMediaGallery({ photos, videoUrl, address, coverU
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center"
             onClick={close}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             <button
               onClick={close}

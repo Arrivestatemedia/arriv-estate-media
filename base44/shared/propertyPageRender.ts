@@ -251,15 +251,18 @@ export function renderPropertyPageHtml(payload: any) {
   var image = document.getElementById("arriv-lightbox-img");
   var caption = document.getElementById("arriv-lightbox-cap");
   var index = 0;
+  var total = buttons.length;
   function show(next) {
-    index = (next + buttons.length) % buttons.length;
+    index = (next + total) % total;
     var source = buttons[index].querySelector("img");
     image.src = source.getAttribute("src");
     image.alt = source.getAttribute("alt") || "";
     var figure = buttons[index].parentNode;
     var label = figure ? figure.querySelector("figcaption") : null;
-    caption.textContent = label ? label.textContent : "";
-    caption.hidden = !caption.textContent;
+    var text = label ? label.textContent : "";
+    if (total > 1) text = (text ? text + " &middot; " : "") + (index + 1) + " / " + total;
+    caption.textContent = text;
+    caption.hidden = !text;
     box.hidden = false;
   }
   function close() { box.hidden = true; }
@@ -268,6 +271,24 @@ export function renderPropertyPageHtml(payload: any) {
   box.querySelector(".lb-prev").addEventListener("click", function () { show(index - 1); });
   box.querySelector(".lb-next").addEventListener("click", function () { show(index + 1); });
   box.addEventListener("click", function (event) { if (event.target === box) close(); });
+  // Swipe left / right inside the viewer, so a visitor on a phone moves between photographs
+  // without closing it and tapping another thumbnail.
+  var touchX = null;
+  var touchY = null;
+  box.addEventListener("touchstart", function (event) {
+    if (event.touches.length !== 1) { touchX = null; return; }
+    touchX = event.touches[0].clientX;
+    touchY = event.touches[0].clientY;
+  }, { passive: true });
+  box.addEventListener("touchend", function (event) {
+    if (touchX === null) return;
+    var touch = event.changedTouches[0];
+    var dx = touch.clientX - touchX;
+    var dy = touch.clientY - touchY;
+    touchX = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    show(index + (dx < 0 ? 1 : -1));
+  }, { passive: true });
   document.addEventListener("keydown", function (event) {
     if (box.hidden) return;
     if (event.key === "Escape") close();

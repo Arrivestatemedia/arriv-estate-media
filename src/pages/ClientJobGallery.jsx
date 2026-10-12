@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Download, ImageIcon, Video, FileText, Loader2, ArrowLeft, Check, CheckCheck, X, ChevronLeft, ChevronRight, Sparkles, Zap } from "lucide-react";
@@ -172,6 +172,23 @@ export default function ClientJobGallery() {
       return files.findIndex((f) => f.id === nextFile.id);
     });
   }, [files]);
+
+  // Swipe left / right inside the viewer, so a client on a phone moves between photographs
+  // without closing it and tapping another thumbnail.
+  const touchStart = useRef({ x: 0, y: 0 });
+  const handleTouchStart = (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchEnd = (e) => {
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    navigateLightbox(dx < 0 ? 1 : -1);
+  };
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -485,7 +502,7 @@ export default function ClientJobGallery() {
             <div className="mt-12 text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-white/30">
                 <Zap className="w-3 h-3 text-[#B8956A]" />
-                Click photos to view full size · Arrow keys to navigate
+                Click a photo to view it full size · Swipe or use the arrows to go back and forth
               </div>
             </div>
           </>
@@ -501,6 +518,8 @@ export default function ClientJobGallery() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center"
             onClick={closeLightbox}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             <button
               onClick={closeLightbox}
@@ -536,7 +555,10 @@ export default function ClientJobGallery() {
             />
 
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10">
-              <p className="text-sm text-white/90">{files[lightboxIndex].name}</p>
+              <p className="text-sm text-white/90">
+                {files[lightboxIndex].name}
+                {photoFiles.length > 1 && ` · ${photoFiles.findIndex((f) => f.id === files[lightboxIndex].id) + 1} / ${photoFiles.length}`}
+              </p>
             </div>
           </motion.div>
         )}
