@@ -464,10 +464,15 @@ Deno.serve(async (req) => {
     const pageNoTestMode = await callFn("getPublicPropertyPage", { slug: published.data?.listing?.public_slug, __no_test_mode: true });
     const searchNoTestMode = await callFn("searchProperties", { __no_test_mode: true });
     const certVisibleToProduction = (searchNoTestMode.data?.results || []).some((r: any) => r.slug === published.data?.listing?.public_slug);
+    // A synthetic record is never exposed to the production scope, whether the feature is dark or
+    // live. Only WHY the page is refused differs: while the feature is off the gate refuses first,
+    // and once it is live the absolute synthetic-record block is what refuses (so the directory is
+    // legitimately enabled and must simply never contain the synthetic listing). Asserting a 200
+    // here for the synthetic page when the flag is on would be asserting the opposite of the block.
     const productionScopeHolds = flagBeforeValue === "true"
-      ? pageNoTestMode.status === 200
-      : pageNoTestMode.status === 404 && searchNoTestMode.data?.feature_disabled === true;
-    add("certification_never_reaches_production_scope", certVisibleToProduction === false && productionScopeHolds && searchNoTestMode.data?.ok !== true,
+      ? pageNoTestMode.status === 404 && searchNoTestMode.data?.ok === true
+      : pageNoTestMode.status === 404 && searchNoTestMode.data?.feature_disabled === true && searchNoTestMode.data?.ok !== true;
+    add("certification_never_reaches_production_scope", certVisibleToProduction === false && productionScopeHolds,
       `production scope: directory exposed the certification listing=${certVisibleToProduction}, page ${pageNoTestMode.status}, directory disabled=${searchNoTestMode.data?.feature_disabled === true} (production flag=${flagBeforeValue ?? "absent"})`);
     // The absolute block itself: a synthetic listing is refused by the public surfaces in EVERY mode.
     // The engine predicates are asserted directly too, because an HTTP status alone cannot distinguish

@@ -242,6 +242,22 @@ export function mediaStreamUrl(listingId: string, fileId: string): string {
   return `${publicOrigin()}/functions/streamPropertyMedia?listing=${encodeURIComponent(listingId)}&file=${encodeURIComponent(fileId)}`;
 }
 
+// The app host that serves this app's functions. It is deliberately separate from publicOrigin():
+// the property pages are canonical on the property host, while the public inquiry endpoint lives on
+// the app host, because the edge only proxies GET requests for content. The rendered page therefore
+// posts its inquiry cross-origin to this host (the inquiry endpoint is public and CORS-open by
+// design, and it routes only to the listing's own authorized contact).
+export function appOrigin(): string {
+  const configured = (globalThis as any)?.process?.env?.BASE44_APP_DOMAIN || "app.arrivestatemedia.com";
+  const raw = String(configured || "").trim().replace(/\/+$/, "");
+  if (!raw) return "https://app.arrivestatemedia.com";
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
+export function inquiryEndpointUrl(): string {
+  return `${appOrigin()}/functions/submitPropertyInquiry`;
+}
+
 // Deterministic key that stops a second page being created for the same job/property.
 export function duplicateKey(jobId: string, address: string): string {
   return `${String(jobId || "").trim()}::${slugify(address)}`;
