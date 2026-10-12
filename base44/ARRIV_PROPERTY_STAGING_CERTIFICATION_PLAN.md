@@ -328,7 +328,54 @@ referenced another listing.
 earlier attempt correctly reported "no handler captured". It now runs against the real worker file in
 ~30 ms and is registered as `npm run test:edge` (reports `37/37 passed`).
 
-**Still outstanding (owner, unchanged from §10–§12):** the production edge hostname/route decision for
+**Still outstanding at the end of Phase 2 (owner):** the production edge hostname/route decision for
 `properties.arrivestatemedia.com`, the Cloudflare production deployment, and explicit approval to flip
-`PROPERTY_VISIBILITY_ENABLED`. The flag remains `false`, the run lock is inactive, and no property
-listing exists.
+`PROPERTY_VISIBILITY_ENABLED`. At that point the flag was `false`, the run lock inactive, and no
+property listing existed.
+
+---
+
+## 14. Phase 3 execution — activated, live and verified (2026-10-12)
+
+Owner authorization for the final activation phase. Full detail:
+`ARRIV_PROPERTY_VISIBILITY_PHASE3_ACTIVATION_REPORT.md`.
+
+**Status: LIVE WITH CUSTOMER APPROVAL PENDING.** `PROPERTY_VISIBILITY_ENABLED` = `true`
+(2026-10-12T21:25:34Z). Activation published nothing: 0 published listings before and after, and the
+publication path still requires the customer's explicit, recorded consent.
+
+**Deployed edge verified, not assumed.** `/__health`, `/robots.txt`, `/sitemap.xml`, the page route,
+both media routes, non-GET refusal, the signed purge (`verify: true`) and the kill switch's
+reachability were all probed against the running endpoint, on both the property host and the
+workers.dev host — one worker, one cache, and the purge the app issues reaches the cache that serves
+the property host. The deployed worker reports `PUBLIC_HOST` unset; its measured effect (cache keys
+namespaced on the app host, host rewriting a no-op) is self-consistent with the purge and harmless
+because the origin emits property-domain URLs itself. Safe for activation; `PUBLIC_HOST` should be set
+on the next deploy.
+
+**Three defects found and repaired (§3 of the Phase 3 report):** certification scope was suppressed
+once the flag was live (so the suite fell out of scope and briefly created non-certification records —
+all removed and verified); the suite's production-scope assertion asserted the opposite of the
+absolute block when the flag is on; and the public property page was a bare document with no listing
+contact and no inquiry path, now a finished brand-consistent responsive page with a working, screened
+inquiry form.
+
+**Certification with the feature LIVE: 40/40** (run `cert_prop_1791840479755`), 11 signed purges all
+`200`, 15 artifacts cleaned with 0 remaining, financial deltas 0, run lock released.
+
+**Laurinda Massey — 9809 Dellcastle Rd, Gaithersburg, MD 20886.** Listing `prop_mv5rhct71qm7dp`, slug
+`9809-dellcastle-rd-gaithersburg-md-mv5rhct7`, **DRAFT / unpublished**, not publicly reachable. Address
+and ZIP (20886) and square footage (2,802, provider-verified) recorded; price, beds, baths, type,
+description, media, listing contact, authority, brokerage approval, disclosures, content approval and
+publication consent deliberately left for her. No admin approve/publish attempt succeeds (403), and a
+stranger's email cannot edit the listing (403, address unchanged).
+
+**Manual actions:** complete or re-send Laurinda's account setup (her `PendingSignup` from 2026-10-01
+is still `pending` — this is the only reason she cannot review her page today); verify
+`properties.arrivestatemedia.com` in Search Console and submit
+`https://properties.arrivestatemedia.com/sitemap.xml`; set `PUBLIC_HOST` on the next edge deploy.
+
+**Rollback:** archive the listing (state change plus signed purge), or set
+`PROPERTY_VISIBILITY_ENABLED=false` to close every customer and public surface at once (edge copies
+bounded by the 300-second TTL, cleared immediately by a signed purge). The edge's own kill switch needs
+Cloudflare credentials this workspace does not hold.
