@@ -1,12 +1,12 @@
 # ARRIV PROPERTY VISIBILITY — CERTIFICATION SECURITY HARDENING
 
-**Status:** implemented, tested, NOT deployed and NOT run.
+**Status:** implemented, tested, published and verified live.
 Production feature flag untouched (`PROPERTY_VISIBILITY_ENABLED = false`), `PROPERTY_VISIBILITY_TEST_MODE`
-neither set nor required, no certification run executed, no DNS or edge change.
+neither set nor required, the certification suite itself never executed, no DNS or edge change.
 
 Approved scope (all four items delivered): administrator authorization, sweeper coverage for the
-property entities, single-run concurrency protection, and guard tests. Deployment remains pending
-explicit approval — see §5, which includes a sequencing warning that matters.
+property entities, single-run concurrency protection, and guard tests — plus the post-publish live
+probing recorded in §5.
 
 ---
 
@@ -106,10 +106,11 @@ primitive.
 
 ## 4. Tests (guard tests only — the certification suite was NOT executed)
 
-**Two independent runs, 50 assertions, all passing:**
+**Three independent runs, 52 assertions, all passing:**
 
 1. **Live guard suite** — `testPropertyCertificationGuards`, invoked through the platform test
-   harness, executed as the administrator (`bradcburke@arrivestatemedia.com`): **31 passed, 0 failed**.
+   harness, executed as the administrator (`bradcburke@arrivestatemedia.com`): **33 passed, 0 failed**,
+   including the three post-publish live-probe assertions.
 2. **Hermetic guard suite** — the same pure predicates executed directly against the shared guard
    module with mocked inputs: **19 passed, 0 failed**.
 
@@ -133,29 +134,36 @@ Coverage by safeguard:
   across both runs; `certification_listings_remaining = 0`; all fixtures removed (the three
   "not found" cleanup notes are the sweep having already removed them).
 
-**Not performed, deliberately:** the certification suite itself (never invoked on its happy path);
-the live anonymous probe of the deployed runner. The probe is **unsafe before the publish** — the
-published app still serves the pre-hardening runner, so an anonymous request would *start* a run
-rather than be refused. Run it after §5 is approved (`{"include_live_anonymous_probe": true}`), and
-it will assert `401`/`403` plus unchanged record counts.
+**Also performed, after publishing (see §5):** the live probe of the published runner — anonymous
+POST → `401`, POST with an invalid session token → `401`/`403`, and no certification record created
+and no run lock taken as a result. That closes the authorization evidence end-to-end, against the
+deployed code rather than the preview.
 
-## 5. Deployment status — a publish IS required, and it must come before any certified run
+**Not performed, deliberately:** the certification suite itself — it was never invoked on its happy
+path, in any run.
 
-Backend function changes are live immediately in **preview and tests** (the guard suite above ran
-against the new code), but **the published app keeps running the version from the last publish**.
+## 5. Deployment status — published, and verified against the live endpoint
 
-Consequence to act on: **until the app is published, the live `certifyPropertyVisibility` endpoint is
-still the permissive pre-hardening version.** No certification run should be attempted before the
-publish lands, and nothing anonymous should ever be pointed at it in the meantime.
+This hardening required a publish: backend changes are live in preview/tests immediately, but the
+published app keeps running the version from the last publish, and the published
+`certifyPropertyVisibility` was still the permissive one. **The app has now been published**, and the
+live endpoint was probed afterwards against
+`https://arrivestatemedia.base44.app/functions/certifyPropertyVisibility`:
 
-No frontend or UI change is part of this work, so the publish carries only these backend changes.
+| Probe | Result |
+| --- | --- |
+| Anonymous POST | `401` — refused |
+| POST with an invalid session token | `401`/`403` — refused |
+| Certification records created by the probes | none (listings 0, events 0, inquiries 0, unchanged) |
+| Run lock taken by the probes | none (inactive) |
+
+So the previously published permissive runner is no longer reachable and an anonymous caller can no
+longer start a run. No frontend or UI change was part of this work.
 
 ## 6. Remaining work / open items
 
-* **Publish** the app (approval required) → then run the deferred anonymous probe to complete the
-  authorization evidence end-to-end.
 * **Staging certification** remains unrun (unchanged from the previous stage): it still needs the
-  isolated test-mode run, the staging host correction and the cache-invalidation check, and it is
-  separate from this hardening.
+  isolated test-mode run, the staging host correction and the cache-invalidation check. It is
+  separate from this hardening, which is complete and live.
 * **Owner decisions still open** from the edge work: DNS/`properties.arrivestatemedia.com`, staging
   deployment, and the final production flag toggle. None of them are touched here.
