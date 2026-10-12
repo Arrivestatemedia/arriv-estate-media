@@ -104,9 +104,64 @@ export default async function (req) {
     // in the published app: the currently published version predates this gate, so an anonymous
     // request to it would START a run instead of being refused. The probe is therefore opt-in
     // and asserted here only when the caller declares the hardened version is live.
-    add('auth_live_anonymous_probe_deferred_until_published',
-      true,
-      'not performed: the published app still serves the pre-hardening runner, so an anonymous probe would start a run. Run it after the publish is approved (include_live_anonymous_probe: true).');
+    // Only performed on request. Before the hardening is published this probe would START a run
+    // rather than be refused, so it is opt-in — and if the published runner turns out to still be
+    // permissive it is reported as a failure and NOT auto-cleaned: a run that may be in flight has
+    // its records left alone.
+    if (body?.include_live_anonymous_probe === true) {
+      const certCounts = async () => ({
+        listings: await b.entities.PropertyListing.count({ certification_mode: true }).catch(() => null),
+        events: await b.entities.PropertyListingEvent.count({ certification_mode: true }).catch(() => null),
+        inquiries: await b.entities.PropertyInquiry.count({ certification_mode: true }).catch(() => null),
+      });
+      const beforeCounts = await certCounts();
+      const endpoint = 'https://arrivestatemedia.base44.app/functions/certifyPropertyVisibility';
+      let anonStatus = 0;
+      let anonBody = '';
+      let badTokenStatus = 0;
+      try {
+        const anonRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        anonStatus = anonRes.status;
+        anonBody = (await anonRes.text()).slice(0, 300);
+        const badRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer not-a-valid-session-token' },
+          body: JSON.stringify({}),
+        });
+        badTokenStatus = badRes.status;
+        await badRes.text();
+      } catch (e) {
+        add('auth_live_probe_request_reached_the_endpoint', false, `request failed: ${e.message}`);
+      }
+      const afterCounts = await certCounts();
+      const lockNow = await propertyCertRunLockStatus(b);
+      const unchanged =
+        beforeCounts.listings === afterCounts.listings &&
+        beforeCounts.events === afterCounts.events &&
+        beforeCounts.inquiries === afterCounts.inquiries;
+
+      add('auth_live_anonymous_refused_by_published_runner',
+        anonStatus === 401,
+        `anonymous POST to the published runner → ${anonStatus}`);
+      add('auth_live_invalid_token_refused',
+        badTokenStatus === 401 || badTokenStatus === 403,
+        `POST with an invalid session token → ${badTokenStatus}`);
+      add('auth_live_probe_created_no_records_and_took_no_lock',
+        unchanged && lockNow.active === false,
+        `certification records before ${JSON.stringify(beforeCounts)} after ${JSON.stringify(afterCounts)}; lock active=${lockNow.active}`);
+
+      if (anonStatus !== 401 && anonStatus !== 403) {
+        add('auth_live_probe_REQUIRES_ATTENTION', false,
+          `the published runner did more than refuse (status ${anonStatus}): ${anonBody} — a run may have started. Nothing was auto-removed; reconcile the fixtures after it finishes.`);
+      }
+    } else {
+      add('auth_live_anonymous_probe_deferred', true,
+        'not performed in this run; pass {"include_live_anonymous_probe": true} to probe the published endpoint.');
+    }
 
     // ============ B. SWEEPER — candidate predicate (mocked records) ============
     const listingOfRun = { certification_mode: true, certification_run_id: runC, client_email: `${runC}@cert.test`, publication_state: 'PUBLISHED' };
