@@ -57,11 +57,18 @@ export interface FeatureGate {
   test_mode: boolean;
 }
 
-// Resolves the gate for one request. The production flag always wins; test mode is a
-// fallback that only exists when the certification configuration is present.
+// Resolves the gate for one request.
+//
+// Certification scope is resolved FIRST and independently of the production flag. The flag must
+// never promote a certification request into the production scope: doing so would let a test read
+// or create REAL customer listings, and it would make the certification suite unrunnable once the
+// feature is live (its synthetic records would fall out of scope and the certification-only path
+// would refuse them). Both directions of isolation are what make the suite safe, so test mode wins
+// whenever it is genuinely available — which requires the certification-only configuration
+// (PROPERTY_VISIBILITY_TEST_MODE) to be present, something production deliberately never has.
 export async function resolveFeatureGate(client: any, requested: boolean): Promise<FeatureGate> {
-  if (await isPropertyVisibilityEnabled(client)) return { enabled: true, test_mode: false };
   if (requested === true && certificationTestModeAvailable()) return { enabled: true, test_mode: true };
+  if (await isPropertyVisibilityEnabled(client)) return { enabled: true, test_mode: false };
   return { enabled: false, test_mode: false };
 }
 
