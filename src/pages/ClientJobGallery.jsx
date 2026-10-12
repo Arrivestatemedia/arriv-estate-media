@@ -5,6 +5,7 @@ import { Download, ImageIcon, Video, FileText, Loader2, ArrowLeft, Check, CheckC
 import { createPageUrl } from "../utils";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import PropertyPagePrompt from "@/components/property/PropertyPagePrompt";
 
 export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
@@ -351,6 +352,12 @@ export default function ClientJobGallery() {
           </motion.div>
         )}
       </div>
+
+      {!isDemo && !adminPreview && jobId && (
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <PropertyPagePrompt jobId={jobId} />
+        </div>
+      )}
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-16">
         {isDemo && (

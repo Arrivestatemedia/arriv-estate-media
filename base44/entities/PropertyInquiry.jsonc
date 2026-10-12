@@ -1,0 +1,161 @@
+{
+  "name": "PropertyInquiry",
+  "type": "object",
+  "properties": {
+    "inquiry_id": {
+      "type": "string",
+      "description": "Stable inquiry ID (inq_...)"
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "PropertyListing the inquiry was submitted from"
+    },
+    "public_slug": {
+      "type": "string",
+      "description": "Property page slug the visitor was on"
+    },
+    "property_reference": {
+      "type": "string",
+      "description": "Human-readable property reference shown to the visitor and included in the routing payload"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "consent_privacy": {
+      "type": "boolean",
+      "default": false,
+      "description": "Visitor accepted the privacy disclosure and consented to being contacted about this property"
+    },
+    "consent_text_snapshot": {
+      "type": "string",
+      "description": "Immutable snapshot of the privacy/consent wording presented at submission"
+    },
+    "consent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "privacy_disclosures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Disclosures shown with the form (Fair Housing notice, no-representation notice, inquiry routing notice)"
+    },
+    "source": {
+      "type": "string",
+      "default": "property_page",
+      "description": "Where the inquiry originated"
+    },
+    "ip_hash": {
+      "type": "string",
+      "description": "Salted hash of the submitting IP address. Personal data is never stored raw; used only for rate limiting and abuse review."
+    },
+    "user_agent_hash": {
+      "type": "string",
+      "description": "Salted hash of the submitting user agent"
+    },
+    "spam_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Heuristic spam score at submission"
+    },
+    "spam_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Machine-readable spam signals (honeypot tripped, link count, repeated submissions, disposable domain)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "routed",
+        "review",
+        "rejected_spam",
+        "closed"
+      ],
+      "default": "received"
+    },
+    "routed_to_email": {
+      "type": "string",
+      "description": "The authorized listing contact this inquiry was routed to. Never routed anywhere else."
+    },
+    "routed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notification_status": {
+      "type": "string",
+      "enum": [
+        "recorded",
+        "pending_agent_delivery",
+        "delivered",
+        "failed"
+      ],
+      "default": "pending_agent_delivery",
+      "description": "Delivery state of the inquiry notification. Recorded server-side; agent notification delivery to a non-app-user address is a deferred item."
+    },
+    "lead_sharing_status": {
+      "type": "string",
+      "enum": [
+        "not_shared",
+        "pending_approval",
+        "shared"
+      ],
+      "default": "not_shared",
+      "description": "Cross-app lead sharing state. Deliberately not_shared in v1.0 \u2014 Arriv One lead integration requires explicit approval before activation."
+    },
+    "arriv_one_lead_id": {
+      "type": "string",
+      "description": "Reserved for the future Arriv One lead identifier. Empty until lead sharing is explicitly approved and activated."
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic certification inquiries. Excluded from production reporting."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "inquiry_id",
+    "listing_id",
+    "name",
+    "email",
+    "consent_privacy"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

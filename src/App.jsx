@@ -71,6 +71,9 @@ import RegionalJobRouter from './pages/RegionalJobRouter';
 import PrepaidPurchase from './pages/PrepaidPurchase';
 import AutoFund from './pages/AutoFund';
 import AutoFundTerms from './pages/AutoFundTerms';
+import PropertyPageBuilder from './pages/PropertyPageBuilder';
+import PublicPropertyPage from './pages/PublicPropertyPage';
+import PropertyDirectory from './pages/PropertyDirectory';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -565,6 +568,16 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/AutoFundTerms" element={<AutoFundTerms />} />
+      <Route
+        path="/PropertyPageBuilder"
+        element={
+          <LayoutWrapper currentPageName="PropertyPageBuilder">
+            <PropertyPageBuilder />
+          </LayoutWrapper>
+        }
+      />
+      <Route path="/properties" element={<PropertyDirectory />} />
+      <Route path="/properties/:slug" element={<PublicPropertyPage />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

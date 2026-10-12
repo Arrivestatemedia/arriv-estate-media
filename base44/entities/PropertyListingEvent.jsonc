@@ -1,0 +1,96 @@
+{
+  "name": "PropertyListingEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Stable, append-only event ID (plev_...)"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "listing_created",
+        "details_updated",
+        "media_selection_saved",
+        "seo_generated",
+        "content_approved",
+        "authority_confirmed",
+        "brokerage_approved",
+        "disclosures_accepted",
+        "submitted_for_review",
+        "publication_approved",
+        "published",
+        "unpublished",
+        "archived",
+        "listing_status_changed",
+        "status_confirmed",
+        "status_confirmation_due",
+        "auto_deactivated_stale_status",
+        "inquiry_received"
+      ],
+      "description": "What happened"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Account or system that performed the action"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "customer",
+        "admin",
+        "system",
+        "visitor"
+      ]
+    },
+    "previous_state": {
+      "type": "string"
+    },
+    "new_state": {
+      "type": "string"
+    },
+    "details": {
+      "type": "object",
+      "description": "Event-specific detail (approved details snapshot, media count, prior and new status, policy applied)"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "event_id",
+    "listing_id",
+    "event_type",
+    "recorded_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
