@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { ensureEmployeeId, enqueueSync, runSyncAttempt } from "../../shared/payrollEmployeeSync.ts";
+import { ensureEmployeeId, enqueueSync, runSyncAttempt, payrollSyncExclusion } from "../../shared/payrollEmployeeSync.ts";
 import { writeAuditLog } from "../../shared/payrollAudit.ts";
 
 // Admin-invoked employee synchronization. Triggers on offer accepted, employment status
@@ -18,6 +18,25 @@ Deno.serve(async (req) => {
 
     const member = await base44.asServiceRole.entities.SalesTeamMember.get(sales_member_id);
     if (!member) return Response.json({ error: "Sales team member not found" }, { status: 404 });
+
+    // Owner/administrator accounts are not payroll employees: never queued, never sent.
+    const exclusion = payrollSyncExclusion(member);
+    if (exclusion) {
+      await writeAuditLog(base44, {
+        actor: user.email || "admin",
+        action: `employee_sync_excluded:${exclusion}`,
+        entityType: "SalesTeamMember",
+        entityId: sales_member_id,
+        destinationApplication: "arriv_payroll",
+        result: "warning",
+      });
+      return Response.json({
+        success: true,
+        excluded: true,
+        exclusion_reason: exclusion,
+        sync_status: "not_applicable",
+      });
+    }
 
     // Assign immutable ARRIV_EMPLOYEE_ID if this is the first sync
     const withId = await ensureEmployeeId(base44, member);

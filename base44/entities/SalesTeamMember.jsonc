@@ -251,6 +251,24 @@
       "default": false,
       "description": "Whether the employee is eligible for payroll"
     },
+    "account_classification": {
+      "type": "string",
+      "enum": [
+        "employee",
+        "owner_administrator"
+      ],
+      "default": "employee",
+      "description": "Account classification. 'owner_administrator' marks an owner/administrator account that holds no payroll employment relationship, so it is excluded from employee synchronization to Arriv Pay. Set deliberately on the record \u2014 never inferred from the role field, so an admin who is also a genuine employee stays eligible."
+    },
+    "payroll_sync_eligible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this account may be synchronized to Arriv Pay as an employee. False for non-payroll owner/administrator accounts."
+    },
+    "payroll_sync_exclusion_reason": {
+      "type": "string",
+      "description": "Why this account is excluded from employee synchronization (e.g. OWNER_ADMINISTRATOR). Empty when the account is eligible."
+    },
     "compensation_type": {
       "type": "string",
       "enum": [

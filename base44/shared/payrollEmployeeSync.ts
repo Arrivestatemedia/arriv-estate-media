@@ -78,6 +78,19 @@ export function buildEmployeePayload(member) {
   };
 }
 
+// Owner/administrator accounts hold no payroll employment relationship. They are excluded
+// from employee synchronization on their own explicit classification — never on `role`, so
+// administrative access alone neither makes an account a payroll employee nor removes a
+// genuine employee from payroll. Returns the exclusion reason, or null when sync is allowed.
+export function payrollSyncExclusion(member) {
+  if (!member) return null;
+  if (member.account_classification === "owner_administrator") return "OWNER_ADMINISTRATOR";
+  if (member.payroll_sync_eligible === false) {
+    return member.payroll_sync_exclusion_reason || "PAYROLL_SYNC_INELIGIBLE";
+  }
+  return null;
+}
+
 // Assign an immutable ARRIV_EMPLOYEE_ID if the member does not yet have one.
 export async function ensureEmployeeId(base44, member) {
   if (member.arriv_employee_id) return member;
@@ -91,6 +104,19 @@ export async function ensureEmployeeId(base44, member) {
 
 // Create an EmployeeSyncQueue record and return it.
 export async function enqueueSync(base44, member, eventType, changedFields) {
+  // A non-payroll owner/administrator account never enters the queue, so it cannot be sent
+  // to Arriv Payroll and cannot be retried.
+  const exclusion = payrollSyncExclusion(member);
+  if (exclusion) {
+    return {
+      excluded: true,
+      exclusion_reason: exclusion,
+      sync_id: null,
+      arriv_employee_id: member.arriv_employee_id || null,
+      event_type: eventType,
+      current_field_values: {},
+    };
+  }
   const now = new Date().toISOString();
   return base44.asServiceRole.entities.EmployeeSyncQueue.create({
     sync_id: generateSyncId(),
@@ -130,6 +156,36 @@ async function markFailed(base44, queueRecord, responseCode, responseMessage, no
 
 // Run a single sync attempt for an existing queue record. Returns { ok, terminal }.
 export async function runSyncAttempt(base44, queueRecord) {
+  if (queueRecord?.excluded) {
+    return { ok: false, terminal: true, nonRetryable: true, excluded: true, exclusion_reason: queueRecord.exclusion_reason };
+  }
+
+  // Never transmit an account classified as a non-payroll owner/administrator. The live
+  // employee record is checked here too, so a queue record written before the classification
+  // (or by an older path) is terminalised instead of being sent.
+  const resolvedMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
+    arriv_employee_id: queueRecord.arriv_employee_id,
+  });
+  const resolvedEmployee = resolvedMembers && resolvedMembers.length ? resolvedMembers[0] : null;
+  const exclusionReason = payrollSyncExclusion(resolvedEmployee);
+  if (exclusionReason) {
+    const excludedAt = new Date().toISOString();
+    await base44.asServiceRole.entities.EmployeeSyncQueue.update(queueRecord.id, {
+      processing_status: "requires_review",
+      hold_reason: "OWNER_ADMINISTRATOR",
+      hold_detail: "Account is classified as owner/administrator with no payroll employment relationship, so it is excluded from employee synchronization. Not transmitted to Arriv Payroll.",
+      held_at: excludedAt,
+      completed_timestamp: excludedAt,
+      non_retryable: true,
+      next_attempt_at: null,
+    });
+    await base44.asServiceRole.entities.SalesTeamMember.update(resolvedEmployee.id, {
+      payroll_sync_status: "not_synced",
+      payroll_sync_error: "",
+    });
+    return { ok: false, terminal: true, nonRetryable: true, excluded: true, exclusion_reason: exclusionReason };
+  }
+
   const config = await getPayrollConfig(base44);
   if (!config.endpoint) {
     return markFailed(base44, queueRecord, null, "Arriv Payroll API endpoint not configured", false);

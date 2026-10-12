@@ -119,10 +119,11 @@
         "NO_EMPLOYEE_RECORD",
         "STALE_IDENTITY_SUPERSEDED",
         "REPLAY_FAILED",
-        "EMPLOYER_UNRESOLVED"
+        "EMPLOYER_UNRESOLVED",
+        "OWNER_ADMINISTRATOR"
       ],
       "default": "",
-      "description": "Why a record was NOT replayed during recovery. Empty for records that were never dispositioned. A held record is never retried automatically, so it cannot create a duplicate or obsolete employee at Arriv Payroll."
+      "description": "Why a record was NOT replayed. Empty for records that were never dispositioned. A held record is never retried automatically, so it cannot create a duplicate or obsolete employee at Arriv Payroll. OWNER_ADMINISTRATOR marks an account classified as an owner/administrator holding no payroll employment relationship."
     },
     "hold_detail": {
       "type": "string",

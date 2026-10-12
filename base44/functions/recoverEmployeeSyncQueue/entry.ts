@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { ensureEmployeeId, enqueueSync, runSyncAttempt } from "../../shared/payrollEmployeeSync.ts";
+import { ensureEmployeeId, enqueueSync, runSyncAttempt, payrollSyncExclusion } from "../../shared/payrollEmployeeSync.ts";
 import { getPayrollConfig } from "../../shared/payrollSettings.ts";
 import { writeAuditLog } from "../../shared/payrollAudit.ts";
 
@@ -104,6 +104,14 @@ Deno.serve(async (req) => {
         disposition = "held";
         reason = "NON_PRODUCTION_IDENTITY";
         detail = reasons.join(" + ");
+      } else if (payrollSyncExclusion(member)) {
+        // Owner/administrator account: not a payroll employee, so it is never replayed.
+        disposition = "held";
+        reason = "OWNER_ADMINISTRATOR";
+        const prior = record.hold_reason && record.hold_reason !== "OWNER_ADMINISTRATOR"
+          ? ` Preserved earlier disposition: ${record.hold_reason}${record.hold_detail ? ` — ${record.hold_detail}` : ""}`
+          : "";
+        detail = `Account is classified as owner/administrator with no payroll employment relationship, so it is excluded from employee synchronization.${prior}`;
       } else if (!member) {
         disposition = "held";
         reason = "NO_EMPLOYEE_RECORD";

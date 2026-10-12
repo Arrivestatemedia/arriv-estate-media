@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { ensureEmployeeId, enqueueSync, runSyncAttempt } from "../../shared/payrollEmployeeSync.ts";
+import { ensureEmployeeId, enqueueSync, runSyncAttempt, payrollSyncExclusion } from "../../shared/payrollEmployeeSync.ts";
 import { writeAuditLog } from "../../shared/payrollAudit.ts";
 
 // Entity automation handler: fires on every SalesTeamMember create/update.
@@ -90,6 +90,11 @@ Deno.serve(async (req) => {
 
     const member = await base44.asServiceRole.entities.SalesTeamMember.get(entityId);
     if (!member) return Response.json({ skipped: true, reason: "member not found" });
+
+    // Owner/administrator accounts hold no payroll employment relationship. Skipped before any
+    // id is issued or version is bumped, so no sync record is created for them.
+    const exclusion = payrollSyncExclusion(member);
+    if (exclusion) return Response.json({ skipped: true, reason: exclusion });
 
     const withId = await ensureEmployeeId(base44, member);
 
