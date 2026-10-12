@@ -26,7 +26,10 @@ export async function getPayrollConfig(base44) {
     Deno.env.get("ARRIV_PAYROLL_COMPANY_ID") ||
     "";
   const enabled = (await getPayrollSettingValue(base44, "payroll_enabled", "false")) === "true";
+  // Source-app identity this integration is registered under at Arriv Payroll. Owned by the
+  // payroll side's app registry, so it is configuration rather than code.
+  const source_app = (await getPayrollSettingValue(base44, "payroll_source_app", "")) || "";
   const apiSecret = Deno.env.get("ARRIV_PAYROLL_API_SECRET") || "";
   const webhookSecret = Deno.env.get("ARRIV_PAYROLL_WEBHOOK_SECRET") || "";
-  return { endpoint, company_id, enabled, apiSecret, webhookSecret };
+  return { endpoint, company_id, enabled, apiSecret, webhookSecret, source_app };
 }

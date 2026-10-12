@@ -110,6 +110,32 @@
     "supersedes_sync_id": {
       "type": "string",
       "description": "Older sync ID this record superseded"
+    },
+    "hold_reason": {
+      "type": "string",
+      "enum": [
+        "",
+        "NON_PRODUCTION_IDENTITY",
+        "NO_EMPLOYEE_RECORD",
+        "STALE_IDENTITY_SUPERSEDED",
+        "REPLAY_FAILED",
+        "EMPLOYER_UNRESOLVED"
+      ],
+      "default": "",
+      "description": "Why a record was NOT replayed during recovery. Empty for records that were never dispositioned. A held record is never retried automatically, so it cannot create a duplicate or obsolete employee at Arriv Payroll."
+    },
+    "hold_detail": {
+      "type": "string",
+      "description": "The specific identity facts behind hold_reason (for example which test markers were found, or which authoritative sync replaced it), kept as evidence for the review."
+    },
+    "held_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the recovery placed this record in a terminal hold"
+    },
+    "payroll_employee_id": {
+      "type": "string",
+      "description": "The employee identifier Arriv Payroll returned in its acknowledgement of this sync, when it returned one. Evidence that the employee record exists at Arriv Payroll."
     }
   },
   "required": [

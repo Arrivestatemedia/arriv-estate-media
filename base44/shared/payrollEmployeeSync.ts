@@ -3,13 +3,21 @@
 // a sync. Never calls Arriv Payroll from browser code — only server-side functions use this.
 
 import {
-  signRequest,
   generateRequestId,
   generateEmployeeId,
   generateSyncId,
   isNonRetryableError,
   backoffDelayMs,
 } from "./payrollCrypto.ts";
+// Outbound requests to the Arriv Payroll API are signed over the 4-field canonical string
+// (body\ntimestamp\nrequestId\nsourceAppId). That is the convention payrollSigning.ts uses
+// for every other outbound payroll call, and the one the payroll app verifies (see the note
+// on verifyCanonicalRequest in payrollCrypto.ts). Signing employee syncs over the 5-field
+// variant — which appended employeeVersion to the signed bytes — meant this route rejected
+// every attempt as "Invalid signature", while the same secret authenticated the sibling
+// routes that were already signed over the 4-field string. The employee version still
+// travels to the payroll app as the X-Arriv-Employee-Version header below.
+import { signRequest as signPayrollRequest } from "./payrollSigning.ts";
 import { getPayrollConfig } from "./payrollSettings.ts";
 import { writeAuditLog } from "./payrollAudit.ts";
 
@@ -123,21 +131,27 @@ export async function runSyncAttempt(base44, queueRecord) {
   });
 
   const requestId = generateRequestId();
-  const sourceAppId = "arriv-one";
+  // Source-app identity the payroll app has registered for this integration. Read from
+  // configuration because the value belongs to the payroll side's app registry: the receiver
+  // answered "Invalid source_app" when this was hardcoded. The signature must cover exactly
+  // the same value, and the body carries it too, because the receiver compares all three.
+  const sourceAppId = config.source_app || "arriv-one";
   const employeeVersion = queueRecord.source_version || 1;
   const bodyStr = JSON.stringify({
     company_id: config.company_id,
+    // Sent explicitly so the payload's source app and the signed source app are the same
+    // value; the receiver checks them against each other.
+    source_app: sourceAppId,
     event_type: queueRecord.event_type,
     changed_fields: queueRecord.changed_fields || [],
     employee: queueRecord.current_field_values,
   });
 
-  const signature = await signRequest(config.apiSecret, {
+  const signature = await signPayrollRequest(config.apiSecret, {
     body: bodyStr,
     timestamp: now,
     requestId,
     sourceAppId,
-    employeeVersion,
   });
 
   const base = config.endpoint.replace(/\/functions\/.*$/i, "").replace(/\/$/, "");
@@ -188,11 +202,21 @@ export async function runSyncAttempt(base44, queueRecord) {
       arriv_employee_id: queueRecord.arriv_employee_id,
     });
     if (members && members.length) {
-      await base44.asServiceRole.entities.SalesTeamMember.update(members[0].id, {
+      const syncFields = {
         payroll_sync_status: "synced",
         payroll_sync_error: "",
         payroll_last_synced_at: new Date().toISOString(),
         last_successful_sync_timestamp: new Date().toISOString(),
+      };
+      // When Arriv Payroll returns the employee identifier it acknowledged, keep it: it is
+      // the positive evidence that this employee record exists in Arriv Payroll. Never
+      // synthesised here — an absent identifier leaves the stored one untouched.
+      const ackEmployeeId =
+        respData.payroll_employee_id || respData.employee_id || (respData.employee && respData.employee.payroll_employee_id) || "";
+      if (ackEmployeeId) syncFields.payroll_employee_id = String(ackEmployeeId);
+      await base44.asServiceRole.entities.SalesTeamMember.update(members[0].id, syncFields);
+      await base44.asServiceRole.entities.EmployeeSyncQueue.update(queueRecord.id, {
+        payroll_employee_id: ackEmployeeId ? String(ackEmployeeId) : (queueRecord.payroll_employee_id || ""),
       });
     }
     await writeAuditLog(base44, {

@@ -104,6 +104,9 @@ export function isNonRetryableError(responseCode, responseMessage) {
   const msg = String(responseMessage || "").toLowerCase();
   const codes = ["AUTH_FAILED", "AUTHENTICATION_FAILED", "INVALID_SIGNATURE", "EMPLOYEE_MISMATCH", "DUPLICATE_PAYROLL", "DUPLICATE_SOURCE_RECORD", "LOCKED_PAYROLL_CONFLICT", "INVALID_COMMISSION_PLAN", "OWNER_REVIEW_REQUIRED"];
   if (codes.includes(code)) return true;
-  const phrases = ["authentication failed", "invalid signature", "employee mismatch", "duplicate payroll", "duplicate source record", "locked payroll conflict", "invalid commission plan", "owner review required"];
+  // A rejected source_app is a configuration/identity mismatch, never a transient fault:
+  // retrying it only repeats a request the payroll app has already refused, so it is held
+  // for review instead of being retried on a backoff.
+  const phrases = ["authentication failed", "invalid signature", "invalid source_app", "source_app does not match", "employee mismatch", "duplicate payroll", "duplicate source record", "locked payroll conflict", "invalid commission plan", "owner review required"];
   return phrases.some((p) => msg.includes(p));
 }
