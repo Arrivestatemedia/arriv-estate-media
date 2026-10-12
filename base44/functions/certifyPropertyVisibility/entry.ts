@@ -17,6 +17,13 @@ import {
   shouldAutoDeactivate,
   transitionError,
 } from "../../shared/propertyVisibility.ts";
+import { certificationAdminVerdict } from "../../shared/propertyCertRunGuard.ts";
+import {
+  acquirePropertyCertRunLock,
+  assertNoForeignPropertyCertArtifacts,
+  releasePropertyCertRunLock,
+} from "../../shared/propertyCertRunLock.ts";
+import { cleanupPropertyCertRun } from "../../shared/certRunCleanup.ts";
 
 // Property Visibility v1.0 certification suite.
 //
@@ -87,8 +94,41 @@ async function countEntity(base44: any, name: string) {
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
+
+  // ================= 1. AUTHORIZATION =================
+  // The FIRST thing this endpoint does. The identity comes from the platform-verified session
+  // only — never from a body field, a query parameter or a header claim — and nothing is read,
+  // created, deleted or called before it passes. Anonymous callers get 401, authenticated
+  // non-administrators get 403, so neither can reach the run.
   const user = await base44.auth.me().catch(() => null);
-  if (user && user.role !== "admin") return Response.json({ error: "Forbidden" }, { status: 403 });
+  const verdict = certificationAdminVerdict(user);
+  if (!verdict.authorized) {
+    return Response.json({ authorized: false, started: false, error: verdict.reason }, { status: verdict.status });
+  }
+  const actorEmail = String(user?.email || "");
+
+  // ================= 2. ONE RUN AT A TIME =================
+  // Server-enforced, bounded lock plus a data-level guard. A second run is refused before any
+  // record work, so it can never modify or clean up the active run's records.
+  const runLock = await acquirePropertyCertRunLock(base44.asServiceRole, RUN, actorEmail);
+  if (!runLock.acquired) {
+    return Response.json({
+      authorized: true,
+      started: false,
+      error: "Another Property Visibility certification run is active.",
+      run_lock: runLock,
+    }, { status: 409 });
+  }
+  const foreignArtifacts = await assertNoForeignPropertyCertArtifacts(base44.asServiceRole, RUN);
+  if (!foreignArtifacts.clear) {
+    await releasePropertyCertRunLock(base44.asServiceRole, RUN);
+    return Response.json({
+      authorized: true,
+      started: false,
+      error: "Certification artifacts from an earlier run are still present. Reconcile them before starting a new run.",
+      foreign_artifacts: foreignArtifacts,
+    }, { status: 409 });
+  }
 
   const tests: { name: string; passed: boolean; detail: string }[] = [];
   const add = (name: string, passed: boolean, detail = "") => tests.push({ name, passed, detail });
@@ -105,6 +145,8 @@ Deno.serve(async (req) => {
   const created = { listingIds: [] as string[], eventIds: [] as string[], inquiryIds: [] as string[], jobId: null as string | null };
   let flagUntouched = false;
   let cleanupReport: any = null;
+  let propertySweep: any = null;
+  let lockRelease: any = null;
 
   try {
     // ================= 1. Policy: order eligibility =================
@@ -390,6 +432,14 @@ Deno.serve(async (req) => {
     // Cleanup: delete every synthetic record this run created.
     try {
       const asList = (r: any) => (Array.isArray(r) ? r : (r?.items || []));
+      // Property artifacts — the page, its publication events and its inquiries — go through the
+      // shared, marker-guarded teardown path: run-scoped, dependents-first, idempotent, and safe
+      // to retry. A record is only removed when it is a certification record attributable to
+      // this run.
+      propertySweep = await cleanupPropertyCertRun(base44.asServiceRole, RUN, {
+        extraEmails: [`${RUN}.buyer@cert.test`, AGENT_EMAIL],
+        listingIds: created.listingIds,
+      });
       // Sweep by the run marker first, so an interrupted run's fixtures are still removable.
       for (const l of asList(await base44.asServiceRole.entities.PropertyListing.filter({ certification_run_id: RUN }))) {
         for (const e of asList(await base44.asServiceRole.entities.PropertyListingEvent.filter({ listing_id: l.listing_id }))) {
@@ -424,8 +474,21 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.PropertyInquiry.delete(i.id);
       }
       if (created.jobId) await base44.asServiceRole.entities.Job.delete(created.jobId);
+      cleanupReport = {
+        property_sweep: propertySweep
+          ? {
+              deleted: propertySweep.deleted.length,
+              remaining: propertySweep.remaining,
+              remaining_by_entity: propertySweep.remaining_by_entity,
+              errors: propertySweep.errors,
+            }
+          : { error: "property sweep did not run" },
+      };
     } catch (err: any) {
-      cleanupReport = { error: err.message };
+      cleanupReport = {
+        property_sweep: propertySweep ? { deleted: propertySweep.deleted.length, remaining: propertySweep.remaining } : null,
+        error: err.message,
+      };
     }
 
     // The suite never writes the production feature flag, so there is nothing to restore. Both
@@ -439,6 +502,12 @@ Deno.serve(async (req) => {
     } catch {
       flagUntouched = false;
     }
+
+    // Release the single-run lock. Only the holder can release it and releasing twice is a no-op,
+    // so an aborted run never leaves certification permanently locked; if even this fails, the
+    // lock's bounded lifetime expires and the next run recovers it as a recorded takeover.
+    lockRelease = await releasePropertyCertRunLock(base44.asServiceRole, RUN)
+      .catch((e: any) => ({ released: false, status: "error", reason: String(e?.message || e) }));
   }
 
   // Post-run isolation checks.
@@ -467,6 +536,16 @@ Deno.serve(async (req) => {
     flag_value_before: flagBeforeValue,
     flag_untouched: flagUntouched,
     isolated_test_mode: true,
+    authorization: {
+      enforced: "platform-admin session (server-verified role)",
+      actor: actorEmail,
+      checked_before_any_record_or_external_call: true,
+    },
+    run_lock: runLock,
+    lock_release: lockRelease,
+    property_artifacts: propertySweep
+      ? { deleted: propertySweep.deleted.length, remaining: propertySweep.remaining, remaining_by_entity: propertySweep.remaining_by_entity }
+      : null,
     cleanup: cleanupReport,
     financial_deltas: financialDeltas,
     tests,

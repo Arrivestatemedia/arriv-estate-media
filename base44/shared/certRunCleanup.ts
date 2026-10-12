@@ -26,6 +26,14 @@
  *     synthetic marker, so an over-broad query still cannot delete real data.
  */
 
+import {
+  isCertificationRunId,
+  isPropertySweepCandidate,
+  isRowStale,
+  propertyCertRunIdsFromRow,
+} from './propertyCertRunGuard.ts';
+import { readPropertyCertRunLock } from './propertyCertRunLock.ts';
+
 const SYNTHETIC_PATTERNS: RegExp[] = [
   /^cert_/i,
   /^cert-/i,
@@ -58,6 +66,12 @@ interface SweepSpec {
   field: string;
   /** Extra fields on the same entity to match exact values against. */
   exact?: { field: string; values: string[] }[];
+  /**
+   * Value the record itself MUST carry before it can be deleted. The Property Visibility specs
+   * use it to require `certification_mode === true`, so a record that merely looks similar can
+   * never be removed.
+   */
+  requireField?: { field: string; equals: unknown };
 }
 
 // Dependents first, then the records they hang from.
@@ -78,7 +92,175 @@ const SWEEP: SweepSpec[] = [
   { entity: 'PrepaidWallet', field: 'customer_email', exact: [{ field: 'customer_email', values: [] }] },
   { entity: 'EmployeeSyncQueue', field: 'sync_id', exact: [{ field: 'arriv_employee_id', values: [] }] },
   { entity: 'Contact', field: 'email', exact: [{ field: 'email', values: [] }] },
+  // Property Visibility certification artifacts. Listings only — their publication events and
+  // inquiries are removed by RELATIONSHIP in cleanupPropertyCertRun, and every property record
+  // additionally has to carry certification_mode === true.
+  { entity: 'PropertyListing', field: 'certification_run_id', requireField: { field: 'certification_mode', equals: true } },
+  { entity: 'PropertyListing', field: 'client_email', requireField: { field: 'certification_mode', equals: true } },
 ];
+
+/**
+ * Property Visibility certification artifacts for ONE run, removed dependents-first.
+ *
+ * Identification never relies on a property id prefix — a property page's own id is an ordinary
+ * `prop_…` value. A record qualifies only when it is a certification record
+ * (`certification_mode === true`) AND is attributable to this run: by its `certification_run_id`
+ * marker, by the run's own synthetic address, or by an explicit relationship (a listing id the
+ * run declared, whose events and inquiries then hang off it).
+ *
+ * Idempotent and safe to retry: a second call finds nothing, deletes nothing and reports zero
+ * remaining. Every deletion is reported individually, so teardown is auditable.
+ */
+export async function cleanupPropertyCertRun(
+  client: any,
+  runId: string,
+  options: { extraEmails?: string[]; listingIds?: string[] } = {},
+): Promise<CertCleanupResult> {
+  const deleted: { entity: string; id: string; key: string }[] = [];
+  const errors: string[] = [];
+  const result: CertCleanupResult = { run_id: runId, deleted, errors, remaining: 0, remaining_by_entity: {} };
+
+  if (!isCertificationRunId(runId)) {
+    errors.push(`Refusing to clean up non-cert_ run ID: ${runId}`);
+    return result;
+  }
+
+  const marker = { $regex: `^${runId}` };
+  const input = { runId, extraEmails: options.extraEmails || [], listingIds: options.listingIds || [] };
+  const listingApi = client.entities?.PropertyListing;
+  const eventApi = client.entities?.PropertyListingEvent;
+  const inquiryApi = client.entities?.PropertyInquiry;
+
+  const queryOne = async (api: any, filters: Record<string, unknown>[], label: string) => {
+    if (!api) return { rows: [] as any[], error: `${label}: entity unavailable` };
+    const q = filters.length > 1 ? { $or: filters } : filters[0];
+    if (!q) return { rows: [] as any[] };
+    try {
+      const res = await api.filter(q, '-created_date', 200);
+      return { rows: Array.isArray(res) ? res : (res?.items || res?.data || []) };
+    } catch (e: any) {
+      return { rows: [] as any[], error: `${label}: ${e.message}` };
+    }
+  };
+
+  // ---- the run's listings
+  const listingFilters: Record<string, unknown>[] = [{ certification_run_id: marker }, { client_email: marker }];
+  if (input.listingIds.length) listingFilters.push({ listing_id: { $in: input.listingIds } });
+  const listingRes = await queryOne(listingApi, listingFilters, 'PropertyListing query');
+  if (listingRes.error) errors.push(listingRes.error);
+  const listings = listingRes.rows.filter((row) => isPropertySweepCandidate(row, input));
+
+  // ---- dependents first: publication events and inquiries, by their listing relationship
+  for (const listing of listings) {
+    const listingId = String(listing.listing_id || '');
+    if (!listingId) continue;
+    for (const [api, entityName] of [[eventApi, 'PropertyListingEvent'], [inquiryApi, 'PropertyInquiry']] as const) {
+      if (!api) continue;
+      const res = await queryOne(api, [{ listing_id: listingId }], `${entityName} query`);
+      if (res.error) errors.push(res.error);
+      for (const row of res.rows) {
+        // Marker guard: only a certification record may be deleted, even though the relationship
+        // to a proven run listing already establishes ownership.
+        if (row.certification_mode !== true) continue;
+        try {
+          await api.delete(row.id);
+          deleted.push({ entity: entityName, id: row.id, key: listingId.slice(0, 60) });
+        } catch (e: any) {
+          errors.push(`${entityName}.${row.id}: ${e.message}`);
+        }
+      }
+    }
+    try {
+      await listingApi.delete(listing.id);
+      deleted.push({ entity: 'PropertyListing', id: listing.id, key: String(listing.listing_id || '').slice(0, 60) });
+    } catch (e: any) {
+      errors.push(`PropertyListing.${listing.id}: ${e.message}`);
+    }
+  }
+
+  // ---- inquiries whose own address carries the run marker (the listing may already be gone)
+  const inquiryFilters: Record<string, unknown>[] = [{ email: marker }, { certification_run_id: marker }];
+  const inquiryRes = await queryOne(inquiryApi, inquiryFilters, 'PropertyInquiry query');
+  if (inquiryRes.error) errors.push(inquiryRes.error);
+  for (const row of inquiryRes.rows) {
+    if (!isPropertySweepCandidate(row, input)) continue;
+    try {
+      await inquiryApi.delete(row.id);
+      deleted.push({ entity: 'PropertyInquiry', id: row.id, key: String(row.email || '').slice(0, 60) });
+    } catch (e: any) {
+      errors.push(`PropertyInquiry.${row.id}: ${e.message}`);
+    }
+  }
+
+  // ---- verification: report what is still attributable to this run
+  const knownListingIds = [...new Set([
+    ...listings.map((l: any) => String(l.listing_id || '')),
+    ...input.listingIds.map((v: string) => String(v || '')),
+  ])].filter(Boolean);
+
+  const verifyRunMarked = async (api: any, filters: Record<string, unknown>[], entity: string) => {
+    if (!api) return;
+    const res = await queryOne(api, filters, `${entity} verify`);
+    if (res.error) errors.push(res.error);
+    const count = res.rows.filter((row) => isPropertySweepCandidate(row, input)).length;
+    if (count) {
+      result.remaining_by_entity[entity] = (result.remaining_by_entity[entity] || 0) + count;
+      result.remaining += count;
+    }
+  };
+  const verifyByRelationship = async (api: any, entity: string) => {
+    if (!api || !knownListingIds.length) return;
+    const res = await queryOne(api, [{ listing_id: { $in: knownListingIds } }], `${entity} verify`);
+    if (res.error) errors.push(res.error);
+    const count = res.rows.filter((row) => row.certification_mode === true).length;
+    if (count) {
+      result.remaining_by_entity[entity] = (result.remaining_by_entity[entity] || 0) + count;
+      result.remaining += count;
+    }
+  };
+
+  await verifyRunMarked(listingApi, listingFilters, 'PropertyListing');
+  await verifyByRelationship(eventApi, 'PropertyListingEvent');
+  await verifyByRelationship(inquiryApi, 'PropertyInquiry');
+  await verifyRunMarked(inquiryApi, inquiryFilters, 'PropertyInquiry');
+
+  return result;
+}
+
+/**
+ * Discover Property Visibility certification runs whose artifacts were left behind, without
+ * deleting anything. The age guard keeps a run that is still going out of scope, and a run
+ * holding a live lock is reported as skipped instead of being swept.
+ */
+export async function discoverPropertyCertRunIds(client: any, cutoffMs: number = Date.now(), skipRunId = '') {
+  const runIds = new Set<string>();
+  const skippedLive = new Set<string>();
+  const probes: [string, string][] = [
+    ['PropertyListing', 'certification_run_id'],
+    ['PropertyListing', 'client_email'],
+    ['PropertyInquiry', 'certification_run_id'],
+    ['PropertyInquiry', 'email'],
+  ];
+  for (const [entity, field] of probes) {
+    const api = client.entities?.[entity];
+    if (!api) continue;
+    try {
+      const res = await api.filter({ certification_mode: true, [field]: { $regex: '^cert_' } }, '-created_date', 200);
+      const rows = Array.isArray(res) ? res : (res?.items || res?.data || []);
+      for (const row of rows) {
+        if (!isRowStale(row, cutoffMs)) continue;
+        for (const id of propertyCertRunIdsFromRow(row)) {
+          if (skipRunId && id.toLowerCase().startsWith(String(skipRunId).toLowerCase())) {
+            skippedLive.add(id);
+            continue;
+          }
+          runIds.add(id);
+        }
+      }
+    } catch { /* probe is best effort */ }
+  }
+  return { run_ids: [...runIds], skipped_live: [...skippedLive] };
+}
 
 /**
  * Delete every record created by one certification run.
@@ -173,6 +355,9 @@ export async function cleanupCertRun(
         // Marker guard — never delete a record whose own identity is not synthetic.
         const candidates = [row[spec.field], row.customer_email, row.email, row.employee_email, row.arriv_employee_id];
         if (!candidates.some((c) => isSyntheticMarker(c) || (c && String(c).includes(runId)))) continue;
+        // Field guard — a record that fails the spec's own structural requirement is never
+        // deleted (property records must carry certification_mode === true).
+        if (spec.requireField && row[spec.requireField.field] !== spec.requireField.equals) continue;
         try {
           await entity.delete(row.id);
           deleted.push({ entity: spec.entity, id: row.id, key: String(row[spec.field] ?? '').slice(0, 60) });
@@ -182,6 +367,12 @@ export async function cleanupCertRun(
       }
     }
   }
+
+  // Property Visibility artifacts are removed by their own run-scoped pass (dependents-first,
+  // marker-guarded on every record) and verified there.
+  const property = await cleanupPropertyCertRun(client, runId, { extraEmails: emails });
+  deleted.push(...property.deleted);
+  errors.push(...property.errors);
 
   // Verify against the entities that actually hold run fixtures, kept to a small set so
   // the check cannot itself exhaust the query budget. Entities that are empty for every
@@ -200,6 +391,13 @@ export async function cleanupCertRun(
       result.remaining_by_entity[spec.entity] = rows.length;
       result.remaining += rows.length;
     }
+  }
+
+  // Property artifacts are verified by their own relationship pass above, so their counts are
+  // merged here rather than re-queried.
+  for (const [entity, count] of Object.entries(property.remaining_by_entity || {})) {
+    result.remaining_by_entity[entity] = (result.remaining_by_entity[entity] || 0) + Number(count);
+    result.remaining += Number(count);
   }
   return result;
 }
@@ -256,8 +454,25 @@ export async function sweepStaleCertRuns(client: any, olderThanMinutes = 30) {
     } catch { /* probe is best effort */ }
   }
 
+  // A run currently holding a LIVE lock is never swept: its records belong to a run that is
+  // still executing. Only an expired lock is recoverable, and the runner's own teardown plus the
+  // bounded lock lifetime are what make recovery safe.
+  let liveRunId = '';
+  try {
+    const lock = await readPropertyCertRunLock(client);
+    if (lock && lock.active === true && Date.parse(String(lock.expires_at || '')) > Date.now()) {
+      liveRunId = String(lock.run_id || '');
+    }
+  } catch { /* best effort */ }
+
   const results: CertCleanupResult[] = [];
   for (const runId of runIds) results.push(await cleanupCertRun(client, runId));
+
+  // Property Visibility runs are cleaned through their own run-scoped pass; the generic entity
+  // set above is never queried on their behalf.
+  const propertyDiscovery = await discoverPropertyCertRunIds(client, cutoff, liveRunId);
+  const propertyResults: CertCleanupResult[] = [];
+  for (const runId of propertyDiscovery.run_ids) propertyResults.push(await cleanupPropertyCertRun(client, runId));
 
   // Standalone synthetic identities that carry no run id (a suite that simulates a
   // production customer, or a fixture keyed only by a marker). Marker- and age-guarded.
@@ -277,12 +492,28 @@ export async function sweepStaleCertRuns(client: any, olderThanMinutes = 30) {
     } catch { /* best effort */ }
   }
 
+  const propertyRemainingByEntity: Record<string, number> = {};
+  for (const r of propertyResults) {
+    for (const [entity, count] of Object.entries(r.remaining_by_entity || {})) {
+      propertyRemainingByEntity[entity] = (propertyRemainingByEntity[entity] || 0) + Number(count);
+    }
+  }
+
   return {
     runs_swept: results.length,
     run_ids: [...runIds],
-    deleted: results.reduce((n, r) => n + r.deleted.length, 0) + standalone,
-    remaining: results.reduce((n, r) => n + r.remaining, 0),
-    errors: [...results.flatMap((r) => r.errors), ...standaloneErrors],
+    deleted: results.reduce((n, r) => n + r.deleted.length, 0) + standalone + propertyResults.reduce((n, r) => n + r.deleted.length, 0),
+    remaining: results.reduce((n, r) => n + r.remaining, 0) + propertyResults.reduce((n, r) => n + r.remaining, 0),
+    errors: [...results.flatMap((r) => r.errors), ...standaloneErrors, ...propertyResults.flatMap((r) => r.errors)],
     older_than_minutes: olderThanMinutes,
+    live_locked_run_id: liveRunId,
+    property: {
+      runs_swept: propertyResults.length,
+      run_ids: propertyDiscovery.run_ids,
+      skipped_live_runs: propertyDiscovery.skipped_live,
+      deleted: propertyResults.reduce((n, r) => n + r.deleted.length, 0),
+      remaining: propertyResults.reduce((n, r) => n + r.remaining, 0),
+      remaining_by_entity: propertyRemainingByEntity,
+    },
   };
 }
