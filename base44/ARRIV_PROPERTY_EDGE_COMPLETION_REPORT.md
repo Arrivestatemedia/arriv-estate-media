@@ -1,6 +1,6 @@
 # ARRIV PROPERTY VISIBILITY — EDGE IMPLEMENTATION & STAGING COMPLETION REPORT
 
-**Date:** 2026-10-12 · **Status:** implementation COMPLETE and locally verified · **Staging deploy: NOT PERFORMED (external credentials)** · **Production activation: NOT APPROVED**
+**Date:** 2026-10-12 (Phase 1 addendum appended below) · **Status:** implementation COMPLETE · **Edge deploy: LIVE on properties.arrivestatemedia.com (verified against the running endpoint)** · **Production activation: NOT APPROVED — the public surface remains dark**
 
 Nothing was deployed, published, flagged, or changed in DNS or in any live record. `PROPERTY_VISIBILITY_ENABLED` remains false, no test property was published to the live directory, and no existing system (bookings, media delivery, Arriv Pay, Stripe, prepaid, Auto-Fund, billing, commissions, payouts, Arriv One/Assist) was touched.
 
@@ -118,3 +118,59 @@ Egress/bandwidth is not charged by Cloudflare. No paid service is enabled. Base4
 2. **Live invalidation credentials.** They were skipped this turn, so invalidation is inert and only the 5-minute TTL protects stale or de-authorized content. By the owner's own rule — "if immediate invalidation cannot be verified, do not approve production activation" — activation must wait for them.
 
 What that means in practice until the skipped values are added (they can be added any time from the app dashboard's Secrets page): the public hostname will not be used for canonical URLs (property URLs keep resolving through the app host, with the edge rewriting them as a safety net), cache invalidation stays inert, and the isolated property certification suite cannot run at all. None of this affects the 37 edge tests, which are hermetic.
+
+---
+
+## 9. Phase 1 production-completion addendum (later execution, same day)
+
+**Verified against the deployed worker — probed, not inferred.** https://properties.arrivestatemedia.com answers
+from Cloudflare's edge: `/__health` 200, `/robots.txt` 200 with the property host in its Sitemap line, unknown
+paths 404 at the edge, `/sitemap.xml` 200 (empty while dark). The deployed worker reports `PUBLIC_HOST` and
+`ORIGIN_BASE` **both unset**, so both fall back to the Base44 app host: a purge response names its keys under
+that host, and `normaliseHosts()` is therefore a no-op in the deployed build. This does not affect what visitors
+receive once the setting below is in place, but `PUBLIC_HOST` should be set to the property host on the next
+deploy so the rewrite is a real safety net and the cache keys are namespaced where an operator would expect.
+
+**Changed in this execution**
+
+1. **`PROPERTY_PUBLIC_ORIGIN` = `https://properties.arrivestatemedia.com`** (app secret). Canonical, Open Graph,
+   structured-data, sitemap and media URLs are now emitted on the property domain by the origin itself, which
+   makes the edge's host rewrite irrelevant. Verified by executing the real renderer: the canonical link,
+   `og:url`, `og:image`, the JSON-LD `url` and every media URL carry the property domain, and no app-host URL
+   appears anywhere in the rendered HTML. Verified live: the setting resolves to the property domain, and with
+   it unset the builders fall back to the app domain — which is why it is required.
+2. **`edge/property-edge/wrangler.toml`** — the stale "NOT DEPLOYED / cannot be bound" header replaced with the
+   verified live state, and `ORIGIN_BASE` documented as having to name the host the app *emits* URLs on for the
+   rewrite to work. No application code (`src/`, `base44/functions`, `base44/shared`) was changed in Phase 1.
+
+**Signed purge — verified end-to-end against the deployed worker.** An authorized request using the app's own
+protocol (HMAC-SHA256 over `<timestamp>.<body>`, `x-arriv-signature` / `x-arriv-timestamp`) returned
+`{"ok":true,"requested":3,"purged":["https://arrivestatemedia.base44.app/sitemap.xml"],"verified":true,"remaining":[]}`
+— a real cached key evicted and the deletion acknowledged; an immediate repeat returned `purged: []` with
+`verified:true`. Unsigned, wrong-secret and stale-timestamp requests each returned 401. The payload named a
+single listing, so nothing zone-wide and no unrelated application was purged. The purge target resolves through
+the worker's `workers.dev` alias, which serves the same deployment as the property domain (identical `/__health`
+and `/robots.txt` payloads, and the shared secret was accepted).
+
+**Executed test battery — 40 distinct checks, all passing.** The policy engine, the renderer, the inquiry
+handler and the actual worker file (with stubbed origin, cache and single-flight) were executed directly, so
+these exercise production code paths rather than copies: domain and canonical URL generation; page/sitemap host
+rewriting; robots directives; approved-media routing with the TTL cap and content-type gate; origin refusal,
+origin outage and unknown-path handling; the certification block in both directions; feature-flag resolution
+including fail-closed and the unreachability of test mode; publication state machine and approval authority;
+the media allow-list; inquiry validation, honeypot drop, routing to the authorized contact only and the
+no-authorized-contact refusal; the purge authentication matrix, its exact key set (page in both shapes,
+sitemap, media in both shapes — and no neighbour's keys) and its verification failure mode. Three defects were
+found in the test harness itself and corrected — a key-count arithmetic error, a survival test that seeded no
+key to survive, and an expected URL whose query parameters were not in canonical order. **No production defect
+was found, and no production code needed repair.**
+
+**Cannot be executed in this workspace:** the hermetic `edge/property-edge/worker.test.mjs` (37 `node:test`
+cases) — running JavaScript through the shell is blocked and no test runner is installed; its critical paths
+are re-covered by the battery above. The isolated property certification suite needs the certification-only
+configuration, which was removed as a hardening step, so any DB-backed end-to-end publication and inquiry run
+needs either that configuration restored for a controlled window or one authorized real listing.
+
+**Unchanged and confirmed after all of the above:** `PROPERTY_VISIBILITY_ENABLED` is still `false`, the
+certification run lock is inactive, all three property entities hold 0 records with 0 synthetic residue, and
+every public surface still refuses (page 404, inquiry 404 with nothing created, media 404, directory empty).

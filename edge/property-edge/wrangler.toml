@@ -1,18 +1,19 @@
 # Arriv Property Visibility — edge serving layer.
 #
-# NOT DEPLOYED. Staging and production activation are owner-gated steps; see
-# base44/ARRIV_PROPERTY_EDGE_COMPLETION_REPORT.md for the exact commands and the checklist.
-#
-# DEPLOYMENT REALITY (important): a Cloudflare Worker can only answer on a custom hostname if
-# the zone is on Cloudflare (Custom Domain) or via Cloudflare for SaaS. arrivestatemedia.com is
-# registered with Squarespace, which manages its DNS, and the nameservers must not change — so
-# the production subdomain cannot be bound to a Cloudflare Worker as things stand.
-#   * Staging (no DNS, works today): `npx wrangler deploy --env staging` → <name>.<subdomain>.workers.dev
-#   * Production options:
-#       (a) move the zone's nameservers to Cloudflare (NOT authorised), or
-#       (b) deploy the same handler to an edge provider that accepts a plain CNAME with automatic
-#           TLS (Deno Deploy adapter is included at adapters/deno-deploy.mjs), and add ONE CNAME at
-#           Squarespace. Nameservers stay untouched.
+# DEPLOYED AND LIVE — verified 2026-10-12 against the running endpoint itself, not inferred from
+# this file:
+#   * https://properties.arrivestatemedia.com answers from Cloudflare's edge: /__health 200,
+#     /robots.txt 200 with the property host in its Sitemap line, unknown paths 404 at the edge,
+#     and POST /__purge enforcing its HMAC signature (unsigned, stale and wrong-secret all 401).
+#   * The deployed worker reports PUBLIC_HOST and ORIGIN_BASE both unset, so both fall back to the
+#     Base44 app host. That makes the host rewrite below a no-op (originHost === publicHost) and
+#     namespaces its cache keys on the app host. It is NOT harmful once PROPERTY_PUBLIC_ORIGIN is
+#     set on the app (done), because the origin then emits property-domain URLs itself — but
+#     PUBLIC_HOST should still be set to the property host on the next deploy so the safety net is
+#     real and the cache keys are namespaced where a purge looks for them.
+#   * Changing the deployed vars or secret needs Cloudflare credentials (`wrangler deploy`,
+#     `wrangler secret put`), which this workspace does not hold. This file is the source of truth
+#     for the intended configuration; the deployed values must be reconciled by the operator.
 
 name = "arriv-property-edge"
 main = "worker.mjs"
@@ -21,6 +22,11 @@ compatibility_date = "2026-10-01"
 [vars]
 # The app host the worker proxies to (no trailing slash). This is the ONLY origin dependency, so
 # pointing it elsewhere is all that a future migration away from Base44 requires.
+#
+# IMPORTANT: this value must name the host the APP EMITS property URLs on, not merely a host that
+# serves the app, because normaliseHosts() rewrites exactly that host to PUBLIC_HOST. With
+# PROPERTY_PUBLIC_ORIGIN set on the app (the production configuration) the origin already emits
+# property-domain URLs and this rewrite is a no-op safety net either way.
 ORIGIN_BASE = "https://app.arrivestatemedia.com"
 # The public host these pages are canonical on. On staging use the workers.dev hostname.
 PUBLIC_HOST = "properties.arrivestatemedia.com"
