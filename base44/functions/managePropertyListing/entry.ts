@@ -74,8 +74,55 @@ async function resolveActor(base44: any, body: any) {
     adminEmail = null;
   }
   const clientEmail = String(body?.clientEmail || "").trim().toLowerCase();
-  if (adminEmail) return { email: adminEmail, type: "admin", isAdmin: true, clientEmail };
+
+  // This app's own administrators are not platform users: the owner and staff sign in through the
+  // sales console and live in SalesTeamMember, so an administrator identity is verified against
+  // that table (active, role admin) rather than taken from a body field.
+  let staffAdmin: any = null;
+  const claimedId = String(body?.sales_member_id || "").trim();
+  const claimedEmail = String(body?.admin_email || body?.sales_member_email || "").trim();
+  if (claimedId || claimedEmail) {
+    try {
+      const rows = claimedId
+        ? await base44.asServiceRole.entities.SalesTeamMember.filter({ id: claimedId })
+        : await base44.asServiceRole.entities.SalesTeamMember.filter({ email: claimedEmail });
+      const member = (Array.isArray(rows) ? rows : [])[0];
+      if (member && member.role === "admin" && member.is_active !== false) staffAdmin = member;
+    } catch {
+      staffAdmin = null;
+    }
+  }
+
+  // A service-role call carries a synthetic platform identity. When the caller names one of THIS
+  // app's own administrators, that real person is the actor and the platform identity is kept only
+  // as the executor, so the record always names a human from the app's own user table.
+  const isSystemSession = !adminEmail || /@no-reply\.base44\.com$/i.test(String(adminEmail));
+  const actingEmail = (!isSystemSession && adminEmail) ? adminEmail : (staffAdmin ? staffAdmin.email : (adminEmail || ""));
+  if (actingEmail) {
+    // Acting for a customer is only ever an administrator path: it must name that customer's own
+    // page and state the basis. Both are recorded on every event the action writes, so an
+    // on-behalf action is never attributed to the customer as though they had taken it themselves.
+    return {
+      email: actingEmail,
+      type: "admin",
+      isAdmin: true,
+      clientEmail,
+      onBehalfOf: String(body?.on_behalf_of_client || "").trim().toLowerCase(),
+      basis: sanitizeText(body?.consent_basis, 300),
+      executedBy: isSystemSession ? String(adminEmail || "service_role") : "",
+    };
+  }
   return { email: clientEmail, type: "customer", isAdmin: false, clientEmail };
+}
+
+// An administrator recording something on the customer's behalf: only for that customer's own page,
+// and only with the basis stated. Without all three this is false, and the customer-only rules below
+// continue to refuse an administrator acting on their own initiative.
+function onBehalfApproval(listing: any, actor: any) {
+  return actor.isAdmin === true
+    && !!actor.onBehalfOf
+    && actor.onBehalfOf === String(listing.client_email || "").toLowerCase()
+    && !!actor.basis;
 }
 
 function authorizeListing(listing: any, actor: any) {
@@ -489,12 +536,19 @@ Deno.serve(async (req) => {
 
     // ------------------------------------------------------------------ publication approval (customer only)
     if (action === "approve_publication") {
-      if (!canApprovePublication(actor)) {
+      // Customer-only by default. An administrator cannot approve on their own initiative; they may
+      // only record an approval ON the authorized customer's behalf, for that customer's own page,
+      // with the basis stated — and the record then names the administrator as the approving account.
+      const onBehalf = onBehalfApproval(listing, actor);
+      if (!canApprovePublication(actor) && !onBehalf) {
         return Response.json({
           ok: false,
           reason: "CUSTOMER_APPROVAL_REQUIRED",
           message: "Publication must be approved by the authorized customer account.",
         }, { status: 403 });
+      }
+      if (onBehalf && !actor.basis) {
+        return Response.json({ ok: false, reason: "CONSENT_BASIS_REQUIRED", message: "State the basis for recording approval on the customer's behalf." }, { status: 409 });
       }
       if (body.consent !== true) {
         return Response.json({ ok: false, reason: "CONSENT_REQUIRED", message: "Explicit publication consent is required." }, { status: 409 });
@@ -513,7 +567,15 @@ Deno.serve(async (req) => {
       if (!listing.seo_title || !listing.meta_description) missing.push("seo_metadata");
       if (missing.length) return Response.json({ ok: false, reason: "PREREQUISITES_MISSING", missing, message: "The property page is not ready for publication approval." }, { status: 409 });
 
-      const approvalHistory = [...(listing.publication_history || []), { from_state: listing.publication_state, to_state: "APPROVED", at: nowIso(), actor: actor.email, note: "publication approved by the authorized customer" }];
+      const approvalHistory = [...(listing.publication_history || []), {
+        from_state: listing.publication_state,
+        to_state: "APPROVED",
+        at: nowIso(),
+        actor: actor.email,
+        note: onBehalf
+          ? `publication approved on the customer's behalf by administrator ${actor.email}; basis: ${actor.basis}`
+          : "publication approved by the authorized customer",
+      }];
       await update({
         publication_state: "APPROVED",
         publication_history: approvalHistory,
@@ -523,13 +585,20 @@ Deno.serve(async (req) => {
         publication_consent_at: nowIso(),
         approved_property_details_snapshot: DETAIL_FIELDS.reduce((acc: any, f) => ({ ...acc, [f]: listing[f] ?? null }), {}),
         approved_media_snapshot: listing.selected_media,
-      }, "publication_approved", { approving_account: actor.email, approved_media: (listing.selected_media || []).length }, { previous_state: listing.publication_state, new_state: "APPROVED" });
+      }, "publication_approved", {
+        approving_account: actor.email,
+        approved_media: (listing.selected_media || []).length,
+        ...(onBehalf
+          ? { recorded_on_behalf_of: listing.client_email, basis: actor.basis, customer_consent_recorded: false }
+          : {}),
+      }, { previous_state: listing.publication_state, new_state: "APPROVED" });
       return Response.json({ ok: true, listing });
     }
 
     // ------------------------------------------------------------------ publish
     if (action === "publish") {
-      if (actor.isAdmin) {
+      const onBehalf = onBehalfApproval(listing, actor);
+      if (actor.isAdmin && !onBehalf) {
         return Response.json({ ok: false, reason: "CUSTOMER_APPROVAL_REQUIRED", message: "Publication must be approved by the authorized customer account." }, { status: 403 });
       }
       if (listing.publication_state === "PUBLISHED") return Response.json({ ok: true, listing, already_published: true });
