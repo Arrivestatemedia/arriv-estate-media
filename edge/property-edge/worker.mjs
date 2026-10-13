@@ -40,6 +40,10 @@ const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,118})[a-z0-9]$/;
 // Drive file ids are mixed case and may contain dots, dashes and underscores, so the media route
 // uses its own permissive pattern rather than the slug pattern.
 const FILE_ID_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
+// The canonical public directory address, matching the app's DIRECTORY_PATH. Held as a literal
+// because this worker is deliberately self-contained: it imports no app code, so it can be
+// deployed and reasoned about on its own.
+const DIRECTORY_PATH = "/properties";
 const PURGE_MAX_SKEW_SECONDS = 300;
 const MAX_PURGE_FILE_IDS = 200;
 
@@ -176,6 +180,19 @@ function emergencyResponse() {
       "Retry-After": "3600",
       "X-Robots-Tag": "noindex, nofollow",
       "X-Arriv-Edge": "KILL-SWITCH",
+    },
+  });
+}
+
+// The domain root is a doorway, not a second page: it sends the visitor to the one canonical
+// directory address. Answered entirely at the edge, with no origin call, so the front door of the
+// property site keeps working even while the origin is briefly unavailable.
+function directoryRedirect(c) {
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: `${c.publicBase}${DIRECTORY_PATH}`,
+      "Cache-Control": `public, max-age=${c.htmlTtl}`,
     },
   });
 }
@@ -428,6 +445,12 @@ async function handle(request, env) {
     if (!FILE_ID_PATTERN.test(decodedListing) || !FILE_ID_PATTERN.test(decodedFile)) return notFoundResponse(c.notFoundTtl);
     return serveMedia(request, env, c, decodedListing, decodedFile);
   }
+
+  // The bare domain is where a visitor arrives when they type the property address, so it must
+  // not answer 404. The directory has exactly one canonical address — /properties, the path every
+  // page, the footer and the sitemap link to — so the root permanently redirects there rather
+  // than serving a second, duplicate copy of it.
+  if (path === "/") return finalize(request, directoryRedirect(c), "EDGE");
 
   const slug = path.startsWith("/properties/") ? path.slice("/properties/".length) : path.replace(/^\//, "");
   if (slug && SLUG_PATTERN.test(slug)) return servePage(request, env, c, slug);

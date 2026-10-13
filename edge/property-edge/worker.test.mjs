@@ -154,6 +154,21 @@ export async function runWorkerTests(worker) {
   }
   {
     const h = makeHarness();
+    const bare = await worker.fetch(get("/"), h.env);
+    check(
+      "bare_domain_redirects_to_the_directory",
+      bare.status === 301 && bare.headers.get("location") === `https://${PUBLIC_HOST}/properties` && h.calls.length === 0,
+      `status=${bare.status}, location=${bare.headers.get("location")}, origin calls=${h.calls.length}`,
+    );
+    const withSlash = await worker.fetch(get("//"), h.env);
+    check(
+      "bare_domain_redirect_is_stable_with_a_trailing_slash",
+      withSlash.status === 301 && withSlash.headers.get("location") === `https://${PUBLIC_HOST}/properties`,
+      `status=${withSlash.status}, location=${withSlash.headers.get("location")}`,
+    );
+  }
+  {
+    const h = makeHarness();
     await worker.fetch(get(`/${SLUG}`), h.env);
     const second = await worker.fetch(get(`/properties/${SLUG}`), h.env);
     check("both_page_paths_share_one_cache_entry", second.status === 200 && h.calls.length === 1, `origin calls for both paths=${h.calls.length}`);
