@@ -395,9 +395,11 @@ export async function generateSeoDraft(client: any, listing: any) {
     "Use ONLY the facts supplied below. Never invent a feature, material, dimension, appliance, school, neighbourhood, renovation, view or price.",
     "Any field that is null or empty is simply not mentioned. Never guess it and never fill the gap with filler.",
     "Describe what the photographs actually show, using the room or view implied by each file name.",
-    "Write plainly and concretely, the way a knowledgeable listing agent speaks about a real home. Prefer the measured square footage, the bed and bath counts, the property type and the rooms shown.",
-    "Never describe the page's own state or paperwork. Do not call the listing a draft, and never mention approval, review, publication or that anything is pending. This copy is finished copy for a home that is for sale.",
-    "Avoid empty filler a buyer learns nothing from, for example: designed for functionality, central hub, welcoming, spacious, well-maintained, perfect for entertaining, an opportunity to view, boasts, nestled.",
+    "Write the way a person who has walked the house would talk about it: plain, specific, unhurried. Ordinary words, varied sentence length, no exclamation marks, no rhetorical questions, and never addressing the reader directly.",
+    "Avoid the tired phrases that make copy read as generated: stunning, must-see, dream home, luxurious, oasis, turnkey, boasts, nestled, perfect for entertaining, won't last long, don't miss, look no further, checks all the boxes. Never use a sentence that would fit a different property unchanged.",
+    "Lead with what the home is and where it is, then the layout the photographs show, then anything genuinely notable in the supplied facts. If the facts are thin, write less rather than padding them out.",
+    "Never describe the page's own state or paperwork. Do not call the listing a draft, and never mention approval, review, publication or that anything is pending. This is finished copy for a home that is for sale.",
+    "Read it back before returning. If a sentence would fit any other listing, cut it or make it specific to this one.",
     "Write a factual property description of 90-150 words.",
     "Write a search-friendly page title of at most 60 characters that includes the city and state.",
     "Write a unique meta description of 120-155 characters that summarises the property factually.",
@@ -409,13 +411,9 @@ export async function generateSeoDraft(client: any, listing: any) {
     prompt,
     response_json_schema: CONTENT_SCHEMA,
   });
-  // Whatever the writer returns, the copy that leaves here is free of draft/review language.
-  return {
-    ...result,
-    property_description: stripDraftStateSentences(result?.property_description),
-    seo_title: stripDraftStateSentences(result?.seo_title),
-    meta_description: stripDraftStateSentences(result?.meta_description),
-  };
+  // Stored exactly as written. Nothing is edited out of the copy here: the draft the customer reads
+  // is the draft they approve, and the page shows the text the customer approved.
+  return result;
 }
 
 export function buildStructuredData(listing: any, url: string) {
