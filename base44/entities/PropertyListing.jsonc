@@ -126,6 +126,10 @@
       "type": "string",
       "description": "Agent license number when supplied (required by some jurisdictions)"
     },
+    "agent_photo_url": {
+      "type": "string",
+      "description": "Headshot the listing contact deliberately supplied for this page, as a publicly served image URL. Uploaded publicly because the public page renders without a session; only an image the contact supplied is ever stored here."
+    },
     "brokerage_name": {
       "type": "string"
     },

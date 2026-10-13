@@ -17,6 +17,7 @@ export default function PublicPropertyPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [prefill, setPrefill] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +98,16 @@ export default function PublicPropertyPage() {
     } catch { /* share dismissed */ }
   };
 
+  // The hero actions bring the visitor to the form and start the message with what they came to
+  // ask, so an inquiry is one tap from the address rather than a scroll past the gallery.
+  const ask = (kind) => {
+    const where = [page.property_address, page.city, page.state].filter(Boolean).join(", ");
+    setPrefill(kind === "showing"
+      ? `I would like to schedule a showing of ${where}.`
+      : `Please send me more information about ${where}.`);
+    document.getElementById("inquire")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const photos = (page.media || []).filter((m) => m.kind === "photo");
 
   return (
@@ -147,7 +158,7 @@ export default function PublicPropertyPage() {
           </div>
         )}
 
-        <PropertyMarketingHero page={page} copied={copied} onShare={share} />
+        <PropertyMarketingHero page={page} copied={copied} onShare={share} onAsk={ask} />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-16">
@@ -168,9 +179,9 @@ export default function PublicPropertyPage() {
             </div>
 
             <aside className="lg:col-span-1">
-              <div className="lg:sticky lg:top-6">
+              <div className="lg:sticky lg:top-6" id="inquire">
                 {page.inquiries_enabled ? (
-                  <PropertyInquiryForm slug={page.public_slug} reference={page.property_reference} />
+                  <PropertyInquiryForm slug={page.public_slug} reference={page.property_reference} prefill={prefill} />
                 ) : (
                   <div className="rounded-2xl border border-black/5 bg-white p-6 text-sm text-[#1A1A1A]/60">
                     This property is not currently accepting inquiries.

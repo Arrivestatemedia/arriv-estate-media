@@ -138,7 +138,7 @@ export default function PropertyPageBuilder() {
             listing={listing}
             busy={busy}
             onSave={(details) => run("update_details", { details })}
-            onGenerate={() => run("generate_seo")}
+            onGenerate={(options) => run("generate_seo", options || {})}
             onApprove={(content) => run("approve_content", { content })}
           />
           <PropertyAuthorizationsForm listing={listing} busy={busy} onSave={(payload) => run("record_authorizations", payload)} />

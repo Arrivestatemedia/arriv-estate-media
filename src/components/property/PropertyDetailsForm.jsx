@@ -95,9 +95,9 @@ export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate,
             <h3 className="text-base font-medium text-[#1A1A1A]">Page content and search metadata</h3>
             <p className="text-sm text-[#1A1A1A]/50">AI can draft this once from your details. You review and approve every word before publication.</p>
           </div>
-          <Button onClick={onGenerate} disabled={busy === "generate_seo"} variant="outline" className="border-[#B8956A]/40 text-[#1A1A1A] shrink-0">
+          <Button onClick={() => onGenerate({ force: !!listing?.ai_draft?.generated_at })} disabled={busy === "generate_seo"} variant="outline" className="border-[#B8956A]/40 text-[#1A1A1A] shrink-0">
             {busy === "generate_seo" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-            Draft with AI
+            {listing?.ai_draft?.generated_at ? "Re-draft with AI" : "Draft with AI"}
           </Button>
         </div>
 

@@ -38,6 +38,11 @@ export function escapeHtml(value: any) {
     .replace(/"/g, "&quot;");
 }
 
+// How many photographs the page shows before it offers the rest. A buyer should reach the property
+// facts and the inquiry form quickly on a phone; the remaining media stays one tap away, and the
+// photograph viewer always holds every photograph the customer approved.
+const INITIAL_PHOTO_COUNT = 8;
+
 // `publiclyAvailable` is supplied by the caller because the two callers decide availability with
 // their own predicate: the public surface uses isPubliclyActive (which refuses synthetic records
 // absolutely), the certification surface uses isCertificationListingAvailable (which accepts a
@@ -91,6 +96,9 @@ export function buildPropertyPagePayload(listing: any, opts: { publiclyAvailable
       license_number: listing.agent_license_number || "",
       contact_email: listing.approved_contact_email || "",
       contact_phone: listing.approved_contact_phone || "",
+      // The listing contact's own approved headshot. Deliberately a public asset: this page renders
+      // without a session, so a private file could not be shown here at all.
+      photo_url: listing.agent_photo_url || "",
     },
     inquiries_enabled: available && AVAILABLE_LISTING_STATUSES.includes(listing.listing_status),
     seo_title: listing.seo_title || "",
@@ -119,6 +127,8 @@ export function renderPropertyPageHtml(payload: any) {
   const address = String(payload.property_address || "").trim();
   const location = [payload.property_address, payload.city, payload.state, payload.zip].filter(Boolean).join(", ");
   const photos = (payload.media || []).filter((m: any) => m.kind === "photo");
+  const visiblePhotos = photos.slice(0, INITIAL_PHOTO_COUNT);
+  const remainingPhotos = photos.slice(INITIAL_PHOTO_COUNT);
 
   const shot = (m: any, index: number) => {
     const alt = String(m.alt_text || m.name || `Photograph of ${address}`);
@@ -129,7 +139,25 @@ export function renderPropertyPageHtml(payload: any) {
   ${m.alt_text ? `<figcaption>${escapeHtml(m.alt_text)}</figcaption>` : ""}
 </figure>`;
   };
-  const shots = photos.map(shot).join("\n");
+  const shots = visiblePhotos.map(shot).join("\n");
+  // The rest of the gallery, held back until asked for. Hidden rather than omitted, so the
+  // photograph viewer still moves through the customer's whole approved sequence.
+  const moreShots = remainingPhotos.length
+    ? `<div class="shots" id="arriv-shots-more" hidden>
+${remainingPhotos.map((m: any, i: number) => shot(m, visiblePhotos.length + i)).join("\n")}
+</div>`
+    : "";
+  const moreButton = remainingPhotos.length
+    ? `<button type="button" class="more" id="arriv-more-shots">View all ${photos.length} photographs</button>`
+    : "";
+  // The two things a buyer actually wants to do, placed with the address rather than at the foot
+  // of the gallery. Both jump to the inquiry form and open their message.
+  const ctaRow = payload.inquiries_enabled === true
+    ? `<div class="cta-row">
+  <a class="cta" href="#inquire" data-ask="Please send me more information about ${escapeHtml(location)}.">Ask about this property</a>
+  <a class="cta ghost" href="#inquire" data-ask="I would like to schedule a showing of ${escapeHtml(location)}.">Schedule a showing</a>
+</div>`
+    : "";
 
   const heroPills = [
     payload.bedrooms != null ? `${payload.bedrooms} bed` : null,
@@ -156,13 +184,21 @@ export function renderPropertyPageHtml(payload: any) {
 </section>`
     : "";
 
-  const contactLines = [agent.contact_email, agent.contact_phone].filter(Boolean);
+  // The listing contact exactly as the contact approved it, with the brokerage named for itself
+  // (advertising rules require the brokerage to be identifiable), then the agent, the license
+  // number, the contact details they chose and their own photograph when they supplied one.
+  const contactLinks = [
+    agent.contact_email ? `<a href="mailto:${escapeHtml(agent.contact_email)}">${escapeHtml(agent.contact_email)}</a>` : "",
+    agent.contact_phone ? `<a href="tel:${escapeHtml(String(agent.contact_phone).replace(/[^0-9+]/g, ""))}">${escapeHtml(agent.contact_phone)}</a>` : "",
+  ].filter(Boolean);
   const agentCard = agent.name
     ? `<section class="card">
+  ${agent.photo_url ? `<img class="agent-photo" src="${escapeHtml(agent.photo_url)}" alt="${escapeHtml(agent.name)}" decoding="async" />` : ""}
   <h2>Listing contact</h2>
-  <p><strong>${escapeHtml(agent.name)}</strong>${agent.brokerage ? ` &middot; ${escapeHtml(agent.brokerage)}` : ""}</p>
+  ${agent.brokerage ? `<p class="brokerage">${escapeHtml(agent.brokerage)}</p>` : ""}
+  <p class="agent-name">${escapeHtml(agent.name)}</p>
   ${agent.license_number ? `<p class="muted">License ${escapeHtml(agent.license_number)}</p>` : ""}
-  ${contactLines.length ? `<p class="muted">${escapeHtml(contactLines.join(" \u00b7 "))}</p>` : ""}
+  ${contactLinks.length ? `<p class="contact">${contactLinks.join(" &middot; ")}</p>` : ""}
 </section>`
     : "";
 
@@ -196,6 +232,16 @@ export function renderPropertyPageHtml(payload: any) {
   var error = document.getElementById("arriv-inquiry-error");
   var sent = document.getElementById("arriv-inquiry-sent");
   var button = document.getElementById("arriv-submit");
+  // The buttons beside the address bring the visitor straight here and open the message with what
+  // they came to ask, so an inquiry is one tap from the top of the page.
+  [].slice.call(document.querySelectorAll(".cta[data-ask]")).forEach(function (link) {
+    link.addEventListener("click", function () {
+      var field = document.getElementById("arriv-message");
+      if (!field) return;
+      field.value = link.getAttribute("data-ask") || "";
+      window.setTimeout(function () { field.focus(); }, 400);
+    });
+  });
   form.addEventListener("submit", function (event) {
     event.preventDefault();
     error.hidden = true;
@@ -266,6 +312,13 @@ export function renderPropertyPageHtml(payload: any) {
     box.hidden = false;
   }
   function close() { box.hidden = true; }
+  // "View all" just reveals the photographs the first view held back; the viewer above already
+  // holds every one of them, so nothing is fetched twice and nothing is withheld from a buyer.
+  var moreButton = document.getElementById("arriv-more-shots");
+  var moreShots = document.getElementById("arriv-shots-more");
+  if (moreButton && moreShots) {
+    moreButton.addEventListener("click", function () { moreShots.hidden = false; moreButton.hidden = true; });
+  }
   buttons.forEach(function (button, i) { button.addEventListener("click", function () { show(i); }); });
   box.querySelector(".lb-close").addEventListener("click", close);
   box.querySelector(".lb-prev").addEventListener("click", function () { show(index - 1); });
@@ -382,6 +435,19 @@ button.submit { margin-top: 18px; width: 100%; font: inherit; font-size: 15px; f
 button.submit[disabled] { opacity: 0.6; cursor: default; }
 .error { color: #a33327; font-size: 13px; font-weight: 600; margin: 14px 0 0; }
 .sent { background: #fffbf5; border: 1px solid rgba(184, 149, 106, 0.35); border-radius: 14px; padding: 16px; margin: 14px 0 0; font-size: 14px; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px; }
+.cta { display: inline-flex; align-items: center; justify-content: center; padding: 14px 22px; border-radius: 999px; font-size: 14px; font-weight: 700; text-decoration: none; background: linear-gradient(135deg, #c9a87b, #b8956a); color: #0a0b0f; box-shadow: 0 14px 32px rgba(184, 149, 106, 0.3); }
+.cta.ghost { background: rgba(255, 251, 245, 0.05); border: 1px solid rgba(184, 149, 106, 0.45); color: #fffbf5; box-shadow: none; }
+.cta:hover { opacity: 0.94; }
+.more { display: block; width: 100%; margin: 0 0 26px; padding: 15px 22px; font: inherit; font-size: 14px; font-weight: 600; border-radius: 999px; border: 1px solid rgba(184, 149, 106, 0.45); background: rgba(184, 149, 106, 0.1); color: #fffbf5; cursor: pointer; }
+.more:hover { background: rgba(184, 149, 106, 0.18); }
+.more[hidden] { display: none; }
+.card .agent-photo { width: 76px; height: 76px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(184, 149, 106, 0.3); margin: 0 0 14px; }
+.card .brokerage { font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; color: #1a1a1a; margin: 0 0 3px; }
+.card .agent-name { font-size: 14px; color: rgba(26, 26, 26, 0.7); margin: 0 0 8px; }
+.card .contact { margin: 6px 0 0; }
+.card .contact a { color: #8a6d4a; font-weight: 600; text-decoration: none; }
+.card .contact a:hover { text-decoration: underline; }
 .disc { font-size: 11.5px; line-height: 1.6; color: rgba(26, 26, 26, 0.5); }
 .disc ul { padding-left: 16px; margin: 8px 0 0; }
 .disc li { margin-bottom: 5px; }
@@ -424,10 +490,13 @@ button.submit[disabled] { opacity: 0.6; cursor: default; }
 ${payload.publicly_available ? "" : `<div class="notice"><span>${escapeHtml(statusLabel(payload.listing_status))}</span>This property is ${escapeHtml(statusLabel(payload.listing_status).toLowerCase())} and is not currently available.</div>`}
 ${payload.listing_price != null ? `<p class="price">$${Number(payload.listing_price).toLocaleString("en-US")}</p>` : ""}
 ${heroPills.length ? `<ul class="pills">${heroPills.map((p: string) => `<li>${escapeHtml(p)}</li>`).join("")}</ul>` : ""}
+${ctaRow}
 ${payload.cover_url ? `<div class="cover"><img src="${escapeHtml(payload.cover_url)}" alt="${escapeHtml(photos[0]?.alt_text || `Photograph of ${address}`)}" decoding="async" /></div>` : ""}
 ${shots ? `<section class="shots" aria-label="Photographs of this property">
-${shots}
+  ${shots}
 </section>` : ""}
+${moreButton}
+${moreShots}
 ${payload.video_url ? `<video class="tour" controls preload="metadata" playsinline src="${escapeHtml(payload.video_url)}"></video>` : ""}
 </main>
 <section class="cream">

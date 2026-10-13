@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send, CheckCircle2 } from "lucide-react";
@@ -6,11 +6,17 @@ import { INQUIRY_DISCLOSURES } from "@/lib/propertyVisibility";
 
 // Buyer inquiry form. Routed only to the authorized listing contact, with consent recorded and
 // spam prevention applied server-side.
-export default function PropertyInquiryForm({ slug, reference }) {
+export default function PropertyInquiryForm({ slug, reference, prefill }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", consent: false, honeypot: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [sent, setSent] = useState(null);
+
+  // "Ask about this property" and "Schedule a showing" start the message with what the visitor came
+  // to ask, so they arrive at a form that is already half answered.
+  useEffect(() => {
+    if (prefill) setForm((prev) => ({ ...prev, message: prefill }));
+  }, [prefill]);
 
   const set = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 

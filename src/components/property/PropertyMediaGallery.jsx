@@ -7,6 +7,10 @@ import { ImageIcon, Play, X, ChevronLeft, ChevronRight, Zap } from "lucide-react
 // navigation. Only the customer-approved selection ever reaches this component.
 export default function PropertyMediaGallery({ photos, videoUrl, address, coverUrl }) {
   const [index, setIndex] = useState(null);
+  // Eight photographs are shown before the gallery offers the rest, so the property facts and the
+  // inquiry form stay close to the top on a phone. The viewer keeps the whole approved sequence.
+  const [showAll, setShowAll] = useState(false);
+  const visiblePhotos = showAll ? photos : photos.slice(0, 8);
 
   const close = useCallback(() => setIndex(null), []);
   const step = useCallback((delta) => {
@@ -76,9 +80,9 @@ export default function PropertyMediaGallery({ photos, videoUrl, address, coverU
         <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-2" />
       </div>
 
-      {photos.length > 0 && (
+      {visiblePhotos.length > 0 && (
         <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
-          {photos.map((p, i) => (
+          {visiblePhotos.map((p, i) => (
             <motion.button
               key={p.drive_file_id}
               type="button"
@@ -101,6 +105,16 @@ export default function PropertyMediaGallery({ photos, videoUrl, address, coverU
             </motion.button>
           ))}
         </div>
+      )}
+
+      {photos.length > visiblePhotos.length && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="w-full mt-4 py-4 rounded-full text-sm font-semibold text-white border border-[#B8956A]/45 bg-[#B8956A]/10 hover:bg-[#B8956A]/20 transition-colors"
+        >
+          View all {photos.length} photographs
+        </button>
       )}
 
       {videoUrl && (

@@ -1,11 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, MapPin, Share2, Check, BedDouble, Bath, Ruler } from "lucide-react";
+import { Home, MapPin, Share2, Check, BedDouble, Bath, Ruler, MessageSquare, CalendarClock } from "lucide-react";
 import { money } from "@/lib/propertyVisibility";
 
 // Dark marketing hero, built in the same visual language as the client delivery gallery:
 // gold lockup, serif display title, media-first framing.
-export default function PropertyMarketingHero({ page, copied, onShare }) {
+export default function PropertyMarketingHero({ page, copied, onShare, onAsk }) {
   const facts = [
     { Icon: BedDouble, label: page.bedrooms != null ? `${page.bedrooms} bed` : null },
     { Icon: Bath, label: page.bathrooms != null ? `${page.bathrooms} bath` : null },
@@ -69,6 +69,26 @@ export default function PropertyMarketingHero({ page, copied, onShare }) {
               {page.property_type.replace(/_/g, " ")}
             </span>
           )}
+        </div>
+      )}
+
+      {/* The two things a buyer wants to do, right beside the address rather than below the gallery. */}
+      {page.inquiries_enabled && (
+        <div className="flex flex-wrap gap-3 mt-7">
+          <button
+            type="button"
+            onClick={() => onAsk("ask")}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-[#0a0b0f] bg-gradient-to-br from-[#c9a87b] to-[#B8956A] shadow-[0_14px_32px_rgba(184,149,106,0.3)] hover:opacity-95 transition-opacity"
+          >
+            <MessageSquare className="w-4 h-4" /> Ask about this property
+          </button>
+          <button
+            type="button"
+            onClick={() => onAsk("showing")}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold text-white/85 border border-[#B8956A]/45 hover:border-[#B8956A] transition-colors"
+          >
+            <CalendarClock className="w-4 h-4 text-[#B8956A]" /> Schedule a showing
+          </button>
         </div>
       )}
     </motion.div>
