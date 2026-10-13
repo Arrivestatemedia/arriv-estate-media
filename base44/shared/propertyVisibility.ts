@@ -354,25 +354,6 @@ const CONTENT_SCHEMA = {
   required: ["property_description", "seo_title", "meta_description", "alt_texts"],
 };
 
-// The page's own production state — draft, review, approval — is internal work. It must never be
-// described on a page a buyer reads, so any sentence carrying that language is stripped from
-// generated copy, and publication is refused while such wording survives in the published text.
-const DRAFT_STATE_PHRASE = /(this draft|draft listing|drafted listing|draft copy|draft description|draft status|awaiting approval|pending approval|awaiting review|pending review)/i;
-
-export function copyMentionsDraftState(text: unknown): boolean {
-  return DRAFT_STATE_PHRASE.test(String(text ?? ""));
-}
-
-export function stripDraftStateSentences(text: unknown): string {
-  const source = String(text ?? "");
-  if (!copyMentionsDraftState(source)) return source.trim();
-  return source
-    .replace(/[^.!?\n]*(?:this draft|draft listing|drafted listing|draft copy|draft description|draft status|awaiting approval|pending approval|awaiting review|pending review)[^.!?\n]*[.!?]?/gi, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\s+([.!?])/g, "$1")
-    .trim();
-}
-
 export async function generateSeoDraft(client: any, listing: any) {
   const photos = (listing?.selected_media || []).filter((m: any) => m?.kind === "photo");
   const facts = {
@@ -395,12 +376,14 @@ export async function generateSeoDraft(client: any, listing: any) {
     "Use ONLY the facts supplied below. Never invent a feature, material, dimension, appliance, school, neighbourhood, renovation, view or price.",
     "Any field that is null or empty is simply not mentioned. Never guess it and never fill the gap with filler.",
     "Describe what the photographs actually show, using the room or view implied by each file name.",
-    "Write the way a person who has walked the house would talk about it: plain, specific, unhurried. Ordinary words, varied sentence length, no exclamation marks, no rhetorical questions, and never addressing the reader directly.",
-    "Avoid the tired phrases that make copy read as generated: stunning, must-see, dream home, luxurious, oasis, turnkey, boasts, nestled, perfect for entertaining, won't last long, don't miss, look no further, checks all the boxes. Never use a sentence that would fit a different property unchanged.",
-    "Lead with what the home is and where it is, then the layout the photographs show, then anything genuinely notable in the supplied facts. If the facts are thin, write less rather than padding them out.",
-    "Never describe the page's own state or paperwork. Do not call the listing a draft, and never mention approval, review, publication or that anything is pending. This is finished copy for a home that is for sale.",
+    "Write it the way a person who has walked the house would say it: plain, specific, unhurried, ordinary words, one idea per sentence, third person.",
+    "The page already shows the price, the bed and bath counts, the square footage, the property type and the status in its own panels. Never state any of those figures in any wording, not even spelled out, and never mention the zip code: write about the property itself, never about numbers.",
+    "Write 4 to 6 sentences of 70 to 120 words: lead with what the home is and where it sits, walk through what the photographs show, then close on the one thing in the facts worth knowing. If the facts are thin, write less rather than padding them out.",
+    "Never address the reader, never use exclamation marks or rhetorical questions, and never open with 'Located at' or 'Welcome to'.",
+    "Avoid the words and constructions that make copy read as generated: stunning, must-see, dream home, luxurious, oasis, turnkey, boasts, nestled, perfect for entertaining, won't last long, don't miss, look no further, checks all the boxes, 'this home features', 'the home offers', 'is equipped with', 'is positioned in', 'provides a', 'displays a'.",
+    "Never describe the page's own state or paperwork. Do not call the listing a draft, and never mention approval, review, publication or that anything is pending.",
+    "Match this voice, without reusing its content: 'The house sits back from the road behind a stand of pines. Inside, the living room runs the full depth of the house and opens onto the kitchen, with the dining space tucked beside a wide window. Three of the bedrooms are upstairs; the fourth, at the back, looks out over the yard.'",
     "Read it back before returning. If a sentence would fit any other listing, cut it or make it specific to this one.",
-    "Write a factual property description of 90-150 words.",
     "Write a search-friendly page title of at most 60 characters that includes the city and state.",
     "Write a unique meta description of 120-155 characters that summarises the property factually.",
     "Write descriptive alt text (max 125 characters) for each photo, describing the room or view implied by its file name, without inventing details you cannot support.",
