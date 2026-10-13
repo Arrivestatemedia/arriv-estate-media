@@ -354,6 +354,25 @@ const CONTENT_SCHEMA = {
   required: ["property_description", "seo_title", "meta_description", "alt_texts"],
 };
 
+// The page's own production state — draft, review, approval — is internal work. It must never be
+// described on a page a buyer reads, so any sentence carrying that language is stripped from
+// generated copy, and publication is refused while such wording survives in the published text.
+const DRAFT_STATE_PHRASE = /(this draft|draft listing|drafted listing|draft copy|draft description|draft status|awaiting approval|pending approval|awaiting review|pending review)/i;
+
+export function copyMentionsDraftState(text: unknown): boolean {
+  return DRAFT_STATE_PHRASE.test(String(text ?? ""));
+}
+
+export function stripDraftStateSentences(text: unknown): string {
+  const source = String(text ?? "");
+  if (!copyMentionsDraftState(source)) return source.trim();
+  return source
+    .replace(/[^.!?\n]*(?:this draft|draft listing|drafted listing|draft copy|draft description|draft status|awaiting approval|pending approval|awaiting review|pending review)[^.!?\n]*[.!?]?/gi, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([.!?])/g, "$1")
+    .trim();
+}
+
 export async function generateSeoDraft(client: any, listing: any) {
   const photos = (listing?.selected_media || []).filter((m: any) => m?.kind === "photo");
   const facts = {
@@ -367,20 +386,22 @@ export async function generateSeoDraft(client: any, listing: any) {
     square_footage: listing?.square_footage ?? null,
     property_type: listing?.property_type || "",
     amenities: listing?.amenities || [],
-    listing_status: listing?.listing_status || "",
     brokerage: listing?.brokerage_name || "",
     photos: photos.map((p: any) => ({ drive_file_id: p.drive_file_id, name: p.name })),
   };
 
   const prompt = [
-    "You are writing draft marketing content for a real-estate property page for Arriv Estate Media.",
-    "Use ONLY the facts supplied below. Never invent a fact, a feature, a dimension, a school, a neighbourhood claim or a price.",
-    "Any field that is null or empty must simply be omitted from the description — do not guess it.",
-    "Write a factual, professional property description of 90-150 words.",
+    "You are writing property marketing copy that BUYERS will read on a published property page for Arriv Estate Media.",
+    "Use ONLY the facts supplied below. Never invent a feature, material, dimension, appliance, school, neighbourhood, renovation, view or price.",
+    "Any field that is null or empty is simply not mentioned. Never guess it and never fill the gap with filler.",
+    "Describe what the photographs actually show, using the room or view implied by each file name.",
+    "Write plainly and concretely, the way a knowledgeable listing agent speaks about a real home. Prefer the measured square footage, the bed and bath counts, the property type and the rooms shown.",
+    "Never describe the page's own state or paperwork. Do not call the listing a draft, and never mention approval, review, publication or that anything is pending. This copy is finished copy for a home that is for sale.",
+    "Avoid empty filler a buyer learns nothing from, for example: designed for functionality, central hub, welcoming, spacious, well-maintained, perfect for entertaining, an opportunity to view, boasts, nestled.",
+    "Write a factual property description of 90-150 words.",
     "Write a search-friendly page title of at most 60 characters that includes the city and state.",
     "Write a unique meta description of 120-155 characters that summarises the property factually.",
     "Write descriptive alt text (max 125 characters) for each photo, describing the room or view implied by its file name, without inventing details you cannot support.",
-    "This is a DRAFT that a human will review and may edit, so keep it sober and accurate.",
     `FACTS: ${JSON.stringify(facts)}`,
   ].join("\n");
 
@@ -388,7 +409,13 @@ export async function generateSeoDraft(client: any, listing: any) {
     prompt,
     response_json_schema: CONTENT_SCHEMA,
   });
-  return result;
+  // Whatever the writer returns, the copy that leaves here is free of draft/review language.
+  return {
+    ...result,
+    property_description: stripDraftStateSentences(result?.property_description),
+    seo_title: stripDraftStateSentences(result?.seo_title),
+    meta_description: stripDraftStateSentences(result?.meta_description),
+  };
 }
 
 export function buildStructuredData(listing: any, url: string) {

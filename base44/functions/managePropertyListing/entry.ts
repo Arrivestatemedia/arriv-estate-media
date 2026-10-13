@@ -7,6 +7,7 @@ import {
   buildSlug,
   buildStructuredData,
   contentHash,
+  copyMentionsDraftState,
   duplicateKey,
   estimateCostPerProperty,
   generateSeoDraft,
@@ -49,6 +50,20 @@ const DETAIL_FIELDS = [
 const CONTENT_SENSITIVE_FIELDS = new Set(DETAIL_FIELDS);
 
 function nowIso() { return new Date().toISOString(); }
+
+// A public page must never describe its own production state ("this draft listing"). The copy
+// generator is scrubbed of that language, and every path toward publication refuses while it
+// survives in text a buyer would read.
+function blocksOnDraftStateLanguage(listing: any) {
+  return [listing?.property_description, listing?.seo_title, listing?.meta_description]
+    .some((value) => copyMentionsDraftState(value));
+}
+
+const DRAFT_STATE_BLOCK = {
+  ok: false,
+  reason: "DRAFT_STATE_LANGUAGE",
+  message: "The page content describes this listing as a draft. Wording like \"this draft listing\" must not appear on a page buyers read: remove it, or use Re-draft with AI, then approve the content again.",
+};
 
 async function recordEvent(base44: any, listing: any, eventType: string, actor: any, details: any = {}, states: any = {}) {
   await base44.asServiceRole.entities.PropertyListingEvent.create({
@@ -443,6 +458,9 @@ Deno.serve(async (req) => {
       if (!description || !title || !metaDescription) {
         return Response.json({ ok: false, reason: "CONTENT_INCOMPLETE", message: "A description, page title and meta description are all required." }, { status: 409 });
       }
+      if (blocksOnDraftStateLanguage({ property_description: description, seo_title: title, meta_description: metaDescription })) {
+        return Response.json(DRAFT_STATE_BLOCK, { status: 409 });
+      }
       const altTexts = Array.isArray(incoming.alt_texts) ? incoming.alt_texts : null;
       const media = altTexts
         ? (listing.selected_media || []).map((m: any) => {
@@ -479,6 +497,8 @@ Deno.serve(async (req) => {
       if (body.agent_phone !== undefined) patch.agent_phone = sanitizeText(body.agent_phone, 40);
       if (body.agent_license_number !== undefined) patch.agent_license_number = sanitizeText(body.agent_license_number, 60);
       if (body.brokerage_name !== undefined) patch.brokerage_name = sanitizeText(body.brokerage_name, 160);
+      // The contact's own approved headshot, shown on the public page.
+      if (body.agent_photo_url !== undefined) patch.agent_photo_url = sanitizeText(body.agent_photo_url, 500);
       if (body.approved_contact_email !== undefined) patch.approved_contact_email = sanitizeText(body.approved_contact_email || body.agent_email, 160);
       if (body.approved_contact_phone !== undefined) patch.approved_contact_phone = sanitizeText(body.approved_contact_phone || body.agent_phone, 40);
 
@@ -515,6 +535,7 @@ Deno.serve(async (req) => {
       if (!listing.selected_media?.length) missing.push("media");
       if (!listing.content_approved_at) missing.push("approved_content");
       if (!listing.agent_name || !(listing.approved_contact_email || listing.agent_email)) missing.push("listing_contact");
+      if (blocksOnDraftStateLanguage(listing)) return Response.json(DRAFT_STATE_BLOCK, { status: 409 });
       if (missing.length) return Response.json({ ok: false, reason: "PREREQUISITES_MISSING", missing, message: "Complete the property page before submitting it for review." }, { status: 409 });
       await update({ publication_state: "READY_FOR_REVIEW" }, "submitted_for_review", { missing: [] }, { previous_state: listing.publication_state, new_state: "READY_FOR_REVIEW" });
       return Response.json({ ok: true, listing });
@@ -565,6 +586,7 @@ Deno.serve(async (req) => {
       if (!listing.disclosures_accepted) missing.push("disclosures");
       if (!(listing.approved_contact_email || listing.agent_email)) missing.push("listing_contact");
       if (!listing.seo_title || !listing.meta_description) missing.push("seo_metadata");
+      if (blocksOnDraftStateLanguage(listing)) return Response.json(DRAFT_STATE_BLOCK, { status: 409 });
       if (missing.length) return Response.json({ ok: false, reason: "PREREQUISITES_MISSING", missing, message: "The property page is not ready for publication approval." }, { status: 409 });
 
       const approvalHistory = [...(listing.publication_history || []), {
@@ -605,6 +627,7 @@ Deno.serve(async (req) => {
       const err = transitionError(listing.publication_state, "PUBLISHED");
       if (err) return Response.json({ ok: false, reason: "INVALID_TRANSITION", message: err }, { status: 409 });
       if (!listing.publication_consent_at) return Response.json({ ok: false, reason: "APPROVAL_REQUIRED", message: "Record publication approval before publishing." }, { status: 409 });
+      if (blocksOnDraftStateLanguage(listing)) return Response.json(DRAFT_STATE_BLOCK, { status: 409 });
 
       const history = [...(listing.publication_history || []), { from_state: listing.publication_state, to_state: "PUBLISHED", at: nowIso(), actor: actor.email, note: "published" }];
       await update({
