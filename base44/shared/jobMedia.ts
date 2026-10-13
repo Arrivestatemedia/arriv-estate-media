@@ -49,18 +49,29 @@ export async function listJobFiles(client: any, job: any): Promise<{ folderId: s
 // image instead of the original. It is the same private file in the same private folder read with
 // the same credentials — nothing is copied, re-uploaded, or made publicly addressable. The
 // originals remain exactly what the client downloads from their delivery gallery.
-export async function fetchJobPhotoPreview(client: any, fileId: string, width = 1600) {
+// Drive's own preview link for a delivered photograph, sized for the web.
+//
+// Reading this link needs none of our credentials, which is what lets another service look at the
+// photograph itself: the copywriter is handed these links so its words describe the picture that was
+// actually taken rather than the file name. The link is short-lived, it points at the same private
+// original Drive is already holding, and nothing is copied into storage of ours.
+export async function jobPhotoPreviewUrl(client: any, fileId: string, width = 1600): Promise<string> {
   const accessToken = await client.asServiceRole.connectors.getAccessToken("googledrive");
   const metaRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink,mimeType`,
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
-  if (!metaRes.ok) return null;
+  if (!metaRes.ok) return "";
   const meta = await metaRes.json();
   const link = String(meta?.thumbnailLink || "");
-  if (!link) return null;
+  if (!link) return "";
+  return /=s\d+/.test(link) ? link.replace(/=s\d+.*/, `=w${width}`) : `${link}=w${width}`;
+}
 
-  const sized = /=s\d+/.test(link) ? link.replace(/=s\d+.*/, `=w${width}`) : `${link}=w${width}`;
+export async function fetchJobPhotoPreview(client: any, fileId: string, width = 1600) {
+  const sized = await jobPhotoPreviewUrl(client, fileId, width);
+  if (!sized) return null;
+
   const res = await fetch(sized);
   if (!res.ok) return null;
 

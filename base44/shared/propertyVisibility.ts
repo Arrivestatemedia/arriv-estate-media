@@ -4,6 +4,8 @@
 // shown as available lives here, so the customer builder, the public page, the directory
 // search and the certification suite all apply exactly the same policy.
 
+import { fetchJobPhotoPreview } from "./jobMedia.ts";
+
 export const PROPERTY_FEATURE_FLAG_KEY = "PROPERTY_VISIBILITY_ENABLED";
 
 // ---------------------------------------------------------------------------
@@ -354,8 +356,50 @@ const CONTENT_SCHEMA = {
   required: ["property_description", "seo_title", "meta_description", "alt_texts"],
 };
 
+// How many photographs the copywriter is shown. The selection is in the customer's own approved
+// order, so the first few carry the property — the outside of the house, the main rooms, the yard.
+// Reading the whole gallery would be slower and no more accurate than that.
+const MAX_VISION_PHOTOS = 8;
+
+// An expiring link the copywriter can actually open.
+//
+// The writer runs outside this app, so it can only read a file it can fetch for itself. A Drive
+// preview link is refused by it, and this app's own media endpoint serves published listings only,
+// which a draft is not. So a web-sized preview of the photograph is placed in this app's PRIVATE
+// storage and handed over as a link that expires within minutes. The delivered original stays where
+// it is, in the job's Drive folder, nothing becomes publicly reachable, and only the photographs the
+// customer selected are ever handed over.
+async function visionLinkFor(client: any, fileId: string): Promise<string> {
+  const preview = await fetchJobPhotoPreview(client, fileId);
+  if (!preview) return "";
+  const file = new File([preview.bytes], `${fileId}.jpg`, { type: preview.mimeType || "image/jpeg" });
+  const uploaded = await client.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+  const uri = uploaded?.file_uri || uploaded?.data?.file_uri || "";
+  if (!uri) return "";
+  const signed = await client.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 900 });
+  return signed?.signed_url || signed?.data?.signed_url || "";
+}
+
 export async function generateSeoDraft(client: any, listing: any) {
   const photos = (listing?.selected_media || []).filter((m: any) => m?.kind === "photo");
+  // The writer reads the photographs themselves, not only their file names.
+  const readable: { drive_file_id: string; name: string; url: string }[] = (
+    await Promise.all(
+      photos.slice(0, MAX_VISION_PHOTOS).map(async (photo: any) => ({
+        drive_file_id: photo.drive_file_id,
+        name: String(photo.name || ""),
+        url: await visionLinkFor(client, photo.drive_file_id).catch(() => ""),
+      })),
+    )
+  ).filter((entry) => entry.url);
+  const readIds = new Set(readable.map((r) => r.drive_file_id));
+  const nameOnly = photos.filter((p: any) => !readIds.has(p.drive_file_id));
+  const shownLine = readable.length
+    ? `You are shown ${readable.length} of the ${photos.length} photographs, in this order: ${readable.map((r, i) => `${i + 1} = ${r.drive_file_id} (${r.name})`).join("; ")}.`
+    : "You are shown none of the photographs, only their file names.";
+  const unreadLine = nameOnly.length
+    ? `Not shown to you: ${nameOnly.map((p: any) => `${p.drive_file_id} (${p.name})`).join("; ")}. Their alt text must come from the file name alone.`
+    : "Every photograph was shown to you.";
   const facts = {
     address: listing?.property_address || "",
     city: listing?.city || "",
@@ -368,14 +412,19 @@ export async function generateSeoDraft(client: any, listing: any) {
     property_type: listing?.property_type || "",
     amenities: listing?.amenities || [],
     brokerage: listing?.brokerage_name || "",
-    photos: photos.map((p: any) => ({ drive_file_id: p.drive_file_id, name: p.name })),
+    photos: photos.map((p: any) => ({
+      drive_file_id: p.drive_file_id,
+      name: p.name,
+      photograph_shown_to_you: readIds.has(p.drive_file_id),
+    })),
   };
 
   const prompt = [
     "You are writing property marketing copy that BUYERS will read on a published property page for Arriv Estate Media.",
     "Use ONLY the facts supplied below. Never invent a feature, material, dimension, appliance, school, neighbourhood, renovation, view or price.",
     "Any field that is null or empty is simply not mentioned. Never guess it and never fill the gap with filler.",
-    "Describe what the photographs actually show, using the room or view implied by each file name.",
+    "You are shown the property's own photographs, so describe what is in them: the rooms, how they connect, the light, and the finishes, fixtures and features you can actually see. What you can see is your evidence.",
+    "Never claim a feature, appliance, material, view, renovation or dimension that you cannot see in a photograph you were shown and that the facts do not state.",
     "Write it the way a person who has walked the house would say it: plain, specific, unhurried, ordinary words, one idea per sentence, third person.",
     "The page already shows the price, the bed and bath counts, the square footage, the property type and the status in its own panels. Never state any of those figures in any wording, not even spelled out, and never mention the zip code: write about the property itself, never about numbers.",
     "Write 4 to 6 sentences of 70 to 120 words: lead with what the home is and where it sits, walk through what the photographs show, then close on the one thing in the facts worth knowing. If the facts are thin, write less rather than padding them out.",
@@ -386,13 +435,17 @@ export async function generateSeoDraft(client: any, listing: any) {
     "Read it back before returning. If a sentence would fit any other listing, cut it or make it specific to this one.",
     "Write a search-friendly page title of at most 60 characters that includes the city and state.",
     "Write a unique meta description of 120-155 characters that summarises the property factually.",
-    "Write descriptive alt text (max 125 characters) for each photo, describing the room or view implied by its file name, without inventing details you cannot support.",
+    "Write descriptive alt text (max 125 characters) for each photograph you were shown, saying what is actually in that photograph.",
+    "For a photograph you were not shown, write its alt text from the file name alone, naming the room or view and nothing more.",
+    shownLine,
+    unreadLine,
     `FACTS: ${JSON.stringify(facts)}`,
   ].join("\n");
 
   const result = await client.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
     response_json_schema: CONTENT_SCHEMA,
+    ...(readable.length ? { file_urls: readable.map((r) => r.url) } : {}),
   });
   // Stored exactly as written. Nothing is edited out of the copy here: the draft the customer reads
   // is the draft they approve, and the page shows the text the customer approved.
