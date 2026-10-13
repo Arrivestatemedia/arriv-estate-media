@@ -14,7 +14,13 @@ import {
   buildDirectoryPayload,
   renderPropertyDirectoryHtml,
 } from "../../shared/propertyDirectoryRender.ts";
-import { DIRECTORY_MAX_RESULTS, directoryQuery } from "../../shared/propertyDirectoryQuery.ts";
+import {
+  DIRECTORY_MAX_RESULTS,
+  applyDirectoryFilters,
+  directoryFilterValues,
+  directoryQuery,
+  hasDirectoryFilters,
+} from "../../shared/propertyDirectoryQuery.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -42,15 +48,32 @@ Deno.serve(async (req) => {
     // same eligibility query and same rendering as the directory search endpoint, so a visitor
     // can never be shown a listing the search endpoint would withhold.
     if (!listingId && slug === DIRECTORY_SLUG) {
-      const page = await base44.asServiceRole.entities.PropertyListing.filter(
-        directoryQuery({ testMode: false }),
-        { sort: "-published_at", limit: DIRECTORY_MAX_RESULTS },
-      );
-      const payload = buildDirectoryPayload(page?.items || []);
+      // A visitor can search the published directory from this page. The filters are applied to the
+      // one eligibility query this page and the search endpoint both build, so a search here can
+      // never return a listing the search endpoint would withhold.
+      const filters = directoryFilterValues((name) => body[name] ?? url.searchParams.get(name) ?? undefined);
+      const filtered = hasDirectoryFilters(filters);
+      const query = directoryQuery({ testMode: false });
+      applyDirectoryFilters(query, filters);
+
+      const [page, total] = await Promise.all([
+        base44.asServiceRole.entities.PropertyListing.filter(query, {
+          sort: "-published_at",
+          limit: DIRECTORY_MAX_RESULTS,
+        }),
+        base44.asServiceRole.entities.PropertyListing.count(query),
+      ]);
+      const payload = buildDirectoryPayload(page?.items || [], { total, filters, filtered });
+
       if (format === "html") {
         return new Response(renderPropertyDirectoryHtml(payload), {
           status: 200,
-          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            // A filtered view is a different document for every query string and is never cached;
+            // only the one canonical, unfiltered directory page is cacheable.
+            "Cache-Control": filtered ? "no-store" : "public, max-age=300",
+          },
         });
       }
       return Response.json(payload);

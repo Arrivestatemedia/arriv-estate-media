@@ -8,6 +8,8 @@
 // Routes (everything else 404s at the edge — there is no generic passthrough):
 //   GET /<slug>                          → origin getPublicPropertyPage?slug=<slug>&format=html
 //   GET /properties/<slug>               → same, for URL compatibility
+//   GET /properties?<search filters>     → same directory page with the visitor's search applied
+//                                          (never cached: one document per query string)
 //   GET /media/<listingId>/<fileId>      → origin streamPropertyMedia
 //   GET /functions/streamPropertyMedia   → same (the shape the rendered HTML already emits)
 //   GET /sitemap.xml                     → origin generatePropertySitemap
@@ -28,7 +30,8 @@
 //     forwarded to the origin.
 //   * BOUNDED EXPOSURE — media and HTML are cached for 300 seconds (not the origin's 24h), so an
 //     unpublish or an authorization change is bounded even if a purge call is lost; a successful
-//     signed purge removes the exact keys immediately, and can prove it did (verify: true).
+//     signed purge removes the exact keys immediately, and can prove it did (verify: true). Only
+//     the canonical, unfiltered directory page is cached at all — a search is fetched fresh.
 //   * PORTABLE — the only origin dependency is two function URLs, configurable via ORIGIN_BASE,
 //     so the layer can be pointed at a non-Base44 origin without touching this file.
 //
@@ -44,6 +47,12 @@ const FILE_ID_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
 // because this worker is deliberately self-contained: it imports no app code, so it can be
 // deployed and reasoned about on its own.
 const DIRECTORY_PATH = "/properties";
+// The directory's reserved slug, and the only query names the edge forwards. A visitor's search is
+// answered by the origin, which owns eligibility: the edge adds no query language of its own and
+// drops every parameter it does not recognise.
+const DIRECTORY_SLUG = "properties";
+const DIRECTORY_FILTER_KEYS = ["q", "min_price", "max_price", "min_bedrooms", "min_bathrooms", "property_type", "status"];
+const DIRECTORY_FILTER_MAX_LENGTH = 120;
 const PURGE_MAX_SKEW_SECONDS = 300;
 const MAX_PURGE_FILE_IDS = 200;
 
@@ -197,6 +206,17 @@ function directoryRedirect(c) {
   });
 }
 
+// A visitor's search, reduced to the filters the origin understands. Anything else in the query
+// string is dropped rather than passed on, and each value is bounded.
+function directoryFilters(url) {
+  const filters = new URLSearchParams();
+  for (const key of DIRECTORY_FILTER_KEYS) {
+    const value = String(url.searchParams.get(key) ?? "").trim().slice(0, DIRECTORY_FILTER_MAX_LENGTH);
+    if (value) filters.set(key, value);
+  }
+  return filters;
+}
+
 function robotsResponse(c) {
   return new Response(
     [
@@ -223,19 +243,26 @@ function normaliseHosts(body, c) {
   return body.split(`//${c.originHost}`).join(`//${c.publicHost}`);
 }
 
-async function servePage(request, env, c, slug) {
+async function servePage(request, env, c, slug, filters) {
   const { originFetch, cache } = depsOf(env);
   const credentials = carriesCredentials(request);
+  const filtered = !!(filters && filters.toString());
+  // A filtered view is a different document for every query string, so it is neither read from nor
+  // written to the shared cache: only the one canonical, unfiltered page is cached, and it keeps
+  // exactly the one key a purge has to drop.
+  const cacheable = !credentials && !filtered;
   const key = pageCacheKey(c, slug);
 
   // A request that carries credentials is never served from, or written to, the shared cache.
-  if (!credentials && cache) {
+  if (cacheable && cache) {
     const hit = await cache.match(key);
     if (hit) return finalize(request, hit, "HIT");
   }
 
-  const built = await singleFlight(key.url, async () => {
-    const originUrl = `${c.origin}/functions/getPublicPropertyPage?slug=${encodeURIComponent(slug)}&format=html`;
+  const built = await singleFlight(filtered ? `${key.url}?${filters}` : key.url, async () => {
+    const params = new URLSearchParams({ slug, format: "html" });
+    if (filtered) for (const [name, value] of filters) params.set(name, value);
+    const originUrl = `${c.origin}/functions/getPublicPropertyPage?${params.toString()}`;
     const origin = await originFetch(new Request(originUrl, { method: "GET", headers: { Accept: "text/html" } }));
     if (origin.status >= 500) return originUnavailable();
     if (origin.status !== 200) return notFoundResponse(c.notFoundTtl, "Property page not found");
@@ -248,15 +275,15 @@ async function servePage(request, env, c, slug) {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": credentials ? "private, no-store" : `public, max-age=${c.htmlTtl}`,
+        "Cache-Control": cacheable ? `public, max-age=${c.htmlTtl}` : "private, no-store",
         "X-Robots-Tag": indexable ? "index, follow" : "noindex, follow",
       },
     });
-    if (cache && !credentials) await cache.put(key, response.clone());
+    if (cache && cacheable) await cache.put(key, response.clone());
     return response;
   });
 
-  return finalize(request, built, credentials ? "BYPASS" : "MISS");
+  return finalize(request, built, credentials ? "BYPASS" : filtered ? "SEARCH" : "MISS");
 }
 
 async function serveSitemap(request, env, c) {
@@ -453,7 +480,11 @@ async function handle(request, env) {
   if (path === "/") return finalize(request, directoryRedirect(c), "EDGE");
 
   const slug = path.startsWith("/properties/") ? path.slice("/properties/".length) : path.replace(/^\//, "");
-  if (slug && SLUG_PATTERN.test(slug)) return servePage(request, env, c, slug);
+  // Only the directory page accepts a search, and its filters ride along to the origin, which
+  // decides what may be seen. A listing page ignores them.
+  if (slug && SLUG_PATTERN.test(slug)) {
+    return servePage(request, env, c, slug, slug === DIRECTORY_SLUG ? directoryFilters(url) : null);
+  }
 
   return notFoundResponse(c.notFoundTtl);
 }
@@ -476,6 +507,7 @@ export default {
 export const __test = {
   config,
   handle,
+  directoryFilters,
   normaliseHosts,
   validPurgeSignature,
   canonicalCacheKey,

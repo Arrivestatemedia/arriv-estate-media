@@ -1,12 +1,16 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
-  AVAILABLE_LISTING_STATUSES,
   resolveFeatureGate,
   testModeRequested,
   mediaStreamUrl,
   propertyPageUrl,
 } from "../../shared/propertyVisibility.ts";
-import { DIRECTORY_MAX_RESULTS, directoryQuery } from "../../shared/propertyDirectoryQuery.ts";
+import {
+  DIRECTORY_MAX_RESULTS,
+  applyDirectoryFilters,
+  directoryFilterValues,
+  directoryQuery,
+} from "../../shared/propertyDirectoryQuery.ts";
 
 // Public property directory search.
 //
@@ -29,36 +33,11 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, feature_disabled: true, results: [], total: 0, message: "The property directory is not yet available." });
     }
 
-    // One definition of directory eligibility, shared with the server-rendered directory page.
+    // One definition of directory eligibility and one definition of the search filters, both
+    // shared with the server-rendered directory page, so the two can never disagree about which
+    // listings a search may show.
     const query: Record<string, any> = directoryQuery({ testMode: gate.test_mode });
-
-    const q = String(p("q") || "").trim();
-    if (q) {
-      // Location search across the fields a visitor actually types.
-      const rx = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.$or = [
-        { city: { $regex: rx, $options: "i" } },
-        { state: { $regex: rx, $options: "i" } },
-        { zip: { $regex: rx, $options: "i" } },
-        { property_address: { $regex: rx, $options: "i" } },
-      ];
-    }
-    const num = (v: any) => (v === undefined || v === null || v === "" ? null : Number(v));
-    const minPrice = num(p("min_price"));
-    const maxPrice = num(p("max_price"));
-    if (minPrice != null || maxPrice != null) {
-      query.listing_price = {};
-      if (minPrice != null) query.listing_price.$gte = minPrice;
-      if (maxPrice != null) query.listing_price.$lte = maxPrice;
-    }
-    const minBeds = num(p("min_bedrooms") ?? p("bedrooms"));
-    if (minBeds != null) query.bedrooms = { $gte: minBeds };
-    const minBaths = num(p("min_bathrooms") ?? p("bathrooms"));
-    if (minBaths != null) query.bathrooms = { $gte: minBaths };
-    const propertyType = String(p("property_type") || "").trim();
-    if (propertyType) query.property_type = propertyType;
-    const status = String(p("status") || "").trim();
-    if (status && AVAILABLE_LISTING_STATUSES.includes(status)) query.listing_status = status;
+    applyDirectoryFilters(query, directoryFilterValues(p));
 
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(p("limit") || 12)));
     const cursor = p("cursor") || undefined;

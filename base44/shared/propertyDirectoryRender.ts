@@ -6,9 +6,11 @@
 // property pages — dark cinematic frame, gold ambient glow and gold lockup, serif display type —
 // with an off-white surface carrying the listings themselves.
 //
-// Search narrows the listings already rendered into this document. It is not a second data read:
-// the edge caches this page by path, so a query string could not vary it, and nothing a visitor
-// types can reveal a listing that was not published.
+// Search is a real, server-side search. The form submits the visitor's filters as a query string,
+// the origin applies them to the same eligibility query the directory search endpoint uses, and the
+// matching listings are rendered here — so a visitor searches the whole published directory rather
+// than only the page in front of them. A filtered view is never cached (see worker.mjs), and
+// nothing a visitor types can reveal a listing that was not published.
 
 import { escapeHtml, statusLabel } from "./propertyPageRender.ts";
 import {
@@ -18,7 +20,10 @@ import {
   mediaStreamUrl,
 } from "./propertyVisibility.ts";
 
-export function buildDirectoryPayload(items: any[]) {
+export function buildDirectoryPayload(
+  items: any[],
+  opts: { total?: number; filters?: any; filtered?: boolean } = {},
+) {
   const listings = (items || []).map((l: any) => ({
     listing_id: l.listing_id,
     slug: l.public_slug,
@@ -33,13 +38,26 @@ export function buildDirectoryPayload(items: any[]) {
     status_label: statusLabel(l.listing_status),
     cover_url: l.cover_file_id ? mediaStreamUrl(l.listing_id, l.cover_file_id) : "",
     brokerage: l.brokerage_name || "",
-    search_text: [l.property_address, l.city, l.state, l.zip, l.property_type]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase(),
   }));
 
-  return { ok: true, count: listings.length, listings };
+  const filters = opts.filters || {};
+
+  return {
+    ok: true,
+    count: listings.length,
+    // What the search actually matched, which can be more than the one page rendered here.
+    total: opts.total ?? listings.length,
+    filtered: opts.filtered === true,
+    filters: {
+      q: filters.q || "",
+      min_price: filters.min_price || "",
+      max_price: filters.max_price || "",
+      min_bedrooms: filters.min_bedrooms || "",
+      min_bathrooms: filters.min_bathrooms || "",
+      status: filters.status || "",
+    },
+    listings,
+  };
 }
 
 export function renderPropertyDirectoryHtml(payload: any) {
@@ -53,7 +71,7 @@ export function renderPropertyDirectoryHtml(payload: any) {
       l.property_type ? String(l.property_type).replace(/_/g, " ") : null,
     ].filter(Boolean) as string[];
 
-    return `<a class="listing" href="${escapeHtml(l.url)}" data-search="${escapeHtml(l.search_text)}">
+    return `<a class="listing" href="${escapeHtml(l.url)}">
   ${l.cover_url
       ? `<span class="shot"><img src="${escapeHtml(l.cover_url)}" alt="Photograph of ${escapeHtml(l.property_address)}" loading="lazy" decoding="async" /></span>`
       : `<span class="shot shot-empty" aria-hidden="true"></span>`}
@@ -68,41 +86,39 @@ export function renderPropertyDirectoryHtml(payload: any) {
 </a>`;
   }).join("\n");
 
+  const total = payload.total ?? listings.length;
+  const filters = payload.filters || {};
+  const filtered = payload.filtered === true;
+  const value = (name: string) => escapeHtml(String(filters[name] ?? ""));
+  const statusOption = (code: string, label: string) =>
+    `<option value="${code}"${filters.status === code ? " selected" : ""}>${label}</option>`;
+
+  // The search the visitor actually uses. It submits to this page, and the origin answers with the
+  // listings that match — so every published listing is searchable, not just those already drawn
+  // here. The values searched with stay in the fields, so a search can be adjusted, not retyped.
+  const search = `<form class="filters" method="get" action="${DIRECTORY_PATH}" role="search">
+  <input class="f" type="search" name="q" value="${value("q")}" placeholder="City, state or ZIP" aria-label="City, state or ZIP" autocomplete="off" />
+  <input class="f" type="number" name="min_price" value="${value("min_price")}" min="0" step="any" placeholder="Min price" aria-label="Minimum price" />
+  <input class="f" type="number" name="max_price" value="${value("max_price")}" min="0" step="any" placeholder="Max price" aria-label="Maximum price" />
+  <input class="f" type="number" name="min_bedrooms" value="${value("min_bedrooms")}" min="0" step="1" placeholder="Beds+" aria-label="Minimum bedrooms" />
+  <input class="f" type="number" name="min_bathrooms" value="${value("min_bathrooms")}" min="0" step="1" placeholder="Baths+" aria-label="Minimum bathrooms" />
+  <select class="f" name="status" aria-label="Listing status">
+    <option value="">Any status</option>
+    ${statusOption("active", "For sale")}
+    ${statusOption("pending", "Pending")}
+  </select>
+  <button class="submit" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="#0a0b0f" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.6 4.6" /></svg>Search</button>
+  ${filtered ? `<a class="clear" href="${DIRECTORY_PATH}">Clear search</a>` : ""}
+</form>
+<p class="count">${total} ${total === 1 ? "property" : "properties"}${filtered ? " match your search" : " available"}</p>`;
+
   const results = listings.length
     ? `<div class="grid">
 ${cards}
-</div>
-<p class="empty" id="dir-empty" hidden><strong>No properties match your search</strong>Try a different city, state or ZIP.</p>`
-    : `<p class="empty"><strong>No properties are published yet</strong>Approved listings appear here as soon as their owner publishes them.</p>`;
-
-  const search = listings.length
-    ? `<div class="searchbox">
-  <input id="dir-q" type="search" placeholder="Search by city, state or ZIP" aria-label="Search properties by city, state or ZIP" autocomplete="off" />
-  <p class="count" id="dir-count">${listings.length} ${listings.length === 1 ? "property" : "properties"}</p>
-</div>
-<script>
-(function () {
-  var input = document.getElementById("dir-q");
-  if (!input) return;
-  var cards = [].slice.call(document.querySelectorAll(".listing"));
-  var count = document.getElementById("dir-count");
-  var empty = document.getElementById("dir-empty");
-  function label(n) { return n + (n === 1 ? " property" : " properties"); }
-  function apply() {
-    var q = input.value.trim().toLowerCase();
-    var shown = 0;
-    cards.forEach(function (card) {
-      var match = !q || String(card.getAttribute("data-search") || "").indexOf(q) !== -1;
-      card.hidden = !match;
-      if (match) shown += 1;
-    });
-    count.textContent = label(shown);
-    empty.hidden = shown !== 0;
-  }
-  input.addEventListener("input", apply);
-})();
-</script>`
-    : "";
+</div>`
+    : filtered
+      ? `<p class="empty"><strong>No properties match your search</strong>Try a different location, price range or status.</p>`
+      : `<p class="empty"><strong>No properties are published yet</strong>Approved listings appear here as soon as their owner publishes them.</p>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -112,6 +128,7 @@ ${cards}
 <title>Properties | Arriv Estate Media</title>
 <meta name="description" content="Browse properties photographed and delivered by Arriv Estate Media. Every listing here was approved and published by its authorized owner." />
 <link rel="canonical" href="${escapeHtml(directoryUrl())}" />
+${filtered ? `<meta name="robots" content="noindex, follow" />` : ""}
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Properties | Arriv Estate Media" />
 <meta property="og:description" content="Browse properties photographed and delivered by Arriv Estate Media." />
@@ -143,14 +160,19 @@ img { max-width: 100%; }
 .nav a.gold:hover { opacity: 0.94; }
 h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; color: #fffbf5; font-size: clamp(2rem, 6.4vw, 3.1rem); line-height: 1.1; letter-spacing: -0.015em; margin: 26px 0 12px; }
 .lede { font-size: 14.5px; color: rgba(255, 251, 245, 0.5); margin: 0 0 22px; max-width: 640px; }
-.searchbox { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
-.searchbox input { flex: 1 1 240px; font: inherit; font-size: 15px; padding: 13px 16px; border-radius: 999px; border: 1px solid rgba(255, 251, 245, 0.14); background: rgba(255, 251, 245, 0.05); color: #fffbf5; }
-.searchbox input:focus { outline: 2px solid rgba(184, 149, 106, 0.5); outline-offset: 1px; border-color: #b8956a; }
-.count { margin: 0; font-size: 12.5px; color: rgba(255, 251, 245, 0.45); }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px; align-items: center; margin: 0 0 14px; }
+.filters .f { width: 100%; font: inherit; font-size: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(26, 26, 26, 0.16); background: #ffffff; color: #1a1a1a; }
+.filters .f::placeholder { color: rgba(26, 26, 26, 0.45); }
+.filters .f:focus { outline: 2px solid rgba(184, 149, 106, 0.45); outline-offset: 1px; border-color: #b8956a; }
+.filters .submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 14px; font-weight: 600; padding: 13px 20px; border: 0; border-radius: 10px; background: #b8956a; color: #0a0b0f; cursor: pointer; box-shadow: 0 10px 24px rgba(184, 149, 106, 0.28); }
+.filters .submit:hover { opacity: 0.94; }
+.filters .submit svg { width: 16px; height: 16px; }
+.filters .clear { font-size: 12.5px; font-weight: 600; color: #8a6d4a; text-decoration: none; text-align: center; }
+.filters .clear:hover { text-decoration: underline; }
+.count { margin: 0 0 16px; font-size: 12.5px; color: rgba(26, 26, 26, 0.5); }
 .cream { background: #fffbf5; color: #1a1a1a; border-radius: 28px 28px 0 0; margin-top: 26px; padding: 30px 0 44px; }
 .grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
 .listing { display: block; text-decoration: none; background: #ffffff; border: 1px solid rgba(184, 149, 106, 0.25); border-radius: 18px; overflow: hidden; box-shadow: 0 18px 44px rgba(26, 26, 26, 0.06); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
-.listing[hidden] { display: none; }
 .listing:hover { transform: translateY(-3px); border-color: rgba(184, 149, 106, 0.6); box-shadow: 0 26px 60px rgba(184, 149, 106, 0.22); }
 .listing .shot { display: block; background: #0a0b0f; }
 .listing .shot img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
@@ -190,10 +212,10 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; color: #f
 <main class="wrap">
 <h1>Properties</h1>
 <p class="lede">Photographed and delivered by Arriv Estate Media. Every listing here was approved and published by its authorized owner, and is reconfirmed periodically by their listing contact.</p>
-${search}
 </main>
 <section class="cream">
 <div class="wrap">
+${search}
 ${results}
 </div>
 </section>

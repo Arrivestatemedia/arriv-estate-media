@@ -261,6 +261,49 @@ export async function runWorkerTests(worker) {
     check("cache_keys_are_not_affected_by_unrelated_query_parameters", res.status === 200 && h.calls.length === 1, "page lookup is by slug only");
   }
 
+  // ============================================================ directory search
+  {
+    const h = makeHarness();
+    const search = await worker.fetch(get("/properties?q=Austin&min_price=300000&status=active&utm_source=news"), h.env);
+    const originUrl = new URL(h.calls[0]);
+    check(
+      "directory_search_filters_reach_the_origin_and_nothing_else_does",
+      search.status === 200 &&
+        originUrl.pathname.endsWith("/functions/getPublicPropertyPage") &&
+        originUrl.searchParams.get("slug") === "properties" &&
+        originUrl.searchParams.get("format") === "html" &&
+        originUrl.searchParams.get("q") === "Austin" &&
+        originUrl.searchParams.get("min_price") === "300000" &&
+        originUrl.searchParams.get("status") === "active" &&
+        [...originUrl.searchParams.keys()].length === 5 &&
+        !originUrl.search.includes("utm_source"),
+      `status=${search.status}, forwarded=${originUrl.search}`,
+    );
+    check(
+      "a_search_is_answered_by_the_origin_and_never_cached",
+      search.headers.get("x-arriv-edge") === "SEARCH" &&
+        String(search.headers.get("cache-control")).includes("no-store") &&
+        h.store.size === 0,
+      `tag=${search.headers.get("x-arriv-edge")}, cache-control=${search.headers.get("cache-control")}, cache entries=${h.store.size}`,
+    );
+    const repeated = await worker.fetch(get("/properties?q=Austin&min_price=300000&status=active"), h.env);
+    check(
+      "a_repeated_search_is_answered_fresh",
+      repeated.status === 200 && h.calls.length === 2 && h.store.size === 0,
+      `origin calls=${h.calls.length}, cache entries=${h.store.size} (one document per query string, so no search can become the shared copy)`,
+    );
+    const plain = await worker.fetch(get("/properties"), h.env);
+    const plainAgain = await worker.fetch(get("/properties"), h.env);
+    check(
+      "the_unfiltered_directory_is_still_cached_on_its_own_key",
+      plain.status === 200 &&
+        plainAgain.status === 200 &&
+        plainAgain.headers.get("x-arriv-edge") === "HIT" &&
+        h.calls.length === 3,
+      `origin calls=${h.calls.length} (the bare directory is fetched once), tag=${plainAgain.headers.get("x-arriv-edge")}`,
+    );
+  }
+
   // ============================================================ authorization and isolation
   {
     const h = makeHarness({ html: null });
