@@ -29,6 +29,7 @@ export default function SalesJobApplication() {
   const [error, setError] = useState('');
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get('job');
+  const jobOpeningId = searchParams.get('job_opening');
 
   const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -109,7 +110,8 @@ export default function SalesJobApplication() {
         videoUrls: [],
         pictureUrls: [],
         position: 'Sales Growth Advisor',
-        jobId: jobId || null
+        jobId: jobId || null,
+        jobOpeningId: jobOpeningId || null
       };
 
       const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);

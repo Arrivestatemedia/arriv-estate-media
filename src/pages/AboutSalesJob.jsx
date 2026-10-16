@@ -181,6 +181,13 @@ export default function AboutSalesJob() {
     { icon: Clock, label: "Monday–Thursday" },
   ];
 
+  // Route applicants to this specific regional job opening (DMV) so submissions
+  // are tagged to the correct role. Falls back to the plain form if the job
+  // record hasn't loaded yet.
+  const applyUrl = job?.job_id
+    ? `${createPageUrl("SalesJobApplication")}?job_opening=${encodeURIComponent(job.job_id)}`
+    : createPageUrl("SalesJobApplication");
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: CREAM }}>
@@ -232,7 +239,7 @@ export default function AboutSalesJob() {
               className="rounded-lg font-semibold"
               style={{ backgroundColor: GOLD, color: TEXT_DARK }}
             >
-              <Link to={createPageUrl("SalesJobApplication")}>
+              <Link to={applyUrl}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
@@ -552,7 +559,7 @@ export default function AboutSalesJob() {
               className="rounded-lg font-semibold"
               style={{ backgroundColor: GOLD, color: TEXT_DARK }}
             >
-              <Link to={createPageUrl("SalesJobApplication")}>
+              <Link to={applyUrl}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
