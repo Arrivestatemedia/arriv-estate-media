@@ -12,12 +12,16 @@ import AcceptedPendingPreviewLinks from "@/components/admin/AcceptedPendingPrevi
 import { Search, Briefcase, Camera } from "lucide-react";
 import { toast } from "sonner";
 
-const POSITION_TABS = [
-  { value: "media_specialist", label: "Media Specialist", icon: Camera, statuses: APPLICATION_STATUSES },
-  { value: "sales_growth_advisor", label: "Sales Growth Advisor", icon: Briefcase, statuses: SALES_STATUSES },
-];
-
 const positionOf = (app) => app.position || "media_specialist";
+
+// Short region label for a Sales Growth Advisor job opening, derived from its
+// location string (e.g. "Atlanta, GA — Field-based..." → "Atlanta, GA").
+const regionFromOpening = (o) => {
+  const loc = (o?.location || "").trim();
+  if (!loc) return o?.title || "Sales";
+  const head = loc.split("—")[0].trim();
+  return head || loc;
+};
 
 export default function ApplicationsPanel({ pendingAction, onPendingActionConsumed }) {
   const queryClient = useQueryClient();
@@ -29,6 +33,15 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["job-applications"],
     queryFn: () => base44.entities.JobApplication.list("-created_date", 200),
+  });
+
+  // Job openings are needed to label the per-opening Sales tabs (Atlanta / DMV).
+  const { data: openings = [] } = useQuery({
+    queryKey: ["job-openings-for-applications"],
+    queryFn: async () => {
+      const res = await base44.entities.JobOpening.list("-created_date", 100);
+      return res?.items ?? res ?? [];
+    },
   });
 
   useEffect(() => {
@@ -48,7 +61,11 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
     if (!pendingAction || !applications.length) return;
     const match = applications.find(a => a.email?.toLowerCase() === pendingAction.email?.toLowerCase());
     if (match) {
-      setPositionTab(positionOf(match));
+      setPositionTab(
+        positionOf(match) === "sales_growth_advisor"
+          ? (match.job_opening_id || "sales_unassigned")
+          : "media_specialist"
+      );
       setShowArchived(!!match.archived);
       setStatusFilter("all");
       setSearch("");
@@ -108,12 +125,50 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
     }
   };
 
-  const activeTab = POSITION_TABS.find((t) => t.value === positionTab);
+  // Build the tab list: Media Specialist, then one tab per Sales Growth Advisor
+  // job opening (e.g. Atlanta, DMV), then an Unassigned bucket if needed.
+  const openingByJobId = React.useMemo(() => {
+    const m = {};
+    for (const o of openings) m[o.job_id] = o;
+    return m;
+  }, [openings]);
+
+  const tabs = React.useMemo(() => {
+    const salesCounts = {};
+    let unassigned = 0;
+    for (const a of applications) {
+      if (positionOf(a) !== "sales_growth_advisor") continue;
+      const jid = a.job_opening_id;
+      if (jid) salesCounts[jid] = (salesCounts[jid] || 0) + 1;
+      else unassigned += 1;
+    }
+    const salesTabs = Object.keys(salesCounts)
+      .map((jid) => ({
+        value: jid,
+        label: `Sales — ${regionFromOpening(openingByJobId[jid])}`,
+        icon: Briefcase,
+        isSales: true,
+        statuses: SALES_STATUSES,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (unassigned > 0) {
+      salesTabs.push({ value: "sales_unassigned", label: "Sales — Unassigned", icon: Briefcase, isSales: true, statuses: SALES_STATUSES });
+    }
+    return [
+      { value: "media_specialist", label: "Media Specialist", icon: Camera, isSales: false, statuses: APPLICATION_STATUSES },
+      ...salesTabs,
+    ];
+  }, [applications, openingByJobId]);
+
+  const activeTab = tabs.find((t) => t.value === positionTab) || tabs[0];
   const statuses = activeTab.statuses;
 
-  const tabApps = applications.filter(
-    (a) => positionOf(a) === positionTab && (!!a.archived) === showArchived
-  );
+  const tabApps = applications.filter((a) => {
+    if (!!a.archived !== showArchived) return false;
+    if (positionTab === "media_specialist") return positionOf(a) === "media_specialist";
+    if (positionTab === "sales_unassigned") return positionOf(a) === "sales_growth_advisor" && !a.job_opening_id;
+    return positionOf(a) === "sales_growth_advisor" && a.job_opening_id === positionTab;
+  });
 
   const filtered = tabApps.filter((a) => {
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
@@ -129,6 +184,12 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
 
   const viewedCount = tabApps.filter((a) => a.portal_viewed_at).length;
 
+  const tabCount = (t) => {
+    if (t.value === "media_specialist") return applications.filter((a) => positionOf(a) === "media_specialist").length;
+    if (t.value === "sales_unassigned") return applications.filter((a) => positionOf(a) === "sales_growth_advisor" && !a.job_opening_id).length;
+    return applications.filter((a) => positionOf(a) === "sales_growth_advisor" && a.job_opening_id === t.value).length;
+  };
+
   return (
     <div className="space-y-5">
       <p className="text-sm" style={{ color: "rgba(26,26,26,0.6)" }}>
@@ -138,10 +199,10 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
 
       {/* Position tabs */}
       <div className="flex gap-2 flex-wrap">
-        {POSITION_TABS.map((t) => {
+        {tabs.map((t) => {
           const Icon = t.icon;
           const active = positionTab === t.value;
-          const count = applications.filter((a) => positionOf(a) === t.value).length;
+          const count = tabCount(t);
           return (
             <button
               key={t.value}
@@ -168,7 +229,7 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
         <AcceptedPendingPreviewLinks applications={applications} />
       )}
 
-      {positionTab === "sales_growth_advisor" && (
+      {activeTab.isSales && (
         <>
           <SalesWelcomeVideoControl />
           <SalesTrainingVideosControl />
