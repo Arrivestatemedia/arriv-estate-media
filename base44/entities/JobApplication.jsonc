@@ -216,6 +216,11 @@
       "default": "received",
       "description": "Application status"
     },
+    "interview_invitation_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the admin sent the interview invitation (the status transitioned to interview_invitation). The authoritative clock for the stale-applicant auto-archive rule \u2014 measures from the invitation date, not the submission date. Empty for legacy records invited before this field existed; those fall back to created_date."
+    },
     "updates": {
       "type": "array",
       "items": {

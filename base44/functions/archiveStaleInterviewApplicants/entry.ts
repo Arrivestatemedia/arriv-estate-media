@@ -77,10 +77,12 @@ Deno.serve(async (req) => {
       archived.push({ appId, name: app.full_name, email: app.email, path: 'async_session' });
     }
 
-    // ── Path B: sales email invitations with no session, submitted past cutoff ──
-    // Uses created_date (submission date) — updated_date is unreliable because any
-    // admin touch or batch write refreshes it. The submission date is the clock the
-    // admin sees ("Submitted ...") and the right measure of how long they've sat.
+    // ── Path B: sales email invitations with no session, invited past cutoff ──
+    // Clock = interview_invitation_sent_at (when the admin sent the invitation).
+    // Legacy records without that field fall back to created_date (submission).
+    // updated_date is unreliable (any admin touch refreshes it) and is never used.
+    // created_date is a safe pre-filter because the invitation always follows
+    // submission, so an invitation older than the cutoff implies submission is too.
     const salesApps = unwrapList(
       await base44.asServiceRole.entities.JobApplication.filter(
         { status: 'interview_invitation', archived: { $ne: true }, created_date: { $lt: cutoff } },
@@ -98,6 +100,12 @@ Deno.serve(async (req) => {
         )
       )[0];
       if (sess) { skipped.push({ appId: app.id, reason: 'has_session' }); continue; }
+
+      const invitedAt = app.interview_invitation_sent_at || app.created_date;
+      if (!invitedAt || new Date(invitedAt) >= new Date(cutoff)) {
+        skipped.push({ appId: app.id, reason: 'invited_within_window' });
+        continue;
+      }
 
       await archiveApp(base44, app, 'interview invitation not responded to in ' + staleDays + ' days');
       archived.push({ appId: app.id, name: app.full_name, email: app.email, path: 'sales_email' });

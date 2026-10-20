@@ -76,10 +76,18 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
     const emailFn = emailTriggers[data.status];
     const shouldSendEmail = emailFn && (!prev || prevStatus !== data.status);
 
+    // Stamp the interview-invitation send date at the moment the admin sends it,
+    // so the stale-applicant auto-archive rule measures from the invitation date
+    // (not the submission date).
+    const payload = { ...data };
+    if (data.status === 'interview_invitation' && (!prev || prevStatus !== 'interview_invitation')) {
+      payload.interview_invitation_sent_at = new Date().toISOString();
+    }
+
     // Update the status immediately so the admin's selection always takes effect,
     // then send the email best-effort. A delivery failure warns via toast but
     // does not block the status change.
-    await base44.entities.JobApplication.update(id, data);
+    await base44.entities.JobApplication.update(id, payload);
     queryClient.invalidateQueries({ queryKey: ["job-applications"] });
 
     if (shouldSendEmail) {
