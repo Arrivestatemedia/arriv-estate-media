@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 3 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Archives applicants who received an interview invitation but did not respond within 30 days (async interview sessions still INVITED, or sales email invitations untouched).",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "archive_stale_interview_applicants",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "archive_stale": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "archiveStaleInterviewApplicants"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Archive stale interview applicants",
+            "description": "No response to interview invitation in 30 days"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Archive Stale Interview Applicants (daily)"
+}
