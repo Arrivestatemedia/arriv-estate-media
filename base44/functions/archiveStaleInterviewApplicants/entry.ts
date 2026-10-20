@@ -77,11 +77,14 @@ Deno.serve(async (req) => {
       archived.push({ appId, name: app.full_name, email: app.email, path: 'async_session' });
     }
 
-    // ── Path B: sales email invitations with no session, untouched past cutoff ──
+    // ── Path B: sales email invitations with no session, submitted past cutoff ──
+    // Uses created_date (submission date) — updated_date is unreliable because any
+    // admin touch or batch write refreshes it. The submission date is the clock the
+    // admin sees ("Submitted ...") and the right measure of how long they've sat.
     const salesApps = unwrapList(
       await base44.asServiceRole.entities.JobApplication.filter(
-        { status: 'interview_invitation', archived: { $ne: true }, updated_date: { $lt: cutoff } },
-        { sort: '-updated_date', limit: 200 }
+        { status: 'interview_invitation', archived: { $ne: true }, created_date: { $lt: cutoff } },
+        { sort: '-created_date', limit: 200 }
       )
     );
 
