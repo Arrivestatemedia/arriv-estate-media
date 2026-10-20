@@ -56,11 +56,58 @@ Deno.serve(async (req) => {
     const data = await updateRes.json();
     console.log('Twilio App updated successfully');
 
+    // ── Wire the voice status callback onto the company number ──
+    // So the owner gets a text on every answered / missed call (handleMissedCall).
+    const statusCallbackUrl = `https://${appDomain}/functions/handleMissedCall`;
+    const companyNumber = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
+    let statusCallbackResult = { configured: false };
+
+    if (companyNumber) {
+      try {
+        const lookupRes = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(companyNumber)}`,
+          { headers: { Authorization: `Basic ${auth}` } }
+        );
+        if (lookupRes.ok) {
+          const lookupData = await lookupRes.json();
+          const pn = lookupData?.incoming_phone_numbers?.[0];
+          if (pn?.sid) {
+            const updateNumRes = await fetch(
+              `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/IncomingPhoneNumbers/${pn.sid}.json`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Basic ${auth}`,
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                  StatusCallbackUrl: statusCallbackUrl,
+                  StatusCallbackMethod: 'POST'
+                }).toString()
+              }
+            );
+            statusCallbackResult = {
+              configured: updateNumRes.ok,
+              status: updateNumRes.status,
+              url: statusCallbackUrl
+            };
+            if (!updateNumRes.ok) {
+              console.error('Status callback update failed:', updateNumRes.status, (await updateNumRes.text()).slice(0, 200));
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Status callback setup error:', e.message);
+        statusCallbackResult = { configured: false, error: e.message };
+      }
+    }
+
     return Response.json({
       success: true,
       message: 'Twilio webhook configured',
       voiceUrl,
-      appSid: twimlAppSid
+      appSid: twimlAppSid,
+      statusCallback: statusCallbackResult
     });
 
   } catch (error) {
