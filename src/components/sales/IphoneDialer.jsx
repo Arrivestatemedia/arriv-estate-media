@@ -300,11 +300,17 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
+  // Reads through the backend: a sales rep session has no platform token, so a
+  // direct ActivityLog read is refused and Recents would always be empty.
   const loadCallLogs = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call', sales_member_id: id }, '-activity_date', 100);
-      setCallLogs(logs);
+      if (!id) return;
+      const res = await base44.functions.invoke('manageSalesActivity', {
+        action: 'get_call_logs',
+        sales_member_id: id
+      });
+      setCallLogs(res?.data?.calls || []);
     } catch (err) {
       console.error('Failed to load call logs:', err);
     }

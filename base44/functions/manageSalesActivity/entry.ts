@@ -143,6 +143,29 @@ export default async function(req) {
         return Response.json({ insight: created });
       }
 
+      case 'get_call_logs': {
+        // Recents list in the dialer. Read with the service role because sales
+        // reps have no platform token, so a direct ActivityLog read comes back
+        // empty; the query is scoped to this rep only.
+        const calls = await base44.asServiceRole.entities.ActivityLog.filter(
+          { activity_type: 'call', sales_member_id },
+          '-activity_date',
+          100
+        );
+        // Only the fields the Recents list renders, so the payload stays small.
+        const recent = (calls || []).map((c) => ({
+          id: c.id,
+          contact_name: c.contact_name,
+          company_name: c.company_name,
+          contact_email: c.contact_email,
+          notes: c.notes,
+          activity_date: c.activity_date,
+          duration_minutes: c.duration_minutes,
+          direction: c.direction
+        }));
+        return Response.json({ calls: recent });
+      }
+
       case 'get_pending_notifications': {
         // Return unread pending notifications for this user (optionally filtered by event_type)
         const filter = {
