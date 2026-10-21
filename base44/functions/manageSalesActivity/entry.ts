@@ -5,7 +5,7 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const { action, sales_member_id, activity_id, data, notification_id, activity,
-            sales_member_name, sales_member_email } = body;
+            sales_member_name, sales_member_email, conversation_id } = body;
 
     if (!sales_member_id) {
       return Response.json({ error: 'sales_member_id is required' }, { status: 400 });
@@ -164,6 +164,54 @@ export default async function(req) {
           direction: c.direction
         }));
         return Response.json({ calls: recent });
+      }
+
+      case 'get_conversations': {
+        // The dialer's Messages tab. Read with the service role and scoped to
+        // this rep, so a rep can only ever receive their own threads.
+        const convos = await base44.asServiceRole.entities.SmsConversation.filter(
+          { sales_member_id },
+          '-last_message_at',
+          100
+        );
+        const conversations = (convos || []).map((c) => ({
+          id: c.id,
+          from_number: c.from_number,
+          contact_name: c.contact_name,
+          last_message: c.last_message,
+          last_message_at: c.last_message_at,
+          unread_count: c.unread_count,
+          last_reply_at: c.last_reply_at,
+          last_link_click_at: c.last_link_click_at
+        }));
+        return Response.json({ conversations });
+      }
+
+      case 'get_conversation_messages': {
+        // A thread's messages are only returned to the rep who owns it.
+        const owned = await base44.asServiceRole.entities.SmsConversation.filter({ id: conversation_id });
+        const convo = (owned || [])[0];
+        if (!convo || convo.sales_member_id !== sales_member_id) {
+          return Response.json({ messages: [], error: 'not_your_conversation' }, { status: 403 });
+        }
+        const msgs = await base44.asServiceRole.entities.SmsMessage.filter(
+          { conversation_id },
+          'created_date',
+          500
+        );
+        const messages = (msgs || []).map((m) => ({
+          id: m.id,
+          direction: m.direction,
+          body: m.body,
+          created_date: m.created_date,
+          status: m.status,
+          twilio_error_message: m.twilio_error_message,
+          link_engagement: m.link_engagement,
+          replied_at: m.replied_at,
+          from_number: m.from_number,
+          to_number: m.to_number
+        }));
+        return Response.json({ messages });
       }
 
       case 'get_pending_notifications': {

@@ -255,8 +255,14 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     if (!user?.email) return;
     const loadDialerBadge = async () => {
       try {
-        const convos = await base44.entities.SmsConversation.list();
-        const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+        // Only this rep's own threads are counted, so one rep never sees
+        // another rep's unread messages.
+        const res = await base44.functions.invoke('manageSalesActivity', {
+          action: 'get_conversations',
+          sales_member_id: localStorage.getItem('sales_member_id') || user?.id
+        });
+        const convos = res?.data?.conversations || [];
+        const total = convos.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
         setUnreadSmsCount(total);
       } catch (err) {
         console.error('Failed to load SMS count:', err);

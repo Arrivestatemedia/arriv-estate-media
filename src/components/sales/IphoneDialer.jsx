@@ -316,23 +316,34 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
+  // Reads through the backend: the rep's own threads only. A rep session has no
+  // platform token, and every thread must stay scoped to its owner.
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      const allConversations = await base44.entities.SmsConversation.list();
-      const filtered = allConversations.filter(conv => conv.sales_member_id === id);
-      filtered.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
-      setConversations(filtered);
+      if (!id) return;
+      const res = await base44.functions.invoke('manageSalesActivity', {
+        action: 'get_conversations',
+        sales_member_id: id
+      });
+      setConversations(res?.data?.conversations || []);
     } catch (err) {
       console.error('Failed to load conversations:', err);
       setConversations([]);
     }
   };
 
+  // The backend returns a thread's messages only to the rep who owns it.
   const loadMessages = async (convoId) => {
     try {
-      const data = await base44.entities.SmsMessage.filter({ conversation_id: convoId }, 'created_date');
-      setMessages(data);
+      const id = salesMemberId || localStorage.getItem('sales_member_id');
+      if (!id || !convoId) return;
+      const res = await base44.functions.invoke('manageSalesActivity', {
+        action: 'get_conversation_messages',
+        sales_member_id: id,
+        conversation_id: convoId
+      });
+      setMessages(res?.data?.messages || []);
     } catch (err) {
       console.error('Failed to load messages:', err);
       setMessages([]);
