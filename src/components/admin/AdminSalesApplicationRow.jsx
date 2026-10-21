@@ -206,7 +206,9 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, auto
         <InterviewSchedulerModal
           app={app}
           onClose={() => setShowScheduler(false)}
-          onScheduled={(conference) => onUpdate(app.id, { status: "interview_invitation" })}
+          // The scheduler already emails the candidate (async link or live invite),
+          // so the legacy "reply with your availability" email is skipped here.
+          onScheduled={() => onUpdate(app.id, { status: "interview_invitation" }, { skipEmail: true })}
         />
       )}
 

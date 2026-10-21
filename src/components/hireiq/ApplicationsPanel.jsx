@@ -77,7 +77,7 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
     queryClient.invalidateQueries({ queryKey: ["job-applications"] });
   };
 
-  const updateApp = async (id, data) => {
+  const updateApp = async (id, data, opts = {}) => {
     const prev = applications.find((a) => a.id === id);
     const prevStatus = prev?.status;
 
@@ -91,7 +91,7 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
       offer_not_extended: 'sendSalesOfferNotExtendedEmail',
     };
     const emailFn = emailTriggers[data.status];
-    const shouldSendEmail = emailFn && (!prev || prevStatus !== data.status);
+    const shouldSendEmail = emailFn && (!prev || prevStatus !== data.status) && !opts.skipEmail;
 
     // Stamp the interview-invitation send date at the moment the admin sends it,
     // so the stale-applicant auto-archive rule measures from the invitation date

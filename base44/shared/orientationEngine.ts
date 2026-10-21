@@ -563,6 +563,11 @@ export async function handleSalesBackgroundCheckFailure(base44, orientation) {
   return { rescinded: !alreadyInactive };
 }
 
+// Orientations whose deadline falls before this date belong to the pre-existing backlog
+// (legacy and test records) and are not chased. Everyone added from here on is reminded
+// normally, both when their deadline approaches and when it passes.
+const REMINDER_CUTOVER = "2026-10-22";
+
 export async function sendDeadlineReminders(base44) {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -576,6 +581,7 @@ export async function sendDeadlineReminders(base44) {
     if (!o.orientation_deadline) continue;
     const deadline = new Date(o.orientation_deadline);
     if (isNaN(deadline.getTime())) continue;
+    if (deadline < new Date(REMINDER_CUTOVER)) continue;
     const daysAway = Math.round((deadline.getTime() - today.getTime()) / 86400000);
     const overdue = daysAway < 0;
     const dueSoon = daysAway >= 0 && daysAway <= 3;
