@@ -19,6 +19,7 @@ import MessageBubble from "./MessageBubble";
 import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
+const VERIFY_MESSAGE = "Unable to verify your account. Contact your administrator.";
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
 
 export default function IphoneDialer({ salesMemberId }) {
@@ -77,10 +78,12 @@ export default function IphoneDialer({ salesMemberId }) {
   useEffect(() => { currentCallRef.current = currentCall; }, [currentCall]);
 
   // Fetch profile + all members via backend function (bypasses RLS)
-  const { data: dashboardData } = useSalesDashboardData(salesMemberId || localStorage.getItem('sales_member_id'));
+  const { data: dashboardData, isSuccess: dashboardLoaded } = useSalesDashboardData(salesMemberId || localStorage.getItem('sales_member_id'));
 
   useEffect(() => {
     if (dashboardData?.profile) {
+      // The account check settles here, so clear any notice a previous load left.
+      setError((prev) => (prev === VERIFY_MESSAGE ? '' : prev));
       setHasTwilioNumber(!!dashboardData.profile.twilio_phone_number);
       initDevice();
     }
@@ -89,25 +92,22 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   }, [dashboardData?.profile, dashboardData?.all_active_members]);
 
+  // Only flag an unverifiable account after the check has finished and returned
+  // no profile — never while it is still loading.
+  useEffect(() => {
+    if (dashboardLoaded && !dashboardData?.profile) {
+      setError(VERIFY_MESSAGE);
+    }
+  }, [dashboardLoaded, dashboardData?.profile]);
+
   // Device init — only runs once when salesMemberId is available
   useEffect(() => {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    // Fallback: if hook hasn't loaded yet, try direct SDK (works for admins with tokens)
-    if (!dashboardData?.profile) {
-      base44.entities.SalesTeamMember.filter({ id }).then(members => {
-        if (!members?.[0]) {
-          setError('Unable to verify your account. Contact your administrator.');
-          return;
-        }
-        setHasTwilioNumber(!!members[0].twilio_phone_number);
-        initDevice();
-        base44.entities.SalesTeamMember.filter({ is_active: true }).then(setAllMembers).catch(() => {});
-      }).catch(() => {
-        setError('Unable to verify account');
-      });
-    }
+    // The profile and the number check come from useSalesDashboardData, which
+    // reads through the backend. A rep session has no platform token, so a
+    // direct entity read must never gate the dialer.
     
     // Check for pre-loaded phone number from dialer click
     const dialerPhone = localStorage.getItem('_dialerPhone');
