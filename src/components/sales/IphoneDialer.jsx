@@ -716,6 +716,7 @@ export default function IphoneDialer({ salesMemberId }) {
         contactEmail,
         companyName,
         durationSeconds: callDuration,
+        direction: 'outgoing',
         notes: callNotes || `Call to ${currentCall?.number}`
       });
 

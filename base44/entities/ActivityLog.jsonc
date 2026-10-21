@@ -47,6 +47,14 @@
       "type": "number",
       "description": "Duration of call or meeting in minutes"
     },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "incoming",
+        "outgoing"
+      ],
+      "description": "For calls: whether the rep placed the call (outgoing) or answered it (incoming). Written by the dialer when the call ends, and shown in the dialer's Recents list."
+    },
     "picture_urls": {
       "type": "array",
       "items": {

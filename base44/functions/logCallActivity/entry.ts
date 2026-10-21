@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
       companyName,
       durationSeconds,
       notes,
+      direction,
       callSid
     } = await req.json();
 
@@ -37,6 +38,7 @@ Deno.serve(async (req) => {
       activity_date: new Date().toISOString(),
       notes: notes || `Call to ${toNumber || 'unknown'}${callSid ? ` (SID: ${callSid})` : ''}`,
       duration_minutes: durationMinutes,
+      direction: direction === 'incoming' ? 'incoming' : 'outgoing',
       sales_member_id: salesMemberId || '',
       sales_member_email: salesMemberEmail
     });
