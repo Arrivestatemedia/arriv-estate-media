@@ -16,6 +16,7 @@ import DialerAiAssistant from "./DialerAiAssistant";
 import CallScriptPrompt from "./CallScriptPrompt";
 import CallScriptSheet from "./CallScriptSheet";
 import MessageBubble from "./MessageBubble";
+import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -66,6 +67,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const callStartRef = useRef(null);
   const messagesEndRef = useRef(null);
   const deviceRef = useRef(null);
+  const deviceHandleRef = useRef(null);
   const activeTabRef = useRef(activeTab);
   const callStateRef = useRef(callState);
   const currentCallRef = useRef(currentCall);
@@ -130,7 +132,7 @@ export default function IphoneDialer({ salesMemberId }) {
       }
 
       return () => {
-        if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
+        if (deviceHandleRef.current) { deviceHandleRef.current.destroy(); deviceHandleRef.current = null; deviceRef.current = null; }
         if (timerRef.current) clearInterval(timerRef.current);
         callLogsUnsub();
         convoUnsub();
@@ -210,50 +212,9 @@ export default function IphoneDialer({ salesMemberId }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadTwilioSdk = () => new Promise((resolve, reject) => {
-    if (window.Twilio?.Device) { resolve(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
-    script.onload = resolve;
-    script.onerror = () => reject(new Error('Unable to load Twilio SDK'));
-    document.head.appendChild(script);
-  });
-
-  const initDevice = async () => {
-    try {
-      await loadTwilioSdk();
-      const salesMemberEmail = localStorage.getItem('sales_member_email');
-      const res = await base44.functions.invoke('generateTwilioToken', { 
-        salesMemberId,
-        salesMemberEmail
-      });
-      const { token, identity } = res.data;
-
-      if (!token) {
-        setError('Failed to get access token');
-        return;
-      }
-
-      const { Device } = window.Twilio;
-      const twilioDevice = new Device(token, { 
-        codecPreferences: ['opus', 'pcmu'], 
-        enableRingingState: true,
-        closeProtection: false,
-        allowIncomingWhileBusy: true
-      });
-
-      twilioDevice.on('registered', () => {
-        console.log('Twilio Device registered with identity:', identity);
-        setDeviceReady(true);
-      });
-
-      twilioDevice.on('error', (err) => {
-        console.error('Twilio Device error:', err);
-        setError(err?.message || 'Twilio error');
-        setCallState(CALL_STATES.IDLE);
-      });
-
-      twilioDevice.on('incoming', async (call) => {
+  // The calling token is issued, renewed before it expires, and recovered from
+  // AccessTokenInvalid (20101) by the shared voice-device helper.
+  const handleIncomingCall = async (call) => {
         const rawFrom = call.parameters?.From || 'Unknown';
         console.log('Incoming call received from:', rawFrom);
 
@@ -302,12 +263,37 @@ export default function IphoneDialer({ salesMemberId }) {
           setIncomingDisplayName('');
           setCallState(CALL_STATES.IDLE);
         });
+  };
+
+  const initDevice = async () => {
+    try {
+      if (deviceHandleRef.current) {
+        deviceHandleRef.current.destroy();
+        deviceHandleRef.current = null;
+        deviceRef.current = null;
+      }
+
+      const handle = await createVoiceDevice({
+        salesMemberId: salesMemberId || localStorage.getItem('sales_member_id'),
+        options: { closeProtection: false, allowIncomingWhileBusy: true },
+        handlers: {
+          onRegistered: (identity) => {
+            console.log('Twilio Device registered with identity:', identity);
+            setDeviceReady(true);
+            setError('');
+          },
+          onError: (err) => {
+            setError(err?.message || 'Twilio error');
+            setCallState(CALL_STATES.IDLE);
+          },
+          onRefreshFailed: () => setError('Calling is reconnecting. Reload the page if calls fail.'),
+          onIncoming: handleIncomingCall
+        }
       });
 
-      console.log('Registering Twilio Device...');
-      await twilioDevice.register();
-      deviceRef.current = twilioDevice;
-      setDevice(twilioDevice);
+      deviceHandleRef.current = handle;
+      deviceRef.current = handle.device;
+      setDevice(handle.device);
     } catch (err) {
       console.error('Device init error:', err);
       setError('Failed to initialize: ' + err?.message);

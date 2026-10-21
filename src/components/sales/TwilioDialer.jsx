@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Phone, PhoneOff, Loader2, Check, MicOff, Mic } from "lucide-react";
+import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
 
 const CALL_STATES = {
   IDLE: "idle",
@@ -35,78 +36,46 @@ export default function TwilioDialer({ salesMemberId }) {
   const callRef = useRef(null);
   const timerRef = useRef(null);
   const callStartRef = useRef(null);
+  const deviceHandleRef = useRef(null);
 
   useEffect(() => {
     if (!salesMemberId) return;
     initDevice();
     return () => {
-      if (device) device.destroy();
+      if (deviceHandleRef.current) { deviceHandleRef.current.destroy(); deviceHandleRef.current = null; }
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [salesMemberId]);
 
-  const loadTwilioSdk = () => new Promise((resolve, reject) => {
-    if (window.Twilio?.Device) { resolve(); return; }
-    const existing = document.getElementById('twilio-sdk-script');
-    if (existing) {
-      // Already loading, wait for it
-      existing.addEventListener('load', resolve);
-      existing.addEventListener('error', reject);
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'twilio-sdk-script';
-    script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
-    script.onload = resolve;
-    script.onerror = () => {
-      // Try alternate URL
-      const s2 = document.createElement('script');
-      s2.src = 'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js';
-      s2.onload = resolve;
-      s2.onerror = () => reject(new Error('Unable to load Twilio SDK. This may be blocked by a browser extension or firewall. Try disabling ad blockers or use a different network.'));
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(script);
-  });
-
+  // The calling token is issued, renewed before it expires, and recovered from
+  // AccessTokenInvalid (20101) by the shared voice-device helper.
   const initDevice = async () => {
     try {
-      await loadTwilioSdk();
-
-      const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
-      const { token } = res.data;
-
-      if (!token) {
-        setError('Failed to get access token');
-        return;
-      }
-
-      const { Device } = window.Twilio;
-      const twilioDevice = new Device(token, {
-        codecPreferences: ['opus', 'pcmu'],
-        enableRingingState: true,
-        logLevel: 1
+      const handle = await createVoiceDevice({
+        salesMemberId,
+        options: { logLevel: 1 },
+        handlers: {
+          onRegistered: () => setDeviceReady(true),
+          onError: (twilioError) => {
+            setError(twilioError?.message || twilioError?.description || 'Twilio error');
+            setCallState(CALL_STATES.IDLE);
+          },
+          onRefreshFailed: () => setError('Calling is reconnecting. Reload the page if calls fail.'),
+          onIncoming: (call) => {
+            setIncomingCall(call);
+            setIncomingFrom(call.parameters?.From || 'Unknown');
+            setCallState(CALL_STATES.INCOMING);
+            call.on('disconnect', handleCallEnded);
+            call.on('cancel', () => {
+              setIncomingCall(null);
+              setIncomingFrom('');
+              setCallState(CALL_STATES.IDLE);
+            });
+          }
+        }
       });
-
-      twilioDevice.on('registered', () => setDeviceReady(true));
-      twilioDevice.on('error', (twilioError) => {
-        setError(twilioError?.message || twilioError?.description || 'Twilio error');
-        setCallState(CALL_STATES.IDLE);
-      });
-      twilioDevice.on('incoming', (call) => {
-        setIncomingCall(call);
-        setIncomingFrom(call.parameters?.From || 'Unknown');
-        setCallState(CALL_STATES.INCOMING);
-        call.on('disconnect', handleCallEnded);
-        call.on('cancel', () => {
-          setIncomingCall(null);
-          setIncomingFrom('');
-          setCallState(CALL_STATES.IDLE);
-        });
-      });
-
-      await twilioDevice.register();
-      setDevice(twilioDevice);
+      deviceHandleRef.current = handle;
+      setDevice(handle.device);
     } catch (err) {
       setError('Failed to initialize calling: ' + (err?.message || String(err)));
     }

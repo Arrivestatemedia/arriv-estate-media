@@ -8,6 +8,7 @@ import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronD
 import InAppBrowser from "@/components/sales/InAppBrowser";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import ProspectBriefPanel from "@/components/sales/ProspectBriefPanel";
+import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -112,36 +113,27 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [showFilters, setShowFilters] = useState(false);
 
   const deviceRef = useRef(null);
+  const deviceHandleRef = useRef(null);
   const callRef = useRef(null);
   const hasFetchedRef = useRef(false);
   const paramsRef = useRef({ radius: 100, keywords: "", minPrice: "", maxPrice: "" });
 
   // ── Twilio Device for click-to-call ──────────────────────────────────
-  const loadTwilioSdk = () => new Promise((resolve, reject) => {
-    if (window.Twilio?.Device) { resolve(); return; }
-    const existing = document.getElementById('twilio-sdk-script');
-    if (existing) { existing.addEventListener('load', resolve); existing.addEventListener('error', reject); return; }
-    const s = document.createElement('script');
-    s.id = 'twilio-sdk-script';
-    s.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Unable to load Twilio SDK'));
-    document.head.appendChild(s);
-  });
-
+  // The calling token is renewed by the shared voice-device helper, so this
+  // device cannot expire with AccessTokenInvalid (20101) mid-session.
   const initDevice = useCallback(async () => {
     if (!salesMemberId || deviceRef.current) return;
     try {
-      await loadTwilioSdk();
-      const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
-      const { token } = res.data || {};
-      if (!token) { setCallError('No calling token available'); return; }
-      const { Device } = window.Twilio;
-      const d = new Device(token, { codecPreferences: ['opus', 'pcmu'], enableRingingState: true, logLevel: 1 });
-      d.on('registered', () => {});
-      d.on('error', (e) => { setCallError(e?.message || 'Twilio error'); setCallState(CALL_STATES.IDLE); });
-      await d.register();
-      deviceRef.current = d;
+      const handle = await createVoiceDevice({
+        salesMemberId,
+        options: { logLevel: 1 },
+        handlers: {
+          onError: (e) => { setCallError(e?.message || 'Twilio error'); setCallState(CALL_STATES.IDLE); },
+          onRefreshFailed: () => setCallError('Calling is reconnecting. Reload the page if calls fail.')
+        }
+      });
+      deviceHandleRef.current = handle;
+      deviceRef.current = handle.device;
     } catch (e) {
       setCallError('Call line init failed: ' + (e?.message || String(e)));
     }
@@ -150,7 +142,8 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   useEffect(() => {
     initDevice();
     return () => {
-      try { deviceRef.current?.destroy?.(); } catch {}
+      try { deviceHandleRef.current?.destroy?.(); } catch {}
+      deviceHandleRef.current = null;
       deviceRef.current = null;
     };
   }, [initDevice]);
