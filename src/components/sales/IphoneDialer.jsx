@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search, Sparkles, FileText } from "lucide-react";
+import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search, Sparkles, FileText, Volume1, Volume2 } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
@@ -17,6 +17,7 @@ import CallScriptPrompt from "./CallScriptPrompt";
 import CallScriptSheet from "./CallScriptSheet";
 import MessageBubble from "./MessageBubble";
 import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
+import { routeCallToEarpiece, routeCallToSpeaker, releaseCallAudio } from "@/lib/callAudioRouting";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const VERIFY_MESSAGE = "Unable to verify your account. Contact your administrator.";
@@ -31,6 +32,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const [keypadInput, setKeypadInput] = useState("");
   const [callDuration, setCallDuration] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingFrom, setIncomingFrom] = useState("");
   const [incomingDisplayName, setIncomingDisplayName] = useState("");
@@ -355,6 +357,8 @@ export default function IphoneDialer({ salesMemberId }) {
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
     setMuted(false);
+    setSpeakerOn(false);
+    releaseCallAudio();
     setCallState(CALL_STATES.IDLE);
     callRef.current = null;
 
@@ -540,6 +544,7 @@ export default function IphoneDialer({ salesMemberId }) {
         callRef.current = call;
         setCurrentCall(prev => ({ ...prev, sid: call.sid }));
         setCallState(CALL_STATES.IN_CALL);
+        startCallAudioRoute();
         callStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
@@ -570,6 +575,7 @@ export default function IphoneDialer({ salesMemberId }) {
       callRef.current = incomingCall;
       setCurrentCall({ number: incomingFrom, startTime: Date.now(), incoming: true });
       setCallState(CALL_STATES.IN_CALL);
+      startCallAudioRoute();
       callStartRef.current = Date.now();
       timerRef.current = setInterval(() => {
         setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
@@ -600,6 +606,19 @@ export default function IphoneDialer({ salesMemberId }) {
       callRef.current.mute(!muted);
       setMuted(!muted);
     }
+  };
+
+  // Every call begins on the handset route, never on the loudspeaker.
+  const startCallAudioRoute = () => {
+    setSpeakerOn(false);
+    routeCallToEarpiece(deviceRef.current).catch(() => {});
+  };
+
+  const toggleSpeaker = () => {
+    const next = !speakerOn;
+    setSpeakerOn(next);
+    const route = next ? routeCallToSpeaker : routeCallToEarpiece;
+    route(deviceRef.current).catch(() => {});
   };
 
   const initiateThreeWay = async () => {
@@ -809,6 +828,16 @@ export default function IphoneDialer({ salesMemberId }) {
           <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
             {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </Button>
+          {isMobile && (
+            <Button
+              onClick={toggleSpeaker}
+              variant="ghost"
+              className={`h-14 w-14 rounded-full ${speakerOn ? 'bg-white text-black hover:bg-white/90' : 'text-white hover:bg-white/20'}`}
+              title={speakerOn ? 'Switch to earpiece' : 'Switch to speaker'}
+            >
+              {speakerOn ? <Volume2 className="w-6 h-6" /> : <Volume1 className="w-6 h-6" />}
+            </Button>
+          )}
           {!showThreeWayButton && (
             <Button onClick={() => setShowTransferPanel(true)} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
               <ArrowRight className="w-6 h-6" />
