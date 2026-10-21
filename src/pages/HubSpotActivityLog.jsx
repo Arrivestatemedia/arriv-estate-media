@@ -23,6 +23,8 @@ import ProspectingTab from "@/components/sales/ProspectingTab";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import CallMapModal from "@/components/sales/CallMapModal";
+import MobileDialerShell from "@/components/sales/MobileDialerShell";
+import useIsMobile from "@/hooks/useIsMobile";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import TrainingTab from "@/components/sales/TrainingTab";
@@ -35,6 +37,7 @@ import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function HubSpotActivityLog({ embedded = false }) {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     activity_type: "call",
@@ -847,13 +850,18 @@ export default function HubSpotActivityLog({ embedded = false }) {
           </Card>
         )}
 
-        {activeTab === "call" && (
+        {activeTab === "call" && (isMobile ? (
+          // Mobile: the dialer takes over the screen like the phone app itself.
+          <MobileDialerShell onExit={() => setActiveTab("contacts")}>
+            <IphoneDialer salesMemberId={user?.id} />
+          </MobileDialerShell>
+        ) : (
           <Card style={{ backgroundColor: '#FFFFFF', height: '600px' }}>
             <CardContent className="pt-0 h-full">
               <IphoneDialer salesMemberId={user?.id} />
             </CardContent>
           </Card>
-        )}
+        ))}
 
         {activeTab === "contacts" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>

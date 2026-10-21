@@ -24,11 +24,14 @@ import ProspectingTab from "@/components/sales/ProspectingTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import CallMapModal from "@/components/sales/CallMapModal";
+import MobileDialerShell from "@/components/sales/MobileDialerShell";
+import useIsMobile from "@/hooks/useIsMobile";
 
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const location = useLocation();
   const [user, setUser] = useState(propsUser);
   const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
+  const isMobile = useIsMobile();
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -843,13 +846,18 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           </Card>
         )}
 
-        {activeTab === "call" && (
+        {activeTab === "call" && (isMobile ? (
+          // Mobile: the dialer takes over the screen like the phone app itself.
+          <MobileDialerShell onExit={() => setActiveTab("activity")}>
+            <IphoneDialer salesMemberId={user?.id} />
+          </MobileDialerShell>
+        ) : (
           <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
             <CardContent className="pt-0 h-full">
               <IphoneDialer salesMemberId={user?.id} />
             </CardContent>
           </Card>
-        )}
+        ))}
 
         {activeTab === "contacts" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>

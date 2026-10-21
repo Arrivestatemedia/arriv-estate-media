@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search } from "lucide-react";
+import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search, Sparkles, FileText } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";
 import VideoCallPanelV2 from "./VideoCallPanelV2";
+import useIsMobile from "@/hooks/useIsMobile";
+import DialerAiAssistant from "./DialerAiAssistant";
+import CallScriptPrompt from "./CallScriptPrompt";
+import CallScriptSheet from "./CallScriptSheet";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -48,6 +52,13 @@ export default function IphoneDialer({ salesMemberId }) {
   const [secondCallNumber, setSecondCallNumber] = useState("");
   const [secondCallSid, setSecondCallSid] = useState(null);
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
+  const isMobile = useIsMobile();
+  const [scriptClient, setScriptClient] = useState(null);
+  const [showScriptPrompt, setShowScriptPrompt] = useState(false);
+  const [showScriptMap, setShowScriptMap] = useState(false);
+  const [callMap, setCallMap] = useState("");
+  const [loadingCallMap, setLoadingCallMap] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -372,6 +383,47 @@ export default function IphoneDialer({ salesMemberId }) {
   // transfer block, no matter what. The regular device.connect() path must
   // NEVER be reached when transferring.
   // ─────────────────────────────────────────────────────────────────────────────
+  const clientLabel = (client) => (client
+    ? (`${client.firstname || ""} ${client.lastname || ""}`.trim() || client.company || client.phone || "")
+    : "");
+
+  // Match a dialed number to a client already in the system (last 10 digits).
+  const findClientByPhone = (phone) => {
+    const digits = String(phone || "").replace(/\D/g, "").slice(-10);
+    if (digits.length < 10) return null;
+    return (dashboardData?.contacts || []).find(
+      (c) => String(c.phone || "").replace(/\D/g, "").slice(-10) === digits
+    ) || null;
+  };
+
+  // The client's most recent saved call map, when one exists.
+  const latestCallMapFor = (client) => {
+    if (!client?.email) return "";
+    const withMap = (dashboardData?.activities || []).filter(
+      (a) => a.call_map && (a.contact_email || "").toLowerCase() === client.email.toLowerCase()
+    );
+    return withMap[0]?.call_map || "";
+  };
+
+  const openCallScript = async () => {
+    setShowScriptPrompt(false);
+    setShowScriptMap(true);
+    if (callMap || !scriptClient) return;
+    setLoadingCallMap(true);
+    try {
+      const res = await base44.functions.invoke('regenerateCallMap', {
+        contactName: clientLabel(scriptClient),
+        contactEmail: scriptClient.email,
+        contactPhone: scriptClient.phone || currentCall?.number || keypadInput,
+      });
+      setCallMap(res?.data?.call_map || "");
+    } catch (err) {
+      setError('Could not build the call script.');
+    } finally {
+      setLoadingCallMap(false);
+    }
+  };
+
   const startCall = async (phoneNumber = null, transferring = false) => {
     const phoneToDial = (phoneNumber || keypadInput).trim();
     if (!phoneToDial) {
@@ -441,6 +493,15 @@ export default function IphoneDialer({ salesMemberId }) {
 
     // ── REGULAR CALL PATH ─────────────────────────────────────────────────────
     setCallState(CALL_STATES.CONNECTING);
+
+    // Mobile: if this number belongs to a client already in the system, offer
+    // their call script while the call connects.
+    if (isMobile && !isExtension) {
+      const client = findClientByPhone(formattedPhone);
+      setScriptClient(client);
+      setCallMap(client ? latestCallMapFor(client) : "");
+      setShowScriptPrompt(!!client);
+    }
 
     try {
       // Wait for device to be ready (up to 10 seconds)
@@ -668,6 +729,39 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
+  const scriptOverlays = (
+    <>
+      {isMobile && showScriptPrompt && scriptClient && (
+        <CallScriptPrompt
+          clientName={clientLabel(scriptClient) || scriptClient.phone}
+          onDismiss={() => setShowScriptPrompt(false)}
+          onShowScript={openCallScript}
+        />
+      )}
+      {isMobile && showScriptMap && (
+        <CallScriptSheet
+          clientName={clientLabel(scriptClient) || scriptClient?.phone || ''}
+          callMap={callMap}
+          loading={loadingCallMap}
+          onGenerate={openCallScript}
+          onClose={() => setShowScriptMap(false)}
+        />
+      )}
+      {isMobile && showAiAssistant && (
+        <DialerAiAssistant
+          repName={localStorage.getItem('sales_member_name') || ''}
+          conversation={selectedConvo ? {
+            name: selectedConvo.contact_name || selectedConvo.from_number,
+            phone: selectedConvo.from_number,
+            messages,
+          } : null}
+          onInsertReply={selectedConvo ? (text) => { setReplyText(text); setShowAiAssistant(false); } : undefined}
+          onClose={() => setShowAiAssistant(false)}
+        />
+      )}
+    </>
+  );
+
   // Incoming call modal
   if (callState === CALL_STATES.INCOMING && incomingCall) {
     return (
@@ -728,6 +822,16 @@ export default function IphoneDialer({ salesMemberId }) {
               <PhoneOff className="w-6 h-6" />
             </Button>
           )}
+          {isMobile && scriptClient && (
+            <Button
+              onClick={() => setShowScriptMap(true)}
+              variant="ghost"
+              className="text-white hover:bg-white/20 h-14 w-14 rounded-full"
+              title="Call script"
+            >
+              <FileText className="w-6 h-6" />
+            </Button>
+          )}
         </div>
         {showTransferPanel && (
           <TransferCallPanel
@@ -740,6 +844,7 @@ export default function IphoneDialer({ salesMemberId }) {
             }}
           />
         )}
+        {scriptOverlays}
       </div>
     );
   }
@@ -1001,7 +1106,7 @@ export default function IphoneDialer({ salesMemberId }) {
                   </div>
                 ) : (
                   <div className="space-y-0 flex-1 overflow-y-auto">
-                    <div className="p-4">
+                    <div className="p-4 space-y-2">
                       <Button 
                         onClick={() => setShowNewMessage(true)}
                         className="w-full gap-2"
@@ -1009,6 +1114,16 @@ export default function IphoneDialer({ salesMemberId }) {
                       >
                         <Plus className="w-4 h-4" /> New Message
                       </Button>
+                      {isMobile && (
+                        <Button
+                          onClick={() => setShowAiAssistant(true)}
+                          variant="outline"
+                          className="w-full gap-2"
+                          style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                        >
+                          <Sparkles className="w-4 h-4" /> Ask the AI Assistant
+                        </Button>
+                      )}
                     </div>
                     {conversations.length === 0 ? (
                       <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
@@ -1059,6 +1174,16 @@ export default function IphoneDialer({ salesMemberId }) {
                     <p className="font-semibold">{selectedConvo.contact_name || selectedConvo.from_number}</p>
                     <p className="text-xs opacity-60">{selectedConvo.from_number}</p>
                   </div>
+                  {isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAiAssistant(true)}
+                      title="Ask the AI assistant"
+                    >
+                      <Sparkles className="w-5 h-5" style={{ color: '#B8956A' }} />
+                    </Button>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -1102,6 +1227,7 @@ export default function IphoneDialer({ salesMemberId }) {
           Setting up calling...
         </p>
       )}
+      {scriptOverlays}
     </div>
   );
 }

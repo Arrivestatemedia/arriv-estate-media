@@ -37,6 +37,13 @@ function LayoutContent({ children, currentPageName }) {
     } catch { return false; }
   });
 
+  // The dialer's hamburger (mobile full-screen takeover) opens this menu.
+  useEffect(() => {
+    const openAppNav = () => setMobileOpen(true);
+    window.addEventListener("arriv:open-app-nav", openAppNav);
+    return () => window.removeEventListener("arriv:open-app-nav", openAppNav);
+  }, []);
+
   // Refresh Studio entitlement for conditional client nav
   useEffect(() => {
     if (!user || user.user_type !== "client") return;
@@ -290,7 +297,7 @@ function LayoutContent({ children, currentPageName }) {
       `}</style>
 
       <header 
-        className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20"
+        className={`sticky top-0 ${mobileOpen ? "z-[95]" : "z-50"} bg-[#1A1A1A] border-b border-[#B8956A]/20`}
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           paddingLeft: 'env(safe-area-inset-left)',
@@ -429,7 +436,16 @@ function LayoutContent({ children, currentPageName }) {
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+          <div
+            className="md:hidden fixed left-0 right-0 bottom-0 bg-black/50"
+            style={{ top: 'calc(4rem + env(safe-area-inset-top))' }}
+            onClick={() => setMobileOpen(false)}
+          >
+          <div
+            className="bg-[#1A1A1A] border-t border-[#B8956A]/20 px-4 py-3 space-y-1 overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 4rem)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {isDualAdmin && adminMode && hasEditorProfile && (
                             <button
                               onClick={() => {
@@ -492,6 +508,7 @@ function LayoutContent({ children, currentPageName }) {
                 </button>
               </>
               )}
+          </div>
           </div>
         )}
       </header>
