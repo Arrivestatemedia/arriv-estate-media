@@ -1,7 +1,10 @@
 # ARRIV ESTATE MEDIA — SMS DELIVERY & ENGAGEMENT TRACKING
 ## Phase 0: Audit, Feasibility, and Proposed Implementation
 
-Status: **AUDIT ONLY — nothing implemented. No production webhook, send path, phone number, or link has been changed.**
+Status as of 2026-10-21: **PHASES 1 AND 2 IMPLEMENTED** under the approved decisions (Arriv-owned redirect,
+disclosure copy held, conversation texts only). Sending numbers, the inbound webhook URL, and all existing
+routing are unchanged. Phase 3 (isolation rules) still needs its own approval, and nothing has been released
+to production customers beyond the app itself.
 Prepared: 2026-10-21
 
 ---
@@ -175,8 +178,10 @@ A customer reply is **never** assumed to answer the most recent outbound message
 
 - Conversation-level `Replied` = an inbound message exists after the latest outbound message. Always shown,
   with the inbound timestamp.
-- Message-level reply attribution is recorded only when the inbound arrives on a conversation whose most recent
-  message is a trackable outbound **and** that outbound was sent within the reply window (proposed: 72 hours).
+- Message-level reply attribution is recorded only when **exactly one** outbound message is waiting for an
+  answer (the run of unanswered outbound messages immediately before the inbound is a single message) and that
+  message was sent within the reply window (72 hours). Implemented this way so a reply can never be credited to
+  the newest text when the representative sent several, which is the "replies to an older message" case.
 - If the rep has sent anything newer since, the reply is shown at conversation level only — we state "Replied"
   without claiming which message it answered. This is the "replies to an older message" case, and honest
   behaviour is the requirement.
@@ -292,3 +297,21 @@ pass rather than bundled into the tracking work.
    hold disclosure for now.
 3. Delivery tracking scope: conversation messages only (recommended) / every text the company sends, including
    transactional notifications.
+
+---
+
+## 8. Certification evidence
+
+Run on 2026-10-21 with the `testSmsTracking` harness (admin-gated, synthetic 555 numbers and a `smstest_` run
+prefix, every synthetic row deleted in a finally block):
+
+- 17 of 17 checks pass, covering scenarios 1 to 12 including duplicate callbacks, a delayed callback arriving
+  after a confirmed delivery, a failed and an undelivered message, a message with no links, a rewritten link
+  with its destination preserved, the exclusion list, a human click, an automated preview, a normal reply, a
+  reply after several unanswered texts (no false attribution), a reply outside the window, per-representative
+  record separation, and an unknown SID.
+- The status callback endpoint rejects an unsigned request with 403 and acknowledges genuine callbacks with 204.
+- The inbound webhook still rejects an unsigned request with 403, and no longer returns or stores debug payloads.
+- The redirect endpoint responds 302 and fails open (an unknown or missing code still lands on Arriv, never a
+  broken link).
+- No synthetic rows remain after the run (verified: zero test conversations, messages and tracked links).

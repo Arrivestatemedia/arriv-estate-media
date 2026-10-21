@@ -15,6 +15,7 @@ import useIsMobile from "@/hooks/useIsMobile";
 import DialerAiAssistant from "./DialerAiAssistant";
 import CallScriptPrompt from "./CallScriptPrompt";
 import CallScriptSheet from "./CallScriptSheet";
+import MessageBubble from "./MessageBubble";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -656,9 +657,11 @@ export default function IphoneDialer({ salesMemberId }) {
         salesMemberId
       });
       setReplyText("");
-      await loadMessages(selectedConvo.id);
     } catch (err) {
-      console.error(err);
+      // The message record stays in the thread with the failure reason, so reload either way.
+      setError('Message was not sent. It is shown in the thread with the reason.');
+    } finally {
+      await loadMessages(selectedConvo.id);
     }
   };
 
@@ -1173,6 +1176,13 @@ export default function IphoneDialer({ salesMemberId }) {
                   <div className="flex-1">
                     <p className="font-semibold">{selectedConvo.contact_name || selectedConvo.from_number}</p>
                     <p className="text-xs opacity-60">{selectedConvo.from_number}</p>
+                    {(selectedConvo.last_reply_at || selectedConvo.last_link_click_at) && (
+                      <p className="text-xs mt-0.5" style={{ color: '#B8956A' }}>
+                        {selectedConvo.last_reply_at ? `Replied ${formatTime(selectedConvo.last_reply_at)}` : ""}
+                        {selectedConvo.last_reply_at && selectedConvo.last_link_click_at ? " · " : ""}
+                        {selectedConvo.last_link_click_at ? `Link opened ${formatTime(selectedConvo.last_link_click_at)}` : ""}
+                      </p>
+                    )}
                   </div>
                   {isMobile && (
                     <Button
@@ -1188,19 +1198,7 @@ export default function IphoneDialer({ salesMemberId }) {
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
                   {messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                      <div
-                        className="max-w-[75%] rounded-2xl px-4 py-2 text-sm"
-                        style={
-                          msg.direction === 'outbound'
-                            ? { backgroundColor: '#B8956A', color: '#fff' }
-                            : { backgroundColor: '#f3f4f6', color: '#1A1A1A' }
-                        }
-                      >
-                        <p>{msg.body}</p>
-                        <p className="text-xs mt-1 opacity-60">{formatTime(msg.created_date)}</p>
-                      </div>
-                    </div>
+                    <MessageBubble key={msg.id} message={msg} />
                   ))}
                   <div ref={messagesEndRef} />
                 </div>

@@ -30,6 +30,139 @@
       "type": "string",
       "description": "Twilio message SID"
     },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Assigned sales representative for this message, denormalized from the conversation so per-representative isolation can be expressed on the message itself."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unset",
+        "queued",
+        "sending",
+        "sent",
+        "delivered",
+        "undelivered",
+        "failed"
+      ],
+      "default": "unset",
+      "description": "Delivery status. 'delivered' is only ever written from a Twilio delivery confirmation, never inferred from a successful send request. 'unset' means no delivery information exists (legacy rows)."
+    },
+    "status_rank": {
+      "type": "integer",
+      "default": 0,
+      "description": "Ordering guard: unset 0, queued 1, sending 2, sent 3, delivered 4, undelivered/failed 5. A lower-ranked status never overwrites a higher-ranked one, so delayed callbacks cannot downgrade a message."
+    },
+    "status_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the visible status was last advanced"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Twilio accepted the message for sending"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Twilio confirmed delivery to the handset"
+    },
+    "failed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was reported as failed or undelivered"
+    },
+    "twilio_error_code": {
+      "type": "string",
+      "description": "Twilio error code for a failed or undelivered message"
+    },
+    "twilio_error_message": {
+      "type": "string",
+      "description": "Plain-language explanation of the failure, shown to the representative"
+    },
+    "segment_count": {
+      "type": "integer",
+      "description": "Number of SMS segments Twilio billed for this message"
+    },
+    "delivery_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_code": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Append-only delivery callback history (most recent 20 kept). Records every callback received, including duplicates and out-of-order ones, even when the visible status does not change."
+    },
+    "has_links": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this outbound message contained links eligible for engagement tracking"
+    },
+    "link_engagement": {
+      "type": "object",
+      "description": "Link engagement for this message. Only ever populated by a real tracked click; a message without links is never marked as opened.",
+      "properties": {
+        "click_count": {
+          "type": "integer",
+          "default": 0
+        },
+        "human_click_count": {
+          "type": "integer",
+          "default": 0
+        },
+        "preview_count": {
+          "type": "integer",
+          "default": 0
+        },
+        "first_click_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_click_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_destination_label": {
+          "type": "string"
+        },
+        "last_destination_url": {
+          "type": "string"
+        },
+        "last_event_type": {
+          "type": "string",
+          "enum": [
+            "",
+            "human",
+            "preview",
+            "unknown"
+          ],
+          "default": ""
+        }
+      }
+    },
+    "replied_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Set on an outbound message only when an inbound reply can be attributed to it with confidence (single unanswered outbound within the reply window). Absence means 'no confident attribution', not 'not replied'."
+    },
+    "reply_twilio_sid": {
+      "type": "string",
+      "description": "SID of the inbound message attributed as the reply to this outbound message"
+    },
     "record_version": {
       "type": "integer",
       "default": 1,

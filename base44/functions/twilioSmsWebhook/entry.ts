@@ -3,6 +3,7 @@ import { auditLog } from '../../shared/securityAudit.ts';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { containsPersonalPhoneNumber } from '../../shared/phoneNumberBlocker.ts';
 import { parseAccessSms, applyClientAccessSelection } from '../../shared/clientAccessSelection.ts';
+import { statusCallbackUrl, recordInboundReply } from '../../shared/smsTracking.ts';
 
 const norm = (n) => {
   if (!n) return '';
@@ -28,7 +29,13 @@ async function sendTwilioSms(to, body) {
       Authorization: 'Basic ' + btoa(`${sid}:${token}`),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
+    // Delivery status is reported back to the app; the sending number is unchanged.
+    body: new URLSearchParams({
+      To: to,
+      From: from,
+      Body: body,
+      StatusCallback: statusCallbackUrl(),
+    }).toString(),
   });
   return res.json();
 }
@@ -83,37 +90,7 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   try {
     const body = await req.text();
-    // v2: candidate-URL based Twilio signature validation
-
-    // DEBUG: Write request info to MessageLog BEFORE validation
-    try {
-      const appDomain = Deno.env.get('BASE44_APP_DOMAIN');
-      const candidates = [];
-      const bases = [];
-      if (appDomain) bases.push(appDomain.replace(/\/+$/, ''));
-      bases.push('https://arrivestatemedia.base44.app');
-      for (const base of bases) {
-        for (const prefix of ['', '/api']) {
-          candidates.push(`${base}${prefix}/functions/twilioSmsWebhook`);
-        }
-      }
-      const debugInfo = {
-        reqUrl: req.url,
-        method: req.method,
-        contentType: req.headers.get('content-type'),
-        hasSignature: !!req.headers.get('x-twilio-signature'),
-        bodyPreview: body.substring(0, 500),
-        appDomain: appDomain,
-        candidateUrls: candidates,
-      };
-      await base44.asServiceRole.entities.MessageLog.create({
-        message_type: 'sms',
-        recipient_type: 'admin',
-        message_content: JSON.stringify(debugInfo),
-        subject: 'TWILIO_WEBHOOK_DEBUG',
-        status: 'success',
-      });
-    } catch (e) { console.log('debug log failed:', e.message); }
+    // Twilio signature is validated below (candidate public URLs, since req.url is internal)
 
     // ── Twilio webhook signature verification ──
     const signatureValid = await validateTwilioRequest(req, body, 'twilioSmsWebhook');
@@ -129,11 +106,7 @@ Deno.serve(async (req) => {
           reason: 'invalid_twilio_signature',
         });
       } catch (_) {}
-      // TEMPORARY: return debug info as JSON for diagnosis
-      return new Response(JSON.stringify(debug, null, 2), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response('', { status: 403 });
     }
 
     const params = new URLSearchParams(body);
@@ -144,6 +117,17 @@ Deno.serve(async (req) => {
     const twilioSid = params.get('MessageSid');
 
     const senderNorm = norm(from);
+
+    // ── Idempotency: Twilio re-delivers a webhook when it does not see a fast 2xx.
+    // A message we have already stored is never stored a second time. ──
+    if (twilioSid) {
+      try {
+        const alreadyStored = await base44.asServiceRole.entities.SmsMessage.filter({ twilio_sid: twilioSid });
+        if (alreadyStored && alreadyStored.length > 0) {
+          return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { 'Content-Type': 'text/xml' } });
+        }
+      } catch (e) { console.error('Inbound dedup check failed:', e.message); }
+    }
 
     // ── Admin sender: route support replies back to the specialist/client ──
     const adminPhoneEnv = Deno.env.get('ADMIN_PHONE');
@@ -285,14 +269,20 @@ Deno.serve(async (req) => {
             });
           }
 
-          await base44.asServiceRole.entities.SmsMessage.create({
+          const inboundMessage = await base44.asServiceRole.entities.SmsMessage.create({
             conversation_id: conversation.id,
             from_number: from,
             to_number: to,
             body: messageBody,
             direction: 'inbound',
             twilio_sid: twilioSid,
+            sales_member_id: conversation.sales_member_id || '',
           });
+
+          // Customer engagement: record the reply. Never assumed to answer the newest text.
+          try {
+            await recordInboundReply(base44, conversation, { messageId: inboundMessage?.id, sid: twilioSid });
+          } catch (e) { console.error('Reply attribution failed:', e.message); }
 
           // ── Personal phone number blocking ──
           // If the sender's own phone number appears in the message (digit
@@ -684,14 +674,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    await base44.asServiceRole.entities.SmsMessage.create({
+    const inboundMessage = await base44.asServiceRole.entities.SmsMessage.create({
       conversation_id: conversation.id,
       from_number: from,
       to_number: to,
       body: messageBody,
       direction: 'inbound',
       twilio_sid: twilioSid,
+      sales_member_id: conversation.sales_member_id || salesMemberId || '',
     });
+
+    // Customer engagement: record the reply. Never assumed to answer the newest text.
+    try {
+      await recordInboundReply(base44, conversation, { messageId: inboundMessage?.id, sid: twilioSid });
+    } catch (e) { console.error('Reply attribution failed:', e.message); }
 
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
       headers: { 'Content-Type': 'text/xml' },

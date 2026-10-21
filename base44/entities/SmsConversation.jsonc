@@ -28,6 +28,31 @@
       "type": "string",
       "description": "Assigned sales member ID (optional)"
     },
+    "last_inbound_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer last sent a message in this conversation"
+    },
+    "last_outbound_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the business last sent a message in this conversation"
+    },
+    "last_reply_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer last replied. This is the conversation-level Replied indicator; it never claims which outbound message was answered."
+    },
+    "link_click_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of tracked link clicks observed across this conversation"
+    },
+    "last_link_click_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a tracked link in this conversation was last opened"
+    },
     "job_id": {
       "type": "string",
       "description": "Active job this conversation is relaying texts for (media-specialist relay)"
