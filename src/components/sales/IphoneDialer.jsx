@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search, Sparkles, FileText, Volume1, Volume2 } from "lucide-react";
+import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search, Sparkles, FileText } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
@@ -17,7 +17,9 @@ import CallScriptPrompt from "./CallScriptPrompt";
 import CallScriptSheet from "./CallScriptSheet";
 import MessageBubble from "./MessageBubble";
 import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
-import { routeCallToEarpiece, routeCallToSpeaker, releaseCallAudio, canControlCallOutput, isPhoneDevice } from "@/lib/callAudioRouting";
+import { isPhoneDevice } from "@/lib/callAudioRouting";
+import useCallAudioRouting from "@/hooks/useCallAudioRouting";
+import CallAudioControl from "@/components/sales/CallAudioControl";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const VERIFY_MESSAGE = "Unable to verify your account. Contact your administrator.";
@@ -32,7 +34,6 @@ export default function IphoneDialer({ salesMemberId }) {
   const [keypadInput, setKeypadInput] = useState("");
   const [callDuration, setCallDuration] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [speakerOn, setSpeakerOn] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingFrom, setIncomingFrom] = useState("");
   const [incomingDisplayName, setIncomingDisplayName] = useState("");
@@ -59,10 +60,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
   const isMobile = useIsMobile();
 
-  // The speaker/earpiece switch is offered only where a call output can really be
-  // switched: on a phone, in a browser that exposes the control. On a computer
-  // there is no earpiece to switch to.
-  const showAudioToggle = isMobile && isPhoneDevice && canControlCallOutput();
+  const callAudio = useCallAudioRouting(isMobile && isPhoneDevice);
   const [scriptClient, setScriptClient] = useState(null);
   const [showScriptPrompt, setShowScriptPrompt] = useState(false);
   const [showScriptMap, setShowScriptMap] = useState(false);
@@ -362,8 +360,7 @@ export default function IphoneDialer({ salesMemberId }) {
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
     setMuted(false);
-    setSpeakerOn(false);
-    releaseCallAudio();
+    callAudio.release();
     setCallState(CALL_STATES.IDLE);
     callRef.current = null;
 
@@ -517,6 +514,7 @@ export default function IphoneDialer({ salesMemberId }) {
     }
 
     try {
+      callAudio.prepare();
       // Wait for device to be ready (up to 10 seconds)
       if (!deviceRef.current || deviceRef.current.state !== 'registered') {
         console.log('Device not yet registered, waiting...');
@@ -534,11 +532,8 @@ export default function IphoneDialer({ salesMemberId }) {
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
 
-      // The route is applied once the call is live: the phone only offers its
-      // outputs (earpiece, speaker) while the microphone is open.
-      setSpeakerOn(false);
-
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
+      callAudio.attach(call);
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, sid: null });
       setCallState(CALL_STATES.IN_CALL);
@@ -553,7 +548,6 @@ export default function IphoneDialer({ salesMemberId }) {
         callRef.current = call;
         setCurrentCall(prev => ({ ...prev, sid: call.sid }));
         setCallState(CALL_STATES.IN_CALL);
-        startCallAudioRoute();
         callStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
@@ -572,6 +566,7 @@ export default function IphoneDialer({ salesMemberId }) {
       if (phoneNumber) setKeypadInput('');
     } catch (err) {
       console.error('Call initiation failed:', err);
+      callAudio.release();
       setError('Call failed: ' + err.message);
       setCallState(CALL_STATES.IDLE);
     }
@@ -580,11 +575,12 @@ export default function IphoneDialer({ salesMemberId }) {
   const acceptCall = () => {
     if (incomingCall) {
       console.log('Accepting incoming call from:', incomingFrom);
+      callAudio.prepare();
+      callAudio.attach(incomingCall);
       incomingCall.accept();
       callRef.current = incomingCall;
       setCurrentCall({ number: incomingFrom, startTime: Date.now(), incoming: true });
       setCallState(CALL_STATES.IN_CALL);
-      startCallAudioRoute();
       callStartRef.current = Date.now();
       timerRef.current = setInterval(() => {
         setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
@@ -617,18 +613,7 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  // Every call begins on the handset route, never on the loudspeaker.
-  const startCallAudioRoute = () => {
-    setSpeakerOn(false);
-    routeCallToEarpiece(deviceRef.current).catch(() => {});
-  };
 
-  const toggleSpeaker = () => {
-    const next = !speakerOn;
-    setSpeakerOn(next);
-    const route = next ? routeCallToSpeaker : routeCallToEarpiece;
-    route(deviceRef.current).catch(() => {});
-  };
 
   const initiateThreeWay = async () => {
     if (!window._senderCallSid || !secondCallSid) {
@@ -837,15 +822,9 @@ export default function IphoneDialer({ salesMemberId }) {
           <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
             {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </Button>
-          {showAudioToggle && (
-            <Button
-              onClick={toggleSpeaker}
-              variant="ghost"
-              className={`h-14 w-14 rounded-full ${speakerOn ? 'bg-white text-black hover:bg-white/90' : 'text-white hover:bg-white/20'}`}
-              title={speakerOn ? 'Switch to earpiece' : 'Switch to speaker'}
-            >
-              {speakerOn ? <Volume2 className="w-6 h-6" /> : <Volume1 className="w-6 h-6" />}
-            </Button>
+          {isMobile && callAudio.supported && (
+            <CallAudioControl outputs={callAudio.outputs} selectedId={callAudio.selectedId}
+              busy={callAudio.busy} onSelect={callAudio.select} />
           )}
           {!showThreeWayButton && (
             <Button onClick={() => setShowTransferPanel(true)} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
@@ -878,6 +857,16 @@ export default function IphoneDialer({ salesMemberId }) {
             </Button>
           )}
         </div>
+        {isMobile && callAudio.supported && (
+          <p role="status" className="mb-3 max-w-xs text-center text-sm opacity-80">
+            {callAudio.selectedId
+              ? `Audio: ${callAudio.outputs.find(output => output.deviceId === callAudio.selectedId)?.label || 'Selected output'}`
+              : 'System audio. Tap Audio to choose an output.'}
+          </p>
+        )}
+        {isMobile && callAudio.error && (
+          <p role="alert" className="mb-4 max-w-xs text-center text-sm">{callAudio.error}</p>
+        )}
         {showTransferPanel && (
           <TransferCallPanel
             onClose={() => setShowTransferPanel(false)}
