@@ -26,29 +26,7 @@ const RESUME_SCHEMA = {
   }
 };
 
-const EVALUATION_SCHEMA = {
-  type: "object",
-  properties: {
-    overall_match_score: { type: "number" },
-    interview_score: { type: "number" },
-    resume_match: { type: "number" },
-    skills_match: { type: "number" },
-    experience_match: { type: "number" },
-    competency_match: { type: "number" },
-    evidence_completeness: { type: "number" },
-    confidence_rating: { type: "string" },
-    estimated_success_score: { type: "number" },
-    confidence_level: { type: "string" },
-    strengths: { type: "array", items: { type: "string" } },
-    development_areas: { type: "array", items: { type: "string" } },
-    missing_information: { type: "array", items: { type: "string" } },
-    evidence_summary: { type: "string" },
-    score_explanations: { type: "object" },
-    overall_recommendation: { type: "string" },
-    proceed_recommendation: { type: "string", description: "Whether to advance: 'Advance to Next Round', 'Borderline - Manager Review Needed', or 'Do Not Advance'" },
-    proceed_reasoning: { type: "string", description: "Reasoning for the proceed recommendation" }
-  }
-};
+import { EVALUATION_SCHEMA } from "./hireiqEvaluation.ts";
 
 /**
  * Auto-evaluates a new candidate by running resume analysis (if not already

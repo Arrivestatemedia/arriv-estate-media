@@ -1,5 +1,11 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { buildScorecardFromAnswers, ROUND1_QUESTIONS_FOR_LLM } from "../../shared/tavusInterview.ts";
+import {
+  resolveInterviewCandidate,
+  attachRound1Scorecard,
+  recalculateSuccessScore,
+  notifyAdminOfInterviewCompletion,
+} from "../../shared/interviewScorecardCompletion.ts";
 
 /**
  * completeSelfGuidedInterview
@@ -14,14 +20,23 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { token } = body;
-    if (!token) return Response.json({ error: "token is required" }, { status: 400 });
+    // `token` completes the interview the candidate is finishing. `sessionId`
+    // re-runs completion for a session whose scorecard never reached the
+    // candidate (repair of a completed interview).
+    const { token, sessionId } = body;
+    if (!token && !sessionId) return Response.json({ error: "token is required" }, { status: 400 });
 
-    const res = await base44.asServiceRole.entities.InterviewSession.filter(
-      { session_token: token }, "-created_date", 1
-    );
-    const sessions = (res?.data ?? res) || [];
-    const session = Array.isArray(sessions) ? sessions[0] : null;
+    let session = null;
+    if (sessionId) {
+      const rec = await base44.asServiceRole.entities.InterviewSession.get(sessionId).catch(() => null);
+      session = rec?.data ?? null;
+    } else {
+      const res = await base44.asServiceRole.entities.InterviewSession.filter(
+        { session_token: token }, "-created_date", 1
+      );
+      const sessions = (res?.data ?? res) || [];
+      session = Array.isArray(sessions) ? sessions[0] : null;
+    }
     if (!session) return Response.json({ error: "Interview not found" }, { status: 404 });
 
     // Load all final responses in question order
@@ -81,26 +96,38 @@ Deno.serve(async (req) => {
       review_required: review_required,
     });
 
-    // Save to the JobApplication round1_scorecard (same field Ashley uses)
-    if (session.application_id) {
-      try {
-        await base44.asServiceRole.entities.JobApplication.update(session.application_id, {
-          status: "interview_invitation",
-        });
-      } catch (_) {}
-      // Also try HireCandidate if linked
-      try {
-        const hcRes = await base44.asServiceRole.entities.HireCandidate.filter(
-          { job_id: session.application_id }, "-created_date", 1
-        );
-        const hc = (hcRes?.data ?? hcRes)?.[0];
-        if (hc) {
-          await base44.asServiceRole.entities.HireCandidate.update(hc.id, {
-            round1_scorecard: scorecard,
-            status: "interviewing",
-          });
+    // Attach the scorecard to the candidate it belongs to, recalculate the
+    // success score with that scorecard included, and alert the admin.
+    let evaluation = null;
+    try {
+      const { candidate } = await resolveInterviewCandidate(base44, {
+        applicationId: session.application_id,
+        candidateEmail: session.candidate_email,
+      });
+      if (candidate) {
+        const withScorecard = await attachRound1Scorecard(base44, candidate, scorecard);
+        try {
+          evaluation = await recalculateSuccessScore(base44, withScorecard);
+        } catch (e) {
+          console.warn("Success score recalculation failed:", e.message);
         }
-      } catch (_) {}
+        try {
+          await notifyAdminOfInterviewCompletion(base44, {
+            candidateName: candidate.name || session.candidate_name,
+            positionTitle: session.position_title,
+            source: "self-guided video",
+            reviewRequired: !!review_required,
+            scorecard,
+            evaluation,
+          });
+        } catch (e) {
+          console.warn("Interview completion notification failed:", e.message);
+        }
+      } else {
+        console.warn("No HireCandidate found for interview session", session.id);
+      }
+    } catch (e) {
+      console.warn("Interview completion pipeline failed:", e.message);
     }
 
     return Response.json({
@@ -110,6 +137,7 @@ Deno.serve(async (req) => {
       review_required,
       all_answered,
       answers_count: answers.length,
+      evaluation,
     });
   } catch (error) {
     console.error("completeSelfGuidedInterview error:", error.message);

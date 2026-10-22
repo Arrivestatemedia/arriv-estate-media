@@ -1,5 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseTranscriptToScorecard } from "../../shared/tavusInterview.ts";
+import {
+  resolveInterviewCandidate,
+  attachRound1Scorecard,
+  recalculateSuccessScore,
+  notifyAdminOfInterviewCompletion,
+} from "../../shared/interviewScorecardCompletion.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -213,24 +219,37 @@ Deno.serve(async (req) => {
             tavus_review_required: false,
           });
 
-          // If linked to a HireCandidate, also save there
-          if (participant?.id) {
+          // Attach the scorecard to the candidate, recalculate the success score
+          // with it included, and alert the admin.
+          if (participant?.email || conference.application_id) {
             try {
-              const candRes = await base44.asServiceRole.entities.HireCandidate.filter(
-                { email: participant.email },
-                "-created_date",
-                5
-              );
-              const candidates = candRes?.data ?? candRes ?? [];
-              const candidate = Array.isArray(candidates) ? candidates[0] : null;
+              const { candidate } = await resolveInterviewCandidate(base44, {
+                applicationId: conference.application_id,
+                candidateEmail: participant?.email,
+              });
               if (candidate) {
-                await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-                  round1_scorecard: parsed.scorecard,
-                  status: "interviewing",
-                });
+                const withScorecard = await attachRound1Scorecard(base44, candidate, parsed.scorecard);
+                let evaluation = null;
+                try {
+                  evaluation = await recalculateSuccessScore(base44, withScorecard);
+                } catch (e) {
+                  console.warn("Success score recalculation failed:", e.message);
+                }
+                try {
+                  await notifyAdminOfInterviewCompletion(base44, {
+                    candidateName: candidate.name || candidateName,
+                    positionTitle: conference.title,
+                    source: "conversational AI",
+                    reviewRequired: false,
+                    scorecard: parsed.scorecard,
+                    evaluation,
+                  });
+                } catch (e) {
+                  console.warn("Interview completion notification failed:", e.message);
+                }
               }
             } catch (e) {
-              console.warn("Failed to update HireCandidate:", e.message);
+              console.warn("Failed to complete interview scorecard pipeline:", e.message);
             }
           }
         } catch (e) {
