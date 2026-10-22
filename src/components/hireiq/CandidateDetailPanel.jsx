@@ -10,6 +10,7 @@ import PerformanceTracker from "@/components/hireiq/PerformanceTracker";
 import HireHandoffSection from "@/components/hireiq/HireHandoffSection";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 import CandidateRecordings from "@/components/hireiq/CandidateRecordings";
+import ScorecardDetailModal from "@/components/hireiq/ScorecardDetailModal";
 import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
 import BrandedFileLink from "@/components/shared/BrandedFileLink";
 import {
@@ -51,6 +52,30 @@ function calculateAge(dob) {
   return age;
 }
 
+function countScorecardQuestions(scorecard) {
+  return (scorecard?.sections || []).reduce((n, s) => n + (s.questions?.length || 0), 0);
+}
+
+// A candidate's stored Round 1 / Round 2 scorecard, opened in the detail modal.
+function ScorecardRow({ label, questionCount, score, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left p-3 text-sm rounded-lg cursor-pointer transition-opacity hover:opacity-80"
+      style={{ backgroundColor: innerBg, border: "1px solid rgba(184,149,106,0.18)" }}
+    >
+      <div className="flex justify-between items-center gap-3">
+        <span className="font-medium" style={{ color: CREAM }}>{label}</span>
+        <span className="text-xs px-2 py-0.5 rounded shrink-0" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>View</span>
+      </div>
+      <p className="text-xs mt-1" style={{ color: MUTED_LIGHT }}>
+        {questionCount} questions · Score: <span style={{ fontFamily: "'SF Mono', monospace", color: GOLD }}>{Math.round(score || 0)}</span>/100
+      </p>
+    </button>
+  );
+}
+
 export default function CandidateDetailPanel({ candidate, job, onBack, onCandidateUpdated, onDecisionConfirmed }) {
   const [interviews, setInterviews] = useState([]);
   const [loadingInterviews, setLoadingInterviews] = useState(true);
@@ -59,6 +84,7 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
   const [evaluating, setEvaluating] = useState(false);
   const [notes, setNotes] = useState(candidate?.interview_notes || "");
   const [pendingDecision, setPendingDecision] = useState(null);
+  const [openScorecard, setOpenScorecard] = useState(null);
 
   useEffect(() => {
     setNotes(candidate?.interview_notes || "");
@@ -247,22 +273,45 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
             )}
             {loadingInterviews ? (
               <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin" style={{ color: GOLD }} /></div>
-            ) : interviews.length === 0 && !showInterview ? (
+            ) : (interviews.length === 0 && !showInterview && !candidate?.round1_scorecard && !candidate?.round2_scorecard) ? (
               <p className="text-sm" style={{ color: MUTED_LIGHT }}>No interviews yet</p>
             ) : (
               <div className="space-y-2">
+                {candidate?.round1_scorecard && (
+                  <ScorecardRow
+                    label="Round 1 — General Competency"
+                    questionCount={countScorecardQuestions(candidate.round1_scorecard)}
+                    score={candidate.round1_scorecard.total_score}
+                    onClick={() => setOpenScorecard({ title: "Round 1 — General Competency Scorecard", scorecard: candidate.round1_scorecard })}
+                  />
+                )}
+                {candidate?.round2_scorecard && (
+                  <ScorecardRow
+                    label="Round 2 — Role-Specific"
+                    questionCount={countScorecardQuestions(candidate.round2_scorecard)}
+                    score={candidate.round2_scorecard.total_score}
+                    onClick={() => setOpenScorecard({ title: "Round 2 — Role-Specific Scorecard", scorecard: candidate.round2_scorecard })}
+                  />
+                )}
                 {interviews.map(interview => (
-                  <div key={interview.id} className="p-3 text-sm rounded-lg" style={{ backgroundColor: innerBg, border: "1px solid rgba(184,149,106,0.1)" }}>
+                  <button
+                    key={interview.id}
+                    type="button"
+                    onClick={() => setOpenScorecard({ title: interview.interviewer_name ? `Interview — ${interview.interviewer_name}` : "Interview Scorecard", interview })}
+                    className="w-full text-left p-3 text-sm rounded-lg cursor-pointer transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: innerBg, border: "1px solid rgba(184,149,106,0.1)" }}
+                  >
                     <div className="flex justify-between">
                       <span className="font-medium" style={{ color: CREAM }}>{interview.interviewer_name || "Interviewer"}</span>
                       <span className="text-xs" style={{ color: MUTED_LIGHT }}>{interview.interview_date}</span>
                     </div>
                     <p className="text-xs mt-1" style={{ color: MUTED_LIGHT }}>{interview.questions?.length || 0} questions · Score: <span style={{ fontFamily: "'SF Mono', monospace", color: GOLD }}>{interview.overall_score || 0}</span>/100</p>
                     {interview.ai_summary?.overall_assessment && <p className="text-xs mt-1" style={{ color: CREAM }}>{interview.ai_summary.overall_assessment}</p>}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
+            <p className="text-xs mt-3" style={{ color: MUTED_LIGHT }}>Click a scorecard row to open the full detail, question by question.</p>
           </div>
 
           {/* Interview Recordings — all clips (stitched, parts, tail) with dropdown */}
@@ -322,6 +371,16 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
           <PerformanceTracker candidate={candidate} job={job} />
         </div>
       )}
+
+      <ScorecardDetailModal
+        open={!!openScorecard}
+        onClose={() => setOpenScorecard(null)}
+        title={openScorecard?.title}
+        scorecard={openScorecard?.scorecard}
+        interview={openScorecard?.interview}
+        candidateName={candidate?.name}
+        job={job}
+      />
 
       {/* Decision confirmation dialog */}
       <AlertDialog open={!!pendingDecision} onOpenChange={(open) => !open && setPendingDecision(null)}>
