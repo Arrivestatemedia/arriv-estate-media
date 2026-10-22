@@ -534,9 +534,9 @@ export default function IphoneDialer({ salesMemberId }) {
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
 
-      // Declare the call as a call before the microphone opens, so the call
-      // audio does not default to the loudspeaker.
-      startCallAudioRoute();
+      // The route is applied once the call is live: the phone only offers its
+      // outputs (earpiece, speaker) while the microphone is open.
+      setSpeakerOn(false);
 
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
