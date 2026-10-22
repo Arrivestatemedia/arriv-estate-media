@@ -17,7 +17,7 @@ import CallScriptPrompt from "./CallScriptPrompt";
 import CallScriptSheet from "./CallScriptSheet";
 import MessageBubble from "./MessageBubble";
 import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
-import { routeCallToEarpiece, routeCallToSpeaker, releaseCallAudio } from "@/lib/callAudioRouting";
+import { routeCallToEarpiece, routeCallToSpeaker, releaseCallAudio, canControlCallOutput, isPhoneDevice } from "@/lib/callAudioRouting";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const VERIFY_MESSAGE = "Unable to verify your account. Contact your administrator.";
@@ -58,6 +58,11 @@ export default function IphoneDialer({ salesMemberId }) {
   const [secondCallSid, setSecondCallSid] = useState(null);
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
   const isMobile = useIsMobile();
+
+  // The speaker/earpiece switch is offered only where a call output can really be
+  // switched: on a phone, in a browser that exposes the control. On a computer
+  // there is no earpiece to switch to.
+  const showAudioToggle = isMobile && isPhoneDevice && canControlCallOutput();
   const [scriptClient, setScriptClient] = useState(null);
   const [showScriptPrompt, setShowScriptPrompt] = useState(false);
   const [showScriptMap, setShowScriptMap] = useState(false);
@@ -528,7 +533,11 @@ export default function IphoneDialer({ salesMemberId }) {
       }
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
-      
+
+      // Declare the call as a call before the microphone opens, so the call
+      // audio does not default to the loudspeaker.
+      startCallAudioRoute();
+
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, sid: null });
@@ -828,7 +837,7 @@ export default function IphoneDialer({ salesMemberId }) {
           <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
             {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </Button>
-          {isMobile && (
+          {showAudioToggle && (
             <Button
               onClick={toggleSpeaker}
               variant="ghost"
