@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     let session = null;
     if (sessionId) {
       const rec = await base44.asServiceRole.entities.InterviewSession.get(sessionId).catch(() => null);
-      session = rec?.data ?? null;
+      session = rec?.data ?? rec ?? null;
     } else {
       const res = await base44.asServiceRole.entities.InterviewSession.filter(
         { session_token: token }, "-created_date", 1
