@@ -84,6 +84,5 @@ export function missingProfileFields(record: any): string[] {
   if (!record?.email) missing.push("Email address");
   if (!record?.phone) missing.push("Phone number");
   if (!record?.address) missing.push("Residential address");
-  if (!record?.dob) missing.push("Date of birth");
   return missing;
 }

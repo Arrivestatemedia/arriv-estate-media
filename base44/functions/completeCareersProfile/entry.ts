@@ -57,7 +57,6 @@ export default async function (req: Request): Promise<Response> {
     if (!email || !email.includes('@')) errors.email = 'A valid email address is required.';
     if (!phone) errors.phone = 'A phone number is required.';
     if (!address) errors.address = 'Your residential address is required.';
-    if (!dob) errors.dob = 'Your date of birth is required.';
     if (!lastRelatedJob) errors.last_related_job = 'Please describe your most recent related experience.';
     if (!whyGoodFit) errors.why_good_fit = 'Please tell us why you are a good fit.';
     if (!fields.eeoc_agreed) errors.eeoc_agreed = 'Please acknowledge the Equal Employment Opportunity notice.';
