@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { APPLICATION_STATUSES, SALES_STATUSES } from "@/lib/applicationStatus";
 import AdminApplicationRow from "@/components/admin/AdminApplicationRow";
 import AdminSalesApplicationRow from "@/components/admin/AdminSalesApplicationRow";
+import ImportIndeedApplicantModal from "@/components/admin/ImportIndeedApplicantModal";
 import SalesWelcomeVideoControl from "@/components/admin/SalesWelcomeVideoControl";
 import SalesTrainingVideosControl from "@/components/admin/SalesTrainingVideosControl";
 import QueuedApplicationEmails from "@/components/admin/QueuedApplicationEmails";
 import AcceptedPendingPreviewLinks from "@/components/admin/AcceptedPendingPreviewLinks";
-import { Search, Briefcase, Camera } from "lucide-react";
+import { Search, Briefcase, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 const positionOf = (app) => app.position || "media_specialist";
@@ -29,6 +30,7 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
   const [statusFilter, setStatusFilter] = useState("all");
   const [positionTab, setPositionTab] = useState("media_specialist");
   const [showArchived, setShowArchived] = useState(false);
+  const [showImportIndeed, setShowImportIndeed] = useState(false);
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["job-applications"],
@@ -231,6 +233,27 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
 
       {activeTab.isSales && (
         <>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-[#B8956A]/25 bg-white p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#1A1A1A]">Indeed Fast-Track</p>
+              <p className="text-xs text-[#1A1A1A]/60">
+                Import a résumé from Indeed, then send the applicant their personalized Careers Profile link.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowImportIndeed(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#B8956A] text-white hover:bg-[#A68559] transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Import Indeed Applicant
+            </button>
+          </div>
+          <ImportIndeedApplicantModal
+            open={showImportIndeed}
+            onOpenChange={setShowImportIndeed}
+            openings={openings}
+            onImported={() => queryClient.invalidateQueries({ queryKey: ["job-applications"] })}
+          />
           <SalesWelcomeVideoControl />
           <SalesTrainingVideosControl />
         </>

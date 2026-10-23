@@ -3,11 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SALES_STATUSES, getStatusLabel, getStatusColor, POSITION_LABELS } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2, UserCheck, Crown } from "lucide-react";
+import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2, UserCheck, Crown, ClipboardCopy } from "lucide-react";
 import moment from "moment";
 import InterviewSchedulerModal from "./InterviewSchedulerModal";
 import DeleteApplicationDialog from "./DeleteApplicationDialog";
 import ReferenceCheckModal from "./ReferenceCheckModal";
+import IndeedFastTrackPanel from "./IndeedFastTrackPanel";
 import { Users } from "lucide-react";
 
 export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, autoExpand, autoAction, onAutoActionDone }) {
@@ -76,6 +77,20 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, auto
               <Briefcase className="w-3 h-3" />
               {POSITION_LABELS.sales_growth_advisor}
             </div>
+            {app.imported_from_indeed && (
+              <div
+                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                  app.profile_completion_status === "completed"
+                    ? "bg-[#B8956A]/15 text-[#1A1A1A]"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                <ClipboardCopy className="w-3 h-3" />
+                {app.profile_completion_status === "completed"
+                  ? "Careers Profile complete"
+                  : "Indeed · awaiting profile"}
+              </div>
+            )}
           </div>
           <span
             className="px-3 py-1 rounded-full text-xs font-semibold text-white"
@@ -127,6 +142,9 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, auto
             <p className="font-medium text-[var(--text-primary)] mt-2">Why a Good Fit</p>
             <p className="text-[var(--text-secondary)] whitespace-pre-wrap">{app.why_good_fit}</p>
           </div>
+
+          {/* Indeed Fast-Track: résumé facts, personalized link, Khetha IQ status */}
+          {app.imported_from_indeed && <IndeedFastTrackPanel app={app} />}
 
           {/* Schedule interview */}
           <div className="border-t border-[var(--border-color)] pt-3 flex flex-wrap items-center gap-3">

@@ -29,6 +29,14 @@ function asArray(result: any): any[] {
   return Array.isArray(list) ? list : [];
 }
 
+/** Loads an applicant by id, treating an unrecognised id as "not found". */
+async function loadApplication(base44: any, applicationId: string): Promise<any | null> {
+  const rows = asArray(
+    await base44.asServiceRole.entities.JobApplication.filter({ id: applicationId }).catch(() => []),
+  );
+  return rows[0] || null;
+}
+
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -48,9 +56,7 @@ export default async function (req: Request): Promise<Response> {
       const applicationId = clean(body.application_id);
       if (!applicationId) return Response.json({ error: 'application_id is required' }, { status: 400 });
 
-      const existing = asArray(
-        await base44.asServiceRole.entities.JobApplication.filter({ id: applicationId }),
-      )[0];
+      const existing = await loadApplication(base44, applicationId);
       if (!existing) return Response.json({ error: 'Applicant not found' }, { status: 404 });
 
       // Reads the current link without changing it, so an administrator can

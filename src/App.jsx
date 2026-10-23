@@ -10,6 +10,7 @@ import AboutJob from './pages/AboutJob';
 import AboutJobAtlanta from './pages/AboutJobAtlanta';
 import AboutSalesJob from './pages/AboutSalesJob';
 import SalesJobApplication from './pages/SalesJobApplication';
+import CareersProfile from './pages/CareersProfile';
 import SalesChangePassword from './pages/SalesChangePassword';
 import PurchaseApparel from './pages/PurchaseApparel';
 import ApplicationPortal from './pages/ApplicationPortal';
@@ -551,6 +552,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminClientGalleryPreview" element={<AdminClientGalleryPreview />} />
       <Route path="/sign/:token" element={<SignDocumentPage />} />
       <Route path="/join" element={<RegionalJobRouter />} />
+      <Route path="/careers/continue/:token" element={<CareersProfile />} />
       <Route
         path="/PrepaidPurchase"
         element={
