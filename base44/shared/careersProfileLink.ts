@@ -1,24 +1,43 @@
 // careersProfileLink.ts
 // Personalized Careers Profile links for applicants imported from Indeed.
 //
-// A link is a single opaque token that belongs to exactly one JobApplication
-// record. The token carries no applicant information and no record id, so the
-// URL never reveals an internal id or personal detail. Every read and write
-// through a link is validated server-side against the record the token belongs
-// to. Regenerating a token replaces it, which invalidates the previous link.
+// A link is a single token that belongs to exactly one JobApplication record.
+// The token is the applicant's name followed by a short random code, so the link
+// reads clearly in a message while staying unguessable, and it never contains the
+// record id. Every read and write through a link is validated server-side against
+// the record the token belongs to. Regenerating a token replaces it, which
+// invalidates the previous link.
 
-const TOKEN_BYTES = 16;
 const DEFAULT_TTL_DAYS = 30;
+const TOKEN_CODE_CHARS = 6;
+const NAME_SLUG_MAX = 30;
 
 export const CAREERS_PROFILE_PATH = "/careers/continue";
 
-/** A cryptographically secure, unguessable token (128 bits, URL-safe). */
-export function generateCareersToken(): string {
-  const bytes = new Uint8Array(TOKEN_BYTES);
+/** The visible part of the link: the applicant's own name, URL-safe. */
+function nameSlug(name: string): string {
+  const slug = (name || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, NAME_SLUG_MAX)
+    .replace(/^-+|-+$/g, "");
+  return slug || "applicant";
+}
+
+/** A short random code (about 31 bits) that keeps the link unguessable. */
+function randomCode(): string {
+  const bytes = new Uint8Array(TOKEN_CODE_CHARS);
   crypto.getRandomValues(bytes);
   return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
+    .map((b) => (b % 36).toString(36))
     .join("");
+}
+
+/** Builds the applicant's token: their name plus a short random code. */
+export function generateCareersToken(name: string = ""): string {
+  return `${nameSlug(name)}-${randomCode()}`;
 }
 
 export function tokenExpiryFrom(now: Date = new Date(), days: number = DEFAULT_TTL_DAYS): string {
@@ -68,7 +87,7 @@ export function linkStateFor(record: any): LinkState {
  */
 export async function loadApplicantByToken(base44: any, token: string): Promise<any | null> {
   const clean = (token || "").trim();
-  if (!clean || clean.length < 32) return null;
+  if (!clean || clean.length < 8) return null;
   const rows = await base44.asServiceRole.entities.JobApplication.filter({
     careers_profile_token: clean,
   });

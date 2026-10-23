@@ -87,7 +87,7 @@ export default async function (req: Request): Promise<Response> {
       }
 
       // Regenerating replaces the token, so the previous link stops working.
-      const token = generateCareersToken();
+      const token = generateCareersToken(existing.full_name);
       const expiresAt = tokenExpiryFrom();
       await base44.asServiceRole.entities.JobApplication.update(applicationId, {
         careers_profile_token: token,
@@ -160,7 +160,7 @@ export default async function (req: Request): Promise<Response> {
       );
     }
 
-    const token = generateCareersToken();
+    const token = generateCareersToken(fullName);
     const tokenCreatedAt = new Date().toISOString();
     const tokenExpiresAt = tokenExpiryFrom();
 
