@@ -21,7 +21,7 @@ const CONTACT_SCHEMA = {
     dob: {
       type: "string",
       description:
-        "Date of birth in YYYY-MM-DD form ONLY when a date of birth is explicitly printed on the résumé. Never derive it from graduation dates, employment dates or age. Leave empty when it is not printed.",
+        "Date of birth in YYYY-MM-DD form ONLY when a date of birth is explicitly printed on the résumé. Never derive it from graduation dates, employment dates or age, and never substitute a placeholder, an estimate or any date of your own. Return an empty string when no date of birth is printed.",
     },
     linkedin: { type: "string", description: "LinkedIn profile URL when printed on the résumé" },
     uncertain_fields: {

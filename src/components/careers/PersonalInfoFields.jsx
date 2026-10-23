@@ -20,10 +20,11 @@ export default function PersonalInfoFields({ fields, onChange, errors }) {
         <Field
           label="Date of Birth"
           type="date"
+          required
           value={fields.dob}
           onChange={set("dob")}
           error={errors.dob}
-          hint="Optional — add it only if you'd like us to have it."
+          hint="We never read this from a résumé, so please add it."
         />
       </div>
 

@@ -35,6 +35,7 @@ export function fieldsToConfirm(fields, uncertainFields = []) {
   if (!fields.email?.trim()) missing.push("Email address");
   if (!fields.phone?.trim()) missing.push("Phone number");
   if (!fields.address?.trim()) missing.push("Residential address");
+  if (!fields.dob?.trim()) missing.push("Date of birth (never read from a résumé, so they must add it)");
   if (!fields.last_related_job?.trim()) missing.push("Most recent related experience");
   uncertainFields.forEach((label) => missing.push(`${label} (needs confirmation)`));
   return missing;
