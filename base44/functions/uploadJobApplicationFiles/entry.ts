@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendWelcomeEmail } from '../../shared/brevoWelcomeEmail.ts';
 import { sendSalesWelcomeEmail } from '../../shared/brevoSalesWelcomeEmail.ts';
+import { sendAdminNewApplicationSms } from '../../shared/applicationAdminSms.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -220,25 +221,14 @@ Signature: ${signature}
       job_opening_id: jobOpeningId || null,
     });
 
-    // Notify admin by text about the new application
-    try {
-      const adminPhone = Deno.env.get('ADMIN_PHONE');
-      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      if (adminPhone && twilioPhone && accountSid && authToken) {
-        const smsBody = `New ${positionLabel} application received: ${fullName} (${email}). Review it in the Arriv dashboard.`;
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({ From: twilioPhone, To: adminPhone, Body: smsBody }).toString(),
-        });
-      }
-    } catch (smsError) {
-      console.error('Failed to send admin SMS notification:', smsError.message);
+    // Notify admin by text about the new application. Uses the shared
+    // notification so the public application and the Indeed Fast-Track send the
+    // exact same message.
+    const smsSent = await sendAdminNewApplicationSms({ positionLabel, fullName, email });
+    if (smsSent && application?.id) {
+      await base44.asServiceRole.entities.JobApplication.update(application.id, {
+        admin_sms_notified_at: new Date().toISOString(),
+      }).catch(() => {});
     }
 
     // Send welcome email to the applicant via Brevo (non-blocking on failure)

@@ -21,12 +21,12 @@
     },
     "address": {
       "type": "string",
-      "description": "Applicant's address"
+      "description": "Applicant's residential address"
     },
     "dob": {
       "type": "string",
       "format": "date",
-      "description": "Applicant's date of birth"
+      "description": "Applicant's date of birth, as supplied by the applicant. Never inferred from a r\u00e9sum\u00e9."
     },
     "linkedin": {
       "type": "string",
@@ -34,7 +34,7 @@
     },
     "portfolio_link": {
       "type": "string",
-      "description": "Portfolio website URL"
+      "description": "Portfolio or r\u00e9sum\u00e9 reference for this applicant"
     },
     "last_related_job": {
       "type": "string",
@@ -86,7 +86,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Additional document links the applicant uploaded (resume URL stored here)"
+      "description": "Additional document links the applicant uploaded (r\u00e9sum\u00e9 URL stored here)"
     },
     "position": {
       "type": "string",
@@ -275,6 +275,97 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this application has been archived after closure"
+    },
+    "imported_from_indeed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when an administrator imported this applicant's r\u00e9sum\u00e9 from Indeed. The record is the same applicant record that the public application would create \u2014 it is not a separate recruiting system."
+    },
+    "profile_completion_status": {
+      "type": "string",
+      "enum": [
+        "",
+        "awaiting_profile_completion",
+        "completed"
+      ],
+      "default": "",
+      "description": "Careers Profile progress for an imported applicant. 'awaiting_profile_completion' means the r\u00e9sum\u00e9 was imported but the applicant has not completed their personalized profile yet; 'completed' means the applicant submitted it. Empty for applications that arrived through the public application form."
+    },
+    "profile_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant completed and submitted their personalized Careers Profile"
+    },
+    "resume_file_name": {
+      "type": "string",
+      "description": "File name of the imported r\u00e9sum\u00e9, shown to the applicant and the administrator"
+    },
+    "resume_extract": {
+      "type": "object",
+      "description": "Information read from the imported r\u00e9sum\u00e9, held for confirmation rather than invented. Only values actually present in the r\u00e9sum\u00e9 are ever stored; anything uncertain is listed in uncertain_fields for the applicant to confirm.",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "work_history": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "education": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "certifications": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uncertain_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extracted_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "careers_profile_token": {
+      "type": "string",
+      "description": "Opaque, unguessable token for the applicant's personalized Careers Profile link. It carries no applicant information and no record id. Regenerating replaces it, which invalidates the previous link."
+    },
+    "careers_profile_token_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the current personalized link was created"
+    },
+    "careers_profile_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the current personalized link stops working"
+    },
+    "careers_profile_link_revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When an administrator revoked the personalized link. A revoked link is refused immediately."
+    },
+    "admin_sms_notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the existing admin new-application SMS was successfully sent for this application. Written only after the applicant actually completes their Careers Profile, and read before every send so the same application can never notify twice."
     }
   },
   "required": [
