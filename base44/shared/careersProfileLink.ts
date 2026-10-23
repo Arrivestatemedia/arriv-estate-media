@@ -25,10 +25,30 @@ export function tokenExpiryFrom(now: Date = new Date(), days: number = DEFAULT_T
   return new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-/** Builds the applicant-facing link. The origin is the domain the app is served on. */
-export function careersProfileUrl(origin: string, token: string): string {
-  const base = (origin || "https://app.arrivestatemedia.com").replace(/\/+$/, "");
-  return `${base}${CAREERS_PROFILE_PATH}/${token}`;
+/**
+ * The public origin applicant links are served on, resolved here on the server
+ * and never taken from the request. Inside the builder the page is served from a
+ * preview host (preview--…base44.app), and a link carrying that host would stop
+ * working the moment it left the editor and would show a Base44 address. A
+ * configured public origin is used when one is set; a Base44 address never is.
+ */
+const DEFAULT_PUBLIC_ORIGIN = "https://app.arrivestatemedia.com";
+const PLATFORM_HOST = /(^|\.)base44\.(app|com)$/i;
+
+export function publicCareersOrigin(): string {
+  const configured = (Deno.env.get("PUBLIC_CAREERS_ORIGIN") || Deno.env.get("PUBLIC_APP_URL") || "").trim();
+  if (!configured) return DEFAULT_PUBLIC_ORIGIN;
+  try {
+    if (PLATFORM_HOST.test(new URL(configured).hostname)) return DEFAULT_PUBLIC_ORIGIN;
+  } catch {
+    return DEFAULT_PUBLIC_ORIGIN;
+  }
+  return configured.replace(/\/+$/, "");
+}
+
+/** Builds the applicant-facing link on the app's own domain. */
+export function careersProfileUrl(token: string): string {
+  return `${publicCareersOrigin()}${CAREERS_PROFILE_PATH}/${token}`;
 }
 
 export type LinkState = "none" | "active" | "expired" | "revoked";

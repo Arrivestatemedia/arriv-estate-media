@@ -113,7 +113,6 @@ export default function ImportIndeedApplicantModal({ open, onOpenChange, opening
     try {
       const res = await base44.functions.invoke("importIndeedApplicant", {
         action: "import",
-        origin: window.location.origin,
         job_opening_id: form.job_opening_id,
         full_name: form.full_name,
         email: form.email,

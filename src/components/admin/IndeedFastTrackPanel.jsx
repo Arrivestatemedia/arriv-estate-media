@@ -43,7 +43,6 @@ export default function IndeedFastTrackPanel({ app }) {
       const res = await base44.functions.invoke("importIndeedApplicant", {
         action,
         application_id: app.id,
-        origin: window.location.origin,
       });
       return res.data || {};
     } finally {

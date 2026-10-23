@@ -49,7 +49,6 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const action = clean(body.action) || 'import';
-    const origin = clean(body.origin);
 
     // ── Link lifecycle ────────────────────────────────────────────────────
     if (action === 'get_link' || action === 'regenerate_link' || action === 'revoke_link') {
@@ -66,7 +65,7 @@ export default async function (req: Request): Promise<Response> {
         if (currentState !== 'active') {
           return Response.json({ success: true, link_state: currentState, link: '', invitation_message: '' });
         }
-        const currentLink = careersProfileUrl(origin, existing.careers_profile_token);
+        const currentLink = careersProfileUrl(existing.careers_profile_token);
         return Response.json({
           success: true,
           link_state: 'active',
@@ -97,7 +96,7 @@ export default async function (req: Request): Promise<Response> {
         careers_profile_link_revoked_at: '',
       });
 
-      const link = careersProfileUrl(origin, token);
+      const link = careersProfileUrl(token);
       return Response.json({
         success: true,
         link,
@@ -220,7 +219,7 @@ export default async function (req: Request): Promise<Response> {
       );
     }
 
-    const link = careersProfileUrl(origin, token);
+    const link = careersProfileUrl(token);
 
     return Response.json({
       success: true,
