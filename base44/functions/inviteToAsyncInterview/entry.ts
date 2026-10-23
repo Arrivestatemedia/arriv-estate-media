@@ -1,9 +1,10 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { addBusinessHours } from "../../shared/businessHours.ts";
 
 /**
  * inviteToAsyncInterview
- * Creates an InterviewSession with a secure token + 48-hour deadline and sends
+ * Creates an InterviewSession with a secure token + 48 business-hour deadline and sends
  * the asynchronous first-round invitation email. Does NOT schedule a calendar slot.
  *
  * Body:
@@ -50,7 +51,9 @@ Deno.serve(async (req) => {
 
     const hours = Math.max(1, Math.min(168, parseInt(deadlineHours, 10) || 48));
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + hours * 3600 * 1000);
+    // Business hours only: the recruiting week runs Mon–Fri, 9am–5pm ET, so a
+    // candidate's window never runs out over nights or weekends.
+    const expiresAt = addBusinessHours(now, hours);
 
     // Generate a secure opaque token
     const token = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
@@ -87,7 +90,7 @@ Deno.serve(async (req) => {
       timeZone: "America/New_York",
     });
 
-    const html = buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble);
+    const html = buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble, hours);
 
     let emailSent = false;
     try {
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
   }
 });
 
-function buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble) {
+function buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDisplay, apologyPreamble, hours) {
   const apologyBlock = apologyPreamble
     ? `<div style="margin:0 0 24px;padding:18px 20px;background-color:#FFFBF5;border:1px solid rgba(184,149,106,0.3);border-radius:10px;">
         <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#B8956A;">A quick note before we begin:</p>
@@ -127,7 +130,7 @@ function buildInvitationEmail(firstName, positionTitle, interviewUrl, deadlineDi
             <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
             ${apologyBlock}
             <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You've been selected to complete a first-round interview for the <strong>${positionTitle}</strong> position with Arriv Estate Media.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your first-round interview is completed virtually and can be taken at your convenience. Please use the link below to complete your interview within 48 hours.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your first-round interview is completed virtually and can be taken at your convenience. Please use the link below to complete your interview within ${hours} business hours.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview takes approximately 15 minutes.</p>
           <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">You'll be able to choose between two interview experiences:</p>
           <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">

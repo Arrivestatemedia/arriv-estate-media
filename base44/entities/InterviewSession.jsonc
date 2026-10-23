@@ -54,7 +54,7 @@
     "deadline_hours": {
       "type": "integer",
       "default": 48,
-      "description": "Hours the candidate has to complete the interview from invitation"
+      "description": "BUSINESS hours the candidate has to complete the interview from invitation. Only Monday-Friday, 9:00 AM-5:00 PM Eastern count, so nights and weekends do not consume the candidate's window; 48 business hours is six recruiting days."
     },
     "invited_at": {
       "type": "string",
@@ -64,7 +64,7 @@
     "expires_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Exact deadline for completing the interview"
+      "description": "Exact deadline for completing the interview. Always lands inside the recruiting week (Monday-Friday, 9:00 AM-5:00 PM Eastern), never on a night or a weekend."
     },
     "opened_at": {
       "type": "string",

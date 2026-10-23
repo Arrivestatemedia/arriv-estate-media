@@ -1,11 +1,12 @@
 // Shared configuration for the asynchronous first-round interview system.
 // Centralized so the architecture is configurable and future-promotable to Khetha.
 
-// Deadline defaults (hours). Estate Media default = 48.
+// Deadline defaults (BUSINESS hours — the recruiting week runs Mon–Fri, 9am–5pm ET).
+// Estate Media default = 48 business hours (six recruiting days).
 export const DEADLINE_OPTIONS = [
-  { label: "24 hours", value: 24 },
-  { label: "48 hours", value: 48 },
-  { label: "72 hours", value: 72 },
+  { label: "24 business hours", value: 24 },
+  { label: "48 business hours", value: 48 },
+  { label: "72 business hours", value: 72 },
 ];
 export const DEFAULT_DEADLINE_HOURS = 48;
 

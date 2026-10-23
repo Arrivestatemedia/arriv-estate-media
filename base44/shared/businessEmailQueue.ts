@@ -3,7 +3,7 @@ import { sendBrevoEmail } from "./brevoClient.ts";
 // Quiet hours: no automated business emails between 9:00 PM and 8:00 AM ET.
 // Emails triggered during this window are queued and sent at the next 8:00 AM ET.
 
-function etParts(date) {
+export function etParts(date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
     year: "numeric",
