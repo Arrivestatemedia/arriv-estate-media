@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { CAREERS_RETURN_PARAM, careersReturnHref } from '@/lib/careersReturn';
+import CareersProfileReturnBar from '@/components/careers/CareersProfileReturnBar';
 
 export default function SalesJobApplication() {
   const [formData, setFormData] = useState({
@@ -30,6 +32,9 @@ export default function SalesJobApplication() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get('job');
   const jobOpeningId = searchParams.get('job_opening');
+
+  // Set only when the applicant arrived here from their personalized Careers Profile.
+  const profileHref = careersReturnHref(searchParams.get(CAREERS_RETURN_PARAM) || '');
 
   const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -136,6 +141,16 @@ export default function SalesJobApplication() {
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
             <p className="text-slate-600 mb-4">Your Sales Growth Advisor application has been received and will be reviewed. If we like what we see, someone from our team will be in contact with you shortly.</p>
+            {profileHref && (
+              <Link
+                to={profileHref}
+                className="inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-lg text-sm font-semibold mb-3"
+                style={{ backgroundColor: "#B8956A", color: "#000000" }}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to My Careers Profile
+              </Link>
+            )}
             <Button onClick={() => setSubmitted(false)}>Submit Another Application</Button>
           </CardContent>
         </Card>
@@ -146,6 +161,7 @@ export default function SalesJobApplication() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="max-w-2xl mx-auto">
+        <CareersProfileReturnBar href={profileHref} tone="light" />
         <Card>
           <CardHeader>
             <CardTitle>Arriv Estate Media LLC Sales Growth Advisor Application</CardTitle>

@@ -11,6 +11,7 @@ import CareersProfileSubmitted from "@/components/careers/CareersProfileSubmitte
 import useCareersProfileDraft, { clearCareersProfileDraft } from "@/components/careers/useCareersProfileDraft";
 import { readResumeFile } from "@/lib/resumeImport";
 import { mergeContact, mergeExtract } from "@/lib/careersProfileMerge";
+import { createCareersReturnId, withCareersReturn } from "@/lib/careersReturn";
 import { CREAM, GOLD, MUTED, SERIF, TEXT_DARK } from "@/components/careers/careersStyles";
 
 const EMPTY_FIELDS = {
@@ -66,6 +67,9 @@ export default function CareersProfile() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  // Lets the public position details page offer the way back to this exact page.
+  const [returnId] = useState(() => createCareersReturnId(token));
 
   const draftKey = `arriv_careers_profile_${token}`;
   useCareersProfileDraft(draftKey, form, setForm, !loading && !loadError && !submitted && !!token);
@@ -198,7 +202,7 @@ export default function CareersProfile() {
         firstName={firstName}
         jobTitle={jobTitle}
         missingFields={missing}
-        jobDetailsUrl={jobDetailsUrl}
+        jobDetailsUrl={withCareersReturn(jobDetailsUrl || "/SalesGrowthAdvisor", returnId)}
       />
 
       <div className="max-w-3xl mx-auto px-5 sm:px-6 py-8 space-y-6">

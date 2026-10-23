@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { SALES_GROWTH_ADVISOR_FAQS as DEFAULT_FAQ } from "@/lib/jobFaqDefaults";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { CAREERS_RETURN_PARAM, careersReturnHref, withCareersReturn } from "@/lib/careersReturn";
+import CareersProfileReturnBar from "@/components/careers/CareersProfileReturnBar";
 import { base44 } from "@/api/base44Client";
 import {
   Phone,
@@ -134,6 +136,10 @@ function FaqItem({ q, a }) {
 export default function AboutSalesJob() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+
+  // Only set when the visitor arrived here from their personalized Careers Profile.
+  const profileHref = careersReturnHref(searchParams.get(CAREERS_RETURN_PARAM) || "");
 
   useEffect(() => {
     (async () => {
@@ -184,9 +190,14 @@ export default function AboutSalesJob() {
   // Route applicants to this specific regional job opening (DMV) so submissions
   // are tagged to the correct role. Falls back to the plain form if the job
   // record hasn't loaded yet.
-  const applyUrl = job?.job_id
-    ? `${createPageUrl("SalesJobApplication")}?job_opening=${encodeURIComponent(job.job_id)}`
-    : createPageUrl("SalesJobApplication");
+  // The return id travels on to the application form as well, so applying keeps
+  // the applicant's way back to the profile they came from.
+  const applyUrl = withCareersReturn(
+    job?.job_id
+      ? `${createPageUrl("SalesJobApplication")}?job_opening=${encodeURIComponent(job.job_id)}`
+      : createPageUrl("SalesJobApplication"),
+    searchParams.get(CAREERS_RETURN_PARAM) || "",
+  );
 
   if (loading) {
     return (
@@ -198,6 +209,8 @@ export default function AboutSalesJob() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: CREAM, color: TEXT_DARK }}>
+      <CareersProfileReturnBar href={profileHref} />
+
       {/* Hero */}
       <header
         className="px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20"
