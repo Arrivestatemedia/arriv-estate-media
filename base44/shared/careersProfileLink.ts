@@ -7,12 +7,12 @@
 // through a link is validated server-side against the record the token belongs
 // to. Regenerating a token replaces it, which invalidates the previous link.
 
-const TOKEN_BYTES = 32;
+const TOKEN_BYTES = 16;
 const DEFAULT_TTL_DAYS = 30;
 
 export const CAREERS_PROFILE_PATH = "/careers/continue";
 
-/** A cryptographically secure, unguessable token (256 bits, URL-safe). */
+/** A cryptographically secure, unguessable token (128 bits, URL-safe). */
 export function generateCareersToken(): string {
   const bytes = new Uint8Array(TOKEN_BYTES);
   crypto.getRandomValues(bytes);
