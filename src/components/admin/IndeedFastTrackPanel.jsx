@@ -61,24 +61,35 @@ export default function IndeedFastTrackPanel({ app }) {
   };
 
   const handleCopyLink = async () => {
-    const data = link || (await callLink("get_link"));
-    setLink(data.link || "");
-    setLinkState(data.link_state || "none");
-    if (!data.link) {
-      toast.error("There is no active link for this applicant. Generate a new one.");
-      return;
+    try {
+      const data = await callLink("get_link");
+      setLink(data.link || "");
+      setMessage(data.invitation_message || "");
+      setLinkState(data.link_state || "none");
+      if (!data.link) {
+        toast.error("There is no active link for this applicant. Generate a new one.");
+        return;
+      }
+      await copyText(data.link, "Link");
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Could not load the applicant's link.");
     }
-    copyText(data.link, "Link");
   };
 
   const handleCopyMessage = async () => {
-    const data = message ? { invitation_message: message } : await callLink("get_link");
-    setMessage(data.invitation_message || "");
-    if (!data.invitation_message) {
-      toast.error("There is no active link for this applicant. Generate a new one.");
-      return;
+    try {
+      const data = await callLink("get_link");
+      setLink(data.link || "");
+      setMessage(data.invitation_message || "");
+      setLinkState(data.link_state || "none");
+      if (!data.invitation_message) {
+        toast.error("There is no active link for this applicant. Generate a new one.");
+        return;
+      }
+      await copyText(data.invitation_message, "Indeed message");
+    } catch (err) {
+      toast.error(err?.response?.data?.error || "Could not load the Indeed message.");
     }
-    copyText(data.invitation_message, "Indeed message");
   };
 
   const handleRegenerate = async () => {

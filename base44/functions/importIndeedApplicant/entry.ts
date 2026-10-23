@@ -58,12 +58,22 @@ export default async function (req: Request): Promise<Response> {
       const existing = await loadApplication(base44, applicationId);
       if (!existing) return Response.json({ error: 'Applicant not found' }, { status: 404 });
 
-      // Reads the current link without changing it, so an administrator can
-      // copy the link or the Indeed message that already exists.
+      // Upgrade saved legacy codes when copying, not just on new imports.
+      // Preserve expiry and never reactivate an expired or revoked link.
       if (action === 'get_link') {
         const currentState = linkStateFor(existing);
         if (currentState !== 'active') {
           return Response.json({ success: true, link_state: currentState, link: '', invitation_message: '' });
+        }
+        if (/^(?:[a-f0-9]{32}|[a-f0-9]{64})$/i.test(existing.careers_profile_token || '')) {
+          const token = generateCareersToken(existing.full_name);
+          const createdAt = new Date().toISOString();
+          await base44.asServiceRole.entities.JobApplication.update(applicationId, {
+            careers_profile_token: token,
+            careers_profile_token_created_at: createdAt,
+          });
+          existing.careers_profile_token = token;
+          existing.careers_profile_token_created_at = createdAt;
         }
         const currentLink = careersProfileUrl(existing.careers_profile_token);
         return Response.json({
