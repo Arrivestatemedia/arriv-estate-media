@@ -315,7 +315,7 @@ export default function ScheduledInterviewMigration() {
             <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-900">
                 You are about to convert <strong>{selectedCount}</strong> scheduled first-round interview(s) to the new asynchronous interview format.
-                Candidates will no longer need to attend their scheduled time and will receive <strong>48 business hours</strong> (weekdays, 9am–5pm ET) from activation to complete their interview.
+                Candidates will no longer need to attend their scheduled time and will receive <strong>2 business days</strong> (weekends excluded) from activation to complete their interview.
               </p>
             </div>
 

@@ -1,22 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { addBusinessHours } from "../../shared/businessHours.ts";
+import { addBusinessDays, businessDaysFromHours } from "../../shared/businessDays.ts";
 import { verifyAdmin } from "../../shared/adminAuth.ts";
 
 /**
  * recalculateInterviewDeadlines
  *
  * One-time admin action: every async interview invitation that is still open
- * gets its deadline recalculated in BUSINESS hours (Mon–Fri, 9am–5pm ET) from
- * the moment it was sent.
+ * gets its deadline recalculated in BUSINESS DAYS from the moment it was sent —
+ * Saturday and Sunday do not count, every other day does, and the time of day
+ * is kept (48 business hours = 2 business days).
  *
- * Invitations sent before business hours were introduced were counted in clock
- * hours, so a Friday afternoon invite ran out over the weekend. This re-dates
- * those live windows so no candidate loses time they were never able to use.
+ * Invitations dated under the old hour-by-hour counting rule ran long (a Friday
+ * afternoon invite was pushed six recruiting days out). This re-dates those
+ * live windows to the business-day rule.
  *
- * Only ever moves a deadline LATER, and only for sessions still open
- * (INVITED / OPENED / FORMAT_SELECTED / STARTED / IN_PROGRESS / REOPENED) —
- * completed and expired sessions are left untouched. Safe to run more than
- * once: a window already counted in business hours is skipped.
+ * Only sessions still open (INVITED / OPENED / FORMAT_SELECTED / STARTED /
+ * IN_PROGRESS / REOPENED) are touched — completed and expired sessions are left
+ * untouched. Safe to run more than once: a window already on the business-day
+ * rule is skipped.
  */
 
 const ACTIVE_STATUSES = ["INVITED", "OPENED", "FORMAT_SELECTED", "STARTED", "IN_PROGRESS", "REOPENED"];
@@ -50,15 +51,11 @@ export default async function (req: Request): Promise<Response> {
       }
 
       const hours = Math.max(1, Number(session.deadline_hours) || DEFAULT_DEADLINE_HOURS);
-      const corrected = addBusinessHours(new Date(session.invited_at), hours);
+      const corrected = addBusinessDays(new Date(session.invited_at), businessDaysFromHours(hours));
       const current = session.expires_at ? new Date(session.expires_at).getTime() : 0;
 
       if (current === corrected.getTime()) {
-        skipped.push({ id: session.id, reason: "already_business_hours" });
-        continue;
-      }
-      if (corrected.getTime() <= current) {
-        skipped.push({ id: session.id, reason: "not_later" });
+        skipped.push({ id: session.id, reason: "already_business_days" });
         continue;
       }
 

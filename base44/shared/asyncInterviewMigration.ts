@@ -1,5 +1,5 @@
 import { sendBusinessEmailOrQueue, etWallToUtc } from "./businessEmailQueue.ts";
-import { addBusinessHours } from "./businessHours.ts";
+import { addBusinessDays } from "./businessDays.ts";
 
 /**
  * asyncInterviewMigration.ts
@@ -206,8 +206,8 @@ export async function convertConferenceToAsync(base44, opts) {
   if (!session) {
     const token = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
     const now = new Date();
-    // 48 business hours (Mon–Fri, 9am–5pm ET) from activation.
-    const expiresAt = addBusinessHours(now, 48);
+    // 2 business days (weekends excluded) from activation.
+    const expiresAt = addBusinessDays(now, 2);
     const positionTitle = app?.position === "sales_growth_advisor"
       ? "Sales Growth Advisor"
       : app?.position === "media_specialist"
@@ -291,7 +291,7 @@ export async function convertConferenceToAsync(base44, opts) {
 /**
  * Build the "Update to Your Arriv Estate Media Interview" conversion email.
  * This email replaces the old scheduled-interview confirmation and tells
- * the candidate they now have 48 business hours to complete the interview at their
+ * the candidate they now have 2 business days to complete the interview at their
  * convenience, with a choice between Conversational (Ashley) and Self-Guided.
  */
 export function buildConversionEmail(firstName, interviewUrl, deadlineDisplay) {
@@ -307,7 +307,7 @@ export function buildConversionEmail(firstName, interviewUrl, deadlineDisplay) {
           <h1 style="margin:0 0 20px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We're making an update to our first-round interview process that gives candidates more flexibility in when and how they complete their interview.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You no longer need to attend your interview at the time you originally scheduled.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Instead, you can complete your first-round interview at any time that's convenient for you within the next <strong>48 business hours</strong>.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Instead, you can complete your first-round interview at any time that's convenient for you within the next <strong>2 business days</strong>.</p>
           <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#1A1A1A;">You'll also be able to choose the interview experience you prefer:</p>
           <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
             <li style="margin-bottom:10px;"><strong>Conversational Interview</strong> &mdash; Meet with Ashley, our AI-powered virtual recruiting assistant, who will guide you through the interview.</li>

@@ -67,7 +67,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
     setLoading(true);
     try {
       if (interviewMode === "async") {
-        // Async mode: create an InterviewSession and send the 48-business-hour invitation email immediately
+        // Async mode: create an InterviewSession and send the 2-business-day invitation email immediately
         const res = await base44.functions.invoke("inviteToAsyncInterview", {
           applicationId: app.id,
           deadlineHours: 48,
@@ -78,7 +78,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
         if (data?.status === "exists") {
           toast.info("An active async interview invitation already exists for this candidate.");
         } else if (data?.email_sent) {
-          toast.success("Async interview invitation sent. Candidate has 48 business hours to complete it.");
+          toast.success("Async interview invitation sent. Candidate has 2 business days to complete it.");
         } else {
           toast.warning("Async interview session created, but the email may not have delivered. Check the candidate's email.");
         }
@@ -178,7 +178,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
                 <Clock className="w-4 h-4" style={{ color: isAsync ? "#B8956A" : "#9ca3af" }} />
                 <span className="text-sm font-semibold text-gray-900">Async Interview</span>
               </div>
-              <p className="text-xs text-gray-500">Candidate gets 48 business hours (weekdays, 9am–5pm ET) to complete it on their own time.</p>
+              <p className="text-xs text-gray-500">Candidate gets 2 business days (weekends excluded) to complete it on their own time.</p>
             </button>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
               <p className="text-sm text-blue-900 font-medium">Async invitation email sent immediately</p>
               <p className="text-xs text-blue-700 mt-0.5">
                 The candidate will receive an email with a secure link to complete their first-round interview.
-                They'll have <strong>48 business hours</strong> (weekdays, 9am–5pm ET) to finish it, choosing between Conversational (Ashley AI)
+                They'll have <strong>2 business days</strong> (weekends excluded) to finish it, choosing between Conversational (Ashley AI)
                 or Self-Guided Video format.
               </p>
             </div>
