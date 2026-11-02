@@ -73,7 +73,10 @@ Deno.serve(async (req) => {
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 
-    if (!alreadyNotified && ownerPhone && from && accountSid && authToken) {
+    // Receipts are paid business — log the open, never text about it.
+    const notifyAllowed = normalizedAction !== 'view_receipt';
+
+    if (notifyAllowed && !alreadyNotified && ownerPhone && from && accountSid && authToken) {
       const when = new Date().toLocaleString('en-US', {
         timeZone: 'America/New_York',
         month: 'numeric',
