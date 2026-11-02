@@ -10,6 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import CancelJobDialog from "../components/jobs/CancelJobDialog";
+import { jobMatchesPartnerState } from "@/lib/jobStateScope";
 import BackgroundCheckAuthorizationModal from "../components/backgroundcheck/BackgroundCheckAuthorizationModal";
 import {
   Dialog,
@@ -131,6 +132,9 @@ export default function JobBoard() {
   });
 
   const maxDistance = coverage?.max_travel_distance;
+  // The partner's own state, resolved server-side from their record or application
+  // address — used to scope the board to jobs in that state.
+  const partnerState = coverage?.state;
   // Filter once we know the coverage center + max distance. The center may be
   // stored as lat/lng, or geocoded from coverage_area on the fly (see effect below).
   const hasCoverage =
@@ -495,7 +499,10 @@ export default function JobBoard() {
      );
    })
    .filter((job) => {
+     // State scoping — a job is only offered to partners in the job's own state,
+     // so a Georgia shoot never appears for a Maryland or Virginia partner.
      if (job.id === highlightJobId) return true;
+     if (!jobMatchesPartnerState(job.state, partnerState)) return false;
      if (!hasCoverage) return true;
      const d = jobDistances[job.id];
      // Fail open: if the distance couldn't be computed (geocoding failed/stalled),

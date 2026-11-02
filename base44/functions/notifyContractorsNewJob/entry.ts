@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { geocode, haversineMiles, sendTwilioSms, getGoogleMapsKey } from '../../shared/jobNotifications.ts';
+import { isJobInPartnerState } from '../../shared/jobStateScope.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -42,9 +43,14 @@ Deno.serve(async (req) => {
       console.error('Job geocode failed:', e.message);
     }
 
-    // No state pre-filter — notify every partner whose coverage radius reaches
-    // the job, regardless of state ("everyone within the selected mileage").
-    let stateFiltered = mediaPartners;
+    // State scope first: a job is offered only to partners in the job's own state,
+    // so a Georgia shoot is never pushed to Maryland or Virginia partners. A
+    // partner whose state can't be determined is not treated as local.
+    const stateFiltered = mediaPartners.filter((p) => isJobInPartnerState(p, job.state));
+
+    if (stateFiltered.length === 0) {
+      return Response.json({ message: 'No media partners in this job state' });
+    }
 
     let eligiblePartners;
     if (!jobCoords) {
