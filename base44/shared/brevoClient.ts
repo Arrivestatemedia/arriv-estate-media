@@ -94,7 +94,7 @@ export async function getBrevoDelivery(messageId) {
   const data = await response.json();
   const events = (data.events || []).filter(event => event.messageId === messageId);
   const delivered = events.find(event => event.event === "delivered");
-  if (delivered) return { status: "sent", delivered_at: new Date(delivered.date).toISOString() };
+  if (delivered) return { status: "sent", message_id: messageId, delivered_at: new Date(delivered.date).toISOString() };
   const failed = events.find(event => ["blocked", "invalid", "error", "hardbounces", "softbounces", "hard_bounce", "soft_bounce"].includes(String(event.event).toLowerCase()));
   if (failed) return { status: "failed", error: failed.reason || `Brevo reported ${failed.event}` };
   return null;

@@ -48,12 +48,23 @@
     },
     "provider_message_id": {
       "type": "string",
-      "description": "Brevo message receipt. An existing receipt prevents automatic resending."
+      "description": "Most recent Brevo submission receipt. An existing receipt prevents automatic resending."
+    },
+    "provider_message_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Preserved Brevo receipts for all known attempts. Delivery of any attempt fulfills the queued email; a later submission must not erase earlier delivery evidence."
+    },
+    "delivery_message_id": {
+      "type": "string",
+      "description": "Exact Brevo receipt with a verified delivered event. Set only from provider delivery evidence."
     },
     "submitted_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When Brevo accepted the sending request"
+      "description": "When Brevo accepted the latest sending request"
     },
     "sent_at": {
       "type": "string",

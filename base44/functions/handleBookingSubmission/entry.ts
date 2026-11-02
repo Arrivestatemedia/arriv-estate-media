@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { resolveMarketplaceSalesRep } from '../../shared/payoutV2.ts';
 import { assertVipWalletRedemption } from '../../shared/autoFundVipEnforcement.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 // Determine which funding program backs the wallet balance being redeemed.
 // Auto-Fund issues 'reload' credit lots; Prepaid purchases issue 'purchase' lots.
@@ -21,7 +22,7 @@ async function resolveWalletFundingSource(base44, walletId) {
   }
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const { booking } = await req.json();
@@ -230,33 +231,18 @@ Deno.serve(async (req) => {
       // Skip to invoice generation — fall through to the invoice block below
     }
 
-    // Send admin notification email via Gmail (skip for past shoots)
+    // Send admin notification email via Brevo (skip for past shoots)
     if (!isPastShoot) try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      
       const emailSubject = `New Booking Request - ${booking.client_name}`;
       const payAtClosingNote = booking.request_pay_at_closing ? '\n\n⚠️ CLIENT REQUESTED PAY-AT-CLOSING' : '';
       const emailBody = `New Booking Request\n\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nPhone: ${booking.client_phone}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\nNotes: ${booking.notes || 'None'}${payAtClosingNote}\n\nView and manage this booking in your admin dashboard.`;
 
-      const messageLines = [
-        `To: ${adminEmail}`,
-        `From: ${adminEmail}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset="UTF-8"',
-        '',
-        emailBody
-      ];
-      const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
-        const merged = new Uint8Array(acc.length + part.length);
-        merged.set(acc); merged.set(part, acc.length);
-        return merged;
-      }, new Uint8Array());
-      const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-      const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw: base64urlMessage })
+      const response = await sendBrevoEmail({
+        to: adminEmail,
+        subject: emailSubject,
+        textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
       });
 
       await base44.asServiceRole.entities.MessageLog.create({
@@ -270,7 +256,7 @@ Deno.serve(async (req) => {
 
     // For pay-up-front: send booking confirmation email first (skip for past shoots)
     if (!booking.request_pay_at_closing) {
-      // Send booking confirmation email via Gmail (skip for past shoots)
+      // Send booking confirmation email via Brevo (skip for past shoots)
       if (!isPastShoot) try {
         const firstName = booking.client_name.split(' ')[0];
         const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
@@ -297,34 +283,19 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
         
-        const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
         const emailSubject = 'Your Booking Request Confirmation';
-        const messageLines = [
-          `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
-          'MIME-Version: 1.0', 'Content-Type: text/html; charset="UTF-8"', '', confirmationHtmlBody
-        ];
-        const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
-          const merged = new Uint8Array(acc.length + part.length);
-          merged.set(acc); merged.set(part, acc.length);
-          return merged;
-        }, new Uint8Array());
-        const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-        console.log('Sending confirmation email via Gmail to:', booking.client_email);
-        const gmailRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: base64urlMessage })
+        const emailReceipt = await sendBrevoEmail({
+          to: booking.client_email,
+          subject: emailSubject,
+          htmlContent: confirmationHtmlBody,
+          senderEmail: BOOKINGS_SENDER_EMAIL,
         });
-        
-        const gmailData = await gmailRes.json();
-        console.log('Gmail response status:', gmailRes.status, 'data:', JSON.stringify(gmailData).substring(0, 200));
         
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
           message_content: 'Booking confirmation sent', subject: emailSubject,
-          status: gmailRes.ok ? 'success' : 'failed',
-          error_message: gmailRes.ok ? null : JSON.stringify(gmailData)
+          status: emailReceipt.ok ? 'success' : 'failed',
+          error_message: null
         });
       } catch (error) {
         console.error('Confirmation email error:', error);
@@ -372,30 +343,20 @@ Deno.serve(async (req) => {
       }
 
     } else if (!isPastShoot) {
-      // Pay-at-closing: send simple confirmation via Gmail (skip for past shoots)
+      // Pay-at-closing: send simple confirmation via Brevo (skip for past shoots)
       try {
         const exactPrice = commissionableServiceValueCents > 0
           ? `$${(commissionableServiceValueCents / 100).toFixed(2)}`
           : `$${booking.total_price}`;
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+        
         const emailSubject = 'Your Booking Request Confirmation';
         const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\nService Total: ${exactPrice}\n\nYour payment will be collected at closing. We'll be in touch to confirm the details.\n\nThank you!`;
 
-        const messageLines = [
-          `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
-          'MIME-Version: 1.0', 'Content-Type: text/plain; charset="UTF-8"', '', emailBody
-        ];
-        const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
-          const merged = new Uint8Array(acc.length + part.length);
-          merged.set(acc); merged.set(part, acc.length);
-          return merged;
-        }, new Uint8Array());
-        const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-        const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: base64urlMessage })
+        const response = await sendBrevoEmail({
+          to: booking.client_email,
+          subject: emailSubject,
+          textContent: emailBody,
+          senderEmail: BOOKINGS_SENDER_EMAIL,
         });
 
         await base44.asServiceRole.entities.MessageLog.create({
@@ -496,4 +457,4 @@ Deno.serve(async (req) => {
     console.error('Booking submission error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
