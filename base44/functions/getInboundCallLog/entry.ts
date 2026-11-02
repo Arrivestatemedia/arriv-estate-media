@@ -29,8 +29,13 @@ export default async function(req) {
       return Response.json({ error: 'Twilio is not configured' }, { status: 500 });
     }
 
+    // Only the main 855 business line — calls to any other number are not shown.
+    const businessLine = String(secrets.get('TWILIO_PHONE_NUMBER') || '').replace(/[^\d+]/g, '');
+    const params = new URLSearchParams({ PageSize: '200' });
+    if (businessLine) params.set('To', businessLine);
+
     const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?PageSize=200`,
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?${params.toString()}`,
       {
         headers: { Authorization: 'Basic ' + btoa(`${accountSid}:${authToken}`) },
         signal: AbortSignal.timeout(15000),

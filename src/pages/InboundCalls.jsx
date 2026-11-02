@@ -100,7 +100,7 @@ export default function InboundCalls() {
             </div>
             <div>
               <h1 className="text-2xl font-serif text-[#1A1A1A]">Inbound Calls</h1>
-              <p className="text-sm text-[#1A1A1A]/60">Everyone who called the business lines, answered or not.</p>
+              <p className="text-sm text-[#1A1A1A]/60">Everyone who called the main 855 line, answered or not.</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="text-[#8a6f4d]">
