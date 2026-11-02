@@ -8,6 +8,7 @@ import moment from "moment";
 
 const STATUS_META = {
   pending: { label: "Queued", color: "#f59e0b", icon: Clock },
+  submitted: { label: "Awaiting delivery", color: "#f59e0b", icon: Clock },
   sent: { label: "Sent", color: "#10b981", icon: CheckCircle2 },
   failed: { label: "Failed", color: "#ef4444", icon: XCircle },
 };
@@ -40,7 +41,10 @@ export default function QueuedApplicationEmails() {
     return unsub;
   }, [queryClient]);
 
-  const pendingCount = queue.filter((q) => q.status === "pending").length;
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ["queued-application-emails", "pending-count"],
+    queryFn: () => base44.entities.QueuedApplicationEmail.count({ status: "pending" }),
+  });
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["queued-application-emails"] });
 
@@ -92,9 +96,10 @@ export default function QueuedApplicationEmails() {
 
       {expanded && (
         <CardContent className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { value: "pending", label: "Queued" },
+              { value: "submitted", label: "Awaiting delivery" },
               { value: "sent", label: "Sent" },
               { value: "failed", label: "Failed" },
               { value: "all", label: "All" },
@@ -148,6 +153,9 @@ export default function QueuedApplicationEmails() {
                             ? `Sends ${moment(q.scheduled_for).format("MMM D, h:mm A")}`
                             : `Scheduled ${moment(q.scheduled_for).format("MMM D, h:mm A")}`}
                         </span>
+                        {q.status === "submitted" && (
+                          <span>· Submitted to Brevo; delivery not yet confirmed</span>
+                        )}
                         {q.status === "sent" && q.sent_at && (
                           <span className="text-[#10b981]">
                             · Sent {moment(q.sent_at).format("MMM D, h:mm A")}

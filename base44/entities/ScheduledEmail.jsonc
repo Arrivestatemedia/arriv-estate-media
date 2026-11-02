@@ -39,16 +39,26 @@
       "type": "string",
       "enum": [
         "pending",
+        "submitted",
         "sent",
         "failed"
       ],
       "default": "pending",
-      "description": "Status of the scheduled email"
+      "description": "Submitted means accepted by Brevo; sent requires delivery confirmation for receipt-tracked emails. Legacy sent rows may have no receipt."
+    },
+    "provider_message_id": {
+      "type": "string",
+      "description": "Brevo message receipt. An existing receipt prevents automatic resending."
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Brevo accepted the sending request"
     },
     "sent_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When it was actually sent"
+      "description": "Confirmed delivery time for receipt-tracked emails; legacy rows used submission time"
     },
     "error_message": {
       "type": "string",

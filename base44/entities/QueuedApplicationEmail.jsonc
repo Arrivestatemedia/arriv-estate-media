@@ -23,11 +23,12 @@
       "type": "string",
       "enum": [
         "pending",
+        "submitted",
         "sent",
         "failed"
       ],
       "default": "pending",
-      "description": "Delivery status of the queued email"
+      "description": "Pending awaits submission; submitted has a Brevo receipt but no delivery confirmation; sent is confirmed delivered for receipt-tracked emails. Legacy sent records may have no receipt."
     },
     "attempts": {
       "type": "integer",
@@ -43,10 +44,19 @@
       "type": "string",
       "description": "Last error message from a failed send attempt"
     },
+    "provider_message_id": {
+      "type": "string",
+      "description": "Brevo message receipt. An existing receipt prevents automatic resending."
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Brevo accepted the request, not proof of delivery"
+    },
     "sent_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the email was successfully sent"
+      "description": "Confirmed delivery time for receipt-tracked emails; legacy rows used submission time"
     }
   },
   "required": [

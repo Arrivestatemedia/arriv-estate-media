@@ -564,7 +564,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: statusColor[email.status] || '#888' }}>
-                      {email.status}
+                      {email.status === 'submitted' ? 'Awaiting delivery' : email.status === 'sent' && email.provider_message_id ? 'Delivered' : email.status}
                     </span>
                     <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
                       {email.scheduled_for ? format(new Date(email.scheduled_for), "MMM d, yyyy h:mm a") : ''}

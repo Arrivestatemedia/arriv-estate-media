@@ -1,3 +1,5 @@
+import { secrets } from "base44:runtime";
+
 const DEFAULT_SENDER_EMAIL = "careers@arrivestatemedia.com";
 const DEFAULT_SENDER_NAME = "Arriv Estate Media";
 
@@ -33,7 +35,7 @@ export async function sendBrevoEmail({
   senderEmail = DEFAULT_SENDER_EMAIL,
   attachments = [],
 }) {
-  const apiKey = Deno.env.get("BREVO_API_KEY");
+  const apiKey = secrets.get("BREVO_API_KEY");
   if (!apiKey) throw new Error("BREVO_API_KEY not configured");
 
   const finalHtml = htmlContent != null
@@ -42,45 +44,58 @@ export async function sendBrevoEmail({
       ? textToHtml(textContent)
       : "";
 
-  let lastError;
   for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          "api-key": apiKey,
-        },
-        body: JSON.stringify({
-          sender: { name: senderName, email: senderEmail },
-          to: [{ email: to }],
-          subject,
-          htmlContent: finalHtml,
-          ...(attachments.length > 0 ? { attachment: attachments.map(a => ({ content: a.content, name: a.name })) } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        const error = new Error(`Brevo error ${res.status}: ${errText}`);
-        // Retry on server errors (5xx) or rate limiting (429); client errors (4xx) won't succeed on retry.
-        if ((res.status >= 500 || res.status === 429) && attempt === 0) {
-          lastError = error;
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-        throw error;
-      }
-      return { ok: true };
-    } catch (err) {
-      // Network-level error — retry once
-      if (attempt === 0) {
-        lastError = err;
-        await new Promise((r) => setTimeout(r, 1000));
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/json", "api-key": apiKey },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: finalHtml,
+        ...(attachments.length > 0 ? { attachment: attachments.map(a => ({ content: a.content, name: a.name })) } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const details = await res.text();
+      if ((res.status >= 500 || res.status === 429) && attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
-      throw err;
+      throw new Error(`Brevo error ${res.status}: ${details}`);
     }
+    const receipt = await res.json();
+    if (typeof receipt.messageId !== "string" || !receipt.messageId.trim()) {
+      throw new Error("Brevo did not return a message receipt; sending is unconfirmed.");
+    }
+    return { ok: true, messageId: receipt.messageId };
   }
-  throw lastError;
+}
+
+export async function assertBrevoSendersActive(emails) {
+  const response = await fetch("https://api.brevo.com/v3/senders", {
+    headers: { "api-key": secrets.get("BREVO_API_KEY"), accept: "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Brevo sender verification failed (${response.status})`);
+  const data = await response.json();
+  const active = new Set((data.senders || []).filter(sender => sender.active).map(sender => sender.email.toLowerCase()));
+  const missing = [...new Set(emails)].filter(email => !active.has(email.toLowerCase()));
+  if (missing.length) throw new Error(`Brevo sender is not registered and active: ${missing.join(", ")}`);
+}
+
+export async function getBrevoDelivery(messageId) {
+  const response = await fetch(`https://api.brevo.com/v3/smtp/statistics/events?messageId=${encodeURIComponent(messageId)}&limit=100&sort=desc`, {
+    headers: { "api-key": secrets.get("BREVO_API_KEY"), accept: "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Brevo delivery lookup failed (${response.status})`);
+  const data = await response.json();
+  const events = (data.events || []).filter(event => event.messageId === messageId);
+  const delivered = events.find(event => event.event === "delivered");
+  if (delivered) return { status: "sent", delivered_at: new Date(delivered.date).toISOString() };
+  const failed = events.find(event => ["blocked", "invalid", "error", "hardbounces", "softbounces", "hard_bounce", "soft_bounce"].includes(String(event.event).toLowerCase()));
+  if (failed) return { status: "failed", error: failed.reason || `Brevo reported ${failed.event}` };
+  return null;
 }

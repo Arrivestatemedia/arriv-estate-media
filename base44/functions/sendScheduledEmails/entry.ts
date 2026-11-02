@@ -1,45 +1,44 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { sendBrevoEmail, assertBrevoSendersActive, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
+import { reconcileEmailDeliveries } from '../../shared/queuedEmailDelivery.ts';
 
 // Only these two addresses are used as senders; anything else falls back to careers.
 const ALLOWED_SENDERS = [BOOKINGS_SENDER_EMAIL, 'careers@arrivestatemedia.com'];
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-
-    const pending = await base44.asServiceRole.entities.ScheduledEmail.filter({
-      status: "pending"
-    });
-
-    const now = new Date();
-    const toSend = pending.filter(e => new Date(e.scheduled_for) <= now);
-
-    // Brevo accepts a batch comfortably; cap so a backlog can't run away.
-    const batch = toSend.slice(0, 20);
-
-    const results = await Promise.allSettled(
-      batch.map(async (email) => {
-        await sendBrevoEmail({
+    const user = await base44.auth.me().catch(error => error.status === 401 ? null : Promise.reject(error));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const delivery = await reconcileEmailDeliveries(base44, 'ScheduledEmail', 'error_message');
+    const page = await base44.asServiceRole.entities.ScheduledEmail.filter(
+      { status: 'pending', scheduled_for: { $lte: new Date().toISOString() }, provider_message_id: { $in: [null, ''] } },
+      { sort: 'scheduled_for', limit: 20 }
+    );
+    const batch = page.items;
+    const senderFor = email => ALLOWED_SENDERS.includes((email.from_email || '').toLowerCase()) ? email.from_email.toLowerCase() : 'careers@arrivestatemedia.com';
+    if (batch.length) await assertBrevoSendersActive(batch.map(senderFor));
+    const results = [];
+    for (let offset = 0; offset < batch.length; offset += 6) {
+      results.push(...await Promise.allSettled(batch.slice(offset, offset + 6).map(async (email) => {
+        const receipt = await sendBrevoEmail({
           to: email.to,
           subject: email.subject,
           textContent: email.body,
           senderName: email.from_name || undefined,
-          senderEmail: ALLOWED_SENDERS.includes((email.from_email || '').toLowerCase())
-            ? email.from_email
-            : undefined,
+          senderEmail: senderFor(email),
         });
         await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
-          status: "sent",
-          sent_at: new Date().toISOString()
+          status: 'submitted', provider_message_id: receipt.messageId, submitted_at: new Date().toISOString(), error_message: '',
         });
-      })
-    );
+      })));
+    }
 
-    let sent = 0, failed = 0;
+    let submitted = 0, failed = 0;
     await Promise.all(results.map(async (result, i) => {
       if (result.status === 'fulfilled') {
-        sent++;
+        submitted++;
       } else {
         failed++;
         await base44.asServiceRole.entities.ScheduledEmail.update(batch[i].id, {
@@ -58,8 +57,8 @@ Deno.serve(async (req) => {
       console.error('Scheduled SMS run failed:', smsError.message);
     }
 
-    return Response.json({ success: true, sent, failed, checked: batch.length, total_pending: toSend.length, sms });
+    return Response.json({ success: failed === 0, submitted, sent: delivery.delivered, failed: failed + delivery.failed, checked: batch.length, has_more: page.has_more, sms });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
