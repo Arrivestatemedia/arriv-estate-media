@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Use service role for scheduled tasks
     const pending = await base44.asServiceRole.entities.ScheduledEmail.filter({
       status: "pending"
     });
@@ -12,19 +12,16 @@ Deno.serve(async (req) => {
     const now = new Date();
     const toSend = pending.filter(e => new Date(e.scheduled_for) <= now);
 
-    // Cap at 5 per run — each sendEmailViaGmail makes OAuth + Gmail API calls,
-    // running too many in parallel exceeds the CPU time limit
-    const batch = toSend.slice(0, 5);
+    // Brevo accepts a batch comfortably; cap so a backlog can't run away.
+    const batch = toSend.slice(0, 20);
 
     const results = await Promise.allSettled(
       batch.map(async (email) => {
-        await base44.asServiceRole.functions.invoke('sendEmailViaGmail', {
+        await sendBrevoEmail({
           to: email.to,
           subject: email.subject,
-          body: email.body,
-          fromEmail: email.from_email || undefined,
-          fromName: email.from_name || undefined,
-          salesMemberId: email.sales_member_id || undefined,
+          textContent: email.body,
+          senderName: email.from_name || undefined,
         });
         await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
           status: "sent",
