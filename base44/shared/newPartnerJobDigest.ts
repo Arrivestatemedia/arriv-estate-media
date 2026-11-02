@@ -9,7 +9,7 @@
 // Sending is once per partner per state: the sent digest is recorded in
 // MessageLog, and that record is checked before sending again.
 
-import { sendBrevoEmail } from "./brevoClient.ts";
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from "./brevoClient.ts";
 import {
   geocode,
   geocodeZipKeyless,
@@ -162,6 +162,7 @@ The Arriv Team`;
         to: email,
         subject,
         textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
       });
       emailed = true;
       await base44.asServiceRole.entities.MessageLog.create({

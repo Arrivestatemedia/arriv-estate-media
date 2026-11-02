@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { checkClientHasAccount } from '../../shared/clientAccountCheck.ts';
 import { buildBookingAcceptedMessage } from '../../shared/bookingAcceptedMessage.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -36,30 +37,12 @@ Deno.serve(async (req) => {
     });
 
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-
-      const emailRaw = [
-        `To: ${booking.client_email}`,
-        `From: ${adminEmail}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset="UTF-8"',
-        '',
-        emailBody
-      ].join('\r\n');
-
-      const base64urlMessage = btoa(unescape(encodeURIComponent(emailRaw)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-
-      const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ raw: base64urlMessage })
+      await sendBrevoEmail({
+        to: booking.client_email,
+        subject: emailSubject,
+        textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
+        senderName: 'Arriv Estate Media'
       });
 
       await base44.asServiceRole.entities.MessageLog.create({
@@ -68,7 +51,7 @@ Deno.serve(async (req) => {
         recipient_email: booking.client_email,
         message_content: emailBody,
         subject: emailSubject,
-        status: emailResponse.ok ? 'success' : 'failed'
+        status: 'success'
       });
     } catch (error) {
       console.error('Approval email error:', error);

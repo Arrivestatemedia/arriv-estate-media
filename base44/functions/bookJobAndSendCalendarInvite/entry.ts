@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 import { toE164 } from '../../shared/phoneNumberBlocker.ts';
 import { buildFirstGigOnboarding } from '../../shared/firstGigOnboarding.ts';
 import { getPropertyAccessProvider, getAccessGuideUrl } from '../../shared/propertyAccessProvider.ts';
@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
             to: updatedJob.client_email,
             subject: emailSubject,
             textContent: emailBody,
-            senderEmail: 'info@arrivestatemedia.com',
+            senderEmail: BOOKINGS_SENDER_EMAIL,
             senderName: 'Arriv Estate Media',
           });
           await base44.asServiceRole.entities.MessageLog.create({
@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
               to: mediaPartnerEmail,
               subject: onboarding.emailSubject,
               htmlContent: onboarding.emailHtml,
-              senderEmail: 'info@arrivestatemedia.com',
+              senderEmail: BOOKINGS_SENDER_EMAIL,
               senderName: 'Arriv Estate Media',
             });
             await base44.asServiceRole.entities.MessageLog.create({

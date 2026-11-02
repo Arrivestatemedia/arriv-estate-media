@@ -1,6 +1,9 @@
 const DEFAULT_SENDER_EMAIL = "careers@arrivestatemedia.com";
 const DEFAULT_SENDER_NAME = "Arriv Estate Media";
 
+// Booking, job and media correspondence goes out from the bookings address.
+export const BOOKINGS_SENDER_EMAIL = "bookings@arrivestatemedia.com";
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")

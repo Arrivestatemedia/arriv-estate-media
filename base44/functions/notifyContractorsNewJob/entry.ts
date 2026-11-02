@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 import { geocode, haversineMiles, sendTwilioSms, getGoogleMapsKey } from '../../shared/jobNotifications.ts';
 
 Deno.serve(async (req) => {
@@ -113,6 +113,7 @@ The Arriv Team
           to: mediaPartner.email,
           subject: `New Job Posted: ${job.title}`,
           textContent: emailBody,
+          senderEmail: BOOKINGS_SENDER_EMAIL,
         });
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email',

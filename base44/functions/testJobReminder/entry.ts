@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
 import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 function convertTo12HourFormat(time24) {
   const [hour, minute] = time24.split(':').map(Number);
@@ -143,7 +143,8 @@ Deno.serve(async (req) => {
           await sendBrevoEmail({
             to: job.booked_by,
             subject: 'Shoot Reminder - Today at ' + jobTime,
-            textContent: emailBody
+            textContent: emailBody,
+            senderEmail: BOOKINGS_SENDER_EMAIL
           });
         }
       } catch (e) {
@@ -192,7 +193,8 @@ Deno.serve(async (req) => {
           await sendBrevoEmail({
             to: job.client_email,
             subject: 'Shoot Reminder - Today at ' + jobTime,
-            textContent: emailBody
+            textContent: emailBody,
+            senderEmail: BOOKINGS_SENDER_EMAIL
           });
         }
       } catch (e) {

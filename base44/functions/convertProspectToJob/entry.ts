@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from "../../shared/brevoClient.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         subject: "Your Arriv Media Package — Complete Your Signup",
         htmlContent: html,
         senderName: repName ? `${repName} — Arriv Estate Media` : "Arriv Estate Media",
-        senderEmail: "careers@arrivestatemedia.com",
+        senderEmail: BOOKINGS_SENDER_EMAIL,
       });
     } catch (emailErr) {
       // Still return the link so the rep can share it manually

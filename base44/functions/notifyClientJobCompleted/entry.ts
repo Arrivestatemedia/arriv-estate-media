@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 async function sendEmailViaGmail(accessToken, to, subject, body) {
   const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
@@ -130,13 +131,17 @@ Deno.serve(async (req) => {
       console.error('SMS send error:', error.message);
     }
 
-    // Send email via Gmail
-    if (gmailAccessToken) {
-      try {
-        await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Your Shoot is Complete!', emailBody);
-      } catch (error) {
-        console.error('Email send error:', error.message);
-      }
+    // Send email from the bookings address
+    try {
+      await sendBrevoEmail({
+        to: job.client_email,
+        subject: 'Your Shoot is Complete!',
+        textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
+        senderName: 'Arriv Estate Media'
+      });
+    } catch (error) {
+      console.error('Email send error:', error.message);
     }
 
     await base44.asServiceRole.entities.MessageLog.create({

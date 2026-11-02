@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 import { geocode, haversineMiles, sendTwilioSms, getTwilioFromNumber, getGoogleMapsKey } from '../../shared/jobNotifications.ts';
 
 // Sends a follow-up notification for jobs still unbooked 1 hour after posting.
@@ -144,6 +144,7 @@ export default async function(req: Request): Promise<Response> {
             to: partner.email,
             subject: emailSubject,
             htmlContent: emailHtml,
+            senderEmail: BOOKINGS_SENDER_EMAIL,
           });
           await base44.asServiceRole.entities.MessageLog.create({
             message_type: 'email',

@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       sendBrevoEmail({
         to: Deno.env.get('ADMIN_EMAIL'),
         subject: `Payment Link Opened - ${invoice.job_address}`,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
         htmlContent: `
           <h2>Payment Link Opened</h2>
           <p><strong>Client:</strong> ${invoice.client_name}</p>

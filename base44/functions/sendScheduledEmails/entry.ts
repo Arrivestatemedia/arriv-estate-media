@@ -1,5 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
+
+// Only these two addresses are used as senders; anything else falls back to careers.
+const ALLOWED_SENDERS = [BOOKINGS_SENDER_EMAIL, 'careers@arrivestatemedia.com'];
 
 Deno.serve(async (req) => {
   try {
@@ -22,7 +25,9 @@ Deno.serve(async (req) => {
           subject: email.subject,
           textContent: email.body,
           senderName: email.from_name || undefined,
-          senderEmail: email.from_email || undefined,
+          senderEmail: ALLOWED_SENDERS.includes((email.from_email || '').toLowerCase())
+            ? email.from_email
+            : undefined,
         });
         await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
           status: "sent",
