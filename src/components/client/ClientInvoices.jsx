@@ -26,7 +26,12 @@ export default function ClientInvoices({ email }) {
 
   if (isLoading || invoices.length === 0) return null;
 
-  const open = (url) => window.open(url, "_blank", "noopener,noreferrer");
+  const open = (url, invoice, action) => {
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    base44.functions
+      .invoke("trackInvoiceEngagement", { invoiceId: invoice.id, action, clientEmail: email })
+      .catch(() => {});
+  };
 
   return (
     <div className="mt-10">
@@ -78,7 +83,7 @@ export default function ClientInvoices({ email }) {
                     inv.receiptUrl ? (
                       <Button
                         size="sm"
-                        onClick={() => open(inv.receiptUrl)}
+                        onClick={() => open(inv.receiptUrl, inv, "view_receipt")}
                         className="bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
                       >
                         <Receipt className="w-4 h-4 mr-2" />
@@ -90,7 +95,7 @@ export default function ClientInvoices({ email }) {
                       {inv.payLinkUrl ? (
                         <Button
                           size="sm"
-                          onClick={() => open(inv.payLinkUrl)}
+                          onClick={() => open(inv.payLinkUrl, inv, "pay")}
                           className="bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
                         >
                           <CreditCard className="w-4 h-4 mr-2" />
@@ -101,7 +106,7 @@ export default function ClientInvoices({ email }) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => open(inv.viewUrl)}
+                          onClick={() => open(inv.viewUrl, inv, "view_invoice")}
                           className="text-[var(--accent-color)] border-[var(--border-color)]"
                         >
                           <FileText className="w-4 h-4 mr-2" />
