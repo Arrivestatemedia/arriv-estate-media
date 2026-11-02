@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { sendNewPartnerJobDigest } from '../../shared/newPartnerJobDigest.ts';
+import { geocodeZipKeyless } from '../../shared/jobNotifications.ts';
 
 /**
  * saveCoverageArea
@@ -50,6 +51,16 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       console.error('Geocode ZIP failed:', e.message);
+    }
+
+    // Google's Geocoding API is denied for the browser-restricted key, so fall
+    // back to a keyless ZIP lookup before giving up on the center point.
+    if (lat == null || lng == null) {
+      const fallback = await geocodeZipKeyless(rawZip);
+      if (fallback) {
+        lat = fallback.lat;
+        lng = fallback.lng;
+      }
     }
 
     if (lat == null || lng == null) {

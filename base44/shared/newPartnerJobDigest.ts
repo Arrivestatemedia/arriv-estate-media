@@ -62,6 +62,15 @@ async function matchingOpenJobs(base44, partner) {
     }
   }
 
+  // Google geocoding is denied for the browser key — resolve the ZIP keyless.
+  if (partnerLat == null || partnerLng == null) {
+    const c = await geocodeZipKeyless(partner.zip || partner.coverage_area);
+    if (c) {
+      partnerLat = c.lat;
+      partnerLng = c.lng;
+    }
+  }
+
   const matched = [];
   for (const job of openJobs) {
     const jobState = String(job.state || "").trim().toUpperCase();
