@@ -11,6 +11,7 @@ import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
 import AccessSelectionCard from "@/components/client/AccessSelectionCard";
+import ClientInvoices from "@/components/client/ClientInvoices";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -251,6 +252,7 @@ export default function ClientBookings() {
             </div>
           </div>
         )}
+          <ClientInvoices email={user.email} />
         </div>
       </div>
 
