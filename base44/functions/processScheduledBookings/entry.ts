@@ -38,25 +38,56 @@ Deno.serve(async (req) => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const isPastShoot = shootDate < today || !!sb.scheduled_media_message_id;
 
-        // Create the Booking record directly (service role, no auth needed)
-        const createdBooking = await base44.asServiceRole.entities.Booking.create({
-          client_name: sb.client_name,
-          client_email: sb.client_email,
-          client_phone: sb.client_phone || '',
-          street_address: sb.street_address,
-          city: sb.city,
-          state: sb.state,
-          preferred_date: sb.preferred_date,
-          preferred_time: sb.preferred_time,
-          notes: sb.notes || '',
-          package: sb.package_id,
-          add_ons: sb.add_on_ids || [],
-          request_pay_at_closing: sb.request_pay_at_closing || false,
-          total_price: totalPrice,
-          status: isPastShoot ? 'approved' : 'pending',
-          sales_member_id: sb.sales_member_id || '',
-          sales_member_name: sb.sales_member_name || '',
-        });
+        // A scheduled booking for a FUTURE shoot is a real client booking, so it runs
+        // through the canonical submission path: pricing snapshot, commission, client
+        // confirmation email, admin alert + SMS and the pay-up-front invoice. It must
+        // behave exactly like a request submitted from the booking form.
+        // A PAST shoot is recorded here and assigned straight to admin below.
+        let createdBooking;
+        if (!isPastShoot) {
+          const submission = await base44.asServiceRole.functions.invoke('handleBookingSubmission', {
+            booking: {
+              client_name: sb.client_name,
+              client_email: sb.client_email,
+              client_phone: sb.client_phone || '',
+              street_address: sb.street_address,
+              city: sb.city,
+              state: sb.state,
+              preferred_date: sb.preferred_date,
+              preferred_time: sb.preferred_time,
+              notes: sb.notes || '',
+              package: sb.package_id,
+              add_ons: sb.add_on_ids || [],
+              request_pay_at_closing: sb.request_pay_at_closing || false,
+              total_price: totalPrice,
+              sales_member_id: sb.sales_member_id || '',
+              sales_member_name: sb.sales_member_name || '',
+            },
+          });
+          createdBooking = submission?.data?.booking || submission?.booking;
+          if (!createdBooking?.id) {
+            throw new Error(submission?.data?.error || 'Booking submission failed');
+          }
+        } else {
+          createdBooking = await base44.asServiceRole.entities.Booking.create({
+            client_name: sb.client_name,
+            client_email: sb.client_email,
+            client_phone: sb.client_phone || '',
+            street_address: sb.street_address,
+            city: sb.city,
+            state: sb.state,
+            preferred_date: sb.preferred_date,
+            preferred_time: sb.preferred_time,
+            notes: sb.notes || '',
+            package: sb.package_id,
+            add_ons: sb.add_on_ids || [],
+            request_pay_at_closing: sb.request_pay_at_closing || false,
+            total_price: totalPrice,
+            status: 'approved',
+            sales_member_id: sb.sales_member_id || '',
+            sales_member_name: sb.sales_member_name || '',
+          });
+        }
 
         // For past shoots: create a completed Job assigned to admin and skip all notifications
         if (isPastShoot) {
@@ -300,9 +331,6 @@ Deno.serve(async (req) => {
           });
 
           await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id, payment_locked: true });
-        } else {
-          // Future shoot: call handleBookingSubmission normally (user-initiated flows only, so just create the booking and let admin handle it)
-          // Nothing extra needed — booking is created above with status 'pending'
         }
 
         await base44.asServiceRole.entities.ScheduledBooking.update(sb.id, {
