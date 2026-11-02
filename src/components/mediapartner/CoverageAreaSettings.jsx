@@ -12,17 +12,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin, Loader2, CheckCircle2 } from "lucide-react";
+import { US_STATES } from "@/lib/usStates";
 
 export default function CoverageAreaSettings() {
   const queryClient = useQueryClient();
-  const [coverageArea, setCoverageArea] = useState("");
+  const [zip, setZip] = useState("");
+  const [state, setState] = useState("");
   const [maxDistance, setMaxDistance] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const email = localStorage.getItem("user_email");
+  const email =
+    localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
 
   useEffect(() => {
     let mounted = true;
@@ -35,7 +38,9 @@ export default function CoverageAreaSettings() {
         const res = await base44.functions.invoke("getCoverageArea", { email });
         if (!mounted) return;
         const rec = res?.data;
-        setCoverageArea(rec?.coverage_area || "");
+        const storedZip = rec?.zip || rec?.coverage_area || "";
+        setZip(/^\d{5}$/.test(storedZip) ? storedZip : "");
+        setState(rec?.state || "");
         setMaxDistance(
           rec?.max_travel_distance ? String(rec.max_travel_distance) : ""
         );
@@ -50,105 +55,48 @@ export default function CoverageAreaSettings() {
     };
   }, [email]);
 
-  const geocode = (address) =>
-    new Promise((resolve, reject) => {
-      const startedAt = Date.now();
-      const tryGeocode = () => {
-        if (window.google?.maps?.Geocoder) {
-          const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ address }, (results, status) => {
-            if (status === "OK" && results && results[0]) {
-              const loc = results[0].geometry.location;
-              resolve({ lat: loc.lat(), lng: loc.lng() });
-            } else {
-              reject(new Error("Could not find that address. Try being more specific."));
-            }
-          });
-        } else if (Date.now() - startedAt > 10000) {
-          reject(new Error("Maps failed to load. Please refresh the page and try again."));
-        } else {
-          setTimeout(tryGeocode, 400);
-        }
-      };
-      tryGeocode();
-    });
-
   const handleSave = async () => {
     setError("");
     setSuccess(false);
     if (!email) {
-      setError("Please sign in to save your coverage area.");
+      setError("Please sign in to save your work area.");
       return;
     }
-    if (!coverageArea.trim()) {
-      setError("Please enter a coverage area.");
+    const cleanZip = zip.trim();
+    if (!/^\d{5}$/.test(cleanZip)) {
+      setError("Please enter your 5-digit ZIP code.");
+      return;
+    }
+    if (!state) {
+      setError("Please select your state.");
       return;
     }
     const distance = Number(maxDistance);
     if (!maxDistance || isNaN(distance) || distance <= 0) {
-      setError("Please enter a valid maximum travel distance in miles.");
+      setError("Please enter how far you'll travel, in miles.");
       return;
     }
+
     setSaving(true);
     try {
       const res = await base44.functions.invoke("saveCoverageArea", {
         email,
-        coverage_area: coverageArea.trim(),
-        coverage_lat: null,
-        coverage_lng: null,
+        zip: cleanZip,
+        state,
         max_travel_distance: distance,
       });
       if (!res?.data?.success) {
-        setError(res?.data?.error || "Failed to save coverage area.");
+        setError(res?.data?.error || "Failed to save your work area.");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["user-record"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["coverage-area"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-
-      // Best-effort geocoding in the background to populate lat/lng
-      geocode(coverageArea.trim())
-        .then(async ({ lat, lng }) => {
-          await base44.functions.invoke("saveCoverageArea", {
-            email,
-            coverage_lat: lat,
-            coverage_lng: lng,
-          });
-          queryClient.invalidateQueries({ queryKey: ["jobs"] });
-        })
-        .catch(() => {});
     } catch (e) {
-      setError(e.response?.data?.error || e.message || "Failed to save coverage area.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleClear = async () => {
-    if (!email) return;
-    setSaving(true);
-    setError("");
-    try {
-      const res = await base44.functions.invoke("saveCoverageArea", {
-        email,
-        coverage_area: "",
-        coverage_lat: null,
-        coverage_lng: null,
-        max_travel_distance: null,
-      });
-      if (!res?.data?.success) {
-        setError(res?.data?.error || "Failed to clear coverage area.");
-        return;
-      }
-      setCoverageArea("");
-      setMaxDistance("");
-      queryClient.invalidateQueries({ queryKey: ["user-record"] });
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-    } catch (e) {
-      setError(e.response?.data?.error || e.message || "Failed to clear coverage area.");
+      setError(e.response?.data?.error || e.message || "Failed to save your work area.");
     } finally {
       setSaving(false);
     }
@@ -159,11 +107,11 @@ export default function CoverageAreaSettings() {
       <CardHeader>
         <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
           <MapPin className="w-5 h-5" />
-          Coverage Area
+          My Work Area
         </CardTitle>
         <CardDescription>
-          Set where you'll work and how far you'll travel. We'll only show you gigs
-          within your selected range.
+          Your ZIP code is the center of your work area. We'll only show you and
+          notify you about gigs within the travel range you set.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -173,21 +121,35 @@ export default function CoverageAreaSettings() {
           </div>
         ) : (
           <>
-            <div>
-              <Label className="mb-2 block">Preferred Coverage Area</Label>
-              <Input
-                value={coverageArea}
-                onChange={(e) => setCoverageArea(e.target.value)}
-                placeholder="City, State or full address"
-                className="border-[#B8956A]/30"
-              />
-              <p className="text-xs text-[#1A1A1A]/50 mt-1">
-                Enter a city, ZIP code, or specific address as the center of your
-                coverage area.
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block">ZIP Code</Label>
+                <Input
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
+                  placeholder="e.g. 20886"
+                  inputMode="numeric"
+                  className="border-[#B8956A]/30"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block">State</Label>
+                <select
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full h-10 rounded-md border border-[#B8956A]/30 bg-white px-3 text-sm text-[#1A1A1A] focus:border-[#B8956A] focus:outline-none"
+                >
+                  <option value="">Select your state</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
-              <Label className="mb-2 block">Maximum Travel Distance (miles)</Label>
+              <Label className="mb-2 block">How far will you travel? (miles)</Label>
               <Input
                 type="number"
                 min="1"
@@ -197,7 +159,7 @@ export default function CoverageAreaSettings() {
                 className="border-[#B8956A]/30"
               />
               <p className="text-xs text-[#1A1A1A]/50 mt-1">
-                We'll only show you gigs within this distance of your coverage area.
+                Gigs further than this from your ZIP code won't be shown to you or sent to you.
               </p>
             </div>
             {error && (
@@ -207,28 +169,17 @@ export default function CoverageAreaSettings() {
             )}
             {success && (
               <div className="text-sm text-green-700 bg-green-50 border border-green-200 p-3 rounded-lg flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> Coverage preferences saved.
+                <CheckCircle2 className="w-4 h-4" /> Work area saved.
               </div>
             )}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
-              >
-                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {saving ? "Saving..." : "Save Preferences"}
-              </Button>
-              {(coverageArea || maxDistance) && (
-                <Button
-                  variant="outline"
-                  onClick={handleClear}
-                  disabled={saving}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+            >
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving ? "Saving..." : "Save Work Area"}
+            </Button>
           </>
         )}
       </CardContent>

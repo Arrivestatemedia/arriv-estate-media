@@ -71,14 +71,16 @@ Deno.serve(async (req) => {
       application_address: applicationAddress
     };
 
-    // Geocode the coverage_area server-side if lat/lng aren't stored yet, so
-    // the Job Board can compute distance without the client-side JS Geocoder
-    // (which fails under API-key referrer restrictions). Persist for next time.
-    if (response.coverage_area && (response.coverage_lat == null || response.coverage_lng == null)) {
+    // Geocode the partner's ZIP server-side if lat/lng aren't stored yet, so the
+    // Job Board can compute distance without the client-side JS Geocoder (which
+    // fails under API-key referrer restrictions). The ZIP is the center of the
+    // work area; the coverage_area text is only a fallback for legacy records.
+    const centerSource = response.zip || response.coverage_area;
+    if (centerSource && (response.coverage_lat == null || response.coverage_lng == null)) {
       try {
         const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
         if (gmapsKey) {
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(response.coverage_area)}&key=${gmapsKey}`;
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(centerSource)}&key=${gmapsKey}`;
           const res = await fetch(url);
           const json = await res.json();
           if (json.status === 'OK' && json.results?.[0]) {

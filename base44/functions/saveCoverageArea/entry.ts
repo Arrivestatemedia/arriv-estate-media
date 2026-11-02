@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
+/**
+ * saveCoverageArea
+ *
+ * Every media partner records a state, a ZIP code and a travel range. The ZIP is
+ * the center of their work area and the range is how far they'll drive, so job
+ * scoping runs from that ZIP outward. Nothing is saved without all three.
+ */
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
@@ -10,36 +17,55 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
-    // Build the update payload from only the fields that were provided so we
-    // can do partial updates (e.g. background geocode of lat/lng only).
-    const updateData = {};
-    if (body.coverage_area !== undefined) updateData.coverage_area = body.coverage_area;
-    if (body.coverage_lat !== undefined) updateData.coverage_lat = body.coverage_lat;
-    if (body.coverage_lng !== undefined) updateData.coverage_lng = body.coverage_lng;
-    if (body.max_travel_distance !== undefined) updateData.max_travel_distance = body.max_travel_distance;
-
-    // When the coverage area (zip) changes, derive the US state from it so the
-    // Job Board's state filter matches jobs in the partner's NEW coverage state.
-    // Without this, a partner who moves their coverage zip to a new state still
-    // has their old state on record, so jobs in the new state stay hidden.
-    if (body.coverage_area !== undefined) {
-      try {
-        const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
-        if (gmapsKey) {
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(String(body.coverage_area))}&key=${gmapsKey}`;
-          const res = await fetch(url);
-          const json = await res.json();
-          if (json.status === 'OK' && json.results?.[0]) {
-            const c = (json.results[0].address_components || []).find((comp) => comp.types?.includes('administrative_area_level_1'));
-            if (c?.short_name) {
-              updateData.state = String(c.short_name).toUpperCase();
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Derive state from coverage_area failed:', e.message);
-      }
+    const rawZip = String(body.zip ?? body.coverage_area ?? '').trim();
+    if (!/^\d{5}$/.test(rawZip)) {
+      return Response.json({ error: 'A 5-digit ZIP code is required' }, { status: 400 });
     }
+
+    const state = String(body.state ?? '').trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(state)) {
+      return Response.json({ error: 'A valid 2-letter state is required' }, { status: 400 });
+    }
+
+    const distance = Number(body.max_travel_distance);
+    if (!distance || distance <= 0) {
+      return Response.json({ error: 'A travel range greater than zero is required' }, { status: 400 });
+    }
+
+    // Geocode the ZIP server-side so the radius check has a center immediately.
+    let lat = null;
+    let lng = null;
+    try {
+      const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+      if (gmapsKey) {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(rawZip)}&key=${gmapsKey}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status === 'OK' && json.results?.[0]) {
+          const loc = json.results[0].geometry.location;
+          lat = loc.lat;
+          lng = loc.lng;
+        }
+      }
+    } catch (e) {
+      console.error('Geocode ZIP failed:', e.message);
+    }
+
+    if (lat == null || lng == null) {
+      return Response.json(
+        { error: "We couldn't locate that ZIP code. Please check it and try again." },
+        { status: 400 }
+      );
+    }
+
+    const updateData = {
+      zip: rawZip,
+      state,
+      max_travel_distance: distance,
+      coverage_area: rawZip,
+      coverage_lat: lat,
+      coverage_lng: lng,
+    };
 
     // Case-insensitive email match — stored records may use mixed case.
     const normalized = String(email).toLowerCase();
@@ -68,7 +94,7 @@ Deno.serve(async (req) => {
     if (!updated) {
       return Response.json({ error: 'Partner record not found' }, { status: 404 });
     }
-    return Response.json({ success: true });
+    return Response.json({ success: true, zip: rawZip, state, max_travel_distance: distance });
   } catch (error) {
     console.error('saveCoverageArea error:', error);
     return Response.json({ error: error.message }, { status: 500 });

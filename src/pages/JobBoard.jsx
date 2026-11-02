@@ -3,14 +3,13 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Briefcase, LayoutDashboard, RefreshCw } from "lucide-react";
+import { Search, Briefcase, LayoutDashboard, RefreshCw, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import CancelJobDialog from "../components/jobs/CancelJobDialog";
-import { jobMatchesPartnerState } from "@/lib/jobStateScope";
 import BackgroundCheckAuthorizationModal from "../components/backgroundcheck/BackgroundCheckAuthorizationModal";
 import {
   Dialog,
@@ -132,9 +131,6 @@ export default function JobBoard() {
   });
 
   const maxDistance = coverage?.max_travel_distance;
-  // The partner's own state, resolved server-side from their record or application
-  // address — used to scope the board to jobs in that state.
-  const partnerState = coverage?.state;
   // Filter once we know the coverage center + max distance. The center may be
   // stored as lat/lng, or geocoded from coverage_area on the fly (see effect below).
   const hasCoverage =
@@ -499,10 +495,9 @@ export default function JobBoard() {
      );
    })
    .filter((job) => {
-     // State scoping — a job is only offered to partners in the job's own state,
-     // so a Georgia shoot never appears for a Maryland or Virginia partner.
+     // ZIP radius scoping — the partner's own ZIP is the center and their travel
+     // range is the limit, so gigs further out than they'll drive don't appear.
      if (job.id === highlightJobId) return true;
-     if (!jobMatchesPartnerState(job.state, partnerState)) return false;
      if (!hasCoverage) return true;
      const d = jobDistances[job.id];
      // Fail open: if the distance couldn't be computed (geocoding failed/stalled),
@@ -562,6 +557,20 @@ export default function JobBoard() {
             </Link>
           )}
         </div>
+
+        {user?.user_type === "media_partner" && !isLoading && !hasCoverage && (
+          <Card className="border-[#B8956A]/40 bg-white mb-6">
+            <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <MapPin className="w-5 h-5 text-[#B8956A] shrink-0" />
+              <p className="text-sm text-[#1A1A1A]/70 flex-1">
+                Set your ZIP code, state and travel range so we only show you gigs you can actually take.
+              </p>
+              <Link to={createPageUrl("MediaPartnerDashboard")}>
+                <Button className="bg-[#B8956A] hover:bg-[#A68559] text-white">Set my area</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">

@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 import { geocode, haversineMiles, sendTwilioSms, getGoogleMapsKey } from '../../shared/jobNotifications.ts';
-import { isJobInPartnerState } from '../../shared/jobStateScope.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -43,46 +42,34 @@ Deno.serve(async (req) => {
       console.error('Job geocode failed:', e.message);
     }
 
-    // State scope first: a job is offered only to partners in the job's own state,
-    // so a Georgia shoot is never pushed to Maryland or Virginia partners. A
-    // partner whose state can't be determined is not treated as local.
-    const stateFiltered = mediaPartners.filter((p) => isJobInPartnerState(p, job.state));
+    // --- ZIP radius scope: a job is offered only to partners whose own ZIP sits
+    // inside the travel range that partner set. Every partner records a state, a
+    // ZIP and a travel range, so a partner missing either is not offered the job.
+    const eligiblePartners = [];
+    for (const p of mediaPartners) {
+      const maxDist = Number(p.max_travel_distance);
+      if (!maxDist || maxDist <= 0) continue;
 
-    if (stateFiltered.length === 0) {
-      return Response.json({ message: 'No media partners in this job state' });
-    }
-
-    let eligiblePartners;
-    if (!jobCoords) {
-      // Can't determine job location for radius → notify all state-matched partners.
-      eligiblePartners = stateFiltered;
-    } else {
-      eligiblePartners = [];
-      for (const p of stateFiltered) {
-        const maxDist = p.max_travel_distance;
-        // No coverage set → they see all jobs on the board, so notify them too.
-        if (maxDist == null || (p.coverage_lat == null && p.coverage_lng == null && !p.coverage_area)) {
-          eligiblePartners.push(p);
-          continue;
-        }
-        let cLat = p.coverage_lat;
-        let cLng = p.coverage_lng;
-        if ((cLat == null || cLng == null) && p.coverage_area) {
-          const c = await geocode(p.coverage_area, gmapsKey);
-          if (c) { cLat = c.lat; cLng = c.lng; }
-        }
-        if (cLat == null || cLng == null) {
-          // Can't resolve center → notify to be safe (matches board's show-all fallback).
-          eligiblePartners.push(p);
-          continue;
-        }
-        const dist = haversineMiles(jobCoords.lat, jobCoords.lng, cLat, cLng);
-        if (dist <= maxDist) eligiblePartners.push(p);
+      let cLat = p.coverage_lat;
+      let cLng = p.coverage_lng;
+      if (cLat == null || cLng == null) {
+        const centerSource = p.zip || p.coverage_area;
+        if (!centerSource) continue;
+        const c = await geocode(centerSource, gmapsKey);
+        if (!c) continue;
+        cLat = c.lat;
+        cLng = c.lng;
       }
+
+      // Job location unresolved → still tell the in-range partners about it.
+      if (!jobCoords) { eligiblePartners.push(p); continue; }
+
+      const dist = haversineMiles(jobCoords.lat, jobCoords.lng, cLat, cLng);
+      if (dist <= maxDist) eligiblePartners.push(p);
     }
 
     if (eligiblePartners.length === 0) {
-      return Response.json({ message: 'No media partners in radius' });
+      return Response.json({ message: 'No media partners within range of this job' });
     }
 
     // Twilio SMS via shared helper (company number -> partner)
