@@ -17,28 +17,6 @@ function convertTo12HourFormat(time24) {
   return `${hour12}:${String(minute).padStart(2, '0')} ${ampm}`;
 }
 
-async function sendEmailViaGmail(accessToken, to, subject, body) {
-  const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
-  const encodedMessage = btoa(message);
-  
-  const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      raw: encodedMessage
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Gmail send failed: ${response.statusText}`);
-  }
-  
-  return response.json();
-}
-
 Deno.serve(async (req) => {
               try {
                 const base44 = createClientFromRequest(req);
@@ -46,13 +24,6 @@ Deno.serve(async (req) => {
                 const now = new Date();
                 const nowNY = toZonedTime(now, tz);
 
-                // Get Gmail access token
-                let gmailAccessToken;
-                try {
-                  gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-                } catch (e) {
-                  console.log('Gmail not available');
-                }
 
           // Get all open, booked, or in_progress jobs
           let jobs = [];
@@ -180,16 +151,12 @@ Deno.serve(async (req) => {
           // Send email to media partner
           if (job.booked_by) {
             try {
-              if (gmailAccessToken) {
-                await sendEmailViaGmail(gmailAccessToken, job.booked_by, 'Shoot Reminder - Today at ' + jobTime, emailBody);
-              } else {
-                await sendBrevoEmail({
-                  to: job.booked_by,
-                  subject: 'Shoot Reminder - Today at ' + jobTime,
-                  textContent: emailBody,
-                  senderEmail: BOOKINGS_SENDER_EMAIL
-                });
-              }
+              await sendBrevoEmail({
+                to: job.booked_by,
+                subject: 'Shoot Reminder - Today at ' + jobTime,
+                textContent: emailBody,
+                senderEmail: BOOKINGS_SENDER_EMAIL
+              });
             } catch (e) {
               console.log('Email send skipped:', e.message);
             }
@@ -228,16 +195,12 @@ Deno.serve(async (req) => {
           // Send email to client
           if (job.client_email) {
             try {
-              if (gmailAccessToken) {
-                await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Shoot Reminder - Today at ' + jobTime, emailBody);
-              } else {
-                await sendBrevoEmail({
-                  to: job.client_email,
-                  subject: 'Shoot Reminder - Today at ' + jobTime,
-                  textContent: emailBody,
-                  senderEmail: BOOKINGS_SENDER_EMAIL
-                });
-              }
+              await sendBrevoEmail({
+                to: job.client_email,
+                subject: 'Shoot Reminder - Today at ' + jobTime,
+                textContent: emailBody,
+                senderEmail: BOOKINGS_SENDER_EMAIL
+              });
             } catch (e) {
               console.log('Email send skipped:', e.message);
             }
@@ -385,16 +348,12 @@ Deno.serve(async (req) => {
            // Send email to client
            if (clientEmailBody && job.client_email) {
              try {
-               if (gmailAccessToken) {
-                 await sendEmailViaGmail(gmailAccessToken, job.client_email, clientEmailSubject, clientEmailBody);
-               } else {
-                 await sendBrevoEmail({
-                   to: job.client_email,
-                   subject: clientEmailSubject,
-                   textContent: clientEmailBody,
-                   senderEmail: BOOKINGS_SENDER_EMAIL
-                 });
-               }
+               await sendBrevoEmail({
+                 to: job.client_email,
+                 subject: clientEmailSubject,
+                 textContent: clientEmailBody,
+                 senderEmail: BOOKINGS_SENDER_EMAIL
+               });
              } catch (e) {
                console.log('Client 24h email send skipped:', e.message);
              }
@@ -484,11 +443,12 @@ Deno.serve(async (req) => {
            }
            if (job.client_email) {
              try {
-               if (gmailAccessToken) {
-                 await sendEmailViaGmail(gmailAccessToken, job.client_email, followUpSubject, followUpBody);
-               } else {
-                 await sendBrevoEmail({ to: job.client_email, subject: followUpSubject, textContent: followUpBody });
-               }
+               await sendBrevoEmail({
+                 to: job.client_email,
+                 subject: followUpSubject,
+                 textContent: followUpBody,
+                 senderEmail: BOOKINGS_SENDER_EMAIL
+               });
              } catch (e) {
                console.log('Access follow-up email send skipped:', e.message);
              }

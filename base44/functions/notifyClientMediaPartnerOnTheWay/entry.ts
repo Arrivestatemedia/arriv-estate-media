@@ -1,26 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-async function sendEmailViaGmail(accessToken, to, subject, body) {
-  const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
-  const encodedMessage = btoa(message);
-  
-  const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      raw: encodedMessage
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Gmail send failed: ${response.statusText}`);
-  }
-  
-  return response.json();
-}
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -46,14 +25,6 @@ Deno.serve(async (req) => {
       media_partner_status: 'on_the_way',
       on_the_way_at: new Date().toISOString()
     });
-
-    // Get Gmail access token
-    let gmailAccessToken;
-    try {
-      gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-    } catch (e) {
-      console.log('Gmail not available');
-    }
 
     // Extract first names
     const clientFirstName = job.client_name.split(' ')[0];
@@ -97,22 +68,25 @@ Deno.serve(async (req) => {
       console.error('SMS send error:', error.message);
     }
 
-    // Send email via Gmail
-    if (gmailAccessToken) {
-      try {
-        await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Your Media Partner is On The Way!', emailBody);
-        await base44.asServiceRole.entities.MessageLog.create({
-          message_type: 'email',
-          recipient_type: 'client',
-          recipient_email: job.client_email,
-          message_content: emailBody,
-          subject: 'Your Media Partner is On The Way!',
-          job_id: jobId,
-          status: 'success'
-        });
-      } catch (error) {
-        console.error('Email send error:', error.message);
-      }
+    // Send email via Brevo
+    try {
+      await sendBrevoEmail({
+        to: job.client_email,
+        subject: 'Your Media Partner is On The Way!',
+        textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
+      });
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: job.client_email,
+        message_content: emailBody,
+        subject: 'Your Media Partner is On The Way!',
+        job_id: jobId,
+        status: 'success'
+      });
+    } catch (error) {
+      console.error('Email send error:', error.message);
     }
 
     return Response.json({ success: true, message: 'Client notified that media partner is on the way' });

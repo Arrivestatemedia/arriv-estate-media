@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { checkClientHasAccount } from '../../shared/clientAccountCheck.ts';
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -69,8 +70,6 @@ Deno.serve(async (req) => {
     const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
     const bradleyPhone = Deno.env.get('BRADLEY_PHONE');
     const bradleyEmail = Deno.env.get('ADMIN_EMAIL');
-    const gmailConn = await base44.asServiceRole.connectors.getConnection('gmail');
-    const gmailToken = gmailConn.accessToken;
 
     const sendSms = async (to) => {
       const formatted = to?.startsWith('+') ? to : `+1${to}`;
@@ -86,23 +85,18 @@ Deno.serve(async (req) => {
     };
 
     const sendEmail = async (to) => {
-      const emailSubject = `Your Media is Ready – ${job.location}`;
-      const emailLines = [
-        `To: ${to}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset=utf-8',
-        '',
-        messageBody,
-      ].join('\r\n');
-      const encodedEmail = btoa(unescape(encodeURIComponent(emailLines)))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw: encodedEmail }),
-      });
-      return res.ok;
+      try {
+        await sendBrevoEmail({
+          to,
+          subject: `Your Media is Ready – ${job.location}`,
+          textContent: messageBody,
+          senderEmail: BOOKINGS_SENDER_EMAIL,
+        });
+        return true;
+      } catch (error) {
+        console.error('Media ready email failed:', error.message);
+        return false;
+      }
     };
 
     const emailSubject = `Your Media is Ready – ${job.location}`;

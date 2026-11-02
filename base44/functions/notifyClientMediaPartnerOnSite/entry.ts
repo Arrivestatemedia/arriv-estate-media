@@ -1,27 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
-
-async function sendEmailViaGmail(accessToken, to, subject, body) {
-  const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
-  const encodedMessage = btoa(message);
-  
-  const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      raw: encodedMessage
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Gmail send failed: ${response.statusText}`);
-  }
-  
-  return response.json();
-}
+import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -48,14 +27,6 @@ Deno.serve(async (req) => {
       media_partner_status: 'on_site',
       on_site_at: new Date().toISOString()
     });
-
-    // Get Gmail access token
-    let gmailAccessToken;
-    try {
-      gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-    } catch (e) {
-      console.log('Gmail not available');
-    }
 
     // Prepare messages — reduce specialist's last name to an initial for privacy
     const rawSpecialistName = (job.booked_by_name || '').trim();
@@ -101,13 +72,18 @@ Deno.serve(async (req) => {
       console.error('SMS send error:', error.message);
     }
 
-    // Send email via Gmail
-    if (gmailAccessToken) {
-      try {
-        await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Your Shoot is Starting!', emailBody);
-      } catch (error) {
-        console.error('Email send error:', error.message);
-      }
+    // Send email via Brevo
+    let emailOk = false;
+    try {
+      await sendBrevoEmail({
+        to: job.client_email,
+        subject: 'Your Shoot is Starting!',
+        textContent: emailBody,
+        senderEmail: BOOKINGS_SENDER_EMAIL,
+      });
+      emailOk = true;
+    } catch (error) {
+      console.error('Email send error:', error.message);
     }
 
     await base44.asServiceRole.entities.MessageLog.create({
@@ -117,7 +93,7 @@ Deno.serve(async (req) => {
       message_content: emailBody,
       subject: 'Your Shoot is Starting!',
       job_id: jobId,
-      status: 'success'
+      status: emailOk ? 'success' : 'failed'
     });
 
     return Response.json({ success: true, message: 'Client notified that media partner is on site' });
