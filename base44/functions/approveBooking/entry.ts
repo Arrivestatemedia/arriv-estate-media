@@ -1,4 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { checkClientHasAccount } from '../../shared/clientAccountCheck.ts';
+import { buildBookingAcceptedMessage } from '../../shared/bookingAcceptedMessage.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -23,15 +25,20 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send approval email to customer
+    // Send the booking-accepted message (email + text) to the customer
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
-    const emailSubject = 'Your Booking Has Been Approved';
-    const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nWe'll connect you with a contractor shortly. Thank you!`;
+    const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arrivestatemedia.base44.app';
+    const clientHasAccount = await checkClientHasAccount(base44, booking.client_email || '');
+    const { subject: emailSubject, emailBody, smsBody } = buildBookingAcceptedMessage({
+      booking,
+      hasAccount: clientHasAccount,
+      appDomain,
+    });
 
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-      const messageLines = [
+      const emailRaw = [
         `To: ${booking.client_email}`,
         `From: ${adminEmail}`,
         `Subject: ${emailSubject}`,
@@ -39,17 +46,9 @@ Deno.serve(async (req) => {
         'Content-Type: text/plain; charset="UTF-8"',
         '',
         emailBody
-      ];
+      ].join('\r\n');
 
-      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-      const messageBytes = messageParts.reduce((acc, part) => {
-        const newAcc = new Uint8Array(acc.length + part.length);
-        newAcc.set(acc);
-        newAcc.set(part, acc.length);
-        return newAcc;
-      }, new Uint8Array());
-
-      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+      const base64urlMessage = btoa(unescape(encodeURIComponent(emailRaw)))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
@@ -82,6 +81,34 @@ Deno.serve(async (req) => {
         status: 'failed',
         error_message: error.message
       });
+    }
+
+    // Text them the same confirmation
+    try {
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      if (booking.client_phone && accountSid && authToken && fromPhone) {
+        const to = String(booking.client_phone).startsWith('+') ? booking.client_phone : `+1${booking.client_phone}`;
+        const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({ From: fromPhone, To: to, Body: smsBody }).toString()
+        });
+
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'sms',
+          recipient_type: 'client',
+          recipient_phone: booking.client_phone,
+          message_content: smsBody,
+          status: smsResponse.ok ? 'success' : 'failed'
+        });
+      }
+    } catch (error) {
+      console.error('Approval SMS error:', error);
     }
 
     // Send Google Calendar invite to client
