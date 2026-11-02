@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
           subject: email.subject,
           textContent: email.body,
           senderName: email.from_name || undefined,
+          senderEmail: email.from_email || undefined,
         });
         await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
           status: "sent",
