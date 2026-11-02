@@ -139,7 +139,6 @@ export default function PublicJobApplication() {
   if (!form.full_name.trim()) missingFields.push("Full Name");
   if (!form.email.trim()) missingFields.push("Email");
   if (!form.phone.trim()) missingFields.push("Phone");
-  if (!form.linkedin.trim()) missingFields.push("LinkedIn (type N/A if none)");
   if (!form.last_related_job.trim()) missingFields.push("Last Related Job/Experience");
   if (!form.why_good_fit.trim()) missingFields.push("Why Are You a Good Fit?");
   if (!form.eeoc_agreed) missingFields.push("EEO acknowledgement checkbox");
@@ -291,7 +290,7 @@ export default function PublicJobApplication() {
               <input type="date" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
             </div>
             <div>
-              <label style={labelStyle}>LinkedIn *</label>
+              <label style={labelStyle}>LinkedIn (Optional)</label>
               <input value={form.linkedin} onChange={e => setForm({ ...form, linkedin: e.target.value })} placeholder="LinkedIn URL or N/A" style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
             </div>
           </div>
