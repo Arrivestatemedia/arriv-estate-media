@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { sendNewPartnerJobDigest } from '../../shared/newPartnerJobDigest.ts';
 
 /**
  * saveCoverageArea
@@ -75,9 +76,11 @@ Deno.serve(async (req) => {
     // Sync to BOTH the PendingSignup and User records (whichever exist) so the
     // live user object (used by the job board + job notifications) stays current.
     let updated = false;
+    let partnerRecord = null;
     const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailQuery });
     if (pendingSignups.length > 0) {
       await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
+      partnerRecord = pendingSignups[0];
       updated = true;
     }
 
@@ -85,6 +88,7 @@ Deno.serve(async (req) => {
       const users = await base44.asServiceRole.entities.User.filter({ email: emailQuery });
       if (users.length > 0) {
         await base44.asServiceRole.entities.User.update(users[0].id, updateData);
+        partnerRecord = partnerRecord || users[0];
         updated = true;
       }
     } catch (_e) {
@@ -94,7 +98,27 @@ Deno.serve(async (req) => {
     if (!updated) {
       return Response.json({ error: 'Partner record not found' }, { status: 404 });
     }
-    return Response.json({ success: true, zip: rawZip, state, max_travel_distance: distance });
+
+    // A partner's work area is the first point where we know where they'll drive,
+    // so this is when they learn about the gigs already open to them.
+    let digest = null;
+    try {
+      digest = await sendNewPartnerJobDigest(base44, {
+        ...(partnerRecord || {}),
+        email,
+        ...updateData,
+      });
+    } catch (e) {
+      console.error('New partner job digest failed:', e.message);
+    }
+
+    return Response.json({
+      success: true,
+      zip: rawZip,
+      state,
+      max_travel_distance: distance,
+      jobs_announced: digest?.jobs_announced || 0,
+    });
   } catch (error) {
     console.error('saveCoverageArea error:', error);
     return Response.json({ error: error.message }, { status: 500 });

@@ -51,6 +51,28 @@ export const sendTwilioSms = async (to, body) => {
   return result.sid;
 };
 
+// Keyless ZIP -> coordinates, used for the center of a partner's work area.
+// The Google key is browser-restricted in some deployments (Geocoding denied),
+// so a ZIP center must not depend on it.
+export const geocodeZipKeyless = async (zip) => {
+  const value = String(zip || '').trim();
+  if (!/^\d{5}$/.test(value)) return null;
+  try {
+    const res = await fetch(`https://api.zippopotam.us/us/${value}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const place = json?.places?.[0];
+    if (!place) return null;
+    const lat = Number(place.latitude);
+    const lng = Number(place.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  } catch (e) {
+    console.error('ZIP geocode failed:', e.message);
+    return null;
+  }
+};
+
 export const getTwilioFromNumber = () => Deno.env.get('TWILIO_PHONE_NUMBER');
 
 export const getGoogleMapsKey = () =>

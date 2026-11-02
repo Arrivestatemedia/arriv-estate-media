@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendNewPartnerJobDigest } from '../../shared/newPartnerJobDigest.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -56,9 +57,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // A new partner immediately hears about the gigs already open to them.
+    // Their work area may not be known yet at signup; in that case the digest is
+    // sent when they save their coverage area instead. Never blocks signup.
+    let digest = null;
+    try {
+      digest = await sendNewPartnerJobDigest(base44, {
+        email,
+        full_name,
+        phone_number,
+      });
+    } catch (e) {
+      console.error('New partner job digest failed:', e.message);
+    }
+
     return Response.json({ 
       success: true, 
-      message: 'Account created successfully'
+      message: 'Account created successfully',
+      jobs_announced: digest?.jobs_announced || 0,
     });
   } catch (error) {
     console.error('Signup error:', error);
