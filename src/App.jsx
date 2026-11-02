@@ -75,6 +75,7 @@ import AutoFundTerms from './pages/AutoFundTerms';
 import PropertyPageBuilder from './pages/PropertyPageBuilder';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import PropertyDirectory from './pages/PropertyDirectory';
+import InboundCalls from './pages/InboundCalls';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -581,6 +582,14 @@ const AuthenticatedApp = () => {
       <Route path="/properties" element={<PropertyDirectory />} />
       <Route path="/properties/:slug" element={<PublicPropertyPage />} />
       <Route path="/r/:code" element={<ShortRedirect />} />
+      <Route
+        path="/InboundCalls"
+        element={
+          <LayoutWrapper currentPageName="InboundCalls">
+            <InboundCalls />
+          </LayoutWrapper>
+        }
+      />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </ErrorBoundary>
