@@ -46,7 +46,16 @@ Deno.serve(async (req) => {
       }
     }));
 
-    return Response.json({ success: true, sent, failed, checked: batch.length, total_pending: toSend.length });
+    // Same cadence as the emails: flush any text that is due.
+    let sms = null;
+    try {
+      const smsRes = await base44.asServiceRole.functions.invoke('sendScheduledSms', {});
+      sms = smsRes?.data || smsRes;
+    } catch (smsError) {
+      console.error('Scheduled SMS run failed:', smsError.message);
+    }
+
+    return Response.json({ success: true, sent, failed, checked: batch.length, total_pending: toSend.length, sms });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

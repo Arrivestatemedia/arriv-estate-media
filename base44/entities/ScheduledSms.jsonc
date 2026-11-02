@@ -1,0 +1,73 @@
+{
+  "name": "ScheduledSms",
+  "type": "object",
+  "properties": {
+    "to_number": {
+      "type": "string",
+      "description": "Recipient phone number"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text to send"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to send the text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "twilio_sid": {
+      "type": "string"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "reference_type": {
+      "type": "string",
+      "description": "What this text belongs to (e.g. 'booking')"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Record ID of the referenced booking/invoice"
+    }
+  },
+  "required": [
+    "to_number",
+    "body",
+    "scheduled_for"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
