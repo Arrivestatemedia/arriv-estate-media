@@ -135,8 +135,17 @@ export default function PublicJobApplication() {
     setUploading(false);
   };
 
-  const canSubmit = form.full_name && form.email && form.phone && form.linkedin &&
-    form.last_related_job && form.why_good_fit && form.eeoc_agreed && form.signature && !submitting;
+  const missingFields = [];
+  if (!form.full_name.trim()) missingFields.push("Full Name");
+  if (!form.email.trim()) missingFields.push("Email");
+  if (!form.phone.trim()) missingFields.push("Phone");
+  if (!form.linkedin.trim()) missingFields.push("LinkedIn (type N/A if none)");
+  if (!form.last_related_job.trim()) missingFields.push("Last Related Job/Experience");
+  if (!form.why_good_fit.trim()) missingFields.push("Why Are You a Good Fit?");
+  if (!form.eeoc_agreed) missingFields.push("EEO acknowledgement checkbox");
+  if (!form.signature.trim()) missingFields.push("Electronic Signature");
+
+  const canSubmit = missingFields.length === 0 && !submitting;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -336,6 +345,12 @@ export default function PublicJobApplication() {
         {error && (
           <div className="p-3 rounded-lg mb-5 text-sm" style={{ backgroundColor: "rgba(220,38,38,0.08)", color: "#DC2626" }}>
             {error}
+          </div>
+        )}
+
+        {missingFields.length > 0 && (
+          <div className="p-3 rounded-lg mb-3 text-sm" style={{ backgroundColor: "rgba(184,149,106,0.08)", color: TEXT_DARK }}>
+            <strong>Almost there.</strong> Please complete: {missingFields.join(" · ")}
           </div>
         )}
 
