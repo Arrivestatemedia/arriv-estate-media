@@ -38,7 +38,8 @@ export default function RouteGuard({ children }) {
         }
 
         // Check if orientation is complete
-        const orientationComplete = user.orientationCompleted && user.onboardingFeePaid;
+        // The onboarding fee/apparel is optional — orientation completion is the gate.
+        const orientationComplete = !!user.orientationCompleted;
 
         if (!orientationComplete) {
           // Must be on allowed route

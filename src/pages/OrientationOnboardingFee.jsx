@@ -195,7 +195,7 @@ export default function OrientationOnboardingFee() {
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-[var(--text-secondary)]">
-              A onboarding fee is required to cover your required shirt and jacket for jobs.
+              Pay now to cover your shirt and jacket for jobs. This step is optional — you can skip it and add apparel later.
             </p>
 
             <div className="bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] space-y-2">
@@ -230,6 +230,14 @@ export default function OrientationOnboardingFee() {
                 Payment processor failed to load. Please refresh the page.
               </div>
             )}
+
+            <Button
+              variant="outline"
+              className="w-full border-[var(--border-color)] text-[var(--text-primary)]"
+              onClick={() => navigate(createPageUrl("MediaPartnerDashboard"))}
+            >
+              Skip for now — take me to my dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>

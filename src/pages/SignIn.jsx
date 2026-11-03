@@ -90,7 +90,7 @@ export default function SignIn() {
         window.location.href = '/Dashboard';
       } else if (response.data.user_type === 'media_partner') {
         // Check if orientation is complete
-        if (!response.data.orientationCompleted || !response.data.onboardingFeePaid) {
+        if (!response.data.orientationCompleted) {
           window.location.href = '/OrientationVideo';
         } else {
           window.location.href = '/MediaPartnerDashboard';
