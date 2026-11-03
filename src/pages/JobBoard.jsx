@@ -511,6 +511,9 @@ export default function JobBoard() {
      const requiredCaps = job.required_capabilities || [];
      if (requiredCaps.length === 0) return true;
      const verifiedCaps = user?.verified_capabilities || [];
+     // Fail open: partners still in PendingSignup have no capability record yet,
+     // so don't hide gigs from them. Only hide when we know what they're verified for.
+     if (verifiedCaps.length === 0) return true;
      return requiredCaps.every(cap => verifiedCaps.includes(cap));
      });
 
