@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera } from "lucide-react";
+import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera, Lock } from "lucide-react";
+import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
@@ -159,15 +160,18 @@ export default function ClientBookings() {
                       </Badge>
                     </div>
                     <div className="flex gap-2">
-                      <Link to={createPageUrl('BookingPage') + '?booking_id=' + booking.id}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-[var(--accent-color)] border-[var(--border-color)]"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      </Link>
+                      {bookingChangeWindow(booking).canChange && (
+                        <Link to={createPageUrl('BookingPage') + '?booking_id=' + booking.id}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[var(--accent-color)] border-[var(--border-color)]"
+                            title="Change date or time"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -205,6 +209,21 @@ export default function ClientBookings() {
                       <p className="font-semibold capitalize">{booking.package?.replace('_', ' ')}</p>
                     </div>
                   </div>
+
+                  {!bookingChangeWindow(booking).canChange && (
+                    <div className="flex items-start gap-2 rounded border border-[var(--border-color)] bg-[var(--accent-color)]/5 p-3">
+                      <Lock className="w-4 h-4 mt-0.5 text-[var(--accent-color)] flex-shrink-0" />
+                      <p className="text-sm text-[var(--text-secondary)]">
+                        Changes close 24 hours before your shoot. To reschedule or cancel now, contact us at{" "}
+                        <a
+                          href={`mailto:bookings@arrivestatemedia.com?subject=${encodeURIComponent('Booking change - ' + (booking.property_address || 'my shoot'))}`}
+                          className="font-medium text-[var(--accent-color)] underline"
+                        >
+                          bookings@arrivestatemedia.com
+                        </a>.
+                      </p>
+                    </div>
+                  )}
 
                   {booking.notes && (
                     <div className="bg-[var(--accent-color)]/5 rounded p-3 border border-[var(--border-color)]">

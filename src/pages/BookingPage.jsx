@@ -12,6 +12,7 @@ import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceFo
 import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 import B2BBookingAdapter from "@/components/b2b/B2BBookingAdapter";
+import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
   return (
@@ -295,6 +296,11 @@ export default function BookingPage() {
     const bookingId = urlParams.get('booking_id');
     if (bookingId) {
       base44.entities.Booking.get(bookingId).then(booking => {
+        if (!bookingChangeWindow(booking).canChange) {
+          alert('Changes close 24 hours before your shoot. Please contact us at bookings@arrivestatemedia.com to change this booking.');
+          window.location.href = createPageUrl('ClientBookings');
+          return;
+        }
         setEditingBooking(booking);
         setShowBookingForm(true);
       }).catch(err => {
@@ -343,7 +349,7 @@ export default function BookingPage() {
     },
     onError: (error) => {
       console.error('Change request failed:', error);
-      alert('Failed to submit change request: ' + (error?.message || 'Unknown error'));
+      alert('Failed to submit change request: ' + (error?.response?.data?.error || error?.message || 'Unknown error'));
     },
   });
 
