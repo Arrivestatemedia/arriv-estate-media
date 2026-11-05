@@ -13,6 +13,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
+    // Enforce 2-job limit without the purchased shirt & jacket
+    try {
+      const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+      const partner = partnerUsers[0];
+      if (partner && !partner.apparelPurchased) {
+        const accepted = await base44.asServiceRole.entities.Job.filter({ booked_by: mediaPartnerEmail });
+        const acceptedCount = accepted.filter(j =>
+          ['booked', 'in_progress', 'completed', 'archived'].includes(j.status)
+        ).length;
+        if (acceptedCount >= 2) {
+          return Response.json({
+            error: 'You must purchase your shirt & jacket before accepting more jobs.',
+            code: 'APPAREL_REQUIRED'
+          }, { status: 403 });
+        }
+      }
+    } catch (e) {
+      console.error('Apparel eligibility check failed:', e.message);
+    }
+
     // Server-side capability enforcement — provider must have all required capabilities
     try {
       const job = await base44.asServiceRole.entities.Job.get(jobId);

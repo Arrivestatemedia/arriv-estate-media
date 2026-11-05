@@ -27,6 +27,7 @@ export default function JobBoard() {
     const [cancelJob, setCancelJob] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [cancelSuccess, setCancelSuccess] = useState(false);
+    const [showApparelRequired, setShowApparelRequired] = useState(false);
   const [bgAuthOpen, setBgAuthOpen] = useState(false);
   const [bgAuthContext, setBgAuthContext] = useState(null);
   const [bgPendingOpen, setBgPendingOpen] = useState(false);
@@ -81,6 +82,16 @@ export default function JobBoard() {
   });
   const pendingBgStatus = pendingSignup?.[0]?.background_check_status;
   const bgStatus = user?.background_check_status || pendingBgStatus;
+
+  const { data: acceptedJobs = [] } = useQuery({
+    queryKey: ["accepted-jobs-count", user?.email],
+    queryFn: () => base44.entities.Job.filter({ booked_by: user?.email }),
+    enabled: !!user?.email && user?.user_type === "media_partner",
+  });
+  const acceptedJobsCount = acceptedJobs.filter(j =>
+    ["booked", "in_progress", "completed", "archived"].includes(j.status)
+  ).length;
+  const apparelBlocked = user?.user_type === "media_partner" && !user?.apparelPurchased && acceptedJobsCount >= 2;
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs", filter, user?.email, userEmail, user?.state, user?.coverage_lat, user?.max_travel_distance],
@@ -336,6 +347,10 @@ export default function JobBoard() {
   });
 
   const handleBook = (job) => {
+    if (apparelBlocked) {
+      setShowApparelRequired(true);
+      return;
+    }
     setBookingJob(job);
   };
 
@@ -656,6 +671,25 @@ export default function JobBoard() {
               </Button>
               <Button onClick={confirmBooking} className="bg-[#B8956A] hover:bg-[#A68559] text-white" disabled={bookMutation.isPending}>
                 {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showApparelRequired} onOpenChange={setShowApparelRequired}>
+          <DialogContent className="border-2 border-[#B8956A]/30">
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Shirt &amp; Jacket Required</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                You can accept up to 2 jobs without purchasing your shirt &amp; jacket. To accept more jobs, please purchase your apparel ($50) — pay out of pocket or have it come out of your balance.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowApparelRequired(false)} className="border-[#1A1A1A]/20">
+                Maybe Later
+              </Button>
+              <Button onClick={() => navigate(createPageUrl("PurchaseApparel"))} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
+                Purchase Shirt &amp; Jacket
               </Button>
             </DialogFooter>
           </DialogContent>
