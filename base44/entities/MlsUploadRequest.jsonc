@@ -1,0 +1,281 @@
+{
+  "name": "MlsUploadRequest",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media",
+      "description": "Multi-tenant isolation key"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Stable request ID (mls_req_...)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job the requested media belongs to"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking behind the job, when one exists"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "fmls",
+        "georgia_mls",
+        "bright_mls"
+      ],
+      "default": "fmls",
+      "description": "MLS provider the media is requested for"
+    },
+    "mls_number": {
+      "type": "string",
+      "description": "Existing MLS listing number supplied by the customer"
+    },
+    "mls_number_normalized": {
+      "type": "string",
+      "description": "Normalized listing number used for duplicate checks and display"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Customer who submitted the request. Matched against the job's client_email server-side."
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "client_phone": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Street address of the property, taken from the job and booking"
+    },
+    "selected_media": {
+      "type": "array",
+      "description": "Customer-selected media in the customer's chosen display order",
+      "items": {
+        "type": "object",
+        "properties": {
+          "drive_file_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "photo",
+              "video"
+            ]
+          },
+          "position": {
+            "type": "integer"
+          },
+          "youtube_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "selected_photo_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Google Drive file IDs of the selected photographs, in display order"
+    },
+    "selected_video_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Google Drive file IDs of the selected videos"
+    },
+    "selected_photo_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Explicit photo display order (Drive file IDs) preserved for the upload package"
+    },
+    "selected_youtube_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Unbranded YouTube links ready at submission time, offered as the virtual tour URL"
+    },
+    "photo_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "video_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "unsupported_media": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected items that cannot be sent to the provider, recorded for the administrator"
+    },
+    "authorization_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Customer confirmed they are authorized to request media uploads to this listing"
+    },
+    "authorization_snapshot": {
+      "type": "string",
+      "description": "Exact authorization wording presented at submission, preserved as evidence"
+    },
+    "authorized_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authorized_by_email": {
+      "type": "string",
+      "description": "Verified customer identity that authorized the upload"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "processing",
+        "photos_uploaded",
+        "video_added",
+        "completed",
+        "needs_attention",
+        "cancelled"
+      ],
+      "default": "submitted",
+      "description": "Administrative upload lifecycle. Independent of the job's delivery status."
+    },
+    "photo_upload_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "uploaded",
+        "not_required"
+      ],
+      "default": "pending"
+    },
+    "video_upload_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "added",
+        "not_required"
+      ],
+      "default": "pending"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "processing_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deadline_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Two-business-hour service deadline, calculated in America/New_York operating hours"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_by": {
+      "type": "string",
+      "description": "Administrator who confirmed the upload"
+    },
+    "admin_notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "client_notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reminder_60_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "60 business minutes elapsed reminder"
+    },
+    "reminder_90_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "90 business minutes elapsed reminder"
+    },
+    "overdue_notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attention_reason": {
+      "type": "string",
+      "description": "Why the request needs attention (invalid MLS number, inaccessible listing, unsupported media)"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "status_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Append-only record of every status change"
+    },
+    "duplicate_key": {
+      "type": "string",
+      "description": "job_id + provider + normalized MLS number. An open request with the same key blocks a duplicate submission."
+    }
+  },
+  "required": [
+    "request_id",
+    "job_id",
+    "provider",
+    "mls_number",
+    "client_email",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

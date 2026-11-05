@@ -1,0 +1,74 @@
+{
+  "name": "YouTubeChannelConnection",
+  "type": "object",
+  "properties": {
+    "channel_title": {
+      "type": "string",
+      "description": "Name of the connected YouTube channel"
+    },
+    "channel_id": {
+      "type": "string"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "Short-lived OAuth access token"
+    },
+    "access_token_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "refresh_token": {
+      "type": "string",
+      "description": "Long-lived OAuth refresh token for the Arriv channel. Admin-only readable via row-level security."
+    },
+    "scope": {
+      "type": "string",
+      "description": "OAuth scopes granted at connect time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "disconnected",
+        "error"
+      ],
+      "default": "connected"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "connected_by": {
+      "type": "string",
+      "description": "Administrator email who completed the connection"
+    },
+    "last_error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

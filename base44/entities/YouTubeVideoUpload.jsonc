@@ -1,0 +1,142 @@
+{
+  "name": "YouTubeVideoUpload",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job the delivered video belongs to"
+    },
+    "editing_task_id": {
+      "type": "string",
+      "description": "Editing task whose delivery produced this video"
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "Google Drive file ID of the delivered original video"
+    },
+    "drive_file_name": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Street address only, used verbatim in the title and description"
+    },
+    "video_title": {
+      "type": "string",
+      "description": "'[Property Street Address] | Home Tour (MLS)' \u2014 exact formatting"
+    },
+    "video_description": {
+      "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "unlisted",
+        "private",
+        "public"
+      ],
+      "default": "unlisted",
+      "description": "Always unlisted for automated property tours"
+    },
+    "made_for_kids": {
+      "type": "boolean",
+      "default": false
+    },
+    "upload_status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "creating_session",
+        "uploading",
+        "processing",
+        "ready",
+        "failed",
+        "skipped"
+      ],
+      "default": "queued",
+      "description": "Upload transport state. 'ready' is only written once the video is actually viewable."
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "processing",
+        "succeeded",
+        "failed"
+      ],
+      "default": "unknown",
+      "description": "YouTube's own processing state, read from the API after upload"
+    },
+    "upload_session_uri": {
+      "type": "string",
+      "description": "Resumable upload session URI \u2014 allows a large video to be uploaded in chunks across invocations"
+    },
+    "bytes_total": {
+      "type": "integer",
+      "description": "Total size of the source video"
+    },
+    "bytes_uploaded": {
+      "type": "integer",
+      "default": 0,
+      "description": "Bytes confirmed accepted by YouTube, so a retry resumes instead of restarting"
+    },
+    "youtube_video_id": {
+      "type": "string"
+    },
+    "youtube_url": {
+      "type": "string",
+      "description": "https://www.youtube.com/watch?v=<id>, written only when the video is viewable"
+    },
+    "uploaded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "retry_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dedupe_key": {
+      "type": "string",
+      "description": "job_id + drive_file_id. Prevents the same delivered video being uploaded twice."
+    }
+  },
+  "required": [
+    "job_id",
+    "drive_file_id",
+    "video_title",
+    "upload_status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
