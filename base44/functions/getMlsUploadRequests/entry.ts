@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
 import { loadMlsProviders, enabledProviders } from '../../shared/mlsProviders.ts';
-import { loadMlsServiceWindow, formatEtDeadline, describeWindow, businessMinutesBetween } from '../../shared/mlsServiceWindow.ts';
+import { loadMlsServiceWindow, formatEtDeadline, describeWindow, businessMinutesBetween, computeMlsDeadline } from '../../shared/mlsServiceWindow.ts';
 import { ownsJob, resolvePropertyAddress } from '../../shared/mlsJobContext.ts';
 import { resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { mode = 'client', jobId, clientEmail, status } = body || {};
+    const { mode = 'client', jobId, clientEmail, status, estimateDeadline } = body || {};
 
     const providers = await loadMlsProviders(base44);
     const window = await loadMlsServiceWindow(base44);
@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
 
       const query: Record<string, any> = {};
       if (status && status !== 'all') query.status = status;
+      if (jobId) query.job_id = jobId;
       const rows = await base44.asServiceRole.entities.MlsUploadRequest.filter(query, '-submitted_at', 200);
 
       const now = new Date();
@@ -66,6 +67,17 @@ Deno.serve(async (req) => {
 
     const rows = await base44.asServiceRole.entities.MlsUploadRequest.filter({ job_id: jobId }, '-submitted_at', 50);
 
+    // The gallery needs to know which delivered videos already have a ready unlisted link.
+    const youtubeRows = await base44.asServiceRole.entities.YouTubeVideoUpload.filter({ job_id: jobId }, '-created_date', 100);
+    const youtube = (youtubeRows || []).map((u: any) => ({
+      drive_file_id: u.drive_file_id,
+      upload_status: u.upload_status,
+      youtube_url: u.upload_status === 'ready' ? u.youtube_url : '',
+      error_message: u.error_message || '',
+    }));
+
+    const estimatedDeadline = estimateDeadline ? computeMlsDeadline(new Date(), window) : null;
+
     return Response.json({
       requests: (rows || []).map((r: any) => ({
         ...r,
@@ -77,10 +89,13 @@ Deno.serve(async (req) => {
         short_label: p.short_label,
         photo_limit: p.photo_limit,
         number_hint: p.number_hint,
+        number_pattern: p.number_pattern,
         video_requirement_note: p.video_requirement_note,
       })),
       window_label: describeWindow(window),
       service_hours: window.service_hours,
+      estimated_deadline_label: estimatedDeadline ? formatEtDeadline(estimatedDeadline) : null,
+      youtube,
       property_address: await resolvePropertyAddress(base44, job),
     });
   } catch (error: any) {

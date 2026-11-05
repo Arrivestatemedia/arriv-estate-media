@@ -12,7 +12,14 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
 
   const [files, setFiles] = useState([]);
   const [dragOver, setDragOver] = useState(false);
+  // Names of videos the editor explicitly identifies as approved, unbranded, MLS-ready tours.
+  // Only these are automatically delivered to Arriv's YouTube channel.
+  const [mlsVideos, setMlsVideos] = useState([]);
   const fileInputRef = useRef(null);
+
+  const toggleMlsVideo = (name) => {
+    setMlsVideos((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  };
 
   const handleFileSelect = (e) => {
     const selected = Array.from(e.target.files || []);
@@ -28,15 +35,19 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
   };
 
   const removeFile = (idx) => {
+    const removed = files[idx];
+    if (removed) setMlsVideos((prev) => prev.filter((n) => n !== removed.name));
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
     const selected = files;
+    const mlsVideoNames = mlsVideos.filter((name) => selected.some((f) => f.name === name));
     setFiles([]);
+    setMlsVideos([]);
     try {
-      await startUpload(task, selected, onComplete);
+      await startUpload(task, selected, onComplete, { mlsVideoNames });
     } catch {
       // error state is reflected in context
     }
@@ -153,6 +164,17 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
                         {(file.size / 1024 / 1024).toFixed(1)} MB
                       </span>
                     </div>
+                    {status === "idle" && file.type.startsWith("video/") && (
+                      <label className="flex items-center gap-1.5 text-[11px] text-[#1A1A1A]/60 shrink-0 ml-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={mlsVideos.includes(file.name)}
+                          onChange={() => toggleMlsVideo(file.name)}
+                          className="w-3.5 h-3.5 accent-[#B8956A]"
+                        />
+                        MLS tour
+                      </label>
+                    )}
                     {status === "idle" && (
                       <button
                         onClick={() => removeFile(idx)}
@@ -164,6 +186,14 @@ export default function FinalEditsUploadModal({ task, open, onClose, onComplete 
                   </div>
                 ))}
               </div>
+            )}
+
+            {files.some((f) => f.type.startsWith("video/")) && status === "idle" && (
+              <p className="text-xs text-[#1A1A1A]/45 leading-relaxed">
+                Tick <span className="font-medium text-[#B8956A]">MLS tour</span> on an approved, unbranded property
+                video and it will also be uploaded to Arriv's YouTube channel as an unlisted home tour. Leave it
+                unticked for raw footage, source video or branded marketing edits.
+              </p>
             )}
 
             {status === "preparing" && (

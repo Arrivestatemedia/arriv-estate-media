@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+import { queueYoutubeVideo } from '../../shared/youtubeQueue.ts';
 
 const CLASSIFIABLE_REGEX = /\.(jpg|jpeg|png|webp|gif|heic|heif)$/i;
 const RAW_FORMATS = ['arw', 'dng', 'cr2', 'nef', 'raf', 'orf', 'rw2', 'pef', 'srw', 'tiff', 'tif', 'bmp'];
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { task_id, files } = body;
+    const { task_id, files, mls_video_names } = body;
 
     if (!task_id || !Array.isArray(files) || files.length === 0) {
       return Response.json({ error: 'task_id and non-empty files array required' }, { status: 400 });
@@ -163,7 +164,33 @@ Deno.serve(async (req) => {
       final_storage_provider: 'GOOGLE_DRIVE',
     });
 
-    return Response.json({ success: true, results, folder_url: folderUrl });
+    // 8. Automatic YouTube hosting — only for videos the editor explicitly flagged as approved,
+    // unbranded, MLS-ready tours. Drive delivery has already completed above, so a YouTube queue
+    // failure can never affect it: the editor's upload is done either way.
+    const youtubeQueued = [];
+    try {
+      const flagged = new Set((Array.isArray(mls_video_names) ? mls_video_names : []).map((n: any) => String(n)));
+      if (flagged.size > 0) {
+        for (let idx = 0; idx < files.length; idx++) {
+          const f = files[idx];
+          const result = results.find((r: any) => r.original_name === f.file_name && r.file_id);
+          if (!result) continue;
+          if (!flagged.has(String(f.file_name))) continue;
+          if (!String(f.content_type || '').startsWith('video/')) continue;
+          const queued = await queueYoutubeVideo(base44, {
+            job,
+            editingTaskId: task_id,
+            driveFileId: result.file_id,
+            fileName: f.file_name,
+          });
+          youtubeQueued.push({ file_name: f.file_name, ...queued });
+        }
+      }
+    } catch (ytError: any) {
+      console.error('YouTube queue error:', ytError?.message || ytError);
+    }
+
+    return Response.json({ success: true, results, folder_url: folderUrl, youtube_queued: youtubeQueued });
   } catch (error) {
     console.error('uploadFinalEditsBatch error:', error);
     return Response.json({ error: error.message || 'Unknown error occurred' }, { status: 500 });

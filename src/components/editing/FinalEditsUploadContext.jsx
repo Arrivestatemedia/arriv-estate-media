@@ -11,8 +11,12 @@ export function FinalEditsUploadProvider({ children }) {
   // uploads[taskId] = { status, progress, results, error, fileNames, folderUrl, startedAt, completedAt }
   const [uploads, setUploads] = useState({});
 
-  const startUpload = useCallback(async (task, files, onComplete) => {
+  // `options.mlsVideoNames` lists the videos the editor explicitly marked as approved,
+  // unbranded, MLS-ready tours. Only those are eligible for automatic YouTube delivery —
+  // nothing is inferred from a file name or type.
+  const startUpload = useCallback(async (task, files, onComplete, options = {}) => {
     const taskId = task.id;
+    const mlsVideoNames = Array.isArray(options.mlsVideoNames) ? options.mlsVideoNames : [];
     setUploads((prev) => ({
       ...prev,
       [taskId]: {
@@ -54,6 +58,7 @@ export function FinalEditsUploadProvider({ children }) {
       const res = await base44.functions.invoke("uploadFinalEditsBatch", {
         task_id: taskId,
         files: uploadedFiles,
+        mls_video_names: mlsVideoNames,
       });
       const resData = res?.data || res;
       if (!resData?.success) throw new Error(resData?.error || "Batch upload failed");
