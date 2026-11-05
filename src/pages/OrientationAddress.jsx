@@ -148,7 +148,7 @@ export default function OrientationAddress() {
         } catch (e) {
           console.error("markOrientationComplete failed:", e);
         }
-        navigate(createPageUrl("OrientationSizes"));
+        navigate(createPageUrl("MediaPartnerDashboard"));
         return;
       }
       setError(res?.data?.error || "Could not save your address.");
