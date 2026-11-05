@@ -15,6 +15,7 @@ const ADMIN_SECTIONS = [
   { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark, description: "Payroll periods and submissions" },
   { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings, description: "Arriv Payroll integration" },
   { label: "Users", page: "AdminPlatformAccess", icon: Users, description: "Company platform access overview" },
+  { label: "MLS Upload Queue", page: "MlsUploadQueue", icon: ShieldCheck, description: "Customer Publish to MLS requests" },
 ];
 
 export default function AdminDashboardGrid() {

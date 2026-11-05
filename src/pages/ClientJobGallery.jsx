@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Download, ImageIcon, Video, FileText, Loader2, ArrowLeft, Check, CheckCheck, X, ChevronLeft, ChevronRight, Sparkles, Zap } from "lucide-react";
+import { ImageIcon, Video, FileText, Loader2, ArrowLeft, X, ChevronLeft, ChevronRight, Sparkles, Zap } from "lucide-react";
 import { createPageUrl } from "../utils";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PropertyPagePrompt from "@/components/property/PropertyPagePrompt";
+import MlsSubmitModal from "@/components/mls/MlsSubmitModal";
+import MlsStatusCard from "@/components/mls/MlsStatusCard";
+import GalleryMediaCard from "@/components/gallery/GalleryMediaCard";
+import GalleryToolbar from "@/components/gallery/GalleryToolbar";
+import { saveSelection, reconcileSelection } from "@/lib/gallerySelection";
 
 export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
@@ -20,6 +25,12 @@ export default function ClientJobGallery() {
   const [selected, setSelected] = useState(new Set());
   const [downloading, setDownloading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  // Publish to MLS state — independent of selection and downloads.
+  const [mlsRequests, setMlsRequests] = useState([]);
+  const [mlsConfig, setMlsConfig] = useState(null);
+  const [mlsOpen, setMlsOpen] = useState(false);
+  const [downloadStep, setDownloadStep] = useState(null);
+  const [copiedVideo, setCopiedVideo] = useState(null);
 
   useEffect(() => {
     if (isDemo) {
@@ -73,31 +84,65 @@ export default function ClientJobGallery() {
         : { jobId, clientEmail: user.email };
       const res = await base44.functions.invoke("getJobMediaForClient", payload);
       const data = res.data || res;
-      setFiles(data.files || []);
+      const loaded = data.files || [];
+      setFiles(loaded);
       setJob(data.job || null);
+      // Restore the customer's selection, keeping only media that is still available.
+      setSelected(new Set(reconcileSelection(jobId, loaded)));
     } catch (err) {
       console.error("Failed to load media:", err);
       setError(err.message || "Failed to load your media");
     } finally {
       setLoading(false);
     }
+    loadMlsState();
+  };
+
+  // MLS requests already submitted for this job, plus the unbranded video links.
+  const loadMlsState = async () => {
+    if (!jobId || !user?.email || isDemo || adminPreview) return;
+    try {
+      const res = await base44.functions.invoke("getMlsUploadRequests", {
+        mode: "client",
+        jobId,
+        clientEmail: user.email,
+      });
+      const data = res?.data || res;
+      if (data?.error) return;
+      setMlsRequests(data.requests || []);
+      setMlsConfig(data);
+    } catch (err) {
+      console.error("MLS state load failed:", err);
+    }
+  };
+
+  const youtubeFor = (fileId) => (mlsConfig?.youtube || []).find((y) => y.drive_file_id === fileId) || null;
+
+  const copyVideoLink = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedVideo(url);
+      setTimeout(() => setCopiedVideo(null), 1800);
+    } catch { /* clipboard unavailable */ }
+  };
+
+  // One selection, shared by Download Selected and Publish to MLS. It survives a refresh and a
+  // download, so a customer never has to pick the same photographs twice.
+  const persist = (next) => {
+    setSelected(next);
+    saveSelection(jobId, next);
   };
 
   const toggleSelect = (fileId) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(fileId)) next.delete(fileId);
-      else next.add(fileId);
-      return next;
-    });
+    const next = new Set(selected);
+    if (next.has(fileId)) next.delete(fileId);
+    else next.add(fileId);
+    persist(next);
   };
 
   const selectAll = () => {
-    if (selected.size === files.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(files.map((f) => f.id)));
-    }
+    if (selected.size === files.length) persist(new Set());
+    else persist(new Set(files.map((f) => f.id)));
   };
 
   const downloadFile = async (file) => {
@@ -131,18 +176,70 @@ export default function ClientJobGallery() {
     }
   };
 
+  // One ZIP for photographs and documents. Videos download individually: a delivered MP4 is far
+  // too large to package inside a request, and the original file is never altered either way.
+  const downloadZip = async (ids) => {
+    const res = await base44.functions.fetch("/downloadGalleryZip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId, clientEmail: user.email, fileIds: ids }),
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail?.error || "Could not build your download");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(job?.title || "Arriv").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40)}_media.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const downloadSelected = async () => {
     if (selected.size === 0) return;
+    if (isDemo || adminPreview) {
+      alert(isDemo
+        ? "Demo mode — downloads are disabled in this preview."
+        : "Admin preview — downloads are disabled. Open the client gallery link to download.");
+      return;
+    }
+
+    const chosen = files.filter((f) => selected.has(f.id));
+    const bulkable = chosen.filter((f) => !f.isVideo);
+    const videos = chosen.filter((f) => f.isVideo);
+
     setDownloading(true);
-    for (const fileId of Array.from(selected)) {
-      const file = files.find((f) => f.id === fileId);
-      if (file) {
-        await downloadFile(file);
+    try {
+      let step = 0;
+      const total = (bulkable.length > 1 ? 1 : bulkable.length) + videos.length;
+
+      if (bulkable.length > 1) {
+        setDownloadStep({ label: `Packaging ${bulkable.length} files...`, done: 0, total });
+        await downloadZip(bulkable.map((f) => f.id));
+        step += 1;
+      } else if (bulkable.length === 1) {
+        setDownloadStep({ label: bulkable[0].name, done: 0, total });
+        await downloadFile(bulkable[0]);
+        step += 1;
+      }
+
+      for (const video of videos) {
+        setDownloadStep({ label: video.name, done: step, total });
+        await downloadFile(video);
+        step += 1;
         await new Promise((r) => setTimeout(r, 500));
       }
+    } catch (err) {
+      console.error("Download error:", err);
+      alert(err.message || "Failed to download your selection");
+    } finally {
+      setDownloading(false);
+      setDownloadStep(null);
     }
-    setDownloading(false);
-    setSelected(new Set());
   };
 
   const formatSize = (bytes) => {
@@ -207,89 +304,6 @@ export default function ClientJobGallery() {
   const videoFiles = files.filter((f) => f.isVideo);
   const docFiles = files.filter((f) => !f.isImage && !f.isVideo);
 
-  const renderCard = (file, index) => {
-    const isSelected = selected.has(file.id);
-    const isImg = file.isImage;
-    return (
-      <motion.div
-        key={file.id}
-        initial={{ opacity: 0, y: 20, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5), ease: [0.22, 1, 0.36, 1] }}
-        className={`group relative break-inside-avoid rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
-          isSelected
-            ? "ring-2 ring-[#B8956A] shadow-lg shadow-[#B8956A]/30"
-            : "ring-1 ring-white/10 hover:ring-[#B8956A]/40"
-        }`}
-        onClick={() => {
-          if (isImg) openLightbox(files.indexOf(file));
-          else toggleSelect(file.id);
-        }}
-      >
-        <div className="relative bg-white/5 overflow-hidden">
-          {isImg && file.thumbnailLink ? (
-            <img
-              src={file.thumbnailLink}
-              alt={file.name}
-              className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
-              loading="lazy"
-            />
-          ) : isImg ? (
-            <div className="aspect-square flex items-center justify-center">
-              <ImageIcon className="w-10 h-10 text-[#B8956A]/40" />
-            </div>
-          ) : file.isVideo ? (
-            <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-[#B8956A]/20 flex items-center justify-center backdrop-blur-sm border border-[#B8956A]/30 group-hover:bg-[#B8956A]/30 transition-colors">
-                  <div className="w-0 h-0 border-l-[12px] border-l-[#B8956A] border-y-[8px] border-y-transparent ml-1" />
-                </div>
-                <div className="absolute inset-0 rounded-full bg-[#B8956A]/20 blur-xl -z-10 group-hover:bg-[#B8956A]/30 transition-colors" />
-              </div>
-            </div>
-          ) : (
-            <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-[#1a1d24] to-[#0a0b0f]">
-              <FileText className="w-10 h-10 text-[#B8956A]/40" />
-            </div>
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
-
-          <div className="absolute top-3 left-3">
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-black/50 backdrop-blur-md text-white/90 border border-white/10">
-              {isImg ? "Photo" : file.isVideo ? "Video" : "Doc"}
-            </span>
-          </div>
-
-          <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 border ${
-            isSelected
-              ? "bg-[#B8956A] border-[#B8956A] scale-100"
-              : "bg-black/40 backdrop-blur-md border-white/20 scale-0 group-hover:scale-100"
-          }`}>
-            {isSelected && <Check className="w-4 h-4 text-[#0a0b0f]" />}
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              downloadFile(file);
-            }}
-            className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-[#B8956A] hover:border-[#B8956A] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-          >
-            <Download className="w-4 h-4 text-white group-hover:text-[#0a0b0f] transition-colors" />
-          </button>
-
-          <div className="absolute bottom-0 left-0 right-0 p-3 pr-12">
-            <p className="text-xs font-medium text-white truncate">{file.name}</p>
-            {file.size && (
-              <p className="text-[10px] text-white/40">{formatSize(parseInt(file.size))}</p>
-            )}
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
   const renderSection = (title, Icon, sectionFiles) => {
     if (sectionFiles.length === 0) return null;
     return (
@@ -305,7 +319,22 @@ export default function ClientJobGallery() {
           <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-2" />
         </div>
         <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 space-y-3">
-          {sectionFiles.map((file, i) => renderCard(file, i))}
+          {sectionFiles.map((file, i) => (
+            <GalleryMediaCard
+              key={file.id}
+              file={file}
+              index={i}
+              isSelected={selected.has(file.id)}
+              onToggleSelect={() => toggleSelect(file.id)}
+              onOpen={() => openLightbox(files.indexOf(file))}
+              onDownload={() => downloadFile(file)}
+              formatSize={formatSize}
+              youtube={youtubeFor(file.id)}
+              copiedVideo={copiedVideo}
+              onCopyYoutube={copyVideoLink}
+              showYoutube={!isDemo && !adminPreview}
+            />
+          ))}
         </div>
       </div>
     );
@@ -426,72 +455,24 @@ export default function ClientJobGallery() {
           </div>
         ) : (
           <>
-            {/* Stats + toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#B8956A]" />
-                  <span className="text-xs font-medium text-white/70">{photoFiles.length} Photos</span>
-                </div>
-                {videoFiles.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                    <Video className="w-3.5 h-3.5 text-[#B8956A]" />
-                    <span className="text-xs font-medium text-white/70">{videoFiles.length} Videos</span>
-                  </div>
-                )}
-                {docFiles.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                    <FileText className="w-3.5 h-3.5 text-[#B8956A]" />
-                    <span className="text-xs font-medium text-white/70">{docFiles.length} Files</span>
-                  </div>
-                )}
-              </div>
+            {!isDemo && !adminPreview && (
+              <MlsStatusCard requests={mlsRequests} />
+            )}
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={selectAll}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-[#B8956A] hover:bg-[#B8956A]/10 transition-colors"
-                >
-                  {selected.size === files.length && files.length > 0 ? (
-                    <CheckCheck className="w-4 h-4" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  {selected.size === files.length && files.length > 0 ? "Deselect All" : "Select All"}
-                </button>
-                <span className="text-xs text-white/30">
-                  {selected.size > 0 ? `${selected.size} selected` : `${files.length} files`}
-                </span>
-                <AnimatePresence>
-                  {selected.size > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, x: 10 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, x: 10 }}
-                    >
-                      <Button
-                        onClick={downloadSelected}
-                        disabled={downloading}
-                        className="bg-gradient-to-r from-[#B8956A] to-[#8a6d4a] hover:from-[#C9A87B] hover:to-[#9a7d5a] text-[#0a0b0f] rounded-full font-semibold shadow-lg shadow-[#B8956A]/30"
-                        size="sm"
-                      >
-                        {downloading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Downloading...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download {selected.size}
-                          </>
-                        )}
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+            <GalleryToolbar
+              photoCount={photoFiles.length}
+              videoCount={videoFiles.length}
+              docCount={docFiles.length}
+              fileCount={files.length}
+              selectedCount={selected.size}
+              allSelected={selected.size === files.length && files.length > 0}
+              onToggleAll={selectAll}
+              onDownload={downloadSelected}
+              downloading={downloading}
+              downloadStep={downloadStep}
+              onPublishMls={() => setMlsOpen(true)}
+              canPublishMls={!isDemo && !adminPreview && (mlsConfig?.providers || []).length > 0}
+            />
 
             {/* Sections by media type */}
             {renderSection("Photos", ImageIcon, photoFiles)}
@@ -563,6 +544,18 @@ export default function ClientJobGallery() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!isDemo && !adminPreview && (
+        <MlsSubmitModal
+          open={mlsOpen}
+          onClose={() => setMlsOpen(false)}
+          jobId={jobId}
+          clientEmail={user?.email}
+          files={files}
+          selectedIds={Array.from(selected)}
+          onSubmitted={loadMlsState}
+        />
+      )}
     </div>
   );
 }

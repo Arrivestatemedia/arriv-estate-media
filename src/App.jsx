@@ -76,6 +76,7 @@ import PropertyPageBuilder from './pages/PropertyPageBuilder';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
+import MlsUploadQueue from './pages/MlsUploadQueue';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -587,6 +588,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="InboundCalls">
             <InboundCalls />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/MlsUploadQueue"
+        element={
+          <LayoutWrapper currentPageName="MlsUploadQueue">
+            <MlsUploadQueue />
           </LayoutWrapper>
         }
       />
