@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Settings } from "lucide-react";
 import PayAtClosingSettingToggle from "@/components/admin/PayAtClosingSettingToggle";
 import CustomerLifecyclePricingControl from "@/components/admin/CustomerLifecyclePricingControl";
+import YoutubeConnectionPanel from "@/components/admin/YoutubeConnectionPanel";
 
 export default function AdminSettings() {
   const [user, setUser] = useState(null);
@@ -95,6 +96,7 @@ export default function AdminSettings() {
           </div>
 
           <CustomerLifecyclePricingControl />
+          <YoutubeConnectionPanel />
         </div>
       </div>
     </div>

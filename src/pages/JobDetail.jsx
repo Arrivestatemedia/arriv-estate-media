@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, MapPin, User, Calendar, FolderOpen, ArrowLeft, Film, Camera, Upload, Scissors, CheckCircle2, Package, Cloud, DollarSign, Clock } from "lucide-react";
 import EditingTaskDetail from "@/components/editing/EditingTaskDetail";
 import SourceMediaPanel from "@/components/editing/SourceMediaPanel";
+import MlsRequestPanel from "@/components/mls/MlsRequestPanel";
 
 const PRODUCTION_STATUS_LABELS = {
   awaiting_capture: "Awaiting Capture",
@@ -231,6 +232,9 @@ export default function JobDetail() {
 
       {/* Source Media — admin view/download + archive */}
       <SourceMediaPanel jobId={jobId} onArchived={loadData} />
+
+      {/* MLS upload request — the customer's selection and YouTube links, right here on the job */}
+      <MlsRequestPanel jobId={jobId} />
 
       {/* Editing Tasks */}
       {tasks.length > 0 && (

@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 10,
+      "interval_unit": "minutes",
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mls_sla_reminders",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sla_reminders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processMlsDeadlineReminders"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "MLS upload SLA reminders",
+            "description": "Sends the 60-minute, 90-minute and overdue alerts, measured in business minutes"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Business-hours SLA reminders for open MLS upload requests. Each threshold is written to the request when it fires, so no alert can be duplicated and closed requests are never reminded.",
+  "name": "MLS SLA Reminders (10min)"
+}
