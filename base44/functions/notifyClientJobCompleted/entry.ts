@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
+import { buildApparelRequirementEmail } from '../../shared/apparelRequirementNotice.ts';
 
 async function sendEmailViaGmail(accessToken, to, subject, body) {
   const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
@@ -84,6 +85,61 @@ Deno.serve(async (req) => {
             }
           }
 
+    // Apparel gate: the shirt & jacket are only required from the 3rd job
+    // onward, so the moment a partner completes their 2nd job we congratulate
+    // them and explain the requirement (once per partner).
+    let apparelRequirement = null;
+    try {
+      const partnerJobs = await base44.asServiceRole.entities.Job.filter({ booked_by: mediaPartnerEmail });
+      const completedCount = partnerJobs.filter(j =>
+        j.status === 'completed' || j.media_partner_status === 'job_completed'
+      ).length;
+
+      if (completedCount >= 2) {
+        let partnerRecord = existingUsers[0] || null;
+        if (!partnerRecord) {
+          const partnerSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: mediaPartnerEmail });
+          partnerRecord = partnerSignups[0] || null;
+        }
+
+        if (partnerRecord && !partnerRecord.apparelPurchased) {
+          apparelRequirement = { required: true, completedJobs: completedCount };
+
+          const partnerEmail = partnerRecord.email || mediaPartnerEmail;
+          const priorEmails = await base44.asServiceRole.entities.MessageLog.filter({
+            recipient_email: partnerEmail,
+            message_type: 'email'
+          });
+          const alreadySent = priorEmails.some(m => (m.subject || '').toLowerCase().includes('shirt & jacket'));
+
+          if (!alreadySent) {
+            const notice = buildApparelRequirementEmail({
+              firstName: (partnerRecord.full_name || '').split(' ')[0],
+              completedJobs: completedCount
+            });
+            await sendBrevoEmail({
+              to: partnerEmail,
+              subject: notice.subject,
+              htmlContent: notice.html,
+              senderEmail: BOOKINGS_SENDER_EMAIL,
+              senderName: 'Arriv Estate Media'
+            });
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'email',
+              recipient_type: 'media_partner',
+              recipient_email: partnerEmail,
+              message_content: notice.subject,
+              subject: notice.subject,
+              job_id: jobId,
+              status: 'success'
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Apparel requirement notice error:', e.message);
+    }
+
     // Get Gmail access token
     let gmailAccessToken;
     try {
@@ -154,7 +210,11 @@ Deno.serve(async (req) => {
       status: 'success'
     });
 
-    return Response.json({ success: true, message: 'Client notified that job is completed' });
+    return Response.json({
+      success: true,
+      message: 'Client notified that job is completed',
+      apparelRequirement
+    });
   } catch (error) {
     console.error('Error:', error);
     return Response.json({ error: error.message }, { status: 500 });

@@ -210,7 +210,7 @@ export default function OrientationSizes() {
           <CardHeader>
             <CardTitle className="text-3xl text-[var(--text-primary)]">Apparel &amp; Gear</CardTitle>
             <p className="text-[var(--text-secondary)] text-sm">
-              Apparel is not needed to start working. It becomes required once you have accepted 2 jobs — pick your sizes now or later.
+              Everything is optional. Pick what you'd like to purchase, or proceed without any items.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -231,7 +231,7 @@ export default function OrientationSizes() {
                     <span className="text-[var(--accent-color)] font-bold">$50.00</span>
                   </div>
                   <Label htmlFor="order-apparel" className="text-[var(--text-secondary)] cursor-pointer">
-                    Add apparel (shirt &amp; jacket) — required after your 2nd job
+                    Add apparel (shirt &amp; jacket)
                   </Label>
                 </div>
               </div>

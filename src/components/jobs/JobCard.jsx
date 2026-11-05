@@ -15,6 +15,7 @@ import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import JobCompletionDialog from "./JobCompletionDialog";
+import ApparelRequirementDialog from "./ApparelRequirementDialog";
 import AttireVerificationDialog from "./AttireVerificationDialog";
 import FootageUploader from "./FootageUploader";
 
@@ -43,6 +44,8 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [loading, setLoading] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(Date.now());
   const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
+  const [showApparelDialog, setShowApparelDialog] = React.useState(false);
+  const [pendingApparel, setPendingApparel] = React.useState(null);
   const [showAttireDialog, setShowAttireDialog] = React.useState(false);
   const [isFirstTwoShoots, setIsFirstTwoShoots] = React.useState(false);
 
@@ -155,9 +158,12 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleJobCompleted = async () => {
     setLoading(true);
     try {
-      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
+      const res = await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
       setLoading(false);
       setShowCompletionDialog(true);
+      if (res?.data?.apparelRequirement?.required) {
+        setPendingApparel(res.data.apparelRequirement);
+      }
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to send notification');
@@ -167,6 +173,10 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
 
   const handleCloseCompletionDialog = async () => {
     setShowCompletionDialog(false);
+    if (pendingApparel) {
+      setShowApparelDialog(true);
+      setPendingApparel(null);
+    }
     if (onJobUpdate) onJobUpdate();
   };
 
@@ -179,6 +189,11 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         open={showCompletionDialog}
         onOpenChange={handleCloseCompletionDialog}
         googleDriveFolderUrl={job.google_drive_folder_url}
+      />
+      <ApparelRequirementDialog
+        open={showApparelDialog}
+        onOpenChange={setShowApparelDialog}
+        email={job.booked_by || currentUserEmail}
       />
       <AttireVerificationDialog
         open={showAttireDialog}
