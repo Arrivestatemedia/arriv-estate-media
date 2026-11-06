@@ -11,6 +11,74 @@ function isClassifiableImage(contentType: string | undefined, fileName: string):
   return CLASSIFIABLE_REGEX.test(fileName);
 }
 
+// Streams one file from public storage into Google Drive through a resumable session, 16 MB at a
+// time. A large video is never held in memory in one piece, so it cannot exhaust the function.
+const DRIVE_CHUNK = 16 * 1024 * 1024;
+
+async function streamFileToDrive(authHeader: Record<string, string>, folderId: string, name: string, contentType: string | undefined, sourceUrl: string) {
+  const head = await fetch(sourceUrl, { method: 'HEAD' });
+  if (!head.ok) return null;
+  const total = Number(head.headers.get('content-length') || 0);
+  const ct = contentType || head.headers.get('content-type') || 'application/octet-stream';
+  if (!total) return null;
+
+  const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
+    method: 'POST',
+    headers: {
+      ...authHeader,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': ct,
+      'X-Upload-Content-Length': String(total),
+    },
+    body: JSON.stringify({ name, parents: [folderId] }),
+  });
+  if (!initRes.ok) return null;
+  const sessionUri = initRes.headers.get('location');
+  if (!sessionUri) return null;
+
+  const src = await fetch(sourceUrl);
+  if (!src.ok || !src.body) return null;
+
+  const reader = src.body.getReader();
+  const pending = new Uint8Array(DRIVE_CHUNK);
+  let filled = 0;
+  let offset = 0;
+  let uploaded: { id?: string; name?: string } | null = null;
+
+  const flush = async () => {
+    const end = offset + filled - 1;
+    const put = await fetch(sessionUri, {
+      method: 'PUT',
+      headers: { 'Content-Type': ct, 'Content-Range': `bytes ${offset}-${end}/${total}` },
+      body: pending.subarray(0, filled),
+    });
+    offset += filled;
+    filled = 0;
+    if (put.status === 200 || put.status === 201) {
+      try { uploaded = await put.json(); } catch { uploaded = null; }
+    } else if (put.status !== 308) {
+      throw new Error(`Drive chunk upload failed (${put.status})`);
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (value && value.length) {
+      let rest = value;
+      while (rest.length > 0) {
+        const take = Math.min(DRIVE_CHUNK - filled, rest.length);
+        pending.set(rest.subarray(0, take), filled);
+        filled += take;
+        rest = rest.subarray(take);
+        if (filled === DRIVE_CHUNK) await flush();
+      }
+    }
+    if (done) break;
+  }
+  if (filled > 0) await flush();
+  return uploaded;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -113,43 +181,20 @@ Deno.serve(async (req) => {
       finalName = candidate;
       existingNames.add(finalName.toLowerCase());
 
-      // Download from the public file URL
-      let fileRes;
+      // Stream straight from storage into Drive, chunk by chunk. A large video is never buffered
+      // whole in memory, which is what a single shot multipart upload could not survive.
+      let uploaded: any = null;
       try {
-        fileRes = await fetch(f.file_url);
-      } catch (e) { continue; }
-      if (!fileRes.ok) continue;
-      const fileBuffer = await fileRes.arrayBuffer();
-      const fileBytes = new Uint8Array(fileBuffer);
+        uploaded = await streamFileToDrive(authHeader, folderId, finalName, f.content_type, f.file_url);
+      } catch (e: any) {
+        console.error('Drive stream upload failed:', e?.message || e);
+      }
 
-      // Multipart upload to Google Drive
-      const boundary = '-------314159265358979323846';
-      const encoder = new TextEncoder();
-      const metadataJson = JSON.stringify({ name: finalName, parents: [folderId] });
-      const part1 = encoder.encode(`--${boundary}\r\nContent-Type: application/json\r\n\r\n${metadataJson}\r\n`);
-      const part2 = encoder.encode(`--${boundary}\r\nContent-Type: ${f.content_type || 'application/octet-stream'}\r\n\r\n`);
-      const part3 = encoder.encode(`\r\n--${boundary}--`);
-      const bodyBytes = new Uint8Array(part1.length + part2.length + fileBytes.length + part3.length);
-      bodyBytes.set(part1, 0);
-      bodyBytes.set(part2, part1.length);
-      bodyBytes.set(fileBytes, part1.length + part2.length);
-      bodyBytes.set(part3, part1.length + part2.length + fileBytes.length);
-
-      const uploadRes = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',
-        {
-          method: 'POST',
-          headers: { ...authHeader, 'Content-Type': `multipart/related; boundary=${boundary}` },
-          body: bodyBytes,
-        }
-      );
-
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json();
+      if (uploaded?.id) {
         results.push({
           original_name: f.file_name,
           new_name: finalName,
-          file_id: uploadData.id,
+          file_id: uploaded.id,
           scene_label: isClassifiable ? (labelByIndex[idx] || null) : null,
         });
       } else {
