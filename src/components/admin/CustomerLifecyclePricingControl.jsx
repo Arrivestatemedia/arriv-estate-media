@@ -26,8 +26,14 @@ export default function CustomerLifecyclePricingControl() {
   const [futureEnabled, setFutureEnabled] = useState(true);
   const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
 
+  // Admin console endpoints authorize the current sales session, not just a platform login.
+  const authParams = () => ({
+    email: localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email") || undefined,
+    sales_member_id: localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id") || undefined,
+  });
+
   useEffect(() => {
-    base44.functions.invoke("manageLifecyclePricingConfig", { action: "get" })
+    base44.functions.invoke("manageLifecyclePricingConfig", { action: "get", ...authParams() })
       .then(res => {
         const data = res?.data;
         if (data?.success && data.config) {
@@ -49,6 +55,7 @@ export default function CustomerLifecyclePricingControl() {
     setSuccess(false);
     base44.functions.invoke("manageLifecyclePricingConfig", {
       action: "update",
+      ...authParams(),
       introductory_duration_months: parseInt(introMonths, 10),
       first_adjustment_cents: Math.round(parseFloat(firstAdjustment) * 100),
       recurring_annual_adjustment_cents: Math.round(parseFloat(recurringAdjustment) * 100),
