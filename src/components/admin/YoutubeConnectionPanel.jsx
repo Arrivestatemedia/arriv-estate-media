@@ -64,7 +64,13 @@ export default function YoutubeConnectionPanel() {
       const res = await base44.functions.invoke("manageYoutubeConnection", { action: "connect_url", ...authParams() });
       const data = res?.data || res;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        // Google refuses to render its consent screen inside an iframe (the builder preview),
+        // so the flow always opens as its own top-level browser tab.
+        const opened = window.open(data.url, "_blank", "noopener,noreferrer");
+        if (!opened) window.top.location.href = data.url;
+      }
+      setBusy(null);
     } catch (err) {
       setError(err.message || "Could not start the YouTube connection");
       setBusy(null);
