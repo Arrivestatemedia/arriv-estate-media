@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.48";
+import { verifyAdmin } from "../../shared/adminAuth.ts";
 import { DEFAULT_LIFECYCLE_CONFIG } from "../../shared/customerLifecycleEngine.ts";
 
 // ============================================================================
@@ -15,11 +16,14 @@ import { DEFAULT_LIFECYCLE_CONFIG } from "../../shared/customerLifecycleEngine.t
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return Response.json({ error: "Forbidden — admin only" }, { status: 403 });
+    const body = await req.json().catch(() => ({}));
 
-    const body = await req.json();
+    // Accepts either a platform admin login or a sales-team admin session, the same
+    // authorization every other admin console endpoint uses.
+    const auth = await verifyAdmin(base44, body, new URL(req.url));
+    if (!auth.authorized) return Response.json({ error: auth.error }, { status: 403 });
+    const actorEmail = auth.actorEmail || "admin";
+
     const { action } = body;
 
     if (action === "get") {
@@ -101,7 +105,7 @@ export default async function (req) {
         is_active: true,
         effective_date: effective_date,
         config_json: JSON.stringify(newConfig),
-        created_by: user.email,
+        created_by: actorEmail,
         created_at: new Date().toISOString(),
       });
 
