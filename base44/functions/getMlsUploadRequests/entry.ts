@@ -59,7 +59,13 @@ Deno.serve(async (req) => {
     if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 });
     if (!clientEmail) return Response.json({ error: 'clientEmail is required' }, { status: 400 });
 
-    const job = await base44.asServiceRole.entities.Job.get(jobId);
+    // A removed or mistyped gallery link is a clean "not found", not a server error.
+    let job: any = null;
+    try {
+      job = await base44.asServiceRole.entities.Job.get(jobId);
+    } catch {
+      job = null;
+    }
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
     if (!ownsJob(job, clientEmail)) {
       return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
