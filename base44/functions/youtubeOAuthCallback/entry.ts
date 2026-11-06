@@ -1,4 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { secrets } from 'base44:runtime';
+import { verifyYoutubeOAuthState } from '../../shared/youtubeOAuthState.ts';
 import { exchangeCodeForTokens, fetchChannelInfo, isYoutubeConfigured } from '../../shared/youtubeClient.ts';
 import { resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
@@ -11,35 +13,11 @@ import { resolveAppUrl } from '../../shared/mlsNotifications.ts';
  * this app, and only within 20 minutes. The refresh token is stored on an admin-only record
  * (YouTubeChannelConnection, row-level security: admin) and is never returned to a client.
  */
-async function verifyState(state: string): Promise<boolean> {
-  const parts = String(state || '').split('.');
-  if (parts.length !== 2) return false;
-  const [payload, signature] = parts;
-
-  const key = Deno.env.get('YOUTUBE_CLIENT_SECRET') || '';
-  if (!key) return false;
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(payload));
-  const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  if (expected.length !== signature.length) return false;
-
-  let mismatch = 0;
-  for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
-  if (mismatch !== 0) return false;
-
-  const issuedAt = Number(payload.split(':')[1]);
-  if (!Number.isFinite(issuedAt)) return false;
-  return Date.now() - issuedAt < 20 * 60 * 1000;
-}
-
-function redirectTo(url: string): Response {
+function redirectTo(url) {
   return new Response(null, { status: 302, headers: { Location: url } });
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   const base44 = createClientFromRequest(req);
   let appUrl = 'https://app.arrivestatemedia.com';
   try { appUrl = await resolveAppUrl(base44); } catch { /* documented fallback */ }
@@ -55,7 +33,8 @@ Deno.serve(async (req) => {
     }
     if (!code) return redirectTo(`${appUrl}/AdminSettings?youtube=missing_code`);
     if (!isYoutubeConfigured()) return redirectTo(`${appUrl}/AdminSettings?youtube=not_configured`);
-    if (!(await verifyState(state))) return redirectTo(`${appUrl}/AdminSettings?youtube=bad_state`);
+    const verifiedState = await verifyYoutubeOAuthState(state, secrets.get('YOUTUBE_CLIENT_SECRET'));
+    if (!verifiedState) return redirectTo(`${appUrl}/AdminSettings?youtube=bad_state`);
 
     const tokens = await exchangeCodeForTokens(code);
     if (!tokens?.refresh_token) {
@@ -76,7 +55,7 @@ Deno.serve(async (req) => {
       scope: tokens.scope || '',
       status: 'connected',
       connected_at: new Date().toISOString(),
-      connected_by: state.split(':')[2] || 'admin',
+      connected_by: verifiedState.actor,
       last_error: '',
     };
 
@@ -87,8 +66,8 @@ Deno.serve(async (req) => {
     }
 
     return redirectTo(`${appUrl}/AdminSettings?youtube=connected`);
-  } catch (err: any) {
+  } catch (err) {
     console.error('youtubeOAuthCallback error:', err?.message || err);
     return redirectTo(`${appUrl}/AdminSettings?youtube=error`);
   }
-});
+}

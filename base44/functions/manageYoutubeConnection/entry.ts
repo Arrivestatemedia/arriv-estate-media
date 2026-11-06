@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { secrets } from 'base44:runtime';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
+import { createYoutubeOAuthState } from '../../shared/youtubeOAuthState.ts';
 import {
   isYoutubeConfigured,
   buildConsentUrl,
@@ -9,16 +11,6 @@ import {
 } from '../../shared/youtubeClient.ts';
 import { queueYoutubeVideo } from '../../shared/youtubeQueue.ts';
 
-/** HMAC-signed OAuth state, so only a flow an administrator actually started can complete. */
-async function signState(payload: string): Promise<string> {
-  const key = Deno.env.get('YOUTUBE_CLIENT_SECRET') || '';
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(payload));
-  const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  return `${payload}.${hex}`;
-}
 
 /**
  * manageYoutubeConnection
@@ -30,7 +22,7 @@ async function signState(payload: string): Promise<string> {
  * "blocked" and the customer gallery keeps showing the original Drive video, which stays
  * downloadable throughout.
  */
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
@@ -48,8 +40,9 @@ Deno.serve(async (req) => {
           configured: false,
         }, { status: 400 });
       }
-      const issuedAt = String(Date.now());
-      const state = await signState(`yt:${issuedAt}:${auth.actorEmail || auth.actor || 'admin'}`);
+      const state = await createYoutubeOAuthState(
+        auth.actorEmail || auth.actor || 'admin', secrets.get('YOUTUBE_CLIENT_SECRET'),
+      );
       return Response.json({ success: true, url: buildConsentUrl(state), configured: true });
     }
 
@@ -105,7 +98,7 @@ Deno.serve(async (req) => {
             });
           }
         }
-      } catch (err: any) {
+      } catch (err) {
         tokenHealthy = false;
         console.error('YouTube connection check failed:', err?.message || err);
       }
@@ -113,7 +106,7 @@ Deno.serve(async (req) => {
 
     const allUploads = await base44.asServiceRole.entities.YouTubeVideoUpload.filter({}, '-created_date', 300);
     const counts = { queued: 0, uploading: 0, processing: 0, ready: 0, failed: 0, skipped: 0 };
-    (allUploads || []).forEach((u: any) => {
+    (allUploads || []).forEach((u) => {
       const key = String(u.upload_status || 'queued');
       if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
     });
@@ -127,8 +120,8 @@ Deno.serve(async (req) => {
       visibility: 'unlisted',
       counts,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('manageYoutubeConnection error:', error);
     return Response.json({ error: error?.message || 'Could not read the YouTube connection' }, { status: 500 });
   }
-});
+}
