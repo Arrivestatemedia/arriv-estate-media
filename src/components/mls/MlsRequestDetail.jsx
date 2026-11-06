@@ -63,18 +63,22 @@ export default function MlsRequestDetail({ request, onUpdated }) {
   const photos = (request.selected_media || []).filter((m) => m.kind === "photo");
   const videos = (request.selected_media || []).filter((m) => m.kind === "video");
   const closed = ["completed", "cancelled"].includes(request.status);
+  const photosAddressed = ["uploaded", "not_required"].includes(request.photo_upload_status);
+  const videoAddressed = ["added", "not_required"].includes(request.video_upload_status);
 
   const act = async (action, payload = {}) => {
     setBusy(action);
     setError(null);
     try {
-      const res = await base44.functions.invoke("manageMlsUploadRequest", {
-        requestId: request.request_id,
-        action,
-        ...payload,
+      const res = await base44.functions.fetch("/manageMlsUploadRequest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: request.request_id, action, ...payload }),
       });
-      const data = res?.data || res;
-      if (data?.error) throw new Error(data.error);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || "That action could not be completed");
+      }
       if (onUpdated) onUpdated(data.request);
     } catch (err) {
       setError(err.message || "That action could not be completed");
@@ -234,7 +238,7 @@ export default function MlsRequestDetail({ request, onUpdated }) {
                 <Youtube className="w-4 h-4 mr-1" /> Video added
               </Button>
             )}
-            <Button size="sm" onClick={() => act("complete")} disabled={!!busy || request.status === "completed"}>
+            <Button size="sm" onClick={() => act("complete")} disabled={!!busy || request.status === "completed" || !photosAddressed || !videoAddressed}>
               Mark completed
             </Button>
             <Button size="sm" variant="outline" onClick={() => act("needs_attention", { reason: notes || "Needs attention" })} disabled={!!busy} className="border-amber-300 text-amber-700">
@@ -243,6 +247,14 @@ export default function MlsRequestDetail({ request, onUpdated }) {
           </>
         )}
       </div>
+
+      {!closed && (!photosAddressed || !videoAddressed) && (
+        <p className="text-[11px] text-[#1A1A1A]/55">
+          Mark {!photosAddressed && !videoAddressed
+            ? "the photos uploaded and the video added"
+            : !photosAddressed ? "the photos uploaded" : "the video added"} before completing this request.
+        </p>
+      )}
 
       {/* Notes + history */}
       <div>
