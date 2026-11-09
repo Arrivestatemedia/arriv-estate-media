@@ -66,6 +66,40 @@ recording the selection, the policy shown and each destination's outcome.
   `duplicate` rather than recreated.
 - Listing numbers: one field when one destination needs one; per-MLS fields when several do.
 
+## Service area is not the compulsory listing area
+
+FMLS has members in every Georgia county; its compulsory listing area (where a member must enter the
+listing into FMLS) is a much smaller set. Those are different facts and are kept apart:
+
+- **Routing boundary** — `mls_service_regions.fmls_georgia` stays state-wide: `states: ["GA"]`, no
+  counties, no zips, no jurisdiction list. Every Georgia property therefore routes to FMLS exactly as
+  it always has.
+- **Metadata** — `fmls_georgia.compulsory_counties` holds the 23 compulsory counties
+  (`FMLS_COMPULSORY_LISTING_AREA`, Rule 6.1(a), FMLS Rules & Regulations effective 14 Jan 2026, with
+  its source recorded). It is never read by the matcher: the matcher only looks at
+  `zip_prefixes`, `counties`, `cities`, `jurisdictions` and `states`.
+- **Georgia MLS** — `service_area_metadata` records that it advertises all 159 Georgia counties. That
+  is advertised coverage, not routing coverage: the provider is `advertised: false`,
+  `operational: false`, `enabled: false`, so no address is routed to it and it is never named to a
+  customer. When it becomes operational, coverage is added as its own region and the real overlap with
+  FMLS decides what the customer is offered — the compulsory list is not used to guess it.
+
+## Incomplete addresses
+
+A property publishes against one specific listing, so the address that decides the MLS has to be the
+real one: street line, city, state and ZIP (`assessAddressCompleteness`).
+
+- **Incomplete and unroutable** → the plan is `needs_address` (`incomplete_address`), with the missing
+  parts named and no provider chosen. The Publish to MLS button is unchanged; the modal shows a short
+  address form instead of destinations, and the customer completes it there.
+- **Re-detection** — the completed address is sent back as `propertyAddress`; both endpoints re-geocode
+  it (Census geocoder) and re-run detection from scratch. Nothing is written to the Booking or Job.
+  The submission records the corrected address, so the request is judged against the address that was
+  actually checked.
+- **Still ambiguous, or complete but uncovered** → administrative review, exactly as before, with no
+  guessed provider. A complete address never prompts, and a resolvable address never prompts — the
+  existing Georgia/FMLS flow is untouched by this.
+
 ## Deliberately unchanged
 
 FMLS's manual queue and validation, Bright's manifest building and gating, the delivery gallery,
@@ -77,7 +111,7 @@ Bright stays dark: region `enabled: false`, provider `enabled: false`, all four 
 ## Test results
 
 Routing tests (unit, over the real shared modules, real addresses through the Census geocoder):
-**16 passed, 0 failed.**
+**29 passed, 0 failed.**
 
 | # | Case | Result |
 | --- | --- | --- |
@@ -92,6 +126,15 @@ Routing tests (unit, over the real shared modules, real addresses through the Ce
 | 8 | One MLS succeeds, another fails | 2 results, one `ok` with its request id, one `failed` with its error; no retry, no loss |
 | 9 | Duplicate clicks / refresh | idempotency key stable; group signature order-independent; open row matched instead of duplicated |
 | 10 | Registry honesty | Georgia MLS neither advertised nor operational; FMLS and Bright are, Bright still unactivated |
+| 6e | "Atlanta, GA" (incomplete but resolvable) | `auto` → FMLS; the existing FMLS workflow is not interrupted |
+| 6c | "Bethesda, MD" → corrected "7001 Arlington Rd, Bethesda, MD 20814" | prompt → re-geocode → `auto`, Bright, "Montgomery County, MD" |
+| 6d | "100 Main St, Wilmington, DE 19801" (complete, no mapped MLS) | review `coverage_unmapped`, no prompt |
+| 6f | Submitting an unplaced address | refused: no destination can be selected |
+| 13 | FMLS compulsory metadata | 23 counties (Fulton in, Bibb out), Rule 6.1(a) source recorded |
+| 13b | Compulsory list vs routing boundary | coverage still state-wide: no counties/zips/jurisdictions on the region |
+| 13c | Macon GA (Bibb, outside the compulsory area) | `auto` → FMLS; service area, not compulsory area, decides |
+| 13d | Admin override without the metadata | documented compulsory list preserved |
+| 14 | Georgia MLS | unadvertised, not operational, inactive; all-159-county coverage recorded as metadata only, and Atlanta still offers FMLS alone |
 
 Endpoint checks: `getMlsUploadRequests` (client mode) returns a `review` plan for the one delivered
 fixture job with no invented destination; `submitMlsUploadRequest` still rejects a non-owner (403)
