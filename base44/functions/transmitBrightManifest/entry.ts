@@ -115,7 +115,7 @@ async function postManifest(config: any, body: any) {
 }
 
 /** Sends one request's manifest and records exactly what Bright said. */
-async function submitFor(base44: any, request: any) {
+async function submitFor(base44: any, request: any, confirmedNotReceived = false) {
   if (request?.provider !== 'bright_mls') {
     return { request_id: request?.request_id, outcome: 'rejected', message: 'This request is not routed to Bright.' };
   }
@@ -129,6 +129,16 @@ async function submitFor(base44: any, request: any) {
       manifest_id: request.bright_manifest_id,
       import_url: request.bright_import_url || null,
       message: 'This manifest was already accepted by Bright.',
+    };
+  }
+
+  // A previous attempt may have created a billable manifest before it failed. Never send again
+  // until a person has looked in Bright and confirmed the manifest is not there.
+  if (request?.bright_needs_verification && !confirmedNotReceived) {
+    return {
+      request_id: request.request_id,
+      outcome: 'needs_verification',
+      message: 'Bright may already have this manifest from an earlier attempt. Check Bright, then resend only if it is not there.',
     };
   }
 
@@ -169,13 +179,20 @@ async function submitFor(base44: any, request: any) {
     patch.bright_submitted_at = now;
     patch.bright_last_error = '';
     patch.bright_next_retry_at = null;
+    patch.bright_needs_verification = false;
     patch.manifest_status = 'transmitted';
   } else if (outcome.outcome === 'retry') {
+    // 429 only: Bright definitely created nothing, so a scheduled retry cannot duplicate.
     patch.bright_last_error = outcome.message;
     patch.bright_next_retry_at = attempts < BRIGHT_MAX_ATTEMPTS ? nextBrightRetryAt(attempts) : null;
+  } else if (outcome.outcome === 'ambiguous') {
+    patch.bright_last_error = `${outcome.message} Nothing was retried automatically: check Bright for this property's media, then resend only if it is not there.`;
+    patch.bright_next_retry_at = null;
+    patch.bright_needs_verification = true;
   } else {
     patch.bright_last_error = outcome.message;
     patch.bright_next_retry_at = null;
+    patch.bright_needs_verification = false;
   }
 
   const updated = await base44.asServiceRole.entities.MlsUploadRequest.update(request.id, patch);
@@ -212,6 +229,7 @@ Deno.serve(async (req) => {
         r.bright_next_retry_at
         && new Date(r.bright_next_retry_at).getTime() <= nowMs
         && !r.bright_manifest_id
+        && !r.bright_needs_verification
         && Number(r.bright_submission_attempts || 0) < BRIGHT_MAX_ATTEMPTS,
       ).slice(0, 10);
 
@@ -255,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     if (mode === 'submit') {
-      const result = await submitFor(base44, request);
+      const result = await submitFor(base44, request, body?.confirmedNotReceived === true);
       const ok = result.outcome === 'accepted' || result.outcome === 'already_sent';
       return Response.json({ success: ok, ...result, error: ok ? undefined : result.message }, { status: ok ? 200 : 502 });
     }

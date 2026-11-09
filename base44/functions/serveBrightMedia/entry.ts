@@ -71,8 +71,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'That media file could not be read' }, { status: 502 });
     }
 
+    // Bright must receive image (or video) bytes, never a Drive HTML page, consent screen or
+    // redirect. Drive reports what it actually returned, so anything outside this list is refused
+    // rather than passed through.
+    const servedType = String(drive.headers.get('content-type') || contentType).split(';')[0].trim().toLowerCase();
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4'];
+    if (!allowedTypes.includes(servedType)) {
+      console.error('serveBrightMedia refused non-media content:', servedType);
+      return Response.json({ error: 'That media file is not readable media' }, { status: 502 });
+    }
+
     const headers: Record<string, string> = {
-      'Content-Type': drive.headers.get('content-type') || contentType,
+      'Content-Type': servedType,
       'Cache-Control': 'private, max-age=3600',
     };
     const length = drive.headers.get('content-length');

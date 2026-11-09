@@ -284,11 +284,16 @@
     "bright_next_retry_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When a retryable failure (network, 5xx, 429) may be attempted again. Empty once accepted, after a rejection that needs a fix, or after the attempt cap."
+      "description": "When a safe retry (429 only, where Bright certainly created nothing) may be attempted. Empty once accepted, after a rejection that needs a fix, or when the outcome is ambiguous."
     },
     "bright_response": {
       "type": "object",
       "description": "Bright's last reply, recorded verbatim for review: outcome, HTTP status, message and the response body."
+    },
+    "bright_needs_verification": {
+      "type": "boolean",
+      "default": false,
+      "description": "A previous attempt may have created a billable manifest before it failed (timeout, dropped connection, 5xx or a 2xx with no manifestId). While true nothing is retried automatically and no resend is allowed until a person confirms in Bright that the manifest is absent."
     },
     "submitted_at": {
       "type": "string",

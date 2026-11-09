@@ -24,14 +24,14 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const call = async (mode) => {
+  const call = async (mode, extra = {}) => {
     setBusy(mode);
     setError(null);
     try {
       const res = await base44.functions.fetch("/transmitBrightManifest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId: request.request_id, mode }),
+        body: JSON.stringify({ requestId: request.request_id, mode, ...extra }),
       });
       const data = await res.json().catch(() => ({}));
       if (mode === "preview") {
@@ -97,6 +97,24 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> {request.bright_last_error}
             </p>
           )}
+          {request.bright_needs_verification && (
+            <div className="rounded border border-amber-300 bg-amber-50 px-2 py-1.5 space-y-1.5">
+              <p className="text-[11px] text-amber-900">
+                An earlier attempt may have reached Bright before it failed. Nothing is retried automatically — check Bright
+                for this property first, then resend only if no manifest is there.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => call("submit", { confirmedNotReceived: true })}
+                disabled={!!busy}
+                className="bg-amber-600 hover:bg-amber-700 text-white h-8 text-xs"
+              >
+                {busy === "submit" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <AlertCircle className="w-3.5 h-3.5 mr-1" />}
+                Confirmed not in Bright — resend
+              </Button>
+            </div>
+          )}
+
           {request.bright_next_retry_at && (
             <p className="text-[11px] text-[#1A1A1A]/60 flex items-center gap-1">
               <Clock className="w-3 h-3" /> Retry from {formatWhen(request.bright_next_retry_at)}

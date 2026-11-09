@@ -145,8 +145,11 @@ export function buildBrightRequestBody(params: {
   return { body, field_map, gaps, assumptions, skipped };
 }
 
+/** `retry` is only ever returned when Bright certainly created nothing (429). */
+export type BrightOutcomeKind = "accepted" | "rejected" | "retry" | "ambiguous";
+
 export interface BrightOutcome {
-  outcome: "accepted" | "rejected" | "retry";
+  outcome: BrightOutcomeKind;
   status: number;
   manifestId?: string;
   message: string;
@@ -168,20 +171,35 @@ function errorMessageFrom(payload: any, fallback: string): string {
 }
 
 /**
- * Reads Bright's reply. Only a 2xx carrying a manifestId counts as accepted, because without the
- * manifestId there is no import link and the import cannot be handed to the agent.
- * 5xx, 429 and transport failures are retried; 4xx are not — they are a defect in what we sent.
+ * Reads Bright's reply. Bright's documented success body is `{ "manifestId": "<uuid>" }`, so only a
+ * 2xx carrying a manifestId counts as accepted — without it there is no import link.
+ *
+ * A manifest is billable, so the difference between "safe to resend" and "may already exist" matters:
+ *   accepted  — we hold the manifestId. Never send this request again.
+ *   retry     — 429 only: Bright certainly created nothing, so a later attempt cannot duplicate.
+ *   ambiguous — the request may have created a manifest before the failure (timeout, connection
+ *               dropped mid-flight, 5xx, or a 2xx with no manifestId). Nothing is retried
+ *               automatically; an administrator checks Bright and resends only if it is absent.
+ *   rejected  — 4xx: a defect in what we sent. Fix it, then send again.
  */
 export function classifyBrightResponse(status: number, payload: any, transportError?: string): BrightOutcome {
   if (transportError) {
-    return { outcome: "retry", status: 0, message: `Bright could not be reached: ${transportError}` };
+    return {
+      outcome: "ambiguous",
+      status: 0,
+      message: `Bright could not be reached or did not answer (${transportError}).`,
+    };
   }
 
-  const manifestId = payload?.manifestId || payload?.manifest_id || payload?.id || null;
+  const manifestId = payload?.manifestId || payload?.manifest_id || null;
 
   if (status >= 200 && status < 300) {
     if (!manifestId) {
-      return { outcome: "retry", status, message: "Bright accepted the manifest but returned no manifestId, so no import link can be built." };
+      return {
+        outcome: "ambiguous",
+        status,
+        message: "Bright answered without a manifestId, so a manifest may or may not exist.",
+      };
     }
     return { outcome: "accepted", status, manifestId: String(manifestId), message: "Bright accepted the manifest." };
   }
@@ -190,10 +208,10 @@ export function classifyBrightResponse(status: number, payload: any, transportEr
     return { outcome: "rejected", status, message: `Bright rejected the credentials (check BRIGHT_MLS_API_KEY and BRIGHT_MLS_VENDOR_ID). ${errorMessageFrom(payload, "")}`.trim() };
   }
   if (status === 429) {
-    return { outcome: "retry", status, message: "Bright is rate limiting us." };
+    return { outcome: "retry", status, message: "Bright is rate limiting us; nothing was created." };
   }
   if (status >= 500) {
-    return { outcome: "retry", status, message: `Bright returned ${status}.` };
+    return { outcome: "ambiguous", status, message: `Bright returned ${status}, so a manifest may already exist.` };
   }
   return { outcome: "rejected", status, message: errorMessageFrom(payload, `Bright rejected the manifest (${status}).`) };
 }
