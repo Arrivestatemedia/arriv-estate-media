@@ -47,6 +47,14 @@ export interface MlsServiceRegion {
    * genuinely state-wide provider such as FMLS.
    */
   jurisdictions: MlsJurisdiction[];
+  /**
+   * Counties in the provider's COMPULSORY LISTING AREA — the counties where a member must enter the
+   * listing into this MLS. Metadata only: it is NOT the MLS's geographic service area, so it never
+   * decides whether a property may be published here. Routing is decided by `states` and
+   * `jurisdictions`; this list is kept so a later overlap evaluation compares real service areas
+   * instead of a compulsory territory.
+   */
+  compulsory_counties: string[];
   enabled: boolean;
   /** Only a verified region may route a customer automatically. */
   verified: boolean;
@@ -54,6 +62,29 @@ export interface MlsServiceRegion {
   verified_by?: string;
   notes: string;
 }
+
+/**
+ * FMLS's compulsory listing area, recorded as metadata only (Rule 6.1(a), FMLS Rules & Regulations
+ * effective 14 January 2026).
+ *
+ * FMLS has members in every Georgia county; the compulsory area is the much smaller set of counties
+ * where a member MUST enter the listing into FMLS. The two are different facts, so the compulsory
+ * counties are stored here beside the region rather than used as its coverage. Routing stays
+ * state-wide, and this list is evidence for comparing real overlaps once a second Georgia MLS is
+ * operational.
+ */
+export const FMLS_COMPULSORY_LISTING_AREA = {
+  source: {
+    label: "FMLS Rules & Regulations, Rule 6.1(a), effective 14 January 2026",
+    url: "https://firstmls.com/wp-content/uploads/2026/01/Rules-And-Regulations-01_14_26.pdf",
+    retrieved_at: "2026-11-09",
+  },
+  counties: [
+    "Barrow", "Bartow", "Cherokee", "Chattooga", "Cobb", "Dawson", "DeKalb", "Douglas",
+    "Floyd", "Forsyth", "Fulton", "Gordon", "Gwinnett", "Hall", "Haralson", "Jackson",
+    "Lumpkin", "Newton", "Paulding", "Pickens", "Polk", "Rockdale", "Walton",
+  ],
+};
 
 export const DEFAULT_MLS_SERVICE_REGIONS: MlsServiceRegion[] = [
   {
@@ -65,14 +96,17 @@ export const DEFAULT_MLS_SERVICE_REGIONS: MlsServiceRegion[] = [
     cities: [],
     zip_prefixes: [],
     jurisdictions: [],
+    compulsory_counties: FMLS_COMPULSORY_LISTING_AREA.counties,
     enabled: true,
     verified: true,
     verified_at: "2026-01-01T00:00:00.000Z",
     verified_by: "system-default",
     notes:
-      "FMLS (First Multiple Listing Service) is the MLS Arriv uploads to for Georgia properties. " +
-      "State-wide scope preserves the FMLS workflow these jobs have always used; add zip prefixes or " +
-      "counties here to narrow coverage as FMLS confirms them.",
+      "FMLS (First Multiple Listing Service) is the only Georgia MLS Arriv publishes to today, and its " +
+      "membership covers every Georgia county, so coverage is mapped state-wide — the FMLS workflow " +
+      "these jobs have always used. Its compulsory listing area is narrower and is stored separately " +
+      "as metadata (compulsory_counties); it is not a routing boundary. Narrow this region only if " +
+      "FMLS's own published service area is later shown to exclude part of the state.",
   },
   {
     id: "bright_mid_atlantic",
