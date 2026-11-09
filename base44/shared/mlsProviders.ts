@@ -42,6 +42,13 @@ export interface MlsProvider {
   /** True for providers whose integration must pass certification before it serves customers. */
   requires_certification: boolean;
   certification: MlsCertification;
+  /**
+   * May this MLS ever be shown to a customer as a publishing destination? False for an integration
+   * that is still being built, so it is never advertised as somewhere we can publish.
+   */
+  advertised: boolean;
+  /** Can Arriv actually publish to it today — by hand through our MLS team, or through its API? */
+  operational: boolean;
 }
 
 export const UNCERTIFIED: MlsCertification = {
@@ -71,11 +78,26 @@ export function isProviderLiveForCustomers(provider: MlsProvider | null): boolea
   return !!provider && provider.enabled === true && certificationPassed(provider);
 }
 
+/**
+ * Is this MLS a publishing destination a customer's media may be sent to at all?
+ *
+ * Distinct from `enabled`, which only switches the automated route on: an MLS can be a real
+ * destination we publish to by hand while its API route is still dark. A provider that is still
+ * being built (no process behind it yet) is neither advertised nor operational, so no address is
+ * ever routed to it — that is what keeps Georgia MLS off the customer experience until it exists.
+ */
+export function isAdvertisedDestination(provider: MlsProvider | null): boolean {
+  return !!provider && provider.advertised === true && provider.operational === true;
+}
+
 export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
   fmls: {
     id: "fmls",
     label: "FMLS — First Multiple Listing Service",
     short_label: "FMLS",
+    // Real destination: operated by our MLS team through FMLS Matrix today.
+    advertised: true,
+    operational: true,
     enabled: true,
     photo_limit: 200,
     supported_photo_formats: ["jpg", "jpeg", "png"],
@@ -93,6 +115,10 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     id: "georgia_mls",
     label: "Georgia MLS",
     short_label: "Georgia MLS",
+    // Not a destination yet: no integration and no process behind it. Turning both flags on (and
+    // adding its service area) is all it takes to offer it — the customer experience does not change.
+    advertised: false,
+    operational: false,
     enabled: false,
     photo_limit: 100,
     supported_photo_formats: ["jpg", "jpeg", "png"],
@@ -110,6 +136,9 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     id: "bright_mls",
     label: "Bright MLS",
     short_label: "Bright MLS",
+    // Real destination: our MLS team works these requests by hand until the route is activated.
+    advertised: true,
+    operational: true,
     enabled: false,
     photo_limit: 100,
     supported_photo_formats: ["jpg", "jpeg", "png"],

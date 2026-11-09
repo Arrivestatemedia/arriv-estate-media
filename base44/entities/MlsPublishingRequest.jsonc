@@ -1,0 +1,190 @@
+{
+  "name": "MlsPublishingRequest",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "Stable id for one customer submission (mls_grp_...). One group covers every MLS the customer published to from a single Publish to MLS."
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media",
+      "description": "Multi-tenant isolation key"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job whose delivered media was published"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Verified customer who submitted"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Property address the destinations were resolved from"
+    },
+    "property_location": {
+      "type": "object",
+      "description": "Parsed and geocoded location used for the routing decision",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "zip": {
+          "type": "string"
+        },
+        "county": {
+          "type": "string"
+        }
+      }
+    },
+    "plan_status": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "selection_required",
+        "review"
+      ],
+      "description": "How the destinations were decided: one eligible MLS selected automatically, an overlapping-territory selection, or administrative review."
+    },
+    "plan_reason": {
+      "type": "string",
+      "description": "Machine-readable reason for the plan (single_eligible_system, overlapping_territories, jurisdiction_unknown, coverage_unmapped, provider_not_advertised, missing_location)"
+    },
+    "coverage_label": {
+      "type": "string",
+      "description": "County or independent city that decided the route, as shown to the customer"
+    },
+    "jurisdiction_label": {
+      "type": "string"
+    },
+    "selection_policy": {
+      "type": "string",
+      "description": "The preselection wording shown to the customer, preserved as evidence of what they were told"
+    },
+    "selected_provider_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "MLS systems the customer asked to publish to"
+    },
+    "auto_selected": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when exactly one MLS was eligible, so the customer was never asked"
+    },
+    "destinations": {
+      "type": "array",
+      "description": "One entry per MLS destination, each with its own independent outcome. A failure in one never alters another.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "provider_id": {
+            "type": "string"
+          },
+          "provider_label": {
+            "type": "string"
+          },
+          "publishing_mode": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "MlsUploadRequest row for this destination"
+          },
+          "status": {
+            "type": "string",
+            "description": "submitted | failed | duplicate"
+          },
+          "manifest_id": {
+            "type": "string"
+          },
+          "import_url": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "partial",
+        "failed",
+        "review"
+      ],
+      "default": "submitted",
+      "description": "Group outcome: submitted when every destination was accepted, partial when at least one succeeded and another failed, failed when none succeeded, review when the address needs an administrator."
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention_reason": {
+      "type": "string"
+    },
+    "mls_numbers": {
+      "type": "object",
+      "description": "Listing number supplied per MLS, when more than one destination needs one"
+    },
+    "authorization_snapshot": {
+      "type": "string",
+      "description": "Exact authorization wording the customer accepted, preserved as evidence"
+    },
+    "authorized_by_email": {
+      "type": "string"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_notified_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "group_id",
+    "job_id",
+    "client_email",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -332,168 +332,86 @@ function regionMatchesAt(region: MlsServiceRegion, location: PropertyLocation, l
 
 const MATCH_LEVEL_ORDER: MlsMatchLevel[] = ["zip", "county", "city", "jurisdiction", "state"];
 
-/**
- * Decides the MLS workflow for one property.
- * `isLive(providerId)` says whether that provider's integration may serve customers today.
- */
-export function resolveMlsRegion(
-  regions: MlsServiceRegion[],
-  location: PropertyLocation,
-  isLive: (providerId: string) => boolean = () => true,
-): MlsRegionResolution {
-  // Every mapped region is considered, switched on or not: a region that is not activated yet still
-  // names the provider that will publish the property, so the request can be worked by hand.
-  const mapped = (regions || []).filter((r) => r && String(r.provider_id || "").trim());
-  const base = {
-    location,
-    provider_id: null as string | null,
-    provider_live: false,
-    region_id: null as string | null,
-    region_label: null as string | null,
-    jurisdiction: null as MlsJurisdiction | null,
-    coverage: {
-      eligible: false,
-      jurisdiction_label: null,
-      source: null,
-      membership_confirmed: false,
-    } as MlsCoverage,
-    matches: [] as MlsRegionMatch[],
-  };
+/** One region whose published territory covers the property, with the level that decided it. */
+export interface MlsTerritoryMatch {
+  region: MlsServiceRegion;
+  region_id: string;
+  provider_id: string;
+  region_label: string;
+  basis: MlsRoutingBasis;
+  jurisdiction: MlsJurisdiction | null;
+}
 
-  if (!location.state && !location.zip) {
-    return { ...base, status: "review", reason: "missing_location", basis: "none" };
-  }
+export interface MlsTerritoryScan {
+  /** The address carried enough geography to be matched at all. */
+  location_known: boolean;
+  /** Most specific level any region matched at. "none" when nothing matched. */
+  basis: MlsRoutingBasis;
+  /**
+   * EVERY region that covers the property at the most specific level that matched — not just the
+   * first one. Two MLS systems covering the same county both come back here, which is what lets the
+   * customer choose between them instead of the case being decided for them.
+   */
+  matches: MlsTerritoryMatch[];
+  /** Regions scoped to the address's state, used to explain a property nothing covers. */
+  state_regions: MlsServiceRegion[];
+  /** A county or independent city was known for the address. */
+  jurisdiction_known: boolean;
+}
+
+/**
+ * Every published territory that covers this address.
+ *
+ * This is the geography layer only: it says which MLS service areas the property sits inside. Which
+ * of those systems Arriv can actually publish to, and whether the customer is asked anything, is the
+ * provider policy in mlsTerritories.
+ */
+export function collectTerritoryMatches(regions: MlsServiceRegion[], location: PropertyLocation): MlsTerritoryScan {
+  const mapped = (regions || []).filter((r) => r && String(r.provider_id || "").trim());
+  const scan: MlsTerritoryScan = {
+    location_known: !!(location.state || location.zip),
+    basis: "none",
+    matches: [],
+    state_regions: [],
+    jurisdiction_known: !!(normalizeJurisdictionKey(location.county) || normalizeJurisdictionKey(location.city)),
+  };
+  if (!scan.location_known) return scan;
 
   for (const level of MATCH_LEVEL_ORDER) {
-    const matches: MlsRegionMatch[] = [];
-    const jurisdictionMatches: MlsJurisdiction[] = [];
+    const matches: MlsTerritoryMatch[] = [];
     mapped.forEach((region) => {
       if (level === "jurisdiction") {
         const jurisdiction = matchJurisdictionAt(region, location);
         if (!jurisdiction) return;
-        // A county or a district reports at county level; an independent city reports at city level.
-        const matchBasis: MlsRoutingBasis = jurisdiction.kind === "independent_city" ? "city" : "county";
-        jurisdictionMatches.push(jurisdiction);
         matches.push({
+          region,
           region_id: region.id,
           provider_id: region.provider_id,
           region_label: region.label,
-          basis: matchBasis,
+          // A county or a district reports at county level; an independent city reports at city level.
+          basis: jurisdiction.kind === "independent_city" ? "city" : "county",
           jurisdiction,
         });
         return;
       }
       if (regionMatchesAt(region, location, level)) {
         matches.push({
+          region,
           region_id: region.id,
           provider_id: region.provider_id,
           region_label: region.label,
           basis: level as MlsRoutingBasis,
+          jurisdiction: null,
         });
       }
     });
-    if (matches.length === 0) continue;
-
-    const basis = matches[0].basis;
-    const providers = Array.from(new Set(matches.map((m) => m.provider_id)));
-    if (providers.length > 1) {
-      return { ...base, status: "review", reason: "overlapping_coverage", basis, matches };
-    }
-
-    const providerId = providers[0];
-    const region = mapped.find((r) => r.id === matches[0].region_id)!;
-    const live = isLive(providerId);
-    const jurisdiction = jurisdictionMatches[0] || null;
-    const routed = {
-      ...base,
-      basis,
-      provider_id: providerId,
-      provider_live: live,
-      region_id: region.id,
-      region_label: region.label,
-      jurisdiction,
-      matches,
-      coverage: {
-        eligible: true,
-        jurisdiction_label: describeJurisdiction(jurisdiction),
-        source: region.verified_by || null,
-        membership_confirmed: false,
-      } as MlsCoverage,
-    };
-
-    // A region that is not switched on yet is still the answer for this property — the provider is
-    // known and the request is worked by our MLS team until the route is automated.
-    if (!region.enabled) {
-      return { ...routed, status: "pending_activation", reason: "region_not_activated" };
-    }
-    if (!region.verified) {
-      return { ...routed, status: "review", reason: "region_unverified" };
-    }
-
-    return {
-      ...routed,
-      status: live ? "resolved" : "pending_activation",
-      reason: live ? "region_resolved" : "provider_not_live",
-    };
+    if (matches.length > 0) return { ...scan, basis: matches[0].basis, matches };
   }
 
-  const scoped = mapped.filter(
-    (r) => r.jurisdictions.length > 0 && !!location.state && r.states.includes(location.state),
-  );
-  const scopedMatches: MlsRegionMatch[] = scoped.map((r) => ({
-    region_id: r.id,
-    provider_id: r.provider_id,
-    region_label: r.label,
-    basis: "none" as MlsRoutingBasis,
-  }));
-  const scopedSource = scoped.length === 1 ? scoped[0].verified_by || null : null;
-
-  // The state is mapped jurisdiction by jurisdiction, but the address names no county or independent
-  // city at all — the county could not be confirmed. Deciding the provider would be a guess, so an
-  // administrator decides which MLS serves it.
-  const hasJurisdictionHint = !!(normalizeJurisdictionKey(location.county) || normalizeJurisdictionKey(location.city));
-  if (scoped.length > 0 && !hasJurisdictionHint) {
-    const only = scoped.length === 1 ? scoped[0] : null;
-    return {
-      ...base,
-      status: "review",
-      reason: "jurisdiction_unknown",
-      basis: "none",
-      provider_id: only ? only.provider_id : null,
-      region_id: only ? only.id : null,
-      region_label: only ? only.label : null,
-      matches: scopedMatches,
-      coverage: { ...base.coverage, source: scopedSource },
-    };
-  }
-
-  // The address names a jurisdiction that no region covers, or nothing in the map covers it yet.
-  // Publishing is still available and never blocked: our MLS team confirms the provider and widens
-  // coverage afterwards.
   return {
-    ...base,
-    status: "review",
-    reason: "coverage_unmapped",
-    basis: "none",
-    matches: scopedMatches,
-    coverage: { ...base.coverage, source: scopedSource },
+    ...scan,
+    state_regions: mapped.filter(
+      (r) => r.jurisdictions.length > 0 && !!location.state && r.states.includes(location.state),
+    ),
   };
-}
-
-/** The customer-facing sentence for a resolution. Never names another provider as an option. */
-export function describeRouting(resolution: MlsRegionResolution, providerLabel?: string | null): string {
-  const label = providerLabel || "your MLS";
-  const covered = resolution.coverage?.jurisdiction_label || resolution.region_label;
-  switch (resolution.status) {
-    case "resolved":
-      return `${covered} is inside ${label}'s service area, so Arriv publishes through ${label}.`;
-    case "pending_activation":
-      return `${covered} is inside ${label}'s service area. Arriv is finishing activation of that route, so your request goes to our MLS team to publish for you.`;
-    case "review":
-      return resolution.provider_id
-        ? `Arriv's MLS team is confirming ${label} for this address. They publish your selected media for you.`
-        : "Arriv's MLS team confirms the right MLS for this address and publishes your selected media for you.";
-    default:
-      return "Arriv publishes this property for you. Our MLS team confirms the provider and completes the upload.";
-  }
 }
