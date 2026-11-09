@@ -59,6 +59,27 @@ function extensionOfName(value: string): string {
   return (String(value || "").match(/\.([A-Za-z0-9]+)$/) || [])[1]?.toLowerCase() || "";
 }
 
+/**
+ * Bright matches the listing from a single address line, so the street, city, state and ZIP recorded
+ * on the booking are composed into it. Anything already written in the street line is not repeated,
+ * which keeps an address that already carries every part unchanged.
+ */
+export function composePropertyAddress(property: any): string {
+  const street = String(property?.address || "").trim().replace(/[,\s]+$/, "");
+  if (!street) return "";
+  const segments = [
+    String(property?.city || "").trim(),
+    [String(property?.state || "").trim(), String(property?.zip || "").trim()].filter(Boolean).join(" "),
+  ].filter(Boolean);
+  const parts = [street];
+  for (const segment of segments) {
+    const present = parts.join(", ").toLowerCase();
+    const missingPart = segment.toLowerCase().split(/\s+/).some((token) => token && !present.includes(token));
+    if (missingPart) parts.push(segment);
+  }
+  return parts.join(", ");
+}
+
 /** Maps an extension onto Bright's accepted set. `jpeg` is sent as `jpg` (same bytes, listed extension). */
 function supportedPhotoExtension(value: string): string {
   const clean = String(value || "").replace(/^\./, "").trim().toLowerCase();
@@ -253,7 +274,8 @@ export function buildBrightRequestBody(params: {
   if (skipped.length > 0) gaps.push(`${skipped.length} selected item(s) cannot be sent and were left out.`);
 
   const listingNumber = String(storedManifest?.listing?.listing_number || "").trim();
-  const propertyAddress = String(storedManifest?.property?.address || "").trim();
+  const storedProperty = storedManifest?.property || {};
+  const propertyAddress = composePropertyAddress(storedProperty);
 
   const body: any = {};
   if (config.vendorId) body.vendorId = config.vendorId; else gaps.push("BRIGHT_MLS_VENDOR_ID is not set, so vendorId cannot be sent.");
@@ -269,7 +291,7 @@ export function buildBrightRequestBody(params: {
     { bright_field: "vendorName", source: "BRIGHT_MLS_VENDOR_NAME secret", status: body.vendorName ? "mapped" : "missing" },
     { bright_field: "dateFileCreated", source: "Generated at send time, ISO 8601 UTC", status: "mapped" },
     { bright_field: "mlsId", source: "Stored manifest listing.listing_number (sent only when supplied)", status: body.mlsId ? "mapped" : "missing" },
-    { bright_field: "propertyAddress", source: "Stored manifest property.address", status: body.propertyAddress ? "mapped" : "missing" },
+    { bright_field: "propertyAddress", source: "Stored manifest street plus city, state and ZIP composed into one line", status: body.propertyAddress ? "mapped" : "missing" },
     { bright_field: "listItems[].id / fileName / lastModified", source: "Derived per item; ids sequential per media type, filenames de-duplicated", status: "mapped" },
     { bright_field: "listItems[].mediaType=photo", source: "Stored manifest media.photos[].drive_file_id", status: photos.length ? "mapped" : "missing" },
     { bright_field: "listItems[].imageUrls.fullSize", source: "Signed per-file Arriv media URL (serveBrightMedia)", status: "mapped" },
