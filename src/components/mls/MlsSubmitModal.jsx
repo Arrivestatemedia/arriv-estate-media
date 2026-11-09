@@ -133,7 +133,6 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
   const multipleDestinations = destinations.length > 1;
   const chosenDestinations = destinations.filter((d) => selectedProviders.includes(d.provider_id));
   const chosenNeedingNumbers = chosenDestinations.filter((d) => d.requires_listing_number);
-  const perDestinationNumbers = multipleDestinations && chosenNeedingNumbers.length > 1;
   const destinationNumbersReady = multipleDestinations
     ? chosenDestinations.length > 0 &&
       chosenNeedingNumbers.every((d) => String(mlsNumbers[d.provider_id] || "").trim().length > 0)
