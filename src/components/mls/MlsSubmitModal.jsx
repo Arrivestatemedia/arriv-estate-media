@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, ImageIcon, Video, AlertCircle, CheckCircle2, ArrowUp, ArrowDown,
-  ShieldCheck, Clock, Youtube, Copy, Check, MapPin, Search,
+  ShieldCheck, Clock, Youtube, Copy, Check, MapPin, Search, ExternalLink,
 } from "lucide-react";
 
 export const MLS_AUTHORIZATION_TEXT =
@@ -213,6 +213,22 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 <ul className="text-xs text-amber-900/80 space-y-1">
                   {submitted.unsupported_media.map((m, i) => <li key={i}>• {m}</li>)}
                 </ul>
+              </div>
+            )}
+            {submitted.request?.bright_import_url && (
+              <div className="p-4 rounded-xl bg-[#FFFBF5] border border-[#B8956A]/30">
+                <p className="text-sm font-medium text-[#1A1A1A]">Your photos are ready in Bright MLS</p>
+                <p className="text-xs text-[#1A1A1A]/55 mt-1 mb-2">
+                  Open Bright to pull them into your listing. The link stops working 14 days after your media was prepared.
+                </p>
+                <a
+                  href={submitted.request.bright_import_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#B8956A] px-3 py-1.5 text-xs font-medium text-[#1A1A1A] hover:bg-[#A68559]"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Continue to Bright MLS
+                </a>
               </div>
             )}
             <p className="text-xs text-[#1A1A1A]/45">

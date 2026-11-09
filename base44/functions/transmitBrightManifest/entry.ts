@@ -38,6 +38,7 @@ interface BuiltManifest {
   assumptions: string[];
   skipped: string[];
   validation: ReturnType<typeof validateBrightBody>;
+  link_expires_at: string;
 }
 
 /**
@@ -70,8 +71,11 @@ async function buildFor(base44: any, request: any): Promise<BuiltManifest> {
 
   const mediaUrls: Record<string, string> = {};
   const photos = Array.isArray(request?.provider_manifest?.media?.photos) ? request.provider_manifest.media.photos : [];
+  // Every build mints fresh links, so this is the moment Bright can start fetching and the moment
+  // the clock on those links starts.
+  const linkExpiresAt = brightMediaExpiry();
   if (config.mediaSigningSecret) {
-    const expiresAt = brightMediaExpiry();
+    const expiresAt = linkExpiresAt;
     for (const photo of photos) {
       const fileId = String(photo?.drive_file_id || '');
       if (!fileId) continue;
@@ -113,6 +117,7 @@ async function buildFor(base44: any, request: any): Promise<BuiltManifest> {
     assumptions: built.assumptions,
     skipped: built.skipped,
     validation,
+    link_expires_at: new Date(linkExpiresAt).toISOString(),
   };
 }
 
@@ -158,7 +163,10 @@ async function submitFor(base44: any, request: any, confirmedNotReceived = false
   if (!request?.provider_manifest) {
     return { request_id: request?.request_id, outcome: 'rejected', message: 'This request has no Bright manifest to send.' };
   }
-  if (request?.bright_manifest_id) {
+  // An accepted manifest is final. The only way past this is an administrator authorizing a
+  // replacement (authorize_resend), which is recorded because it bills a second manifest.
+  const resendAuthorized = !!request?.bright_resend_authorized_at;
+  if (request?.bright_manifest_id && !resendAuthorized) {
     return {
       request_id: request.request_id,
       outcome: 'already_sent',
@@ -170,7 +178,7 @@ async function submitFor(base44: any, request: any, confirmedNotReceived = false
 
   // A previous attempt may have created a billable manifest before it failed. Never send again
   // until a person has looked in Bright and confirmed the manifest is not there.
-  if (request?.bright_needs_verification && !confirmedNotReceived) {
+  if (request?.bright_needs_verification && !confirmedNotReceived && !resendAuthorized) {
     return {
       request_id: request.request_id,
       outcome: 'needs_verification',
@@ -228,6 +236,18 @@ async function submitFor(base44: any, request: any, confirmedNotReceived = false
     patch.bright_next_retry_at = null;
     patch.bright_needs_verification = false;
     patch.manifest_status = 'transmitted';
+    patch.bright_link_expires_at = built.link_expires_at;
+    // The authorization is spent the moment the replacement is accepted, so it can never fund a
+    // third send on its own.
+    patch.bright_resend_authorized_at = null;
+    patch.bright_resend_authorized_by = '';
+    patch.bright_resend_reason = '';
+    if (request.bright_manifest_id) {
+      patch.bright_superseded_manifest_ids = [
+        ...(Array.isArray(request.bright_superseded_manifest_ids) ? request.bright_superseded_manifest_ids : []),
+        request.bright_manifest_id,
+      ];
+    }
   } else if (outcome.outcome === 'retry') {
     // 429 only: Bright definitely created nothing, so a scheduled retry cannot duplicate.
     patch.bright_last_error = outcome.message;
@@ -317,6 +337,11 @@ Deno.serve(async (req) => {
         already_sent: !!request.bright_manifest_id,
         manifest_id: request.bright_manifest_id || null,
         import_url: request.bright_import_url || null,
+        link_expires_at: request.bright_link_expires_at || null,
+        link_expires_at_if_sent_now: built.link_expires_at,
+        superseded_manifest_ids: request.bright_superseded_manifest_ids || [],
+        regeneration_count: Number(request.bright_regeneration_count || 0),
+        resend_authorized: !!request.bright_resend_authorized_at,
       });
     }
 
@@ -326,7 +351,48 @@ Deno.serve(async (req) => {
       return Response.json({ success: ok, ...result, error: ok ? undefined : result.message }, { status: ok ? 200 : 502 });
     }
 
-    return Response.json({ error: "Unknown mode. Use 'preview', 'submit' or 'retry_due'." }, { status: 400 });
+    /**
+     * A manifest Bright already accepted cannot simply be sent again: the media links inside it
+     * expire 14 days after it was built, and a second manifest is billable. This mode is the only
+     * way to obtain a replacement, and it deliberately does not send anything — it records who
+     * authorized it, why, and how many replacements this request has had. The actual send still
+     * goes through 'submit', which then builds brand-new links.
+     */
+    if (mode === 'authorize_resend') {
+      if (!request.bright_manifest_id) {
+        return Response.json(
+          { error: 'Bright has not accepted a manifest for this request yet, so there is no accepted manifest to replace.' },
+          { status: 409 },
+        );
+      }
+      const reason = String(body?.reason || '').trim();
+      if (reason.length < 10) {
+        return Response.json(
+          { error: 'Record why a replacement manifest is needed (at least 10 characters) before authorizing it.' },
+          { status: 400 },
+        );
+      }
+      const authorizedAt = new Date().toISOString();
+      const updated = await base44.asServiceRole.entities.MlsUploadRequest.update(request.id, {
+        bright_resend_authorized_at: authorizedAt,
+        bright_resend_authorized_by: auth.actorEmail || auth.actor || 'admin',
+        bright_resend_reason: reason,
+        bright_regeneration_count: Number(request.bright_regeneration_count || 0) + 1,
+      });
+      return Response.json({
+        success: true,
+        authorized: true,
+        previous_manifest_id: request.bright_manifest_id,
+        regeneration_count: Number(request.bright_regeneration_count || 0) + 1,
+        note: 'A replacement manifest is a second billable manifest at Bright. Nothing has been sent: the previous manifestId is kept in the record and the replacement is sent only when you confirm the send.',
+        request: updated,
+      });
+    }
+
+    return Response.json(
+      { error: "Unknown mode. Use 'preview', 'submit', 'authorize_resend' or 'retry_due'." },
+      { status: 400 },
+    );
   } catch (error: any) {
     console.error('transmitBrightManifest error:', error);
     return Response.json({ error: error?.message || 'The Bright manifest could not be sent' }, { status: 500 });

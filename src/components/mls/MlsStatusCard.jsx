@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, CheckCircle2, AlertCircle, Youtube, ShieldCheck } from "lucide-react";
+import { Clock, CheckCircle2, AlertCircle, Youtube, ShieldCheck, ExternalLink } from "lucide-react";
 
 const STATUS_LABEL = {
   submitted: "Submitted",
@@ -62,6 +62,21 @@ export default function MlsStatusCard({ requests = [] }) {
               <p className="text-xs text-amber-200/80 flex items-center gap-1.5 mt-1">
                 <AlertCircle className="w-3 h-3" /> {r.attention_reason}
               </p>
+            )}
+            {r.bright_import_url && !done && (
+              <div className="mt-2.5">
+                <a
+                  href={r.bright_import_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#B8956A] px-3 py-1.5 text-xs font-medium text-[#0a0b0f] hover:bg-[#A68559]"
+                >
+                  <ExternalLink className="w-3 h-3" /> Continue to Bright MLS
+                </a>
+                <p className="text-[11px] text-white/40 mt-1">
+                  Your photos are ready in Bright. Open this to pull them into your listing.
+                </p>
+              </div>
             )}
           </div>
         );

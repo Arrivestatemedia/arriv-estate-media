@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Eye, Send, ExternalLink, AlertCircle, CheckCircle2, Copy, Check, Clock } from "lucide-react";
+import { Loader2, Eye, Send, ExternalLink, AlertCircle, AlertTriangle, CheckCircle2, Copy, Check, Clock, RefreshCw } from "lucide-react";
 
 function formatWhen(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function daysUntil(value) {
+  if (!value) return null;
+  return Math.ceil((new Date(value).getTime() - Date.now()) / 86400000);
 }
 
 /**
@@ -23,6 +28,7 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
   const [preview, setPreview] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reason, setReason] = useState("");
 
   const call = async (mode, extra = {}) => {
     setBusy(mode);
@@ -71,24 +77,99 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
       </div>
 
       {request.bright_manifest_id ? (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <p className="text-[11px] text-[#1A1A1A]/60">
             Manifest <span className="font-mono">{request.bright_manifest_id}</span> · accepted {formatWhen(request.bright_submitted_at)}
           </p>
+
           {request.bright_import_url && (
-            <a
-              href={request.bright_import_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] text-[#8a6d4a] hover:underline"
+            <Button
+              size="sm"
+              onClick={() => window.open(request.bright_import_url, "_blank", "noopener,noreferrer")}
+              className="bg-[#B8956A] hover:bg-[#A68559] text-[#1A1A1A] h-8 text-xs"
             >
-              <ExternalLink className="w-3 h-3" /> Open Bright import
-            </a>
+              <ExternalLink className="w-3.5 h-3.5 mr-1" /> Continue to Bright MLS
+            </Button>
           )}
+
           <p className="text-[11px] text-[#1A1A1A]/50">
             Opening the import link hands the media to the listing; it is not proof the import finished. Mark this request
             completed only once Bright shows the photos on the listing.
           </p>
+
+          {request.bright_link_expires_at && (() => {
+            const days = daysUntil(request.bright_link_expires_at);
+            if (days === null) return null;
+            const expired = days <= 0;
+            const soon = !expired && days <= 3;
+            return (
+              <p className={`text-[11px] rounded px-2 py-1.5 border flex items-start gap-1.5 ${
+                expired
+                  ? "bg-red-50 border-red-200 text-red-800"
+                  : soon
+                    ? "bg-amber-50 border-amber-200 text-amber-900"
+                    : "bg-white border-[#B8956A]/25 text-[#1A1A1A]/60"
+              }`}>
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                {expired
+                  ? `The media links in this manifest stopped working ${formatWhen(request.bright_link_expires_at)}. Bright can no longer fetch the photos, so a replacement manifest is required.`
+                  : `Media links stop working ${formatWhen(request.bright_link_expires_at)} — ${days} day${days === 1 ? "" : "s"} left. Bright must finish fetching before then.`}
+              </p>
+            );
+          })()}
+
+          {(request.bright_regeneration_count || 0) > 0 && (
+            <p className="text-[11px] text-[#1A1A1A]/50">
+              {request.bright_regeneration_count} replacement manifest{request.bright_regeneration_count === 1 ? "" : "s"} authorized
+              {(request.bright_superseded_manifest_ids || []).length > 0
+                ? ` · replaced ${request.bright_superseded_manifest_ids.join(", ")}`
+                : ""}
+            </p>
+          )}
+
+          {request.bright_resend_authorized_at ? (
+            <div className="rounded border border-amber-300 bg-amber-50 px-2 py-1.5 space-y-1.5">
+              <p className="text-[11px] text-amber-900">
+                A replacement manifest was authorized by {request.bright_resend_authorized_by || "an administrator"} on{" "}
+                {formatWhen(request.bright_resend_authorized_at)}. Sending it creates a{" "}
+                <strong>second billable manifest</strong> at Bright and mints fresh media links.
+              </p>
+              {confirming ? (
+                <Button size="sm" onClick={() => call("submit")} disabled={!!busy} className="bg-amber-600 hover:bg-amber-700 text-white h-8 text-xs">
+                  {busy === "submit" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                  Confirm send replacement
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setConfirming(true)} disabled={!!busy} className="border-amber-400 text-amber-900 h-8 text-xs">
+                  <Send className="w-3.5 h-3.5 mr-1" /> Send replacement manifest
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded border border-[#B8956A]/25 bg-white px-2 py-1.5 space-y-1.5">
+              <p className="text-[11px] text-[#1A1A1A]/60">
+                If the import link expired, generate a fresh manifest. It is recorded against this request and billed as a
+                second manifest, so a reason is kept with it.
+              </p>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder="Why a replacement is needed — e.g. the import link expired before Bright fetched the photos"
+                className="w-full text-[11px] rounded border border-[#B8956A]/30 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#B8956A]"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => call("authorize_resend", { reason })}
+                disabled={!!busy || reason.trim().length < 10}
+                className="border-[#B8956A]/40 text-[#8a6d4a] h-8 text-xs"
+              >
+                {busy === "authorize_resend" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+                Generate fresh manifest
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-1.5">

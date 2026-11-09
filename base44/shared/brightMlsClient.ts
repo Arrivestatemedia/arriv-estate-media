@@ -203,7 +203,8 @@ export function buildBrightRequestBody(params: {
     }
     photoCount += 1;
     const item: any = {
-      id: `photo-${photoCount}`,
+      // Numeric ids, numbered from 1 within this media type, as in Bright's documented examples.
+      id: photoCount,
       fileName: uniqueFileName(named.fileName, usedPhotoNames),
       lastModified: brightTimestamp(modifiedTimes[fileId] || photo?.last_modified || photo?.modified_at || generatedAt, now),
       mediaType: "photo",
@@ -229,7 +230,7 @@ export function buildBrightRequestBody(params: {
     tourCount += 1;
     const sourceName = String(video?.name || "").split("/").pop().trim();
     listItems.push({
-      id: `tour-${tourCount}`,
+      id: tourCount,
       fileName: uniqueFileName(sourceName || `tour-${tourCount}`, usedTourNames),
       lastModified: brightTimestamp(
         modifiedTimes[String(video?.drive_file_id || "")] || video?.last_modified || video?.modified_at || generatedAt,
@@ -260,7 +261,7 @@ export function buildBrightRequestBody(params: {
       }
       count += 1;
       listItems.push({
-        id: `${group.prefix}-${count}`,
+        id: count,
         fileName: uniqueFileName(String(doc?.name || `${group.prefix}-${count}`), group.used),
         lastModified: brightTimestamp(doc?.last_modified || generatedAt, now),
         mediaType: group.mediaType,
@@ -292,7 +293,7 @@ export function buildBrightRequestBody(params: {
     { bright_field: "dateFileCreated", source: "Generated at send time, ISO 8601 UTC", status: "mapped" },
     { bright_field: "mlsId", source: "Stored manifest listing.listing_number (sent only when supplied)", status: body.mlsId ? "mapped" : "missing" },
     { bright_field: "propertyAddress", source: "Stored manifest street plus city, state and ZIP composed into one line", status: body.propertyAddress ? "mapped" : "missing" },
-    { bright_field: "listItems[].id / fileName / lastModified", source: "Derived per item; ids sequential per media type, filenames de-duplicated", status: "mapped" },
+    { bright_field: "listItems[].id / fileName / lastModified", source: "Derived per item; ids are numbers counted from 1 within each media type, filenames de-duplicated", status: "mapped" },
     { bright_field: "listItems[].mediaType=photo", source: "Stored manifest media.photos[].drive_file_id", status: photos.length ? "mapped" : "missing" },
     { bright_field: "listItems[].imageUrls.fullSize", source: "Signed per-file Arriv media URL (serveBrightMedia)", status: "mapped" },
     { bright_field: "listItems[].description / roomType", source: "Stored photo description / room_type, only when present", status: "mapped" },

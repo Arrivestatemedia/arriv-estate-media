@@ -295,6 +295,36 @@
       "default": false,
       "description": "A previous attempt may have created a billable manifest before it failed (timeout, dropped connection, 5xx or a 2xx with no manifestId). While true nothing is retried automatically and no resend is allowed until a person confirms in Bright that the manifest is absent."
     },
+    "bright_link_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the signed media links in the manifest Bright last accepted stop working (14 days from the moment that manifest was built). Bright cannot fetch the media after this point, and a fresh manifest is then required."
+    },
+    "bright_regeneration_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "How many times an administrator authorized a fresh manifest for this request after the first one was accepted. Every regeneration creates a second billable manifest at Bright, so the count is kept as a billing record."
+    },
+    "bright_superseded_manifest_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "manifestIds Bright accepted earlier for this request and that a regenerated manifest replaced. Kept so no accepted manifest is ever lost from the record."
+    },
+    "bright_resend_authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When an administrator explicitly authorized building and sending a replacement manifest. Single use: cleared as soon as Bright accepts the replacement, or when no further send is pending."
+    },
+    "bright_resend_authorized_by": {
+      "type": "string",
+      "description": "Administrator who authorized the replacement manifest"
+    },
+    "bright_resend_reason": {
+      "type": "string",
+      "description": "The stated reason a replacement manifest was needed (for example an import link that expired before Bright fetched the media), kept as the audit record for the second billable manifest."
+    },
     "submitted_at": {
       "type": "string",
       "format": "date-time"

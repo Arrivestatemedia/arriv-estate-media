@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, ShieldCheck, RefreshCw, Clock, AlertTriangle, ExternalLink, Youtube, ImageIcon, Video, MapPin } from "lucide-react";
 import MlsRequestDetail from "@/components/mls/MlsRequestDetail";
 import MlsServiceAreasPanel from "@/components/mls/MlsServiceAreasPanel";
+import BrightConnectionTest from "@/components/mls/BrightConnectionTest";
 
 const PROVIDER_LABEL = {
   fmls: "FMLS",
@@ -105,6 +106,7 @@ export default function MlsUploadQueue() {
             {tab.label}
           </button>
         ))}
+        {view === "queue" && <BrightConnectionTest />}
         {view === "queue" && (
           <Button variant="outline" onClick={load} className="border-[#B8956A]/40 text-[#8a6d4a]">
             <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
