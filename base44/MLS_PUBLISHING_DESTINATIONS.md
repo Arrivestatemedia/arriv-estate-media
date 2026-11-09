@@ -136,10 +136,18 @@ Routing tests (unit, over the real shared modules, real addresses through the Ce
 | 13d | Admin override without the metadata | documented compulsory list preserved |
 | 14 | Georgia MLS | unadvertised, not operational, inactive; all-159-county coverage recorded as metadata only, and Atlanta still offers FMLS alone |
 
-Endpoint checks: `getMlsUploadRequests` (client mode) returns a `review` plan for the one delivered
-fixture job with no invented destination; `submitMlsUploadRequest` still rejects a non-owner (403)
-before any write. Client build passes. No production records were created and no provider API was
-called.
+Endpoint checks against the one delivered fixture job ("Bethesda, MD"):
+
+- `getMlsUploadRequests` (client) → `plan_status: needs_address`, missing `street, city, zip`, the
+  prompt sentence, no destination and no candidate provider.
+- Same call with `propertyAddress: "7001 Arlington Rd, Bethesda, MD 20814"` → `auto`, Bright MLS,
+  "Montgomery County, MD", `arriv_team` (still uncertified).
+- `submitMlsUploadRequest` without a corrected address → **422** `needs_address` with no record
+  written (0 requests and 0 groups for that job afterwards); a non-owner is still rejected (403)
+  before any write.
+
+Client build passes. No provider API was called, no manifest was transmitted, and every certification
+switch and provider flag is unchanged (Bright and Georgia MLS both stay off).
 
 ## Unresolved routing ambiguities
 
