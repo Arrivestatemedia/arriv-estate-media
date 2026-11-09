@@ -13,9 +13,11 @@ import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioProm
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
 import AccessSelectionCard from "@/components/client/AccessSelectionCard";
 import ClientInvoices from "@/components/client/ClientInvoices";
+import CancelBookingDialog from "@/components/client/CancelBookingDialog";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
+  const [cancelBooking, setCancelBooking] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -159,18 +161,29 @@ export default function ClientBookings() {
                         {booking.status?.toUpperCase() || 'PENDING'}
                       </Badge>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 justify-end">
                       {bookingChangeWindow(booking).canChange && (
-                        <Link to={createPageUrl('BookingPage') + '?booking_id=' + booking.id}>
+                        <>
+                          <Link to={createPageUrl('BookingPage') + '?booking_id=' + booking.id}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-[var(--accent-color)] border-[var(--border-color)]"
+                              title="Change date or time"
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              Reschedule
+                            </Button>
+                          </Link>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="text-[var(--accent-color)] border-[var(--border-color)]"
-                            title="Change date or time"
+                            variant="ghost"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => setCancelBooking(booking)}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            Cancel
                           </Button>
-                        </Link>
+                        </>
                       )}
                     </div>
                   </div>
@@ -273,6 +286,13 @@ export default function ClientBookings() {
         )}
           <ClientInvoices email={user.email} />
         </div>
+
+        <CancelBookingDialog
+          booking={cancelBooking}
+          open={!!cancelBooking}
+          onOpenChange={(isOpen) => { if (!isOpen) setCancelBooking(null); }}
+          onSubmitted={() => refetch()}
+        />
       </div>
 
 
