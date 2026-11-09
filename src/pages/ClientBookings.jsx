@@ -105,7 +105,10 @@ export default function ClientBookings() {
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
+    confirmed: "bg-green-100 text-green-800",
     approved: "bg-green-100 text-green-800",
+    completed: "bg-blue-100 text-blue-800",
+    cancelled: "bg-gray-100 text-gray-700",
     denied: "bg-red-100 text-red-800"
   };
 
@@ -223,7 +226,7 @@ export default function ClientBookings() {
                     </div>
                   </div>
 
-                  {!bookingChangeWindow(booking).canChange && (
+                  {!bookingChangeWindow(booking).canChange && ["pending", "confirmed", "approved"].includes(booking.status || "pending") && (
                     <div className="flex items-start gap-2 rounded border border-[var(--border-color)] bg-[var(--accent-color)]/5 p-3">
                       <Lock className="w-4 h-4 mt-0.5 text-[var(--accent-color)] flex-shrink-0" />
                       <p className="text-sm text-[var(--text-secondary)]">
