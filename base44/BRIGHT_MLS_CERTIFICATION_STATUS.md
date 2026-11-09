@@ -23,6 +23,13 @@ ever expected to hold Bright MLS agent credentials.
 - The playground submission happened outside this app: it is not recorded on any
   `MlsUploadRequest`, so it must never be treated as a manifest this app already sent.
 
+## Geographic service area — verified separately
+
+Bright's published jurisdiction list is transcribed and used for address routing (see
+`BRIGHT_MLS_SERVICE_AREA_ROUTING.md`, 2026-11-09). That makes the routing map authoritative, and it
+changes none of the switches below: being inside Bright's area proves which MLS serves a property, not
+that the integration is certified, and not that the customer belongs to Bright.
+
 ## Certification switches — deliberately still OFF
 
 `mlsProviders.ts`, provider `bright_mls`: `enabled: false`, certification

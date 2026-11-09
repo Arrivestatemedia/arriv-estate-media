@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, MapPin, AlertCircle, Check, RefreshCw, ShieldCheck } from "lucide-react";
+import RegionCoverageList from "@/components/mls/RegionCoverageList";
 
 const PROVIDER_ORDER = ["fmls", "georgia_mls", "bright_mls"];
 
@@ -130,10 +131,11 @@ export default function MlsServiceAreasPanel() {
           <MapPin className="w-3.5 h-3.5 text-[#B8956A]" /> How routing works
         </p>
         <p>
-          The property's booking address is matched most-specific-first: zip prefix, then county, then city,
-          then state. Every address gets a route — customers are never told MLS publishing is unavailable.
-          An address that matches nothing, or matches two providers, goes to the MLS Upload Queue for a
-          decision, and that is where coverage should be widened.
+          The property's address is matched most-specific-first: zip prefix, county, city, the provider's
+          official jurisdiction list (state + county/independent city), then state. A state listed on a
+          region is the scope of its map, not coverage of the whole state — so a county-by-county provider
+          cannot claim an entire state. Every address gets a route; an address whose county cannot be
+          confirmed, that matches nothing, or that matches two providers goes to the MLS Upload Queue.
         </p>
       </Card>
 
@@ -188,25 +190,33 @@ export default function MlsServiceAreasPanel() {
                 className="h-8 text-xs"
               />
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1A1A1A]/40 mb-1">Counties</p>
-              <Input
-                value={fromList(region.counties)}
-                onChange={(e) => patchRegion(region.id, { counties: toList(e.target.value) })}
-                placeholder="Fulton, Gwinnett"
-                className="h-8 text-xs"
-              />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1A1A1A]/40 mb-1">Cities</p>
-              <Input
-                value={fromList(region.cities)}
-                onChange={(e) => patchRegion(region.id, { cities: toList(e.target.value) })}
-                placeholder="Winder, Atlanta"
-                className="h-8 text-xs"
-              />
-            </div>
+            {region.jurisdictions.length === 0 && (
+              <>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1A1A1A]/40 mb-1">Counties</p>
+                  <Input
+                    value={fromList(region.counties)}
+                    onChange={(e) => patchRegion(region.id, { counties: toList(e.target.value) })}
+                    placeholder="Fulton, Gwinnett"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1A1A1A]/40 mb-1">Cities</p>
+                  <Input
+                    value={fromList(region.cities)}
+                    onChange={(e) => patchRegion(region.id, { cities: toList(e.target.value) })}
+                    placeholder="Winder, Atlanta"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </>
+            )}
           </div>
+
+          {region.jurisdictions.length > 0 && (
+            <RegionCoverageList jurisdictions={region.jurisdictions} source={region.verified_by} />
+          )}
 
           <Textarea
             value={region.notes || ""}

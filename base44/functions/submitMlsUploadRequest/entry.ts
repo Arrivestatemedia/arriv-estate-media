@@ -217,9 +217,11 @@ Deno.serve(async (req) => {
         ? 'Overlapping MLS coverage for this address — confirm which provider serves it before publishing.'
         : resolution.reason === 'region_unverified'
           ? 'MLS service area not yet verified for this address — confirm coverage before publishing.'
-          : resolution.reason === 'coverage_unmapped'
-            ? 'Address is outside the mapped MLS service areas — assign the provider and publish, then add coverage.'
-            : 'Property address could not be matched to an MLS service area — confirm coverage before publishing.')
+          : resolution.reason === 'jurisdiction_unknown'
+            ? 'The county or independent city could not be confirmed for this address — confirm which MLS serves it before publishing.'
+            : resolution.reason === 'coverage_unmapped'
+              ? 'Address is outside the mapped MLS service areas — assign the provider and publish, then add coverage.'
+              : 'Property address could not be matched to an MLS service area — confirm coverage before publishing.')
       : (manifestStatus === 'blocked_pending_certification'
         ? 'Bright Media Sync is not certified yet — publish this request by hand.'
         : '');

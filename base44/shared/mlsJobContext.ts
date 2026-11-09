@@ -30,10 +30,62 @@ export async function resolvePropertyAddress(base44: any, job: any): Promise<str
   return String(job.location || job.title || "").trim();
 }
 
+interface GeocodedJurisdiction {
+  county: string;
+  city: string;
+  state: string;
+  source: string;
+}
+
+const JURISDICTION_CACHE = new Map<string, GeocodedJurisdiction>();
+
+/**
+ * The county — or, in Virginia and Maryland, the independent city the Census records it as — for an
+ * address, from the U.S. Census Bureau geocoder. It needs no API key and returns the jurisdiction at
+ * exactly the level MLS coverage is published at ("Fairfax County", "Alexandria city").
+ *
+ * Only those administrative facts are read, and results are cached per address because the gallery and
+ * the submission resolve the same property within seconds of each other. An address the geocoder
+ * cannot match returns null, so the routing layer holds the request for MLS review instead of guessing
+ * at a town's county.
+ */
+async function geocodeJurisdiction(query: string): Promise<GeocodedJurisdiction | null> {
+  const address = String(query || "").trim();
+  if (!address) return null;
+  const cached = JURISDICTION_CACHE.get(address);
+  if (cached) return cached;
+  try {
+    const res = await fetch(
+      `https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=${encodeURIComponent(address)}` +
+        "&benchmark=Public_AR_Current&vintage=Current_Current&format=json",
+      { signal: AbortSignal.timeout(6000) },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const match = json?.result?.addressMatches?.[0];
+    if (!match) return null;
+    const geographies = match.geographies || {};
+    const county = String(geographies.Counties?.[0]?.NAME || "").trim();
+    const state = String(geographies.States?.[0]?.STUSAB || "").trim().toUpperCase();
+    if (!county || !state) return null;
+    const result: GeocodedJurisdiction = {
+      county,
+      city: String(geographies["Incorporated Places"]?.[0]?.NAME || "").trim(),
+      state,
+      source: "us-census-geocoder",
+    };
+    JURISDICTION_CACHE.set(address, result);
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The property's address broken into the parts the MLS service-area map matches on.
  * The booking holds the structured city/state the customer entered; the free-text address string
- * supplies city, state and zip when the booking's own fields are empty.
+ * supplies city, state and zip when the booking's own fields are empty. A county the address does not
+ * spell out is looked up, never inferred from a town name.
  */
 export async function resolvePropertyLocation(base44: any, job: any): Promise<PropertyLocation> {
   if (!job) return parsePropertyLocation("");
@@ -51,7 +103,24 @@ export async function resolvePropertyLocation(base44: any, job: any): Promise<Pr
   const address = String(booking?.property_address || "").trim()
     || composed
     || String(job.location || job.title || "").trim();
-  return parsePropertyLocation(address, booking?.city, booking?.state);
+  const parsed = parsePropertyLocation(address, booking?.city, booking?.state);
+  if (parsed.county) return parsed;
+  if (!parsed.state && !parsed.zip) return parsed;
+
+  const geocoded = await geocodeJurisdiction(
+    parsed.address || [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", "),
+  );
+  if (!geocoded) return parsed;
+  // A lookup that lands in a different state is a bad match, not this property: leave the county empty
+  // so the request is reviewed rather than routed on another state's jurisdiction.
+  if (parsed.state && geocoded.state && parsed.state !== geocoded.state) return parsed;
+
+  return {
+    ...parsed,
+    county: geocoded.county,
+    city: parsed.city || geocoded.city,
+    state: parsed.state || geocoded.state,
+  };
 }
 
 export async function listDeliveryFiles(base44: any, job: any): Promise<{ folderId: string | null; files: DeliveryFile[] }> {
