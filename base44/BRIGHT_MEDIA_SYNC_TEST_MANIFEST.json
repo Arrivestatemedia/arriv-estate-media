@@ -1,0 +1,33 @@
+{
+  "vendorId": "REPLACE_WITH_BRIGHT_MLS_VENDOR_ID",
+  "vendorName": "REPLACE_WITH_BRIGHT_MLS_VENDOR_NAME",
+  "dateFileCreated": "2026-11-09T19:45:00.000Z",
+  "propertyAddress": "TEST DATA - 999 Sample Street, Bethesda, MD 20814",
+  "listItems": [
+    {
+      "id": 1,
+      "fileName": "TEST-DATA-front-exterior.jpg",
+      "lastModified": "11/9/2026 2:35:00 PM",
+      "mediaType": "photo",
+      "imageUrls": {
+        "fullSize": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80"
+      }
+    },
+    {
+      "id": 2,
+      "fileName": "TEST-DATA-kitchen.jpg",
+      "lastModified": "11/9/2026 2:36:00 PM",
+      "mediaType": "photo",
+      "imageUrls": {
+        "fullSize": "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=1600&q=80"
+      }
+    },
+    {
+      "id": 1,
+      "fileName": "TEST-DATA-tour.mp4",
+      "lastModified": "11/9/2026 2:37:00 PM",
+      "mediaType": "tour_url",
+      "tourUrl": "https://www.youtube.com/watch?v=TESTDATA0001"
+    }
+  ]
+}
