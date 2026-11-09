@@ -251,6 +251,45 @@
       "type": "string",
       "description": "SHA-256 of the manifest body, so a stored manifest can be proven unchanged"
     },
+    "bright_manifest_id": {
+      "type": "string",
+      "description": "The manifestId Bright returned when it accepted this request's manifest. Its presence is the only proof the manifest reached Bright, and it prevents a second submission of the same request."
+    },
+    "bright_import_url": {
+      "type": "string",
+      "description": "Bright's documented import link for that manifestId (/mlsredirect/bright/{manifestId}). Opening it is how the agent pulls the media into the listing; it is not proof the import finished."
+    },
+    "bright_submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Bright accepted the manifest"
+    },
+    "bright_submission_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "How many times this request's manifest has been POSTed to Bright"
+    },
+    "bright_last_status": {
+      "type": "integer",
+      "description": "HTTP status of the most recent attempt (0 when Bright could not be reached)"
+    },
+    "bright_last_error": {
+      "type": "string",
+      "description": "Plain-language reason the most recent attempt did not produce a manifestId"
+    },
+    "bright_last_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bright_next_retry_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a retryable failure (network, 5xx, 429) may be attempted again. Empty once accepted, after a rejection that needs a fix, or after the attempt cap."
+    },
+    "bright_response": {
+      "type": "object",
+      "description": "Bright's last reply, recorded verbatim for review: outcome, HTTP status, message and the response body."
+    },
     "submitted_at": {
       "type": "string",
       "format": "date-time"

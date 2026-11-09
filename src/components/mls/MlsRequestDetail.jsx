@@ -6,6 +6,7 @@ import {
   Loader2, Download, Copy, Check, ExternalLink, Youtube, ImageIcon, Video,
   Clock, AlertCircle, CheckCircle2, Flag, PlayCircle,
 } from "lucide-react";
+import BrightSubmissionPanel from "@/components/mls/BrightSubmissionPanel";
 
 const STATUS_LABEL = {
   submitted: "Submitted",
@@ -280,6 +281,10 @@ export default function MlsRequestDetail({ request, onUpdated }) {
             {manifestCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy manifest JSON
           </button>
         </div>
+      )}
+
+      {request.provider === "bright_mls" && (
+        <BrightSubmissionPanel request={request} onUpdated={onUpdated} />
       )}
 
       {request.provider === "unresolved" && request.attention_reason && (
