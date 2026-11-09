@@ -292,20 +292,48 @@ Deno.serve(async (req) => {
       console.error('MLS admin notification failed:', notifyError?.message || notifyError);
     }
 
+    /**
+     * The Bright route is live only when an administrator has enabled it AND all four certification
+     * tests have passed (see mlsProviders.isProviderLiveForCustomers). It is dark today, so nothing
+     * below runs and these requests stay in the manual queue. Once live, the customer's own Publish
+     * to MLS is what initiates the manifest — the authorization they just confirmed is already part
+     * of it — and the returned import link is what shows "Continue to Bright MLS".
+     */
+    let bright: any = null;
+    let finalRequest = created;
+    if (provider?.id === 'bright_mls' && isProviderLiveForCustomers(provider)) {
+      try {
+        bright = await submitBrightManifest(base44, created, false);
+        if (bright?.request) finalRequest = bright.request;
+      } catch (sendError: any) {
+        // The request is already recorded and in the queue; a send failure must never lose it.
+        console.error('Bright manifest submission failed:', sendError?.message || sendError);
+        bright = { outcome: 'error', message: 'The Bright link could not be created.' };
+      }
+    }
+
     const appUrl = await resolveAppUrl(base44);
 
     return Response.json({
       success: true,
-      request: created,
+      request: finalRequest,
       deadline_label: deadlineLabel,
       window_label: describeWindow(window),
       provider_label: providerLabel,
       routing: resolution,
+      bright: bright
+        ? { outcome: bright.outcome, manifest_id: bright.manifest_id || null, import_url: bright.import_url || null }
+        : null,
       next_step: reviewNeeded
         ? 'Arriv will confirm which MLS serves this property before publishing.'
         : manifestStatus === 'blocked_pending_certification'
           ? 'Arriv will publish this one for you while the automated route is finishing activation.'
-          : `Arriv will publish through ${providerLabel}.`,      gallery_url: `${appUrl}/ClientJobGallery?jobId=${jobId}`,
+          : bright?.outcome === 'accepted'
+            ? 'Open the Bright link to add your photos to your listing.'
+            : bright
+              ? `Arriv will finish publishing this one through ${providerLabel} for you.`
+              : `Arriv will publish through ${providerLabel}.`,
+      gallery_url: `${appUrl}/ClientJobGallery?jobId=${jobId}`,
       unsupported_media: unsupported,
     });
   } catch (error: any) {

@@ -122,6 +122,11 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     requires_listing_number: false,
     // Bright Media Sync stays dark until authentication, manifest, media-accessibility and
     // authorized-import testing have all passed. Until then requests are handled by hand.
+    //
+    // Status on 2026-11-09 (see base44/BRIGHT_MLS_CERTIFICATION_STATUS.md): authentication, basic
+    // manifest acceptance and the MLS-login redirect were verified through Bright's Code Playground,
+    // but Bright fetching our signed media and an agent completing the import are NOT yet verified,
+    // so every switch below stays off and the route is not live for customers.
     requires_certification: true,
     certification: UNCERTIFIED,
   },
