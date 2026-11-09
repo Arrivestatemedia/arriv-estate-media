@@ -4,6 +4,7 @@ import {
   loadBrightConfig,
   brightConfigComplete,
   buildBrightRequestBody,
+  validateBrightBody,
   classifyBrightResponse,
   brightImportUrl,
   nextBrightRetryAt,
@@ -36,6 +37,31 @@ interface BuiltManifest {
   gaps: string[];
   assumptions: string[];
   skipped: string[];
+  validation: ReturnType<typeof validateBrightBody>;
+}
+
+/**
+ * One Drive listing, so each manifest item carries the real file modification time rather than the
+ * time the manifest happened to be built. A failure here is not fatal: the builder falls back to the
+ * manifest's generation time.
+ */
+async function loadDriveModifiedTimes(base44: any, folderId: string): Promise<Record<string, string>> {
+  if (!folderId) return {};
+  try {
+    const token = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,modifiedTime)&pageSize=200`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return {};
+    const data = await res.json();
+    const map: Record<string, string> = {};
+    for (const file of data?.files || []) map[String(file.id)] = String(file.modifiedTime || '');
+    return map;
+  } catch {
+    return {};
+  }
 }
 
 async function buildFor(base44: any, request: any): Promise<BuiltManifest> {
@@ -57,16 +83,25 @@ async function buildFor(base44: any, request: any): Promise<BuiltManifest> {
     }
   }
 
+  const folderId = String(request?.provider_manifest?.source?.delivery_folder_id || '');
+  const modifiedTimes = await loadDriveModifiedTimes(base44, folderId);
+
   const built = buildBrightRequestBody({
     storedManifest: request.provider_manifest,
     config,
     mediaUrls,
+    modifiedTimes,
   });
 
   const gaps = [...built.gaps];
   if (!config.mediaSigningSecret && photos.length > 0) {
     gaps.unshift('BRIGHT_MLS_MEDIA_SIGNING_SECRET is not set, so no photograph could be given a media link.');
   }
+  if (photos.length > 0 && Object.keys(modifiedTimes).length === 0) {
+    gaps.push('File modification times could not be read from Drive, so lastModified uses the manifest generation time.');
+  }
+
+  const validation = validateBrightBody(built.body);
 
   return {
     config,
@@ -77,6 +112,7 @@ async function buildFor(base44: any, request: any): Promise<BuiltManifest> {
     gaps: Array.from(new Set(gaps)),
     assumptions: built.assumptions,
     skipped: built.skipped,
+    validation,
   };
 }
 
@@ -151,6 +187,17 @@ async function submitFor(base44: any, request: any, confirmedNotReceived = false
   }
 
   const built = await buildFor(base44, request);
+
+  // A body Bright would reject is never POSTed: a rejected attempt still counts against the vendor
+  // account, so the documented contract is enforced locally first.
+  if (built.validation.blocking.length > 0) {
+    return {
+      request_id: request.request_id,
+      outcome: 'invalid',
+      message: `Not sent: the manifest does not yet match Bright's documented contract. ${built.validation.blocking.join(' ')}`,
+      validation: built.validation,
+    };
+  }
   if (!Array.isArray(built.body.listItems) || built.body.listItems.length === 0) {
     return { request_id: request.request_id, outcome: 'rejected', message: 'Nothing sendable: the manifest produced no media items.' };
   }
@@ -266,6 +313,7 @@ Deno.serve(async (req) => {
         gaps: built.gaps,
         assumptions: built.assumptions,
         skipped: built.skipped,
+        validation: built.validation,
         already_sent: !!request.bright_manifest_id,
         manifest_id: request.bright_manifest_id || null,
         import_url: request.bright_import_url || null,

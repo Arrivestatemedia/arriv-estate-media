@@ -57,8 +57,10 @@ Deno.serve(async (req) => {
     const extension = (fileName.match(/\.([A-Za-z0-9]+)$/) || [])[1]?.toLowerCase() || 'jpg';
     const contentType = extension === 'png' ? 'image/png'
       : extension === 'webp' ? 'image/webp'
-        : extension === 'mp4' ? 'video/mp4'
-          : 'image/jpeg';
+        : extension === 'heic' ? 'image/heic'
+          : extension === 'heif' ? 'image/heif'
+            : extension === 'mp4' ? 'video/mp4'
+              : 'image/jpeg';
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     const drive = await fetch(
@@ -75,7 +77,7 @@ Deno.serve(async (req) => {
     // redirect. Drive reports what it actually returned, so anything outside this list is refused
     // rather than passed through.
     const servedType = String(drive.headers.get('content-type') || contentType).split(';')[0].trim().toLowerCase();
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'video/mp4'];
     if (!allowedTypes.includes(servedType)) {
       console.error('serveBrightMedia refused non-media content:', servedType);
       return Response.json({ error: 'That media file is not readable media' }, { status: 502 });

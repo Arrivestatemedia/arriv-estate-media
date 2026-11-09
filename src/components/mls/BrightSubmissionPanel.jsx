@@ -169,10 +169,14 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
         <div className="rounded border border-[#B8956A]/25 bg-white p-2 space-y-1.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[11px] font-semibold text-[#1A1A1A]/70">
-              {preview.configured ? (
-                <span className="flex items-center gap-1 text-[#8a6d4a]"><CheckCircle2 className="w-3 h-3" /> Ready to send</span>
+              {preview.configured && (preview.validation?.blocking || []).length === 0 ? (
+                <span className="flex items-center gap-1 text-[#8a6d4a]"><CheckCircle2 className="w-3 h-3" /> Passes Bright's documented checks</span>
               ) : (
-                <span className="text-amber-800">Not ready — {preview.missing?.length} setting(s) missing</span>
+                <span className="text-amber-800">
+                  {preview.configured
+                    ? `Not sendable — ${preview.validation?.blocking?.length} check(s) failing`
+                    : `Not ready — ${preview.missing?.length} setting(s) missing`}
+                </span>
               )}
             </p>
             <button
@@ -183,9 +187,26 @@ export default function BrightSubmissionPanel({ request, onUpdated }) {
             </button>
           </div>
 
+          {(preview.validation?.checks || []).length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-[#1A1A1A]/45 mb-1">Documented-contract checks</p>
+              <ul className="text-[10px] space-y-0.5">
+                {preview.validation.checks.map((c) => (
+                  <li key={c.id} className="flex flex-wrap gap-1">
+                    <span className={c.status === "pass" ? "text-[#8a6d4a]" : "text-amber-700"}>
+                      {c.status === "pass" ? "✓" : "!"}
+                    </span>
+                    <span className="text-[#1A1A1A]/75">{c.label}</span>
+                    <span className="text-[#1A1A1A]/45">— {c.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {(preview.gaps || []).length > 0 && (
             <ul className="text-[11px] text-amber-900 space-y-0.5">
-              {preview.gaps.map((g, i) => <li key={i}>• {g}</li>)}
+              {preview.gaps.map((g, i) => <li key={i}>{g}</li>)}
             </ul>
           )}
 

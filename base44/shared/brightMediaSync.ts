@@ -78,7 +78,7 @@ export async function buildBrightMediaSyncManifest(input: BrightManifestInput): 
       system: "arriv_estate_media",
       job_id: input.job?.id || null,
       booking_id: input.job?.booking_id || null,
-      delivery_folder_id: input.job?.drive_folder_id || null,
+      delivery_folder_id: input.job?.final_edits_folder_id || input.job?.drive_folder_id || null,
     },
     media: {
       photos: photos.map((p) => ({
