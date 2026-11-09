@@ -4,6 +4,7 @@ import { loadMlsServiceWindow, computeMlsDeadline, formatEtDeadline, describeWin
 import { ownsJob, isDeliveryReady, listDeliveryFiles, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
 import { loadMlsServiceRegions, resolveMlsRegion } from '../../shared/mlsRegions.ts';
 import { buildBrightMediaSyncManifest } from '../../shared/brightMediaSync.ts';
+import { submitBrightManifest } from '../../shared/brightSubmission.ts';
 import { notifyAdminOfMlsRequest, resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
 /**
@@ -304,8 +305,7 @@ Deno.serve(async (req) => {
         ? 'Arriv will confirm which MLS serves this property before publishing.'
         : manifestStatus === 'blocked_pending_certification'
           ? 'Arriv will publish this one for you while the automated route is finishing activation.'
-          : `Arriv will publish through ${providerLabel}.`,
-      gallery_url: `${appUrl}/ClientJobGallery?jobId=${jobId}`,
+          : `Arriv will publish through ${providerLabel}.`,      gallery_url: `${appUrl}/ClientJobGallery?jobId=${jobId}`,
       unsupported_media: unsupported,
     });
   } catch (error: any) {
