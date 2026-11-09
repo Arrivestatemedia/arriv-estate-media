@@ -37,7 +37,9 @@ export default function MlsStatusCard({ requests = [] }) {
           <div key={r.request_id} className="rounded-xl border border-[#B8956A]/25 bg-white/[0.03] p-4">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <ShieldCheck className="w-4 h-4 text-[#B8956A]" />
-              <span className="text-sm font-medium text-white">MLS #{r.mls_number}</span>
+              <span className="text-sm font-medium text-white">
+                {r.mls_number ? `MLS #${r.mls_number}` : (r.region_label || "MLS request")}
+              </span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${STATUS_STYLE[r.status] || STATUS_STYLE.submitted}`}>
                 {STATUS_LABEL[r.status] || r.status}
               </span>

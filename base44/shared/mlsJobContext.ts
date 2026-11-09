@@ -7,6 +7,7 @@
 // job's own folder. This mirrors how Property Visibility already treats the same folder.
 
 import { driveFolderIdFromJob } from "./jobMedia.ts";
+import { parsePropertyLocation, type PropertyLocation } from "./mlsRegions.ts";
 
 export interface DeliveryFile {
   id: string;
@@ -27,6 +28,30 @@ export async function resolvePropertyAddress(base44: any, job: any): Promise<str
     } catch { /* fall through to the job label */ }
   }
   return String(job.location || job.title || "").trim();
+}
+
+/**
+ * The property's address broken into the parts the MLS service-area map matches on.
+ * The booking holds the structured city/state the customer entered; the free-text address string
+ * supplies city, state and zip when the booking's own fields are empty.
+ */
+export async function resolvePropertyLocation(base44: any, job: any): Promise<PropertyLocation> {
+  if (!job) return parsePropertyLocation("");
+  let booking: any = null;
+  if (job.booking_id) {
+    try {
+      booking = await base44.asServiceRole.entities.Booking.get(job.booking_id);
+    } catch { /* fall through to the job's own location */ }
+  }
+  const composed = [
+    booking?.street_address,
+    booking?.city,
+    booking?.state,
+  ].filter(Boolean).join(", ");
+  const address = String(booking?.property_address || "").trim()
+    || composed
+    || String(job.location || job.title || "").trim();
+  return parsePropertyLocation(address, booking?.city, booking?.state);
 }
 
 export async function listDeliveryFiles(base44: any, job: any): Promise<{ folderId: string | null; files: DeliveryFile[] }> {

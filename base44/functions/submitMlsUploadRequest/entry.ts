@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { loadMlsProviders, getProvider, validateMlsNumber, isSupportedPhoto } from '../../shared/mlsProviders.ts';
+import { loadMlsProviders, getProvider, validateMlsNumber, isSupportedPhoto, isProviderLiveForCustomers } from '../../shared/mlsProviders.ts';
 import { loadMlsServiceWindow, computeMlsDeadline, formatEtDeadline, describeWindow } from '../../shared/mlsServiceWindow.ts';
-import { ownsJob, isDeliveryReady, listDeliveryFiles, resolvePropertyAddress } from '../../shared/mlsJobContext.ts';
+import { ownsJob, isDeliveryReady, listDeliveryFiles, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
+import { loadMlsServiceRegions, resolveMlsRegion } from '../../shared/mlsRegions.ts';
+import { buildBrightMediaSyncManifest } from '../../shared/brightMediaSync.ts';
 import { notifyAdminOfMlsRequest, resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
 /**
@@ -19,10 +21,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
+    // The customer never chooses an MLS. Any provider sent by the browser is ignored: the property's
+    // own service area decides, server-side, exactly as the gallery displayed it.
     const {
       jobId,
       clientEmail,
-      provider: providerId,
       mlsNumber,
       selectedMedia = [],
       photoOrder = [],
@@ -48,15 +51,43 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'You must confirm you are authorized to request uploads to this listing.' }, { status: 400 });
     }
 
+    // ---- automatic regional routing ----
     const providers = await loadMlsProviders(base44);
-    const provider = getProvider(providers, providerId || 'fmls');
-    if (!provider) return Response.json({ error: 'Unknown MLS provider' }, { status: 400 });
-    if (!provider.enabled) {
-      return Response.json({ error: `${provider.label} is not available yet.` }, { status: 400 });
+    const propertyLocation = await resolvePropertyLocation(base44, job);
+    const regions = await loadMlsServiceRegions(base44);
+    const resolution = resolveMlsRegion(regions, propertyLocation, (id: string) =>
+      isProviderLiveForCustomers(providers[id] || null));
+
+    if (resolution.status === 'unsupported') {
+      return Response.json({
+        error: 'MLS publishing is not available for this property\'s area yet. Your downloads are unaffected.',
+        routing: resolution,
+      }, { status: 400 });
     }
 
-    const numberCheck = validateMlsNumber(provider, mlsNumber);
-    if (!numberCheck.valid) return Response.json({ error: numberCheck.message }, { status: 400 });
+    const provider = resolution.provider_id ? getProvider(providers, resolution.provider_id) : null;
+    const providerLabel = provider?.label || 'MLS review';
+    const providerShortLabel = provider?.short_label || 'the MLS';
+    const photoLimit = provider?.photo_limit ?? 200;
+
+    // Review cases and unresolved areas carry no provider; they are queued for an administrator.
+    const resolvedProviderId = resolution.status === 'review' || !provider ? 'unresolved' : provider.id;
+    const reviewNeeded = resolution.status === 'review';
+
+    // A listing number is only required where the provider actually needs one (FMLS). Where the
+    // provider matches the listing by property address (Bright MLS), it is optional.
+    const rawNumber = String(mlsNumber || '').trim();
+    const requiresListingNumber = !!provider && provider.requires_listing_number !== false;
+    let normalizedNumber = '';
+    if (rawNumber) {
+      const numberCheck = validateMlsNumber(provider, rawNumber);
+      if (!numberCheck.valid) return Response.json({ error: numberCheck.message }, { status: 400 });
+      normalizedNumber = numberCheck.normalized;
+    } else if (requiresListingNumber) {
+      return Response.json({
+        error: `Enter your ${provider ? provider.short_label : 'MLS'} listing number.`,
+      }, { status: 400 });
+    }
 
     if (!Array.isArray(selectedMedia) || selectedMedia.length === 0) {
       return Response.json({ error: 'Select the media you want published first.' }, { status: 400 });
@@ -88,7 +119,7 @@ Deno.serve(async (req) => {
       if (!file) continue;
       if (file.isImage) {
         if (!isSupportedPhoto(provider, file.name)) {
-          unsupported.push(`${file.name} — ${provider.short_label} does not accept this photo format`);
+          unsupported.push(`${file.name} — ${providerShortLabel} does not accept this photo format`);
           continue;
         }
         photos.push({ drive_file_id: file.id, name: file.name, position: 0 });
@@ -100,7 +131,7 @@ Deno.serve(async (req) => {
         }
         videos.push({ drive_file_id: file.id, name: file.name, youtube_url: url });
       } else {
-        unsupported.push(`${file.name} — this file type cannot be published to ${provider.short_label}`);
+        unsupported.push(`${file.name} — this file type cannot be published to ${providerShortLabel}`);
       }
     }
 
@@ -110,9 +141,9 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    if (photos.length > provider.photo_limit) {
+    if (photos.length > photoLimit) {
       return Response.json({
-        error: `${provider.short_label} accepts up to ${provider.photo_limit} photographs per listing. You selected ${photos.length}.`,
+        error: `${providerShortLabel} accepts up to ${photoLimit} photographs per listing. You selected ${photos.length}.`,
       }, { status: 400 });
     }
 
@@ -131,8 +162,8 @@ Deno.serve(async (req) => {
     const openStatuses = ['submitted', 'processing', 'photos_uploaded', 'video_added', 'needs_attention'];
     const existing = await base44.asServiceRole.entities.MlsUploadRequest.filter({ job_id: jobId }, '-created_date', 50);
     const duplicate = (existing || []).find((r: any) =>
-      r.provider === provider.id &&
-      String(r.mls_number_normalized || r.mls_number || '') === numberCheck.normalized &&
+      r.provider === resolvedProviderId &&
+      String(r.mls_number_normalized || r.mls_number || '') === normalizedNumber &&
       openStatuses.includes(String(r.status)),
     );
     if (duplicate) {
@@ -154,14 +185,64 @@ Deno.serve(async (req) => {
 
     const requestId = `mls_req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+    // Bright Media Sync manifest: built at submission so the request always describes exactly the
+    // media the customer chose, in their order. It is RECORDED, never transmitted, until Bright's
+    // authentication, manifest, media-accessibility and authorized-import tests have all passed.
+    const manifestStatus = provider?.id === 'bright_mls'
+      ? (isProviderLiveForCustomers(provider) ? 'generated' : 'blocked_pending_certification')
+      : 'not_applicable';
+    let providerManifest: any = null;
+    let manifestChecksum = '';
+    if (provider?.id === 'bright_mls') {
+      const region = regions.find((r: any) => r.id === resolution.region_id) || null;
+      const built = await buildBrightMediaSyncManifest({
+        requestId,
+        provider: { id: provider.id, label: provider.label, short_label: provider.short_label },
+        region,
+        location: propertyLocation,
+        job,
+        listingNumber: normalizedNumber,
+        media: selectedMediaPayload.map((m: any) => ({ ...m })),
+        authorization: {
+          confirmed: true,
+          at: submittedAt.toISOString(),
+          by_email: job.client_email,
+          snapshot: String(authorizationText || '').slice(0, 2000),
+        },
+      });
+      providerManifest = built.manifest;
+      manifestChecksum = built.checksum;
+    }
+
+    // An ambiguous address, overlapping coverage or an unverified service area is queued for an
+    // administrator to decide. The customer is never asked to pick a provider.
+    const reviewReason = reviewNeeded
+      ? (resolution.reason === 'overlapping_coverage'
+        ? 'Overlapping MLS coverage for this address — confirm which provider serves it before publishing.'
+        : resolution.reason === 'region_unverified'
+          ? 'MLS service area not yet verified for this address — confirm coverage before publishing.'
+          : 'Property address could not be matched to an MLS service area — confirm coverage before publishing.')
+      : (manifestStatus === 'blocked_pending_certification'
+        ? 'Bright Media Sync is not certified yet — publish this request by hand.'
+        : '');
+    const initialStatus = reviewNeeded ? 'needs_attention' : 'submitted';
+
     const created = await base44.asServiceRole.entities.MlsUploadRequest.create({
       tenant_id: job.tenant_id || 'tnt_estate_media',
       request_id: requestId,
       job_id: jobId,
       booking_id: job.booking_id || '',
-      provider: provider.id,
-      mls_number: numberCheck.normalized,
-      mls_number_normalized: numberCheck.normalized,
+      provider: resolvedProviderId,
+      region_id: resolution.region_id || '',
+      region_label: resolution.region_label || '',
+      region_basis: resolution.basis,
+      region_resolution: resolution as any,
+      mls_number_required: requiresListingNumber,
+      mls_number: normalizedNumber,
+      mls_number_normalized: normalizedNumber,
+      manifest_status: manifestStatus,
+      provider_manifest: providerManifest,
+      manifest_checksum: manifestChecksum,
       client_email: job.client_email,
       client_name: job.client_name || '',
       client_phone: job.client_phone || '',
@@ -178,18 +259,21 @@ Deno.serve(async (req) => {
       authorization_snapshot: String(authorizationText || '').slice(0, 2000),
       authorized_at: submittedAt.toISOString(),
       authorized_by_email: job.client_email,
-      status: 'submitted',
+      status: initialStatus,
+      attention_reason: reviewReason,
       photo_upload_status: photos.length > 0 ? 'pending' : 'not_required',
       video_upload_status: videos.length > 0 ? 'pending' : 'not_required',
       submitted_at: submittedAt.toISOString(),
       deadline_at: deadline ? deadline.toISOString() : null,
       status_history: [{
-        status: 'submitted',
+        status: initialStatus,
         at: submittedAt.toISOString(),
         actor: job.client_email,
-        note: 'Customer submitted the request from the delivery gallery',
+        note: reviewNeeded
+          ? `Customer submitted from the delivery gallery — routed for MLS review (${resolution.reason})`
+          : `Customer submitted from the delivery gallery — routed automatically to ${providerLabel}`,
       }],
-      duplicate_key: `${jobId}:${provider.id}:${numberCheck.normalized}`,
+      duplicate_key: `${jobId}:${resolvedProviderId}:${normalizedNumber}`,
     });
 
     const deadlineLabel = formatEtDeadline(deadline);
@@ -198,7 +282,7 @@ Deno.serve(async (req) => {
         request: created,
         job,
         deadlineLabel,
-        providerLabel: provider.label,
+        providerLabel,
       });
       if (notified.emailed || notified.smsSent) {
         await base44.asServiceRole.entities.MlsUploadRequest.update(created.id, {
@@ -217,7 +301,13 @@ Deno.serve(async (req) => {
       request: created,
       deadline_label: deadlineLabel,
       window_label: describeWindow(window),
-      provider_label: provider.label,
+      provider_label: providerLabel,
+      routing: resolution,
+      next_step: reviewNeeded
+        ? 'Arriv will confirm which MLS serves this property before publishing.'
+        : manifestStatus === 'blocked_pending_certification'
+          ? 'Arriv will publish this one for you while the automated route is finishing activation.'
+          : `Arriv will publish through ${providerLabel}.`,
       gallery_url: `${appUrl}/ClientJobGallery?jobId=${jobId}`,
       unsupported_media: unsupported,
     });

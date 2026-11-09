@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, ImageIcon, Video, AlertCircle, CheckCircle2, ArrowUp, ArrowDown,
-  ShieldCheck, Clock, Youtube, ExternalLink, Copy, Check,
+  ShieldCheck, Clock, Youtube, Copy, Check, MapPin, Search,
 } from "lucide-react";
 
 export const MLS_AUTHORIZATION_TEXT =
-  "I confirm I have permission to request that Arriv Estate Media upload the selected media to the MLS listing number provided above, and that I am authorized to act for this listing.";
+  "I confirm I have permission to request that Arriv Estate Media upload the selected media to the MLS listing for this property, and that I am authorized to act for this listing.";
 
 const STATUS_COPY = {
   submitted: "Submitted — Arriv has your request",
@@ -25,19 +25,19 @@ function formatBytes(size) {
   const bytes = Number(size || 0);
   if (!bytes) return "";
   const mb = bytes / (1024 * 1024);
-  return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${mb.toFixed(1)} MB`;
+  return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${(mb).toFixed(1)} MB`;
 }
 
 /**
  * MlsSubmitModal
- * The customer's Publish to MLS request: provider, listing number, media summary, photo order,
- * authorization, and the estimated completion deadline — all before anything is submitted.
+ * The customer's Publish to MLS request. The MLS itself is not a choice: the property's booking
+ * address already decided it (see getMlsUploadRequests → routing), so this shows the route that
+ * applies, the media summary, the photo order, the authorization and the estimated deadline.
  */
 export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, files, selectedIds, onSubmitted }) {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [provider, setProvider] = useState("fmls");
   const [mlsNumber, setMlsNumber] = useState("");
   const [photoOrder, setPhotoOrder] = useState([]);
   const [authorized, setAuthorized] = useState(false);
@@ -45,6 +45,8 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(null);
   const [copied, setCopied] = useState(null);
+
+  const routing = config?.routing || null;
 
   const selectedFiles = useMemo(
     () => (files || []).filter((f) => (selectedIds || []).includes(f.id)),
@@ -61,6 +63,8 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     setLoadError(null);
     setSubmitted(null);
     setError(null);
+    setMlsNumber("");
+    setAuthorized(false);
 
     base44.functions
       .invoke("getMlsUploadRequests", { mode: "client", jobId, clientEmail, estimateDeadline: true })
@@ -69,8 +73,6 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
         if (cancelled) return;
         if (data?.error) throw new Error(data.error);
         setConfig(data);
-        const first = (data?.providers || [])[0];
-        if (first) setProvider(first.id);
         // Start from the gallery's order, which is the delivered order.
         setPhotoOrder(selectedFiles.filter((f) => f.isImage).map((f) => f.id));
       })
@@ -81,20 +83,22 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, jobId, clientEmail]);
 
-  const activeProvider = (config?.providers || []).find((p) => p.id === provider) || null;
-
   const numberError = useMemo(() => {
     const value = mlsNumber.trim();
     if (!value) return null;
-    if (!activeProvider?.number_pattern) return null;
+    const pattern = routing?.number_pattern;
+    if (!pattern) return null;
     try {
-      const re = new RegExp(activeProvider.number_pattern);
-      if (!re.test(activeProvider.id === "fmls" ? value.replace(/[^0-9]/g, "") : value.replace(/\s+/g, ""))) {
-        return `That doesn't look like a ${activeProvider.short_label} listing number. ${activeProvider.number_hint}.`;
+      const re = new RegExp(pattern);
+      const normalized = routing?.provider_id === "fmls"
+        ? value.replace(/[^0-9]/g, "")
+        : value.replace(/\s+/g, "").toUpperCase();
+      if (!re.test(normalized)) {
+        return `That doesn't look like a ${routing?.provider_short_label || "MLS"} listing number. ${routing?.number_hint || ""}.`;
       }
-    } catch { /* no pattern available */ }
+    } catch { /* no usable pattern */ }
     return null;
-  }, [mlsNumber, activeProvider]);
+  }, [mlsNumber, routing]);
 
   const movePhoto = (id, direction) => {
     setPhotoOrder((prev) => {
@@ -114,17 +118,23 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
 
   const readyVideoLinks = selectedVideos.filter((v) => !!youtubeFor(v.id)?.youtube_url).length;
 
-  const canSubmit = !loading && !submitting && authorized && mlsNumber.trim().length > 0 && !numberError
+  const requiresNumber = !!routing?.requires_listing_number;
+  const numberReady = requiresNumber
+    ? mlsNumber.trim().length > 0 && !numberError
+    : !numberError;
+
+  const canSubmit = !loading && !submitting && !!routing?.can_submit && authorized && numberReady
     && (selectedPhotos.length > 0 || readyVideoLinks > 0);
 
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
     try {
+      // The provider is resolved server-side from the property address; nothing about the MLS
+      // is chosen or sent from here.
       const payload = {
         jobId,
         clientEmail,
-        provider,
         mlsNumber,
         selectedMedia: [
           ...orderedPhotos.map((f) => ({ id: f.id, name: f.name, kind: "photo" })),
@@ -163,13 +173,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             Publish to MLS
           </DialogTitle>
           <p className="text-sm text-[#1A1A1A]/60">
-            We'll upload your selected media to your listing. Nothing changes about your downloads.
+            We'll upload your selected media to the MLS for this property. Nothing changes about your downloads.
           </p>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center gap-2 py-10 justify-center text-sm text-[#1A1A1A]/50">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading your MLS options...
+            <Loader2 className="w-4 h-4 animate-spin" /> Checking your property's MLS coverage...
           </div>
         ) : submitted ? (
           <div className="space-y-4">
@@ -178,8 +188,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
               <div>
                 <p className="font-medium text-[#1A1A1A]">Request submitted</p>
                 <p className="text-sm text-[#1A1A1A]/60 mt-1">
-                  Listing #{submitted.request?.mls_number} — {submitted.request?.photo_count || 0} photos, {submitted.request?.video_count || 0} videos.
+                  {submitted.request?.mls_number ? `Listing #${submitted.request.mls_number} — ` : ""}
+                  {submitted.request?.photo_count || 0} photos, {submitted.request?.video_count || 0} videos
+                  {submitted.provider_label ? ` · via ${submitted.provider_label}` : ""}
                 </p>
+                {submitted.next_step && (
+                  <p className="text-xs text-[#1A1A1A]/55 mt-1.5">{submitted.next_step}</p>
+                )}
               </div>
             </div>
             {submitted.deadline_label && (
@@ -210,99 +225,113 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
           </div>
         ) : (
           <div className="space-y-5">
-            {/* Provider */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">MLS provider</p>
-              <div className="space-y-1.5">
-                {(config?.providers || []).map((p) => (
-                  <label key={p.id} className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm cursor-pointer ${
-                    provider === p.id ? "border-[#B8956A] bg-[#B8956A]/5" : "border-[#B8956A]/20"
-                  }`}>
-                    <input type="radio" name="mls-provider" checked={provider === p.id} onChange={() => setProvider(p.id)} className="accent-[#B8956A]" />
-                    {p.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Listing number */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">MLS listing number</p>
-              <Input
-                value={mlsNumber}
-                onChange={(e) => setMlsNumber(e.target.value)}
-                placeholder={activeProvider?.number_hint || "Listing number"}
-                className={numberError ? "border-red-300" : ""}
-              />
-              <p className="text-xs text-[#1A1A1A]/40 mt-1.5">
-                Your listing must already exist in {activeProvider?.short_label || "the MLS"} and allow photo uploads. {activeProvider?.number_hint || ""}.
+            {/* The route that applies to this property — resolved from the booking address */}
+            <div className="rounded-xl border border-[#B8956A]/25 bg-[#FFFBF5] p-3.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-1.5">Your MLS route</p>
+              <p className="text-sm font-medium text-[#1A1A1A] flex items-start gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#B8956A] mt-0.5 shrink-0" />
+                <span>{config?.property_address || routing?.region_label || "This property"}</span>
               </p>
-              {numberError && <p className="text-xs text-red-600 mt-1">{numberError}</p>}
-            </div>
-
-            {/* Media summary */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
-                Selected media ({selectedPhotos.length} photos, {selectedVideos.length} videos)
-              </p>
-              {selectedPhotos.length === 0 && selectedVideos.length === 0 && (
-                <p className="text-sm text-[#1A1A1A]/50">Select media in the gallery first.</p>
-              )}
-              {activeProvider && selectedPhotos.length > activeProvider.photo_limit && (
-                <p className="text-xs text-red-600 mb-2">
-                  {activeProvider.short_label} accepts up to {activeProvider.photo_limit} photographs. You selected {selectedPhotos.length}.
+              <p className="text-xs text-[#1A1A1A]/60 mt-1.5 leading-relaxed">{routing?.message}</p>
+              {routing?.status === "review" && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2 flex items-start gap-1.5">
+                  <Search className="w-3 h-3 mt-0.5 shrink-0" />
+                  Submit anyway — our MLS team confirms coverage and publishes for you.
                 </p>
               )}
-
-              <div className="grid grid-cols-5 gap-2">
-                {orderedPhotos.map((f) => (
-                  <div key={f.id} className="relative rounded-lg overflow-hidden bg-[#FFFBF5] border border-[#B8956A]/20">
-                    {f.thumbnailLink ? (
-                      <img src={f.thumbnailLink} alt={f.name} className="w-full h-16 object-cover" />
-                    ) : (
-                      <div className="w-full h-16 flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#B8956A]/40" /></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {selectedVideos.length > 0 && (
-                <div className="mt-3 space-y-1.5">
-                  {selectedVideos.map((v) => {
-                    const yt = youtubeFor(v.id);
-                    const ready = !!yt?.youtube_url;
-                    return (
-                      <div key={v.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-[#B8956A]/20 text-sm">
-                        <span className="flex items-center gap-2 min-w-0">
-                          <Video className="w-4 h-4 text-[#B8956A] shrink-0" />
-                          <span className="truncate">{v.name}</span>
-                        </span>
-                        {ready ? (
-                          <span className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] font-medium text-[#B8956A] flex items-center gap-1">
-                              <Youtube className="w-3.5 h-3.5" /> Link ready
-                            </span>
-                            <button onClick={() => copyLink(yt.youtube_url)} className="text-[11px] text-[#1A1A1A]/50 hover:text-[#B8956A] flex items-center gap-1">
-                              {copied === yt.youtube_url ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            </button>
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-[#1A1A1A]/45 shrink-0">Preparing unbranded video link</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {selectedVideos.length > readyVideoLinks && (
-                    <p className="text-xs text-[#1A1A1A]/45">
-                      Videos without a ready link will not be added to the listing. Your photographs can still proceed.
-                    </p>
-                  )}
-                </div>
+              {routing?.status === "unsupported" && (
+                <p className="text-[11px] text-[#1A1A1A]/60 bg-white border border-[#B8956A]/20 rounded-lg px-2 py-1.5 mt-2">
+                  MLS publishing isn't offered for this address yet. Send us a note if you'd like us to look at your area.
+                </p>
               )}
             </div>
 
+            {/* Listing number — required for providers that need one, optional otherwise */}
+            {routing?.status !== "unsupported" && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
+                  MLS listing number {requiresNumber ? "" : "(optional)"}
+                </p>
+                <Input
+                  value={mlsNumber}
+                  onChange={(e) => setMlsNumber(e.target.value)}
+                  placeholder={routing?.number_hint || "Listing number"}
+                  className={numberError ? "border-red-300" : ""}
+                />
+                <p className="text-xs text-[#1A1A1A]/40 mt-1.5">
+                  {requiresNumber
+                    ? `Your listing must already exist in ${routing?.provider_short_label || "the MLS"} and allow photo uploads. ${routing?.number_hint || ""}.`
+                    : "Add your listing number if you have it — otherwise we match your property address to the listing."}
+                </p>
+                {numberError && <p className="text-xs text-red-600 mt-1">{numberError}</p>}
+              </div>
+            )}
+
+            {/* Media summary */}
+            {routing?.status !== "unsupported" && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
+                  Selected media ({selectedPhotos.length} photos, {selectedVideos.length} videos)
+                </p>
+                {selectedPhotos.length === 0 && selectedVideos.length === 0 && (
+                  <p className="text-sm text-[#1A1A1A]/50">Select media in the gallery first.</p>
+                )}
+                {routing?.photo_limit && selectedPhotos.length > routing.photo_limit && (
+                  <p className="text-xs text-red-600 mb-2">
+                    {routing.provider_short_label} accepts up to {routing.photo_limit} photographs. You selected {selectedPhotos.length}.
+                  </p>
+                )}
+
+                <div className="grid grid-cols-5 gap-2">
+                  {orderedPhotos.map((f) => (
+                    <div key={f.id} className="relative rounded-lg overflow-hidden bg-[#FFFBF5] border border-[#B8956A]/20">
+                      {f.thumbnailLink ? (
+                        <img src={f.thumbnailLink} alt={f.name} className="w-full h-16 object-cover" />
+                      ) : (
+                        <div className="w-full h-16 flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#B8956A]/40" /></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {selectedVideos.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {selectedVideos.map((v) => {
+                      const yt = youtubeFor(v.id);
+                      const ready = !!yt?.youtube_url;
+                      return (
+                        <div key={v.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-[#B8956A]/20 text-sm">
+                          <span className="flex items-center gap-2 min-w-0">
+                            <Video className="w-4 h-4 text-[#B8956A] shrink-0" />
+                            <span className="truncate">{v.name}</span>
+                          </span>
+                          {ready ? (
+                            <span className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] font-medium text-[#B8956A] flex items-center gap-1">
+                                <Youtube className="w-3.5 h-3.5" /> Link ready
+                              </span>
+                              <button onClick={() => copyLink(yt.youtube_url)} className="text-[11px] text-[#1A1A1A]/50 hover:text-[#B8956A] flex items-center gap-1">
+                                {copied === yt.youtube_url ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-[#1A1A1A]/45 shrink-0">Preparing unbranded video link</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {selectedVideos.length > readyVideoLinks && (
+                      <p className="text-xs text-[#1A1A1A]/45">
+                        Videos without a ready link will not be added to the listing. Your photographs can still proceed.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Photo order */}
-            {orderedPhotos.length > 1 && (
+            {routing?.status !== "unsupported" && orderedPhotos.length > 1 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">Photo order</p>
                 <p className="text-xs text-[#1A1A1A]/40 mb-2">
@@ -327,21 +356,25 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Authorization */}
-            <label className="flex items-start gap-2 p-3 rounded-xl bg-[#FFFBF5] border border-[#B8956A]/25 cursor-pointer">
-              <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#B8956A]" />
-              <span className="text-xs text-[#1A1A1A]/70 leading-relaxed">{MLS_AUTHORIZATION_TEXT}</span>
-            </label>
+            {routing?.status !== "unsupported" && (
+              <label className="flex items-start gap-2 p-3 rounded-xl bg-[#FFFBF5] border border-[#B8956A]/25 cursor-pointer">
+                <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#B8956A]" />
+                <span className="text-xs text-[#1A1A1A]/70 leading-relaxed">{MLS_AUTHORIZATION_TEXT}</span>
+              </label>
+            )}
 
             {/* Deadline */}
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-[#B8956A]/20">
-              <Clock className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
-              <div className="text-xs text-[#1A1A1A]/60">
-                <p className="font-medium text-[#1A1A1A]">
-                  Estimated completion: {config?.estimated_deadline_label || "next business window"}
-                </p>
-                <p className="mt-0.5">{config?.window_label}</p>
+            {routing?.status !== "unsupported" && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-[#B8956A]/20">
+                <Clock className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
+                <div className="text-xs text-[#1A1A1A]/60">
+                  <p className="font-medium text-[#1A1A1A]">
+                    Estimated completion: {config?.estimated_deadline_label || "next business window"}
+                  </p>
+                  <p className="mt-0.5">{config?.window_label}</p>
+                </div>
               </div>
-            </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-sm text-red-700">

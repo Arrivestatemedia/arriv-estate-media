@@ -471,7 +471,7 @@ export default function ClientJobGallery() {
               downloading={downloading}
               downloadStep={downloadStep}
               onPublishMls={() => setMlsOpen(true)}
-              canPublishMls={!isDemo && !adminPreview && (mlsConfig?.providers || []).length > 0}
+              canPublishMls={!isDemo && !adminPreview && mlsConfig?.routing?.can_submit === true}
             />
 
             {/* Sections by media type */}

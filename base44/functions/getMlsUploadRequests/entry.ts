@@ -1,8 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
-import { loadMlsProviders, enabledProviders } from '../../shared/mlsProviders.ts';
+import { loadMlsProviders, isProviderLiveForCustomers } from '../../shared/mlsProviders.ts';
 import { loadMlsServiceWindow, formatEtDeadline, describeWindow, businessMinutesBetween, computeMlsDeadline } from '../../shared/mlsServiceWindow.ts';
-import { ownsJob, resolvePropertyAddress } from '../../shared/mlsJobContext.ts';
+import { ownsJob, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
+import { loadMlsServiceRegions, resolveMlsRegion, describeRouting } from '../../shared/mlsRegions.ts';
 import { resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
 /**
@@ -45,9 +46,12 @@ Deno.serve(async (req) => {
         };
       });
 
+      const regions = await loadMlsServiceRegions(base44);
+
       return Response.json({
         requests: enriched,
         providers: Object.values(providers),
+        regions,
         window_label: describeWindow(window),
         window,
         app_url: await resolveAppUrl(base44),
@@ -82,6 +86,35 @@ Deno.serve(async (req) => {
       error_message: u.error_message || '',
     }));
 
+    // Which MLS this property belongs to. The customer is never shown a provider to choose from —
+    // the booking address decides, and only that area's workflow is returned.
+    const propertyLocation = await resolvePropertyLocation(base44, job);
+    const regions = await loadMlsServiceRegions(base44);
+    const resolution = resolveMlsRegion(regions, propertyLocation, (providerId: string) =>
+      isProviderLiveForCustomers(providers[providerId] || null));
+    const applicable = resolution.provider_id ? providers[resolution.provider_id] : null;
+
+    const routing = {
+      status: resolution.status,
+      reason: resolution.reason,
+      basis: resolution.basis,
+      provider_id: resolution.provider_id,
+      provider_label: applicable?.label || null,
+      provider_short_label: applicable?.short_label || null,
+      provider_live: resolution.provider_live,
+      region_id: resolution.region_id,
+      region_label: resolution.region_label,
+      requires_listing_number: applicable ? applicable.requires_listing_number !== false : false,
+      requires_authorization: applicable ? applicable.requires_authorization !== false : true,
+      photo_limit: applicable?.photo_limit || null,
+      number_hint: applicable?.number_hint || '',
+      number_pattern: applicable?.number_pattern || '',
+      video_requirement_note: applicable?.video_requirement_note || '',
+      message: describeRouting(resolution, applicable?.label),
+      // A review case is still submittable: it lands in the administrative queue to be decided.
+      can_submit: ['resolved', 'pending_activation', 'review'].includes(resolution.status),
+    };
+
     const estimatedDeadline = estimateDeadline ? computeMlsDeadline(new Date(), window) : null;
 
     return Response.json({
@@ -89,20 +122,22 @@ Deno.serve(async (req) => {
         ...r,
         deadline_label: formatEtDeadline(r.deadline_at),
       })),
-      providers: enabledProviders(providers).map((p) => ({
-        id: p.id,
-        label: p.label,
-        short_label: p.short_label,
-        photo_limit: p.photo_limit,
-        number_hint: p.number_hint,
-        number_pattern: p.number_pattern,
-        video_requirement_note: p.video_requirement_note,
-      })),
+      routing,
+      providers: applicable ? [{
+        id: applicable.id,
+        label: applicable.label,
+        short_label: applicable.short_label,
+        photo_limit: applicable.photo_limit,
+        number_hint: applicable.number_hint,
+        number_pattern: applicable.number_pattern,
+        video_requirement_note: applicable.video_requirement_note,
+      }] : [],
       window_label: describeWindow(window),
       service_hours: window.service_hours,
       estimated_deadline_label: estimatedDeadline ? formatEtDeadline(estimatedDeadline) : null,
       youtube,
       property_address: await resolvePropertyAddress(base44, job),
+      property_location: propertyLocation,
     });
   } catch (error: any) {
     console.error('getMlsUploadRequests error:', error);

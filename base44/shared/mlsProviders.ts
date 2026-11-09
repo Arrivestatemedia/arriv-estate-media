@@ -13,6 +13,17 @@
 
 export const MLS_PROVIDERS_KEY = "mls_providers";
 
+/**
+ * The four tests an integrated provider must pass before it may serve live customers automatically.
+ * An administrator sets these once the provider's own integration testing is complete.
+ */
+export interface MlsCertification {
+  authentication: boolean;
+  manifest: boolean;
+  media_accessibility: boolean;
+  authorized_import: boolean;
+}
+
 export interface MlsProvider {
   id: string;
   label: string;
@@ -26,6 +37,38 @@ export interface MlsProvider {
   number_pattern: string;
   number_hint: string;
   requires_authorization: boolean;
+  /** FMLS needs the customer's listing number. Bright matches the listing by property address unless it asks for one. */
+  requires_listing_number: boolean;
+  /** True for providers whose integration must pass certification before it serves customers. */
+  requires_certification: boolean;
+  certification: MlsCertification;
+}
+
+export const UNCERTIFIED: MlsCertification = {
+  authentication: false,
+  manifest: false,
+  media_accessibility: false,
+  authorized_import: false,
+};
+
+export const CERTIFIED: MlsCertification = {
+  authentication: true,
+  manifest: true,
+  media_accessibility: true,
+  authorized_import: true,
+};
+
+/** Every certification test has passed. Providers that need none are always considered passed. */
+export function certificationPassed(provider: MlsProvider | null): boolean {
+  if (!provider) return false;
+  if (!provider.requires_certification) return true;
+  const c = provider.certification || UNCERTIFIED;
+  return !!(c.authentication && c.manifest && c.media_accessibility && c.authorized_import);
+}
+
+/** May this provider's route serve a customer right now, end to end? */
+export function isProviderLiveForCustomers(provider: MlsProvider | null): boolean {
+  return !!provider && provider.enabled === true && certificationPassed(provider);
 }
 
 export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
@@ -42,6 +85,9 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     number_pattern: "^\\d{6,9}$",
     number_hint: "6 to 9 digits, as shown in FMLS Matrix",
     requires_authorization: true,
+    requires_listing_number: true,
+    requires_certification: false,
+    certification: CERTIFIED,
   },
   georgia_mls: {
     id: "georgia_mls",
@@ -56,6 +102,9 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     number_pattern: "^\\d{6,10}$",
     number_hint: "Listing number as shown in Georgia MLS",
     requires_authorization: true,
+    requires_listing_number: true,
+    requires_certification: true,
+    certification: UNCERTIFIED,
   },
   bright_mls: {
     id: "bright_mls",
@@ -65,11 +114,16 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     photo_limit: 100,
     supported_photo_formats: ["jpg", "jpeg", "png"],
     video_support: "virtual_tour_url",
-    video_requirement_note: "Media Sync integration not configured.",
-    upload_method: "admin_manual_matrix",
+    video_requirement_note: "Bright takes the tour as a link. Arriv supplies the unlisted YouTube URL.",
+    upload_method: "api",
     number_pattern: "^[A-Za-z0-9-]{4,20}$",
-    number_hint: "Listing number as shown in Bright MLS",
+    number_hint: "Bright listing number, only if Bright asks you for one",
     requires_authorization: true,
+    requires_listing_number: false,
+    // Bright Media Sync stays dark until authentication, manifest, media-accessibility and
+    // authorized-import testing have all passed. Until then requests are handled by hand.
+    requires_certification: true,
+    certification: UNCERTIFIED,
   },
 };
 

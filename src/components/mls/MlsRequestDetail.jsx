@@ -17,6 +17,20 @@ const STATUS_LABEL = {
   cancelled: "Cancelled",
 };
 
+const PROVIDER_LABEL = {
+  fmls: "FMLS",
+  georgia_mls: "Georgia MLS",
+  bright_mls: "Bright MLS",
+  unresolved: "Needs provider decision",
+};
+
+const MANIFEST_LABEL = {
+  not_applicable: "Not used for this provider",
+  generated: "Manifest ready",
+  blocked_pending_certification: "Held — Bright Media Sync uncertified",
+  transmitted: "Sent to Bright",
+};
+
 function formatWhen(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -36,6 +50,7 @@ export default function MlsRequestDetail({ request, onUpdated }) {
   const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState(request?.admin_notes || "");
   const [thumbnails, setThumbnails] = useState({});
+  const [manifestCopied, setManifestCopied] = useState(false);
 
   useEffect(() => {
     setNotes(request?.admin_notes || "");
@@ -129,16 +144,27 @@ export default function MlsRequestDetail({ request, onUpdated }) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-[#1A1A1A]">MLS #{request.mls_number}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-[#1A1A1A]">
+              {request.mls_number ? `MLS #${request.mls_number}` : (request.region_label || "MLS request")}
+            </h3>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#B8956A]/15 text-[#8a6d4a]">
               {STATUS_LABEL[request.status] || request.status}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#1A1A1A]/5 text-[#1A1A1A]/60">
+              {PROVIDER_LABEL[request.provider] || request.provider}
             </span>
           </div>
           <p className="text-sm text-[#1A1A1A]/60">{request.property_address}</p>
           <p className="text-xs text-[#1A1A1A]/45 mt-0.5">
             {request.client_name || "—"} · {request.client_email}
           </p>
+          {request.region_label && (
+            <p className="text-[11px] text-[#1A1A1A]/40 mt-0.5">
+              Routed by {request.region_label}
+              {request.region_basis && request.region_basis !== "none" ? ` (matched on ${request.region_basis})` : ""}
+            </p>
+          )}
         </div>
         <div className="text-right text-xs text-[#1A1A1A]/50">
           <p>Submitted {formatWhen(request.submitted_at)}</p>
@@ -216,6 +242,50 @@ export default function MlsRequestDetail({ request, onUpdated }) {
           <ul className="text-[11px] text-amber-900/80 space-y-0.5">
             {request.unsupported_media.map((m, i) => <li key={i}>• {m}</li>)}
           </ul>
+        </div>
+      )}
+
+      {/* Provider payload — Bright Media Sync manifest is recorded, never transmitted while uncertified */}
+      {request.provider_manifest && (
+        <div className="rounded-lg border border-[#B8956A]/20 bg-white p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1A1A1A]/50">Bright Media Sync manifest</p>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              request.manifest_status === "transmitted" ? "bg-[#B8956A]/15 text-[#8a6d4a]"
+                : request.manifest_status === "blocked_pending_certification" ? "bg-amber-50 text-amber-700"
+                : "bg-[#1A1A1A]/5 text-[#1A1A1A]/60"
+            }`}>
+              {MANIFEST_LABEL[request.manifest_status] || request.manifest_status}
+            </span>
+          </div>
+          <p className="text-[11px] text-[#1A1A1A]/55 mt-1">
+            {request.provider_manifest.counts?.photos ?? 0} photos, {request.provider_manifest.counts?.videos ?? 0} videos
+            {request.manifest_checksum ? ` · checksum ${String(request.manifest_checksum).slice(0, 12)}…` : ""}
+          </p>
+          {request.manifest_status === "blocked_pending_certification" && (
+            <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1.5">
+              Bright Media Sync is not certified yet. Nothing has been sent to Bright — publish this request by hand.
+            </p>
+          )}
+          <button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(JSON.stringify(request.provider_manifest, null, 2));
+                setManifestCopied(true);
+                setTimeout(() => setManifestCopied(false), 1800);
+              } catch { /* clipboard unavailable */ }
+            }}
+            className="mt-1.5 text-[11px] text-[#1A1A1A]/60 hover:text-[#B8956A] flex items-center gap-1 px-2 py-1 rounded border border-[#B8956A]/25"
+          >
+            {manifestCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy manifest JSON
+          </button>
+        </div>
+      )}
+
+      {request.provider === "unresolved" && request.attention_reason && (
+        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+          <p className="text-[11px] font-semibold text-amber-900 mb-0.5">Provider decision required</p>
+          <p className="text-[11px] text-amber-900/80">{request.attention_reason}</p>
         </div>
       )}
 

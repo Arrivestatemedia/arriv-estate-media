@@ -24,10 +24,71 @@
       "enum": [
         "fmls",
         "georgia_mls",
-        "bright_mls"
+        "bright_mls",
+        "unresolved"
       ],
       "default": "fmls",
-      "description": "MLS provider the media is requested for"
+      "description": "MLS provider resolved from the property's service area. 'unresolved' means the address was ambiguous or overlapping and an administrator must decide."
+    },
+    "region_id": {
+      "type": "string",
+      "description": "Service-area region that decided the provider (see mls_service_regions)"
+    },
+    "region_label": {
+      "type": "string",
+      "description": "Human-readable service area the property falls in"
+    },
+    "region_basis": {
+      "type": "string",
+      "enum": [
+        "zip",
+        "county",
+        "city",
+        "state",
+        "none"
+      ],
+      "description": "Most specific address attribute that matched the service area"
+    },
+    "region_resolution": {
+      "type": "object",
+      "description": "Full record of how the provider was chosen: status, reason, matched regions and the parsed property location. Kept so a routing decision can always be explained after the fact.",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "provider_id": {
+          "type": "string"
+        },
+        "provider_live": {
+          "type": "boolean"
+        },
+        "region_id": {
+          "type": "string"
+        },
+        "region_label": {
+          "type": "string"
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "location": {
+          "type": "object"
+        }
+      }
+    },
+    "mls_number_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the customer had to supply a listing number for this provider. False for address-matched providers such as Bright."
     },
     "mls_number": {
       "type": "string",
@@ -171,6 +232,25 @@
       ],
       "default": "pending"
     },
+    "manifest_status": {
+      "type": "string",
+      "enum": [
+        "not_applicable",
+        "generated",
+        "blocked_pending_certification",
+        "transmitted"
+      ],
+      "default": "not_applicable",
+      "description": "Bright Media Sync manifest state. 'generated' means the manifest is ready but not sent; 'transmitted' only after Bright accepted it."
+    },
+    "provider_manifest": {
+      "type": "object",
+      "description": "Provider-specific payload built at submission (the Bright Media Sync manifest). Recorded, never transmitted while the integration is uncertified."
+    },
+    "manifest_checksum": {
+      "type": "string",
+      "description": "SHA-256 of the manifest body, so a stored manifest can be proven unchanged"
+    },
     "submitted_at": {
       "type": "string",
       "format": "date-time"
@@ -216,7 +296,7 @@
     },
     "attention_reason": {
       "type": "string",
-      "description": "Why the request needs attention (invalid MLS number, inaccessible listing, unsupported media)"
+      "description": "Why the request needs attention (ambiguous coverage, uncertified route, invalid MLS number, inaccessible listing, unsupported media)"
     },
     "admin_notes": {
       "type": "string"
@@ -252,7 +332,6 @@
     "request_id",
     "job_id",
     "provider",
-    "mls_number",
     "client_email",
     "status"
   ],
