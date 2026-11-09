@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
     const regions = await loadMlsServiceRegions(base44);
     const plan = resolveDestinationPlan(regions, providers, propertyLocation);
     const single = plan.eligible.length === 1 ? plan.eligible[0] : null;
-    const providerLabels = Object.fromEntries(
-      Object.values(providers).map((p: any) => [p.id, p.short_label]),
-    );
+    const providerLabels = {
+      ...Object.fromEntries(Object.values(providers).map((p: any) => [p.id, p.short_label])),
+      unresolved: 'MLS review',
+    };
 
     const routing = {
       status: plan.status === 'auto'

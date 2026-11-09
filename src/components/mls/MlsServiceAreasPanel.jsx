@@ -247,6 +247,11 @@ export default function MlsServiceAreasPanel() {
                   ? "Live — certified and activated"
                   : "Not automated yet. Requests are published by hand until every test below is passed."}
               </p>
+              {provider.advertised === false && (
+                <p className="text-[11px] text-amber-700 mt-0.5">
+                  Not advertised — no property is routed here until this MLS is made operational.
+                </p>
+              )}
             </div>
             <label className="flex items-center gap-1.5 text-[11px] text-[#1A1A1A]/60">
               <input

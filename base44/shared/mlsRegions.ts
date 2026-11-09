@@ -348,9 +348,10 @@ export interface MlsTerritoryScan {
   /** Most specific level any region matched at. "none" when nothing matched. */
   basis: MlsRoutingBasis;
   /**
-   * EVERY region that covers the property at the most specific level that matched — not just the
-   * first one. Two MLS systems covering the same county both come back here, which is what lets the
-   * customer choose between them instead of the case being decided for them.
+   * EVERY region whose published territory covers the property — the union across match levels, not
+   * just the most specific one. A state-wide MLS and a county-level MLS both come back for the same
+   * address, which is what lets the customer choose between them instead of the case being decided
+   * for them. Each entry carries the level that matched it.
    */
   matches: MlsTerritoryMatch[];
   /** Regions scoped to the address's state, used to explain a property nothing covers. */
@@ -377,13 +378,18 @@ export function collectTerritoryMatches(regions: MlsServiceRegion[], location: P
   };
   if (!scan.location_known) return scan;
 
+  // Union of every territory that covers the address. Levels run most-specific first, so a region is
+  // recorded once, at the most specific level it can match.
+  const matched = new Map<string, MlsTerritoryMatch>();
+  let basis: MlsRoutingBasis = "none";
   for (const level of MATCH_LEVEL_ORDER) {
-    const matches: MlsTerritoryMatch[] = [];
+    let matchedAtThisLevel = false;
     mapped.forEach((region) => {
+      if (matched.has(region.id)) return;
       if (level === "jurisdiction") {
         const jurisdiction = matchJurisdictionAt(region, location);
         if (!jurisdiction) return;
-        matches.push({
+        matched.set(region.id, {
           region,
           region_id: region.id,
           provider_id: region.provider_id,
@@ -392,10 +398,11 @@ export function collectTerritoryMatches(regions: MlsServiceRegion[], location: P
           basis: jurisdiction.kind === "independent_city" ? "city" : "county",
           jurisdiction,
         });
+        matchedAtThisLevel = true;
         return;
       }
       if (regionMatchesAt(region, location, level)) {
-        matches.push({
+        matched.set(region.id, {
           region,
           region_id: region.id,
           provider_id: region.provider_id,
@@ -403,13 +410,16 @@ export function collectTerritoryMatches(regions: MlsServiceRegion[], location: P
           basis: level as MlsRoutingBasis,
           jurisdiction: null,
         });
+        matchedAtThisLevel = true;
       }
     });
-    if (matches.length > 0) return { ...scan, basis: matches[0].basis, matches };
+    if (matchedAtThisLevel && basis === "none") basis = level as MlsRoutingBasis;
   }
 
   return {
     ...scan,
+    basis,
+    matches: Array.from(matched.values()),
     state_regions: mapped.filter(
       (r) => r.jurisdictions.length > 0 && !!location.state && r.states.includes(location.state),
     ),
