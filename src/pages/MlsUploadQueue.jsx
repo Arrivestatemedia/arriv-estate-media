@@ -4,8 +4,16 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, RefreshCw, Clock, AlertTriangle, ExternalLink, Youtube, ImageIcon, Video } from "lucide-react";
+import { Loader2, ShieldCheck, RefreshCw, Clock, AlertTriangle, ExternalLink, Youtube, ImageIcon, Video, MapPin } from "lucide-react";
 import MlsRequestDetail from "@/components/mls/MlsRequestDetail";
+import MlsServiceAreasPanel from "@/components/mls/MlsServiceAreasPanel";
+
+const PROVIDER_LABEL = {
+  fmls: "FMLS",
+  georgia_mls: "Georgia MLS",
+  bright_mls: "Bright MLS",
+  unresolved: "Provider needed",
+};
 
 const STATUS_LABEL = {
   submitted: "Submitted",
@@ -36,6 +44,7 @@ export default function MlsUploadQueue() {
   const [filter, setFilter] = useState("open");
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
+  const [view, setView] = useState("queue");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,22 +80,55 @@ export default function MlsUploadQueue() {
 
   const handleUpdated = () => { load(); setSelected(null); };
 
-  return (
-    <div className="min-h-screen bg-[#FFFBF5]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-serif text-[#1A1A1A] flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-[#B8956A]" /> MLS Upload Queue
-            </h1>
-            <p className="text-sm text-[#1A1A1A]/55 mt-1">
-              Customer-requested media uploads. {data?.window_label ? `Service window: ${data.window_label}.` : ""}
-            </p>
-          </div>
+  const header = (
+    <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div>
+        <h1 className="text-2xl font-serif text-[#1A1A1A] flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-[#B8956A]" /> MLS Upload Queue
+        </h1>
+        <p className="text-sm text-[#1A1A1A]/55 mt-1">
+          Customer-requested media uploads. {data?.window_label ? `Service window: ${data.window_label}.` : ""}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[
+          { id: "queue", label: "Queue" },
+          { id: "areas", label: "Service areas" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setView(tab.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              view === tab.id ? "bg-[#B8956A] text-[#1A1A1A]" : "bg-white text-[#1A1A1A]/60 border border-[#B8956A]/20 hover:bg-[#B8956A]/5"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+        {view === "queue" && (
           <Button variant="outline" onClick={load} className="border-[#B8956A]/40 text-[#8a6d4a]">
             <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
           </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  if (view === "areas") {
+    return (
+      <div className="min-h-screen bg-[#FFFBF5]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          {header}
+          <MlsServiceAreasPanel />
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFFBF5]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {header}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
           {[
@@ -145,12 +187,16 @@ export default function MlsUploadQueue() {
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-[#B8956A]/15 text-[#8a6d4a]">
                         {STATUS_LABEL[r.status] || r.status}
                       </span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#1A1A1A]/5 text-[#1A1A1A]/60">
+                        {PROVIDER_LABEL[r.provider] || r.provider}
+                      </span>
                       {r.is_overdue && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-50 text-red-600">Overdue</span>
                       )}
                     </div>
                     <p className="text-xs text-[#1A1A1A]/50 mt-0.5">
-                      MLS #{r.mls_number} · {r.client_name || r.client_email}
+                      {r.mls_number ? `MLS #${r.mls_number}` : (r.region_label || "Provider to be assigned")}
+                      {" · "}{r.client_name || r.client_email}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-[#1A1A1A]/50">

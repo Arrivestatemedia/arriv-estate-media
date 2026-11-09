@@ -58,13 +58,8 @@ Deno.serve(async (req) => {
     const resolution = resolveMlsRegion(regions, propertyLocation, (id: string) =>
       isProviderLiveForCustomers(providers[id] || null));
 
-    if (resolution.status === 'unsupported') {
-      return Response.json({
-        error: 'MLS publishing is not available for this property\'s area yet. Your downloads are unaffected.',
-        routing: resolution,
-      }, { status: 400 });
-    }
-
+    // Every address has an MLS route. When the map cannot name the provider yet the request is still
+    // accepted and queued for our MLS team, so a customer is never turned away.
     const provider = resolution.provider_id ? getProvider(providers, resolution.provider_id) : null;
     const providerLabel = provider?.label || 'MLS review';
     const providerShortLabel = provider?.short_label || 'the MLS';
@@ -221,7 +216,9 @@ Deno.serve(async (req) => {
         ? 'Overlapping MLS coverage for this address — confirm which provider serves it before publishing.'
         : resolution.reason === 'region_unverified'
           ? 'MLS service area not yet verified for this address — confirm coverage before publishing.'
-          : 'Property address could not be matched to an MLS service area — confirm coverage before publishing.')
+          : resolution.reason === 'coverage_unmapped'
+            ? 'Address is outside the mapped MLS service areas — assign the provider and publish, then add coverage.'
+            : 'Property address could not be matched to an MLS service area — confirm coverage before publishing.')
       : (manifestStatus === 'blocked_pending_certification'
         ? 'Bright Media Sync is not certified yet — publish this request by hand.'
         : '');

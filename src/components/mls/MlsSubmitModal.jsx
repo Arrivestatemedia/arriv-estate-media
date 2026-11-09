@@ -236,18 +236,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
               {routing?.status === "review" && (
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2 flex items-start gap-1.5">
                   <Search className="w-3 h-3 mt-0.5 shrink-0" />
-                  Submit anyway — our MLS team confirms coverage and publishes for you.
-                </p>
-              )}
-              {routing?.status === "unsupported" && (
-                <p className="text-[11px] text-[#1A1A1A]/60 bg-white border border-[#B8956A]/20 rounded-lg px-2 py-1.5 mt-2">
-                  MLS publishing isn't offered for this address yet. Send us a note if you'd like us to look at your area.
+                  Submit anyway — our MLS team confirms the listing service for your address and publishes for you.
                 </p>
               )}
             </div>
 
             {/* Listing number — required for providers that need one, optional otherwise */}
-            {routing?.status !== "unsupported" && (
+            {(
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
                   MLS listing number {requiresNumber ? "" : "(optional)"}
@@ -268,7 +263,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Media summary */}
-            {routing?.status !== "unsupported" && (
+            {(
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
                   Selected media ({selectedPhotos.length} photos, {selectedVideos.length} videos)
@@ -331,7 +326,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Photo order */}
-            {routing?.status !== "unsupported" && orderedPhotos.length > 1 && (
+            {orderedPhotos.length > 1 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">Photo order</p>
                 <p className="text-xs text-[#1A1A1A]/40 mb-2">
@@ -356,7 +351,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Authorization */}
-            {routing?.status !== "unsupported" && (
+            {(
               <label className="flex items-start gap-2 p-3 rounded-xl bg-[#FFFBF5] border border-[#B8956A]/25 cursor-pointer">
                 <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#B8956A]" />
                 <span className="text-xs text-[#1A1A1A]/70 leading-relaxed">{MLS_AUTHORIZATION_TEXT}</span>
@@ -364,7 +359,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Deadline */}
-            {routing?.status !== "unsupported" && (
+            {(
               <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-[#B8956A]/20">
                 <Clock className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
                 <div className="text-xs text-[#1A1A1A]/60">

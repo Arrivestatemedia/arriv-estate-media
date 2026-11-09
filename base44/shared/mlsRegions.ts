@@ -165,7 +165,9 @@ export interface MlsRegionMatch {
   basis: MlsRoutingBasis;
 }
 
-export type MlsRoutingStatus = "resolved" | "pending_activation" | "review" | "unsupported";
+// There is no "unsupported" route: every address can be published to an MLS. When the map cannot
+// name the provider yet, the request is queued for our MLS team, who publish it by hand.
+export type MlsRoutingStatus = "resolved" | "pending_activation" | "review";
 
 export interface MlsRegionResolution {
   status: MlsRoutingStatus;
@@ -213,7 +215,9 @@ export function resolveMlsRegion(
   location: PropertyLocation,
   isLive: (providerId: string) => boolean = () => true,
 ): MlsRegionResolution {
-  const active = (regions || []).filter((r) => r && r.enabled && String(r.provider_id || "").trim());
+  // Every mapped region is considered, switched on or not: a region that is not activated yet still
+  // names the provider that will publish the property, so the request can be worked by hand.
+  const mapped = (regions || []).filter((r) => r && String(r.provider_id || "").trim());
   const base = {
     location,
     provider_id: null as string | null,
@@ -229,7 +233,7 @@ export function resolveMlsRegion(
 
   for (const basis of BASIS_ORDER) {
     const matches: MlsRegionMatch[] = [];
-    active.forEach((region) => {
+    mapped.forEach((region) => {
       if (regionMatchesAt(region, location, basis)) {
         matches.push({ region_id: region.id, provider_id: region.provider_id, region_label: region.label, basis });
       }
@@ -242,27 +246,10 @@ export function resolveMlsRegion(
     }
 
     const providerId = providers[0];
-    const region = active.find((r) => r.id === matches[0].region_id)!;
+    const region = mapped.find((r) => r.id === matches[0].region_id)!;
     const live = isLive(providerId);
-
-    if (!region.verified) {
-      return {
-        ...base,
-        status: "review",
-        reason: "region_unverified",
-        basis,
-        provider_id: providerId,
-        provider_live: live,
-        region_id: region.id,
-        region_label: region.label,
-        matches,
-      };
-    }
-
-    return {
+    const routed = {
       ...base,
-      status: live ? "resolved" : "pending_activation",
-      reason: live ? "region_resolved" : "provider_not_live",
       basis,
       provider_id: providerId,
       provider_live: live,
@@ -270,9 +257,26 @@ export function resolveMlsRegion(
       region_label: region.label,
       matches,
     };
+
+    // A region that is not switched on yet is still the answer for this property — the provider is
+    // known and the request is worked by our MLS team until the route is automated.
+    if (!region.enabled) {
+      return { ...routed, status: "pending_activation", reason: "region_not_activated" };
+    }
+    if (!region.verified) {
+      return { ...routed, status: "review", reason: "region_unverified" };
+    }
+
+    return {
+      ...routed,
+      status: live ? "resolved" : "pending_activation",
+      reason: live ? "region_resolved" : "provider_not_live",
+    };
   }
 
-  return { ...base, status: "unsupported", reason: "outside_coverage", basis: "none" };
+  // Nothing in the map covers this address yet. Publishing is still available and never blocked:
+  // the request is queued for our MLS team, who confirm the provider and widen coverage.
+  return { ...base, status: "review", reason: "coverage_unmapped", basis: "none" };
 }
 
 /** The customer-facing sentence for a resolution. Never names another provider as an option. */
@@ -284,8 +288,10 @@ export function describeRouting(resolution: MlsRegionResolution, providerLabel?:
     case "pending_activation":
       return `${resolution.region_label} is served by ${label}. Arriv is finishing activation of that route, so your request goes to our MLS team to publish for you.`;
     case "review":
-      return "We're confirming which MLS serves this property. Arriv will review your request before anything is published.";
+      return resolution.provider_id
+        ? `Arriv's MLS team is confirming ${label} for this address. They publish your selected media for you.`
+        : "Arriv's MLS team confirms the right MLS for this address and publishes your selected media for you.";
     default:
-      return "Arriv doesn't publish to an MLS for this address yet. You can still download your full gallery.";
+      return "Arriv publishes this property for you. Our MLS team confirms the provider and completes the upload.";
   }
 }

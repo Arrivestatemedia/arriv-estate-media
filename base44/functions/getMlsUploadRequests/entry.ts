@@ -111,8 +111,9 @@ Deno.serve(async (req) => {
       number_pattern: applicable?.number_pattern || '',
       video_requirement_note: applicable?.video_requirement_note || '',
       message: describeRouting(resolution, applicable?.label),
-      // A review case is still submittable: it lands in the administrative queue to be decided.
-      can_submit: ['resolved', 'pending_activation', 'review'].includes(resolution.status),
+      // Always submittable: an address the map cannot name yet still becomes a request our MLS team
+      // publishes by hand. No property is ever told MLS publishing is unavailable.
+      can_submit: true,
     };
 
     const estimatedDeadline = estimateDeadline ? computeMlsDeadline(new Date(), window) : null;
