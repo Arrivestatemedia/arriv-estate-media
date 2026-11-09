@@ -87,26 +87,13 @@ async function geocodeJurisdiction(query: string): Promise<GeocodedJurisdiction 
  * supplies city, state and zip when the booking's own fields are empty. A county the address does not
  * spell out is looked up, never inferred from a town name.
  */
-export async function resolvePropertyLocation(base44: any, job: any): Promise<PropertyLocation> {
-  if (!job) return parsePropertyLocation("");
-  let booking: any = null;
-  if (job.booking_id) {
-    try {
-      booking = await base44.asServiceRole.entities.Booking.get(job.booking_id);
-    } catch { /* fall through to the job's own location */ }
-  }
-  const composed = [
-    booking?.street_address,
-    booking?.city,
-    booking?.state,
-  ].filter(Boolean).join(", ");
-  const address = String(booking?.property_address || "").trim()
-    || composed
-    || String(job.location || job.title || "").trim();
-  const parsed = parsePropertyLocation(address, booking?.city, booking?.state);
+/**
+ * Adds the county — or the Virginia/Maryland independent city — the address itself does not spell out.
+ * Only a lookup can supply it; a town name is never turned into a county by assumption.
+ */
+async function withGeocodedCounty(parsed: PropertyLocation): Promise<PropertyLocation> {
   if (parsed.county) return parsed;
   if (!parsed.state && !parsed.zip) return parsed;
-
   const geocoded = await geocodeJurisdiction(
     parsed.address || [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", "),
   );

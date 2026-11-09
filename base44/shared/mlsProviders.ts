@@ -49,6 +49,18 @@ export interface MlsProvider {
   advertised: boolean;
   /** Can Arriv actually publish to it today — by hand through our MLS team, or through its API? */
   operational: boolean;
+  /**
+   * The service area as the MLS itself advertises it. Evidence for evaluating real overlaps when a
+   * second MLS in the same state becomes operational — never a routing input, because coverage is
+   * mapped jurisdiction by jurisdiction in mlsRegions and an MLS's compulsory listing area is not
+   * the same thing as its geographic service area.
+   */
+  service_area_metadata?: {
+    states: string[];
+    all_counties?: boolean;
+    note?: string;
+    source?: { label: string; url?: string; retrieved_at?: string };
+  };
 }
 
 export const UNCERTIFIED: MlsCertification = {
@@ -110,6 +122,14 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     requires_listing_number: true,
     requires_certification: false,
     certification: CERTIFIED,
+    service_area_metadata: {
+      states: ["GA"],
+      all_counties: true,
+      note:
+        "Members in every Georgia county, so the geographic service area is mapped state-wide. The " +
+        "compulsory listing area is narrower and is stored as region metadata (compulsory_counties).",
+      source: { label: "First Multiple Listing Service", url: "https://firstmls.com/about/", retrieved_at: "2026-11-09" },
+    },
   },
   georgia_mls: {
     id: "georgia_mls",
@@ -131,6 +151,15 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     requires_listing_number: true,
     requires_certification: true,
     certification: UNCERTIFIED,
+    service_area_metadata: {
+      states: ["GA"],
+      all_counties: true,
+      note:
+        "Advertises coverage in all 159 Georgia counties. Recorded as advertised coverage only — it is " +
+        "not routed to and not compared against FMLS until Georgia MLS is operational, at which point " +
+        "the real overlapping coverage decides what the customer is offered.",
+      source: { label: "Georgia MLS", retrieved_at: "2026-11-09" },
+    },
   },
   bright_mls: {
     id: "bright_mls",

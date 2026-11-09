@@ -145,6 +145,7 @@ export function normalizeServiceRegion(raw: any, fallback: MlsServiceRegion | nu
     cities: [],
     zip_prefixes: [],
     jurisdictions: [],
+    compulsory_counties: [],
     enabled: false,
     verified: false,
     notes: "",
@@ -174,6 +175,10 @@ export function normalizeServiceRegion(raw: any, fallback: MlsServiceRegion | nu
           }))
           .filter((j: MlsJurisdiction) => j.state && j.name)
       : base.jurisdictions,
+    // Metadata only, and never a routing input: an override that omits it keeps the documented list.
+    compulsory_counties: Array.isArray(source.compulsory_counties)
+      ? list(source.compulsory_counties)
+      : base.compulsory_counties,
     enabled: source.enabled !== undefined ? source.enabled === true : base.enabled,
     verified: source.verified !== undefined ? source.verified === true : base.verified,
     verified_at: source.verified_at || base.verified_at,
@@ -214,6 +219,38 @@ export interface PropertyLocation {
   state: string;
   zip: string;
   county: string;
+}
+
+export interface AddressCompleteness {
+  complete: boolean;
+  missing: Array<"street" | "city" | "state" | "zip">;
+  prompt: string;
+}
+
+/** A house number, then a street name: "7001 Arlington Rd" and "12B Main St" both count. */
+const STREET_LINE = /^\s*\d+[A-Za-z]?\s+\S/;
+
+/**
+ * Is this enough of an address to place the property?
+ *
+ * A property is published against one specific listing, so the address that decides the MLS has to be
+ * the real one: street line, city, state and ZIP. "Bethesda, MD" names a town, not a property — the
+ * state resolves but the county behind it does not, and asking an administrator to guess which county
+ * a town sits in is worse than asking the customer for the rest of the address.
+ */
+export function assessAddressCompleteness(location: PropertyLocation): AddressCompleteness {
+  const missing: AddressCompleteness["missing"] = [];
+  if (!STREET_LINE.test(String(location?.address || ""))) missing.push("street");
+  if (!String(location?.city || "").trim()) missing.push("city");
+  if (!/^[A-Z]{2}$/.test(String(location?.state || "").trim().toUpperCase())) missing.push("state");
+  if (!/^\d{5}$/.test(String(location?.zip || "").trim())) missing.push("zip");
+  return {
+    complete: missing.length === 0,
+    missing,
+    prompt:
+      "We need the complete property address to confirm which MLS serves it. " +
+      "Add the street address, city, state and ZIP code and we'll check it again.",
+  };
 }
 
 /** Pulls city / state / zip out of whichever address fields the booking or job actually has. */
