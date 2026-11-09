@@ -3,7 +3,8 @@ import { verifyAdmin } from '../../shared/adminAuth.ts';
 import { loadMlsProviders, isProviderLiveForCustomers } from '../../shared/mlsProviders.ts';
 import { loadMlsServiceWindow, formatEtDeadline, describeWindow, businessMinutesBetween, computeMlsDeadline } from '../../shared/mlsServiceWindow.ts';
 import { ownsJob, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
-import { loadMlsServiceRegions, resolveMlsRegion, describeRouting } from '../../shared/mlsRegions.ts';
+import { loadMlsServiceRegions } from '../../shared/mlsRegions.ts';
+import { resolveDestinationPlan } from '../../shared/mlsTerritories.ts';
 import { resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
 /**
@@ -86,31 +87,38 @@ Deno.serve(async (req) => {
       error_message: u.error_message || '',
     }));
 
-    // Which MLS this property belongs to. The customer is never shown a provider to choose from —
-    // the booking address decides, and only that area's workflow is returned.
+    // Which MLS systems may publish this property. Exactly one eligible system is selected with no
+    // question asked; several overlapping systems are all offered, and only those. An address that
+    // cannot be placed confidently becomes a review request rather than a guess.
     const propertyLocation = await resolvePropertyLocation(base44, job);
     const regions = await loadMlsServiceRegions(base44);
-    const resolution = resolveMlsRegion(regions, propertyLocation, (providerId: string) =>
-      isProviderLiveForCustomers(providers[providerId] || null));
-    const applicable = resolution.provider_id ? providers[resolution.provider_id] : null;
+    const plan = resolveDestinationPlan(regions, providers, propertyLocation);
+    const single = plan.eligible.length === 1 ? plan.eligible[0] : null;
+    const providerLabels = Object.fromEntries(
+      Object.values(providers).map((p: any) => [p.id, p.short_label]),
+    );
 
     const routing = {
-      status: resolution.status,
-      reason: resolution.reason,
-      basis: resolution.basis,
-      provider_id: resolution.provider_id,
-      provider_label: applicable?.label || null,
-      provider_short_label: applicable?.short_label || null,
-      provider_live: resolution.provider_live,
-      region_id: resolution.region_id,
-      region_label: resolution.region_label,
-      requires_listing_number: applicable ? applicable.requires_listing_number !== false : false,
-      requires_authorization: applicable ? applicable.requires_authorization !== false : true,
-      photo_limit: applicable?.photo_limit || null,
-      number_hint: applicable?.number_hint || '',
-      number_pattern: applicable?.number_pattern || '',
-      video_requirement_note: applicable?.video_requirement_note || '',
-      message: describeRouting(resolution, applicable?.label),
+      status: plan.status === 'auto'
+        ? (single?.live_for_customers ? 'resolved' : 'pending_activation')
+        : 'review',
+      plan_status: plan.status,
+      reason: plan.reason,
+      basis: plan.basis,
+      provider_id: single?.provider_id || plan.candidate_provider_id || null,
+      provider_label: single?.provider_label || plan.candidate_provider_label || null,
+      provider_short_label: single?.short_label || plan.candidate_provider_label || null,
+      provider_live: !!single?.live_for_customers,
+      region_id: single?.region_id || null,
+      region_label: single?.region_label || plan.coverage_label || null,
+      coverage_label: plan.coverage_label,
+      requires_listing_number: !!single?.requires_listing_number,
+      requires_authorization: true,
+      photo_limit: single?.photo_limit || null,
+      number_hint: single?.number_hint || '',
+      number_pattern: single?.number_pattern || '',
+      video_requirement_note: single?.video_requirement_note || '',
+      message: plan.message,
       // Always submittable: an address the map cannot name yet still becomes a request our MLS team
       // publishes by hand. No property is ever told MLS publishing is unavailable.
       can_submit: true,
@@ -124,15 +132,22 @@ Deno.serve(async (req) => {
         deadline_label: formatEtDeadline(r.deadline_at),
       })),
       routing,
-      providers: applicable ? [{
-        id: applicable.id,
-        label: applicable.label,
-        short_label: applicable.short_label,
-        photo_limit: applicable.photo_limit,
-        number_hint: applicable.number_hint,
-        number_pattern: applicable.number_pattern,
-        video_requirement_note: applicable.video_requirement_note,
-      }] : [],
+      destinations: plan.eligible,
+      selection_required: plan.status === 'selection_required',
+      selection_policy: plan.selection_policy,
+      auto_selected: plan.status === 'auto',
+      provider_labels: providerLabels,
+      providers: plan.eligible.map((d: any) => ({
+        id: d.provider_id,
+        label: d.provider_label,
+        short_label: d.short_label,
+        photo_limit: d.photo_limit,
+        number_hint: d.number_hint,
+        number_pattern: d.number_pattern,
+        video_requirement_note: d.video_requirement_note,
+        requires_listing_number: d.requires_listing_number,
+        publishing_mode: d.publishing_mode,
+      })),
       window_label: describeWindow(window),
       service_hours: window.service_hours,
       estimated_deadline_label: estimatedDeadline ? formatEtDeadline(estimatedDeadline) : null,

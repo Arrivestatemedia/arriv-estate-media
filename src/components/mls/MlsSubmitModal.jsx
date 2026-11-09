@@ -7,6 +7,7 @@ import {
   Loader2, ImageIcon, Video, AlertCircle, CheckCircle2, ArrowUp, ArrowDown,
   ShieldCheck, Clock, Youtube, Copy, Check, MapPin, Search, ExternalLink,
 } from "lucide-react";
+import MlsDestinationSelector from "@/components/mls/MlsDestinationSelector";
 
 export const MLS_AUTHORIZATION_TEXT =
   "I confirm I have permission to request that Arriv Estate Media upload the selected media to the MLS listing for this property, and that I am authorized to act for this listing.";
@@ -45,6 +46,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(null);
   const [copied, setCopied] = useState(null);
+  // Only relevant when several MLS systems cover the property (see MlsDestinationSelector).
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  const [mlsNumbers, setMlsNumbers] = useState({});
 
   const routing = config?.routing || null;
 
@@ -65,6 +69,8 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     setError(null);
     setMlsNumber("");
     setAuthorized(false);
+    setSelectedProviders([]);
+    setMlsNumbers({});
 
     base44.functions
       .invoke("getMlsUploadRequests", { mode: "client", jobId, clientEmail, estimateDeadline: true })
@@ -73,6 +79,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
         if (cancelled) return;
         if (data?.error) throw new Error(data.error);
         setConfig(data);
+        // Preselected per the policy the interface states: every MLS that legitimately covers the
+        // property. The customer changes the set before submitting.
+        setSelectedProviders((data?.destinations || []).map((d) => d.provider_id));
         // Start from the gallery's order, which is the delivered order.
         setPhotoOrder(selectedFiles.filter((f) => f.isImage).map((f) => f.id));
       })
@@ -118,13 +127,29 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
 
   const readyVideoLinks = selectedVideos.filter((v) => !!youtubeFor(v.id)?.youtube_url).length;
 
-  const requiresNumber = !!routing?.requires_listing_number;
+  // One eligible MLS → nothing is asked, exactly as before. Several overlapping systems → the
+  // customer's selection decides, and every checked MLS is its own destination.
+  const destinations = config?.destinations || [];
+  const multipleDestinations = destinations.length > 1;
+  const chosenDestinations = destinations.filter((d) => selectedProviders.includes(d.provider_id));
+  const chosenNeedingNumbers = chosenDestinations.filter((d) => d.requires_listing_number);
+  const perDestinationNumbers = multipleDestinations && chosenNeedingNumbers.length > 1;
+  const destinationNumbersReady = multipleDestinations
+    ? chosenDestinations.length > 0 &&
+      chosenNeedingNumbers.every((d) => String(mlsNumbers[d.provider_id] || "").trim().length > 0)
+    : true;
+  const photoLimit = multipleDestinations
+    ? Math.min(...chosenDestinations.map((d) => Number(d.photo_limit) || 200), 200)
+    : routing?.photo_limit;
+  const importUrl = submitted?.import_links?.[0]?.url || submitted?.request?.bright_import_url || "";
+
+  const requiresNumber = !multipleDestinations && !!routing?.requires_listing_number;
   const numberReady = requiresNumber
     ? mlsNumber.trim().length > 0 && !numberError
     : !numberError;
 
   const canSubmit = !loading && !submitting && !!routing?.can_submit && authorized && numberReady
-    && (selectedPhotos.length > 0 || readyVideoLinks > 0);
+    && destinationNumbersReady && (selectedPhotos.length > 0 || readyVideoLinks > 0);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -143,6 +168,10 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
         photoOrder: orderedPhotos.map((f) => f.id),
         authorizationConfirmed: authorized,
         authorizationText: MLS_AUTHORIZATION_TEXT,
+        // Only sent when several MLS overlap; the server re-resolves eligibility and rejects
+        // anything that does not actually cover this property.
+        selectedProviders: multipleDestinations ? selectedProviders : [],
+        mlsNumbers: multipleDestinations ? mlsNumbers : {},
       };
       const res = await base44.functions.invoke("submitMlsUploadRequest", payload);
       const data = res?.data || res;
@@ -150,7 +179,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
       setSubmitted(data);
       if (onSubmitted) onSubmitted(data);
     } catch (err) {
-      setError(err.message || "Could not submit your MLS request");
+      const failure = err?.response?.data || err?.data || null;
+      setError(failure?.error || err.message || "Could not submit your MLS request");
+      if (failure?.plan?.eligible) setConfig((prev) => (prev ? { ...prev, destinations: failure.plan.eligible } : prev));
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +217,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             <div className="flex items-start gap-3 p-4 rounded-xl bg-[#B8956A]/10 border border-[#B8956A]/30">
               <CheckCircle2 className="w-5 h-5 text-[#B8956A] shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-[#1A1A1A]">Request submitted</p>
+                <p className="font-medium text-[#1A1A1A]">{submitted.already_submitted ? "Already with us" : "Request submitted"}</p>
                 <p className="text-sm text-[#1A1A1A]/60 mt-1">
                   {submitted.request?.mls_number ? `Listing #${submitted.request.mls_number} — ` : ""}
                   {submitted.request?.photo_count || 0} photos, {submitted.request?.video_count || 0} videos
@@ -197,6 +228,20 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 )}
               </div>
             </div>
+
+            {(submitted.results || []).length > 0 && (
+              <div className="rounded-xl border border-[#B8956A]/20 bg-white p-3 space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50">Publishing destinations</p>
+                {submitted.results.map((r) => (
+                  <div key={r.provider_id} className="flex items-start justify-between gap-2 text-sm">
+                    <span className="text-[#1A1A1A]">{r.provider_label}</span>
+                    <span className={`text-xs shrink-0 ${r.status === "failed" ? "text-red-600" : "text-[#B8956A]"}`}>
+                      {r.status === "failed" ? (r.error || "Could not submit") : r.status === "duplicate" ? "Already submitted" : "Submitted"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {submitted.deadline_label && (
               <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#B8956A]/20">
                 <Clock className="w-5 h-5 text-[#B8956A] shrink-0 mt-0.5" />
@@ -215,14 +260,14 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 </ul>
               </div>
             )}
-            {submitted.request?.bright_import_url && (
+            {importUrl && (
               <div className="p-4 rounded-xl bg-[#FFFBF5] border border-[#B8956A]/30">
                 <p className="text-sm font-medium text-[#1A1A1A]">Your photos are ready in Bright MLS</p>
                 <p className="text-xs text-[#1A1A1A]/55 mt-1 mb-2">
                   Open Bright to pull them into your listing. The link stops working 14 days after your media was prepared.
                 </p>
                 <a
-                  href={submitted.request.bright_import_url}
+                  href={importUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#B8956A] px-3 py-1.5 text-xs font-medium text-[#1A1A1A] hover:bg-[#A68559]"
@@ -249,7 +294,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 <span>{config?.property_address || routing?.region_label || "This property"}</span>
               </p>
               <p className="text-xs text-[#1A1A1A]/60 mt-1.5 leading-relaxed">{routing?.message}</p>
-              {routing?.status === "review" && (
+              {!config?.selection_required && routing?.status === "review" && (
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2 flex items-start gap-1.5">
                   <Search className="w-3 h-3 mt-0.5 shrink-0" />
                   Submit anyway — our MLS team confirms the listing service for your address and publishes for you.
@@ -257,8 +302,22 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
               )}
             </div>
 
-            {/* Listing number — required for providers that need one, optional otherwise */}
-            {(
+            {/* More than one MLS covers this property — offer only those, preselected per policy */}
+            {config?.selection_required && (
+              <MlsDestinationSelector
+                destinations={destinations}
+                selected={selectedProviders}
+                policy={config?.selection_policy}
+                numbers={mlsNumbers}
+                onNumberChange={(id, value) => setMlsNumbers((prev) => ({ ...prev, [id]: value }))}
+                onToggle={(id) => setSelectedProviders((prev) => (
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                ))}
+              />
+            )}
+
+            {/* Listing number — one MLS needing a number is asked here; several are asked per MLS above */}
+            {!config?.selection_required && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
                   MLS listing number {requiresNumber ? "" : "(optional)"}
@@ -287,9 +346,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 {selectedPhotos.length === 0 && selectedVideos.length === 0 && (
                   <p className="text-sm text-[#1A1A1A]/50">Select media in the gallery first.</p>
                 )}
-                {routing?.photo_limit && selectedPhotos.length > routing.photo_limit && (
+                {photoLimit && selectedPhotos.length > photoLimit && (
                   <p className="text-xs text-red-600 mb-2">
-                    {routing.provider_short_label} accepts up to {routing.photo_limit} photographs. You selected {selectedPhotos.length}.
+                    {multipleDestinations ? "The selected MLS systems accept" : `${routing.provider_short_label} accepts`} up to {photoLimit} photographs. You selected {selectedPhotos.length}.
                   </p>
                 )}
 

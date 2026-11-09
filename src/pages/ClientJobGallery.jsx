@@ -456,7 +456,7 @@ export default function ClientJobGallery() {
         ) : (
           <>
             {!isDemo && !adminPreview && (
-              <MlsStatusCard requests={mlsRequests} />
+              <MlsStatusCard requests={mlsRequests} providerLabels={mlsConfig?.provider_labels || {}} />
             )}
 
             <GalleryToolbar

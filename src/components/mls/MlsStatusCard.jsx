@@ -26,7 +26,15 @@ const STATUS_STYLE = {
  * The customer's view of requests they have already submitted from this gallery. It sits above
  * the media grid and never interferes with selecting or downloading.
  */
-export default function MlsStatusCard({ requests = [] }) {
+const PUBLISHING_NOTE = {
+  submitted: "Submitted — in the publishing queue for this MLS",
+  processing: "Arriv's MLS team is uploading to your listing",
+  photos_uploaded: "Photos are in your listing",
+  video_added: "Your video tour is on your listing",
+  needs_attention: "Arriv's MLS team is looking at this one",
+};
+
+export default function MlsStatusCard({ requests = [], providerLabels = {} }) {
   if (!requests || requests.length === 0) return null;
 
   return (
@@ -38,7 +46,8 @@ export default function MlsStatusCard({ requests = [] }) {
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <ShieldCheck className="w-4 h-4 text-[#B8956A]" />
               <span className="text-sm font-medium text-white">
-                {r.mls_number ? `MLS #${r.mls_number}` : (r.region_label || "MLS request")}
+                {providerLabels[r.provider] || r.region_label || "MLS request"}
+                {r.mls_number ? ` · #${r.mls_number}` : ""}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${STATUS_STYLE[r.status] || STATUS_STYLE.submitted}`}>
                 {STATUS_LABEL[r.status] || r.status}
@@ -48,6 +57,9 @@ export default function MlsStatusCard({ requests = [] }) {
             <p className="text-xs text-white/50">
               {r.photo_count || 0} photos{r.video_count ? `, ${r.video_count} videos` : ""} · submitted {new Date(r.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </p>
+            {!done && PUBLISHING_NOTE[r.status] && (
+              <p className="text-xs text-white/45 mt-1">{PUBLISHING_NOTE[r.status]}</p>
+            )}
             {!done && r.deadline_label && (
               <p className="text-xs text-white/40 flex items-center gap-1.5 mt-1">
                 <Clock className="w-3 h-3 text-[#B8956A]" /> Estimated completion {r.deadline_label}
