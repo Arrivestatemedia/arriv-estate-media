@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { mode = 'client', jobId, clientEmail, status, estimateDeadline } = body || {};
+    const { mode = 'client', jobId, clientEmail, status, estimateDeadline, propertyAddress } = body || {};
 
     const providers = await loadMlsProviders(base44);
     const window = await loadMlsServiceWindow(base44);
@@ -90,7 +90,11 @@ Deno.serve(async (req) => {
     // Which MLS systems may publish this property. Exactly one eligible system is selected with no
     // question asked; several overlapping systems are all offered, and only those. An address that
     // cannot be placed confidently becomes a review request rather than a guess.
-    const propertyLocation = await resolvePropertyLocation(base44, job);
+    // A corrected address supplied by the customer overrides the booking address for this one check,
+    // so an incomplete address can be completed and re-detected without editing the booking.
+    const propertyAddressUsed = String(propertyAddress || '').replace(/\s+/g, ' ').trim()
+      || await resolvePropertyAddress(base44, job);
+    const propertyLocation = await resolvePropertyLocation(base44, job, propertyAddress);
     const regions = await loadMlsServiceRegions(base44);
     const plan = resolveDestinationPlan(regions, providers, propertyLocation);
     const single = plan.eligible.length === 1 ? plan.eligible[0] : null;
@@ -120,8 +124,11 @@ Deno.serve(async (req) => {
       number_pattern: single?.number_pattern || '',
       video_requirement_note: single?.video_requirement_note || '',
       message: plan.message,
+      missing_fields: plan.missing_fields || [],
+      needs_address: plan.status === 'needs_address',
       // Always submittable: an address the map cannot name yet still becomes a request our MLS team
-      // publishes by hand. No property is ever told MLS publishing is unavailable.
+      // publishes by hand, and an incomplete address is completed in the modal before it is sent.
+      // No property is ever told MLS publishing is unavailable.
       can_submit: true,
     };
 
@@ -153,7 +160,7 @@ Deno.serve(async (req) => {
       service_hours: window.service_hours,
       estimated_deadline_label: estimatedDeadline ? formatEtDeadline(estimatedDeadline) : null,
       youtube,
-      property_address: await resolvePropertyAddress(base44, job),
+      property_address: propertyAddressUsed,
       property_location: propertyLocation,
     });
   } catch (error: any) {

@@ -82,12 +82,6 @@ async function geocodeJurisdiction(query: string): Promise<GeocodedJurisdiction 
 }
 
 /**
- * The property's address broken into the parts the MLS service-area map matches on.
- * The booking holds the structured city/state the customer entered; the free-text address string
- * supplies city, state and zip when the booking's own fields are empty. A county the address does not
- * spell out is looked up, never inferred from a town name.
- */
-/**
  * Adds the county — or the Virginia/Maryland independent city — the address itself does not spell out.
  * Only a lookup can supply it; a town name is never turned into a county by assumption.
  */
@@ -108,6 +102,34 @@ async function withGeocodedCounty(parsed: PropertyLocation): Promise<PropertyLoc
     city: parsed.city || geocoded.city,
     state: parsed.state || geocoded.state,
   };
+}
+
+/**
+ * The property's address broken into the parts the MLS service-area map matches on.
+ *
+ * `addressOverride` is the customer's corrected address: when present it replaces the booking address
+ * for this one check, so a completed address can be geocoded and re-detected without editing the
+ * booking or the job. Nothing is written by this function.
+ */
+export async function resolvePropertyLocation(base44: any, job: any, addressOverride?: string): Promise<PropertyLocation> {
+  const override = String(addressOverride || "").replace(/\s+/g, " ").trim();
+  if (override) return withGeocodedCounty(parsePropertyLocation(override));
+  if (!job) return parsePropertyLocation("");
+  let booking: any = null;
+  if (job.booking_id) {
+    try {
+      booking = await base44.asServiceRole.entities.Booking.get(job.booking_id);
+    } catch { /* fall through to the job's own location */ }
+  }
+  const composed = [
+    booking?.street_address,
+    booking?.city,
+    booking?.state,
+  ].filter(Boolean).join(", ");
+  const address = String(booking?.property_address || "").trim()
+    || composed
+    || String(job.location || job.title || "").trim();
+  return withGeocodedCounty(parsePropertyLocation(address, booking?.city, booking?.state));
 }
 
 export async function listDeliveryFiles(base44: any, job: any): Promise<{ folderId: string | null; files: DeliveryFile[] }> {
