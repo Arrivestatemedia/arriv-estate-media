@@ -17,7 +17,6 @@
 // failing never rolls back or duplicates another.
 
 import {
-  assessAddressCompleteness,
   collectTerritoryMatches,
   type MlsServiceRegion,
   type MlsTerritoryMatch,
@@ -65,12 +64,7 @@ export interface MlsDestination {
   publishing_mode: MlsPublishingMode;
 }
 
-/**
- * `needs_address` is not a routing outcome — it means the address itself is too thin to place the
- * property, so the customer is asked to complete it before any decision (and before any
- * administrative review) is made.
- */
-export type MlsPlanStatus = "auto" | "selection_required" | "review" | "needs_address";
+export type MlsPlanStatus = "auto" | "selection_required" | "review";
 
 export interface MlsDestinationPlan {
   status: MlsPlanStatus;
@@ -88,8 +82,6 @@ export interface MlsDestinationPlan {
   location: PropertyLocation;
   message: string;
   can_submit: boolean;
-  /** Which parts of the address are missing, when `status` is `needs_address`. */
-  missing_fields: string[];
 }
 
 function destinationFrom(provider: MlsProvider, match: MlsTerritoryMatch): MlsDestination {
@@ -153,24 +145,6 @@ export function resolveDestinationPlan(
 ): MlsDestinationPlan {
   const isLive = options.isLive || ((p: MlsProvider | null) => isProviderLiveForCustomers(p));
   const scan = collectTerritoryMatches(regions, location);
-  const completeness = assessAddressCompleteness(location);
-  // Asked for the rest of the address instead of being guessed at or handed to an administrator.
-  const needsAddress: MlsDestinationPlan = {
-    status: "needs_address",
-    reason: "incomplete_address",
-    basis: "none",
-    jurisdiction_label: null,
-    coverage_label: null,
-    eligible: [],
-    selected: [],
-    selection_policy: null,
-    candidate_provider_id: null,
-    candidate_provider_label: null,
-    location,
-    message: completeness.prompt,
-    can_submit: false,
-    missing_fields: completeness.missing,
-  };
   const base: MlsDestinationPlan = {
     status: "review",
     reason: "missing_location",
@@ -185,11 +159,10 @@ export function resolveDestinationPlan(
     location,
     message: "Arriv's MLS team confirms the right MLS for this address and publishes your selected media for you.",
     can_submit: true,
-    missing_fields: [],
   };
 
   if (!scan.location_known) {
-    return completeness.complete ? { ...base, reason: "missing_location" } : needsAddress;
+    return { ...base, reason: "missing_location" };
   }
 
   // One destination per provider: if two regions of the same provider match (an overlap inside one
@@ -245,15 +218,8 @@ export function resolveDestinationPlan(
     };
   }
 
-  // Nothing we publish to claims this address AND the address is itself incomplete. The fix is the
-  // customer's, so ask for it — an administrator cannot know which county "Bethesda, MD" is in any
-  // more reliably than the person who booked the shoot.
-  if (!completeness.complete) {
-    return needsAddress;
-  }
-
-  // The address is complete but nothing we can publish to covers it. Name the likely provider so the
-  // MLS team is not starting from nothing, but never route to it without a decision.
+  // Nothing we can publish to claims this address. Name the likely provider so the MLS team is not
+  // starting from nothing, but never route to it without a decision.
   const matchedProviders = Array.from(new Set(scan.matches.map((m) => m.provider_id)));
   const candidateId = matchedProviders.length === 1
     ? matchedProviders[0]

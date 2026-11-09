@@ -8,7 +8,6 @@ import {
   ShieldCheck, Clock, Youtube, Copy, Check, MapPin, Search, ExternalLink,
 } from "lucide-react";
 import MlsDestinationSelector from "@/components/mls/MlsDestinationSelector";
-import MlsAddressPrompt from "@/components/mls/MlsAddressPrompt";
 
 export const MLS_AUTHORIZATION_TEXT =
   "I confirm I have permission to request that Arriv Estate Media upload the selected media to the MLS listing for this property, and that I am authorized to act for this listing.";
@@ -50,11 +49,6 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
   // Only relevant when several MLS systems cover the property (see MlsDestinationSelector).
   const [selectedProviders, setSelectedProviders] = useState([]);
   const [mlsNumbers, setMlsNumbers] = useState({});
-  // Set when the address we hold cannot place the property: the customer completes it here and the
-  // route is checked again before anything is submitted.
-  const [appliedAddress, setAppliedAddress] = useState("");
-  const [addressBusy, setAddressBusy] = useState(false);
-  const [addressNote, setAddressNote] = useState(null);
 
   const routing = config?.routing || null;
 
@@ -66,14 +60,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
   const selectedVideos = useMemo(() => selectedFiles.filter((f) => f.isVideo), [selectedFiles]);
   const youtubeFor = (fileId) => (config?.youtube || []).find((y) => y.drive_file_id === fileId) || null;
 
-  const loadRouting = (overrideAddress) =>
+  const loadRouting = () =>
     base44.functions
       .invoke("getMlsUploadRequests", {
         mode: "client",
         jobId,
         clientEmail,
         estimateDeadline: true,
-        ...(overrideAddress ? { propertyAddress: overrideAddress } : {}),
       })
       .then((res) => {
         const data = res?.data || res;
@@ -98,36 +91,14 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     setAuthorized(false);
     setSelectedProviders([]);
     setMlsNumbers({});
-    setAppliedAddress("");
-    setAddressNote(null);
 
-    loadRouting("")
+    loadRouting()
       .catch((err) => { if (!cancelled) setLoadError(err.message || "Could not load MLS settings"); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, jobId, clientEmail]);
-
-  // The customer completed the address: re-geocode and re-detect, and keep the corrected address for
-  // the submission so the request is recorded against the address that was actually checked.
-  const handleAddressCheck = async (fullAddress) => {
-    setAddressBusy(true);
-    setAddressNote(null);
-    setError(null);
-    try {
-      const data = await loadRouting(fullAddress);
-      if (data?.routing?.plan_status === "needs_address") {
-        setAddressNote("We still can't place that address. Check the street number, city, state and ZIP code.");
-      } else {
-        setAppliedAddress(fullAddress);
-      }
-    } catch (err) {
-      setError(err.message || "Could not check that address");
-    } finally {
-      setAddressBusy(false);
-    }
-  };
 
   const numberError = useMemo(() => {
     const value = mlsNumber.trim();
@@ -184,8 +155,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     ? mlsNumber.trim().length > 0 && !numberError
     : !numberError;
 
-  const canSubmit = !loading && !submitting && !addressBusy && !!routing?.can_submit
-    && routing?.plan_status !== "needs_address" && authorized && numberReady
+  const canSubmit = !loading && !submitting && !!routing?.can_submit && authorized && numberReady
     && destinationNumbersReady && (selectedPhotos.length > 0 || readyVideoLinks > 0);
 
   const handleSubmit = async () => {
@@ -211,7 +181,6 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
         mlsNumbers: multipleDestinations ? mlsNumbers : {},
         // Only when the customer completed the address in this modal: the server judges and records
         // the request against the address that was actually checked.
-        propertyAddress: appliedAddress || undefined,
       };
       const res = await base44.functions.invoke("submitMlsUploadRequest", payload);
       const data = res?.data || res;
@@ -334,26 +303,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 <span>{config?.property_address || routing?.region_label || "This property"}</span>
               </p>
               <p className="text-xs text-[#1A1A1A]/60 mt-1.5 leading-relaxed">{routing?.message}</p>
-              {!config?.selection_required && routing?.status === "review" && routing?.plan_status !== "needs_address" && (
+              {!config?.selection_required && routing?.status === "review" && (
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2 flex items-start gap-1.5">
                   <Search className="w-3 h-3 mt-0.5 shrink-0" />
                   Submit anyway — our MLS team confirms the listing service for your address and publishes for you.
                 </p>
               )}
             </div>
-
-            {/* The address on the booking cannot place the property — ask for the rest of it and
-                re-check the route instead of sending the case to an administrator. */}
-            {routing?.plan_status === "needs_address" && (
-              <MlsAddressPrompt
-                key={config?.property_address || "address"}
-                message={routing?.message}
-                initial={config?.property_location || {}}
-                busy={addressBusy}
-                note={addressNote}
-                onCheck={handleAddressCheck}
-              />
-            )}
 
             {/* More than one MLS covers this property — offer only those, preselected per policy */}
             {config?.selection_required && (
@@ -370,7 +326,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             )}
 
             {/* Listing number — one MLS needing a number is asked here; several are asked per MLS above */}
-            {!config?.selection_required && routing?.plan_status !== "needs_address" && (
+            {!config?.selection_required && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1A1A1A]/50 mb-2">
                   MLS listing number {requiresNumber ? "" : "(optional)"}

@@ -221,44 +221,15 @@ export interface PropertyLocation {
   county: string;
 }
 
-export interface AddressCompleteness {
-  complete: boolean;
-  missing: Array<"street" | "city" | "state" | "zip">;
-  prompt: string;
-}
-
-/** A house number, then a street name: "7001 Arlington Rd" and "12B Main St" both count. */
-const STREET_LINE = /^\s*\d+[A-Za-z]?\s+\S/;
-
-/**
- * Is this enough of an address to place the property?
- *
- * A property is published against one specific listing, so the address that decides the MLS has to be
- * the real one: street line, city, state and ZIP. "Bethesda, MD" names a town, not a property — the
- * state resolves but the county behind it does not, and asking an administrator to guess which county
- * a town sits in is worse than asking the customer for the rest of the address.
- */
-export function assessAddressCompleteness(location: PropertyLocation): AddressCompleteness {
-  const missing: AddressCompleteness["missing"] = [];
-  if (!STREET_LINE.test(String(location?.address || ""))) missing.push("street");
-  if (!String(location?.city || "").trim()) missing.push("city");
-  if (!/^[A-Z]{2}$/.test(String(location?.state || "").trim().toUpperCase())) missing.push("state");
-  if (!/^\d{5}$/.test(String(location?.zip || "").trim())) missing.push("zip");
-  return {
-    complete: missing.length === 0,
-    missing,
-    prompt:
-      "We need the complete property address to confirm which MLS serves it. " +
-      "Add the street address, city, state and ZIP code and we'll check it again.",
-  };
-}
-
 /** Pulls city / state / zip out of whichever address fields the booking or job actually has. */
 export function parsePropertyLocation(address: string, city?: string, state?: string, zip?: string, county?: string): PropertyLocation {
   const raw = String(address || "").trim();
   const zipMatch = raw.match(/\b(\d{5})(?:-\d{4})?\b/);
   const stateMatch = raw.match(/(?:^|[,\s])([A-Z]{2})\s*(?:\d{5}(?:-\d{4})?)?\s*$/);
-  const cityMatch = raw.match(/,\s*([A-Za-z][A-Za-z .'-]*?)\s*,\s*[A-Z]{2}\s*(?:\d{5})?\s*$/);
+  // "123 Main St, Vienna, VA" → Vienna; "Bethesda, MD 20814" (no street line) → Bethesda.
+  const cityMatch =
+    raw.match(/,\s*([A-Za-z][A-Za-z .'-]*?)\s*,\s*[A-Z]{2}\s*(?:\d{5})?\s*$/) ||
+    raw.match(/^\s*([A-Za-z][A-Za-z .'-]{1,40}?)\s*,\s*[A-Z]{2}\s*(?:\d{5}(?:-\d{4})?)?\s*$/);
   const countyMatch = raw.match(/([A-Za-z .'-]+?)\s+County\b/i);
   return {
     address: raw,

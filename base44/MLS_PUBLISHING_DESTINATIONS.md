@@ -84,21 +84,20 @@ listing into FMLS) is a much smaller set. Those are different facts and are kept
   customer. When it becomes operational, coverage is added as its own region and the real overlap with
   FMLS decides what the customer is offered — the compulsory list is not used to guess it.
 
-## Incomplete addresses
+## Addresses
 
-A property publishes against one specific listing, so the address that decides the MLS has to be the
-real one: street line, city, state and ZIP (`assessAddressCompleteness`).
+Every job carries its booked property address, so the normal case is a full street address and the
+county comes from the Census geocoder. Nothing asks the customer to retype an address, and no form
+sits between the customer and the destination.
 
-- **Incomplete and unroutable** → the plan is `needs_address` (`incomplete_address`), with the missing
-  parts named and no provider chosen. The Publish to MLS button is unchanged; the modal shows a short
-  address form instead of destinations, and the customer completes it there.
-- **Re-detection** — the completed address is sent back as `propertyAddress`; both endpoints re-geocode
-  it (Census geocoder) and re-run detection from scratch. Nothing is written to the Booking or Job.
-  The submission records the corrected address, so the request is judged against the address that was
-  actually checked.
-- **Still ambiguous, or complete but uncovered** → administrative review, exactly as before, with no
-  guessed provider. A complete address never prompts, and a resolvable address never prompts — the
-  existing Georgia/FMLS flow is untouched by this.
+When only a town and state are on the record ("Bethesda, MD"), that is still enough: the parser reads
+"Bethesda" as the city, and the town's county is looked up in OpenStreetMap's Nominatim, which answers
+at exactly the level MLS coverage is published at (Montgomery County, MD). The lookup is used only
+when the Census geocoder cannot match — it never guesses a street or a ZIP, it is cached per town, and
+a result in a different state is discarded rather than trusted.
+
+If neither lookup can place the address, the request goes to MLS review as before, with the likely
+provider named and nothing routed on a guess.
 
 ## Deliberately unchanged
 
@@ -111,7 +110,7 @@ Bright stays dark: region `enabled: false`, provider `enabled: false`, all four 
 ## Test results
 
 Routing tests (unit, over the real shared modules, real addresses through the Census geocoder):
-**29 passed, 0 failed.**
+**15 passed, 0 failed** (routing and address resolution), on top of the earlier 29-case suite.
 
 | # | Case | Result |
 | --- | --- | --- |
@@ -120,31 +119,25 @@ Routing tests (unit, over the real shared modules, real addresses through the Ce
 | 3 | Atlanta, GA — default registry | `auto`, FMLS; Georgia MLS not offered |
 | 4 | Georgia with a second operational MLS (simulated) | `selection_required`, exactly 2 eligible, both preselected, policy present |
 | 5 | Customer picks one / several / all | accepted; a system that does not cover the property is refused; empty selection refused |
-| 6 | "Bethesda, MD" (no street, county unresolvable) | `review` / `jurisdiction_unknown`, Bright named as candidate, nothing preselected |
+| 6 | "Bethesda, MD" (town + state only) | county resolved → `auto`, Bright, "Montgomery County, MD"; no form, no review |
+| 6b | "Rockville, MD" / "Vienna, VA" (town + state only) | Montgomery / Fairfax County → `auto`, Bright |
+| 6c | Full Atlanta address | `auto` → FMLS, unchanged; no prompt ever |
+| 6d | "100 Main St, Wilmington, DE 19801" (no mapped MLS) | review `coverage_unmapped`, never a guess |
+| 6e | Plan shape | no `needs_address` status and no `missing_fields` remain |
 | 7 | Bright eligible, publishing disabled | `arriv_team`, `live_for_customers: false`, copy says activation is finishing |
 | 7b | Same code, Bright certified + activated (simulated) | flips to `automatic`; no UI change needed |
 | 8 | One MLS succeeds, another fails | 2 results, one `ok` with its request id, one `failed` with its error; no retry, no loss |
 | 9 | Duplicate clicks / refresh | idempotency key stable; group signature order-independent; open row matched instead of duplicated |
 | 10 | Registry honesty | Georgia MLS neither advertised nor operational; FMLS and Bright are, Bright still unactivated |
-| 6e | "Atlanta, GA" (incomplete but resolvable) | `auto` → FMLS; the existing FMLS workflow is not interrupted |
-| 6c | "Bethesda, MD" → corrected "7001 Arlington Rd, Bethesda, MD 20814" | prompt → re-geocode → `auto`, Bright, "Montgomery County, MD" |
-| 6d | "100 Main St, Wilmington, DE 19801" (complete, no mapped MLS) | review `coverage_unmapped`, no prompt |
-| 6f | Submitting an unplaced address | refused: no destination can be selected |
 | 13 | FMLS compulsory metadata | 23 counties (Fulton in, Bibb out), Rule 6.1(a) source recorded |
 | 13b | Compulsory list vs routing boundary | coverage still state-wide: no counties/zips/jurisdictions on the region |
 | 13c | Macon GA (Bibb, outside the compulsory area) | `auto` → FMLS; service area, not compulsory area, decides |
 | 13d | Admin override without the metadata | documented compulsory list preserved |
 | 14 | Georgia MLS | unadvertised, not operational, inactive; all-159-county coverage recorded as metadata only, and Atlanta still offers FMLS alone |
 
-Endpoint checks against the one delivered fixture job ("Bethesda, MD"):
-
-- `getMlsUploadRequests` (client) → `plan_status: needs_address`, missing `street, city, zip`, the
-  prompt sentence, no destination and no candidate provider.
-- Same call with `propertyAddress: "7001 Arlington Rd, Bethesda, MD 20814"` → `auto`, Bright MLS,
-  "Montgomery County, MD", `arriv_team` (still uncertified).
-- `submitMlsUploadRequest` without a corrected address → **422** `needs_address` with no record
-  written (0 requests and 0 groups for that job afterwards); a non-owner is still rejected (403)
-  before any write.
+Endpoint check against the one delivered fixture job, whose address is "Bethesda, MD":
+`getMlsUploadRequests` (client) → `plan_status: auto`, Bright MLS, "Montgomery County, MD",
+`arriv_team` (still uncertified). The same job previously asked the customer to retype the address.
 
 Client build passes. No provider API was called, no manifest was transmitted, and every certification
 switch and provider flag is unchanged (Bright and Georgia MLS both stay off).
@@ -156,9 +149,10 @@ switch and provider flag is unchanged (Bright and Georgia MLS both stay off).
    literally correct ("both systems cover the property"), but if Arriv wants Georgia addresses outside
    that MLS's counties to keep the no-question flow, FMLS's region should be narrowed to its
    documented counties. Decision needed before Georgia MLS is activated.
-2. **No street = no county.** Addresses like "Bethesda, MD" cannot be geocoded, so they route to
-   review. Asking the customer to correct the property address would clear these faster than an
-   administrator; not built, because it changes the gallery's data entry.
+2. **Town-level lookups are second-hand.** A street address is resolved by the Census geocoder; a town
+   and state fall back to Nominatim. If that lookup is unreachable, an address with no street line
+   falls back to review rather than being guessed. Cities that straddle two counties are the one case
+   a town lookup can misplace, which only matters if two different MLS systems meet inside that city.
 3. **Membership is never inferred.** Eligibility is geographic only. The selection screen's copy is
    what asks the customer to keep only the MLS systems they belong to; if a customer keeps a system
    they do not belong to, the MLS will reject the listing and that destination alone fails.

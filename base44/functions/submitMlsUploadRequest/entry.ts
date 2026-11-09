@@ -79,8 +79,6 @@ Deno.serve(async (req) => {
       photoOrder = [],
       authorizationConfirmed,
       authorizationText,
-      // The customer's corrected property address, when they completed it in the modal.
-      propertyAddress: correctedPropertyAddress,
     } = body || {};
 
     if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 });
@@ -107,30 +105,16 @@ Deno.serve(async (req) => {
 
     // ---- automatic MLS detection ----
     const providers = await loadMlsProviders(base44);
-    // A corrected address overrides the booking address for this submission; nothing is written to
-    // the booking or the job.
-    const addressOverride = String(correctedPropertyAddress || '').replace(/\s+/g, ' ').trim();
-    const propertyLocation = await resolvePropertyLocation(base44, job, addressOverride);
+    const propertyLocation = await resolvePropertyLocation(base44, job);
     const regions = await loadMlsServiceRegions(base44);
     const plan = resolveDestinationPlan(regions, providers, propertyLocation);
-
-    // An incomplete address is the customer's to fix, not a decision for our MLS team: ask for the
-    // rest of it instead of creating a review request.
-    if (plan.status === 'needs_address') {
-      return Response.json({
-        needs_address: true,
-        error: plan.message,
-        missing_fields: plan.missing_fields,
-        plan: publicPlan(plan),
-      }, { status: 422 });
-    }
 
     const window = await loadMlsServiceWindow(base44);
     const submittedAt = new Date();
     const deadline = computeMlsDeadline(submittedAt, window);
     const deadlineLabel = formatEtDeadline(deadline);
     const windowLabel = describeWindow(window);
-    const propertyAddress = addressOverride || await resolvePropertyAddress(base44, job);
+    const propertyAddress = await resolvePropertyAddress(base44, job);
 
     // ---- review: nothing supported claims this address confidently ----
     if (plan.status === 'review') {

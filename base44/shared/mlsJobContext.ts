@@ -81,6 +81,46 @@ async function geocodeJurisdiction(query: string): Promise<GeocodedJurisdiction 
   }
 }
 
+const PLACE_CACHE = new Map<string, GeocodedJurisdiction | null>();
+
+/**
+ * The county behind a town, for an address that has a city and state but no street line
+ * ("Bethesda, MD"). The Census geocoder only matches street addresses, so a town is looked up in
+ * OpenStreetMap's Nominatim, which answers at exactly the level MLS coverage is published at.
+ *
+ * Only the county and its state are kept — a different state is treated as a bad match and ignored —
+ * and each town is looked up once.
+ */
+async function lookupCityCounty(city: string, state: string): Promise<GeocodedJurisdiction | null> {
+  const key = (city + "|" + state).toLowerCase();
+  if (PLACE_CACHE.has(key)) return PLACE_CACHE.get(key) || null;
+  const remember = (value: GeocodedJurisdiction | null) => {
+    PLACE_CACHE.set(key, value);
+    return value;
+  };
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ", " + state)}` +
+        "&format=json&addressdetails=1&limit=1&countrycodes=us",
+      { headers: { "User-Agent": "ArrivEstateMedia-MLS/1.0" }, signal: AbortSignal.timeout(6000) },
+    );
+    if (!res.ok) return remember(null);
+    const json = await res.json();
+    const address = json?.[0]?.address || {};
+    const county = String(address.county || "").trim();
+    const resolvedState = String(address["ISO3166-2-lvl4"] || "").replace(/^US-/, "").toUpperCase();
+    if (!county || resolvedState !== state.toUpperCase()) return remember(null);
+    return remember({
+      county,
+      city: String(address.city || address.town || address.village || city).trim(),
+      state: resolvedState,
+      source: "openstreetmap-nominatim",
+    });
+  } catch {
+    return remember(null);
+  }
+}
+
 /**
  * Adds the county — or the Virginia/Maryland independent city — the address itself does not spell out.
  * Only a lookup can supply it; a town name is never turned into a county by assumption.
@@ -88,9 +128,12 @@ async function geocodeJurisdiction(query: string): Promise<GeocodedJurisdiction 
 async function withGeocodedCounty(parsed: PropertyLocation): Promise<PropertyLocation> {
   if (parsed.county) return parsed;
   if (!parsed.state && !parsed.zip) return parsed;
-  const geocoded = await geocodeJurisdiction(
+  let geocoded = await geocodeJurisdiction(
     parsed.address || [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", "),
   );
+  if (!geocoded && parsed.city && parsed.state) {
+    geocoded = await lookupCityCounty(parsed.city, parsed.state);
+  }
   if (!geocoded) return parsed;
   // A lookup that lands in a different state is a bad match, not this property: leave the county empty
   // so the request is reviewed rather than routed on another state's jurisdiction.
@@ -107,13 +150,10 @@ async function withGeocodedCounty(parsed: PropertyLocation): Promise<PropertyLoc
 /**
  * The property's address broken into the parts the MLS service-area map matches on.
  *
- * `addressOverride` is the customer's corrected address: when present it replaces the booking address
- * for this one check, so a completed address can be geocoded and re-detected without editing the
- * booking or the job. Nothing is written by this function.
+ * Every job carries its booked property address, so a full street address is the normal case; a town
+ * and state are enough to name the county when only those are on the record.
  */
-export async function resolvePropertyLocation(base44: any, job: any, addressOverride?: string): Promise<PropertyLocation> {
-  const override = String(addressOverride || "").replace(/\s+/g, " ").trim();
-  if (override) return withGeocodedCounty(parsePropertyLocation(override));
+export async function resolvePropertyLocation(base44: any, job: any): Promise<PropertyLocation> {
   if (!job) return parsePropertyLocation("");
   let booking: any = null;
   if (job.booking_id) {
