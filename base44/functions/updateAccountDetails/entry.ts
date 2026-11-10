@@ -7,7 +7,20 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const auth = await requireCustomer(base44, req, body);
+    let auth = await requireCustomer(base44, req, body);
+    // Preserve the separate platform account-settings flow, for that authenticated
+    // user's OWN record only. An explicitly supplied customer token never falls back.
+    if (!auth.ok && !body.session_token) {
+      const me = await base44.auth.me().catch((error) => {
+        if (error?.status === 401) return null;
+        throw error;
+      });
+      if (me) auth = { ok: true, record: me, actor: {
+        account_id: me.id, account_source: 'user', email: String(me.email).trim().toLowerCase(),
+        full_name: me.full_name || '', user_type: me.user_type || 'client', role: me.role,
+        session_epoch: Number(me.session_epoch || 0),
+      } };
+    }
     if (!auth.ok) return Response.json({ success: false, code: auth.code, error: auth.error }, { status: auth.status });
     if (body.accountId && body.accountId !== auth.actor.account_id) return Response.json({ error: 'Not authorized for this account.' }, { status: 403 });
     const update = {};
@@ -29,7 +42,7 @@ export default async function(req) {
     const entity = auth.actor.account_source === 'user' ? base44.asServiceRole.entities.User : base44.asServiceRole.entities.PendingSignup;
     await entity.update(auth.actor.account_id, update);
     const account = { ...auth.record, ...update };
-    const session = mintCustomerSession(account, auth.actor.account_source);
+    const session = body.session_token ? mintCustomerSession(account, auth.actor.account_source) : {};
     return Response.json({ success: true, ...session, account: {
       id: account.id, email: account.email, full_name: account.full_name,
       user_type: auth.actor.user_type, role: auth.actor.role, phone_number: account.phone_number || '',

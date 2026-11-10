@@ -4,7 +4,7 @@ import { createPageUrl } from "../utils";
 import { base44 } from "@/api/base44Client";
 import { withCustomerSession, redirectIfSessionExpired, isConfirmedSessionFailure } from "@/lib/customerSession";
 import { loadCustomerAccount } from '@/lib/customerAccount';
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,20 +63,23 @@ export default function ClientBookings() {
   // while the user's signup email is always lowercased — exact-match filters miss those.
   // Booking is closed to browsers, so the portal reads its own bookings through the
   // session-authorized endpoint. The server scopes every row to the signed-in account.
-  const { data: bookings = [], isLoading, error: bookingsError, refetch } = useQuery({
+  const { data: bookingPages, isLoading, error: bookingsError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['bookings', user?.email],
-    queryFn: async () => {
+    initialPageParam: null,
+    queryFn: async ({ pageParam }) => {
       const res = await base44.functions
-        .invoke('getClientBookings', withCustomerSession({ limit: 200 }))
+        .invoke('getClientBookings', withCustomerSession({ limit: 50, cursor: pageParam }))
         .catch((error) => {
           // Only a session that is actually gone asks for a sign-in; anything else shows the retry card.
           redirectIfSessionExpired(error);
           throw error;
         });
-      return (res?.data || res)?.items || [];
+      return res.data;
     },
+    getNextPageParam: (page) => page.has_more ? page.next_cursor : undefined,
     enabled: !!user?.email,
   });
+  const bookings = bookingPages?.pages.flatMap((page) => page.items || []) || [];
 
   const { data: completedJobs = [] } = useQuery({
     queryKey: ['completedJobsWithMedia', user?.email],
@@ -344,6 +347,7 @@ export default function ClientBookings() {
           </div>
         )}
 
+        {hasNextPage && <Button variant="outline" className="mt-4" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>{isFetchingNextPage ? 'Loading...' : 'Load more bookings'}</Button>}
         </div>
 
         {completedJobs.length > 0 && (

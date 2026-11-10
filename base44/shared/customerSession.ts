@@ -12,8 +12,8 @@ import { secrets } from 'base44:runtime';
  * credential instead of a browser-supplied email.
  *
  * Fail-closed rules:
- *  - No CUSTOMER_SESSION_SECRET set => no token is minted. Sign-in still works
- *    exactly as before; enforcement (requireCustomer) refuses every request.
+ *  - No CUSTOMER_SESSION_SECRET set => sign-in fails explicitly with 503;
+ *    it must never report success without issuing a usable credential.
  *  - requireCustomer always re-reads the account and compares session_epoch, so
  *    bumping that field revokes every outstanding session for that account.
  */

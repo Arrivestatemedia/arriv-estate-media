@@ -54,6 +54,7 @@ export default async function(req) {
 
     let user = null;
     try { user = await base44.auth.me(); } catch {}
+    if (body.session_token) user = null;
 
     // Actions only an administrator (or the sales-assisted channel) may perform.
     const ADMIN_ACTIONS = ['enroll', 'topup', 'list_subscriptions'];
