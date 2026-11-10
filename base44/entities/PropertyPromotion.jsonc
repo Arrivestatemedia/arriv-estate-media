@@ -1,0 +1,281 @@
+{
+  "name": "PropertyPromotion",
+  "type": "object",
+  "properties": {
+    "promotion_id": {
+      "type": "string",
+      "description": "Stable promotion ID (promo_...). One record per purchase, never reused."
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "PropertyListing this promotion belongs to"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job whose delivered media the property page was built from"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Verified customer who purchased. Matched against the listing's own client_email server-side."
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "package_tier": {
+      "type": "string",
+      "enum": [
+        "plus",
+        "pro"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Paid tier purchased. Free is never a promotion record."
+    },
+    "purchase_type": {
+      "type": "string",
+      "enum": [
+        "new",
+        "upgrade",
+        "renewal"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green"
+      ],
+      "default": "new",
+      "description": "Whether this purchase started a promotion, upgraded Plus to Pro, or renewed after expiry."
+    },
+    "term_days": {
+      "type": "integer",
+      "default": 30,
+      "description": "Promotional days purchased"
+    },
+    "amount_cents": {
+      "type": "integer",
+      "description": "Price charged for this purchase in cents, as quoted at purchase time"
+    },
+    "paid_amount_cents": {
+      "type": "integer",
+      "description": "Amount Stripe actually confirmed. Recorded separately so a mismatch is visible rather than assumed."
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_payment",
+        "active",
+        "paused",
+        "expired",
+        "ended",
+        "payment_failed",
+        "refunded"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "yellow",
+        "gray",
+        "gray",
+        "red",
+        "red"
+      ],
+      "default": "pending_payment",
+      "description": "Lifecycle state. Benefits are granted only by a verified payment flipping this to active."
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of the promotional period. Paused days are added back on resume, so the customer always receives the days paid for."
+    },
+    "paused_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the listing became temporarily ineligible and the promotion was paused"
+    },
+    "remaining_ms_at_pause": {
+      "type": "integer",
+      "description": "Promotional time left when the pause began. Restored on resume."
+    },
+    "pause_deadline_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Maximum 30 calendar days of pause; past this the promotion ends and is flagged for review"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_reason": {
+      "type": "string",
+      "description": "expired | listing_archived | listing_sold | listing_withdrawn | authorization_revoked | replaced_by_upgrade | voluntary_cancellation | refunded | ineligible_too_long"
+    },
+    "supersedes_promotion_id": {
+      "type": "string",
+      "description": "Promotion this purchase upgraded from"
+    },
+    "superseded_by_promotion_id": {
+      "type": "string",
+      "description": "Promotion that replaced this one. Both records are kept so no purchase is ever lost."
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "The payment that funded this promotion. Unique across promotions: one payment can never grant two entitlements."
+    },
+    "stripe_client_secret": {
+      "type": "string",
+      "description": "Client secret for the in-page card form of the pending payment"
+    },
+    "refund_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "requested",
+        "full",
+        "partial",
+        "declined"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "red",
+        "purple",
+        "gray"
+      ],
+      "default": "none",
+      "description": "Refund state, tracked here only. Never written into the media-order commission reversal workflow."
+    },
+    "refund_amount_cents": {
+      "type": "integer",
+      "default": 0
+    },
+    "refund_reason": {
+      "type": "string"
+    },
+    "refund_requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "refund_decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "refund_decided_by": {
+      "type": "string",
+      "description": "Administrator who authorized the decision. No refund is ever issued without one."
+    },
+    "refund_stripe_id": {
+      "type": "string",
+      "description": "Stripe refund identifier when an administrative decision resulted in a real refund"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Needs a person: amount mismatch, ended for prolonged ineligibility, or a refund decision"
+    },
+    "review_reason": {
+      "type": "string"
+    },
+    "notified_activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_expiring_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_unpublish_warning_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_report_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "final_summary_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "final_summary": {
+      "type": "object",
+      "description": "Recorded 30-day performance summary captured at the end of the promotional period"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic test promotions. Excluded from production reporting and never emailed."
+    },
+    "events": {
+      "type": "array",
+      "description": "Append-only audit history for this purchase",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "promotion_id",
+    "listing_id",
+    "client_email",
+    "package_tier",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

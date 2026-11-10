@@ -214,6 +214,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Inbound Calls", page: "InboundCalls", icon: PhoneIncoming },
             { label: "MLS Upload Queue", page: "MlsUploadQueue", icon: ShieldCheck },
             { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
+            { label: "Property Packages", page: "AdminPropertyPromotions", icon: Tag },
             { label: "B2B Commercial", page: "B2BCommercialCenter", icon: Building2 },
             { label: "Arriv Agreements", page: "ArrivAgreementsCenter", icon: FileText },
             { label: "Gallery Previews", page: "AdminClientGalleryPreview", icon: ImageIcon },

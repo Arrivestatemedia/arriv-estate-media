@@ -20,6 +20,9 @@ export default function PropertyPagePrompt({ jobId }) {
         <p className="text-sm text-white/50 leading-relaxed">
           Turn this delivered media into a property page. Your download experience stays exactly the same.
         </p>
+        <p className="mt-1 text-[11px] text-white/35">
+          Optional marketing packages are available inside the page builder once your page is published.
+        </p>
       </div>
       <Link
         to={`/PropertyPageBuilder?jobId=${jobId}`}

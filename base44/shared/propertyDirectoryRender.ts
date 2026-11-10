@@ -38,6 +38,8 @@ export function buildDirectoryPayload(
     status_label: statusLabel(l.listing_status),
     cover_url: l.cover_file_id ? mediaStreamUrl(l.listing_id, l.cover_file_id) : "",
     brokerage: l.brokerage_name || "",
+    // Set by the shared ranking pass; empty for a standard free listing.
+    placement_label: l.placement_label || "",
   }));
 
   const filters = opts.filters || {};
@@ -77,6 +79,7 @@ export function renderPropertyDirectoryHtml(payload: any) {
       : `<span class="shot shot-empty" aria-hidden="true"></span>`}
   <span class="body">
     <span class="statuschip">${escapeHtml(l.status_label)}</span>
+    ${l.placement_label ? `<span class="placed">${escapeHtml(l.placement_label)}</span>` : ""}
     <strong class="addr">${escapeHtml(l.property_address)}</strong>
     <span class="loc">${escapeHtml(l.location)}</span>
     ${l.listing_price != null ? `<span class="price">$${Number(l.listing_price).toLocaleString("en-US")}</span>` : ""}
@@ -179,6 +182,7 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; color: #f
 .listing .shot-empty { aspect-ratio: 16 / 10; background: linear-gradient(135deg, #1a1a1a, #0a0b0f); }
 .listing .body { display: block; padding: 18px 20px 20px; }
 .statuschip { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(184, 149, 106, 0.16); border: 1px solid rgba(184, 149, 106, 0.35); color: #8a6d4a; margin: 0 0 10px; }
+.placed { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: linear-gradient(135deg, #c9a87b, #b8956a); color: #0a0b0f; margin: 0 0 10px 6px; }
 .addr { display: block; font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.15rem; color: #1a1a1a; line-height: 1.25; }
 .loc { display: block; font-size: 13px; color: rgba(26, 26, 26, 0.5); margin: 4px 0 0; }
 .price { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; color: #1a1a1a; margin: 12px 0 0; }

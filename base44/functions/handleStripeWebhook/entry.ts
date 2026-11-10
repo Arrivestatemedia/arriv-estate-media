@@ -17,6 +17,33 @@ Deno.serve(async (req) => {
       Deno.env.get('STRIPE_WEBHOOK_SECRET')
     );
     
+    // Property marketing packages.
+    //
+    // Handled FIRST and returned, so the invoice, commission, Preferred-membership and Connect
+    // branches below are completely untouched by it. Activation is idempotent: a duplicate
+    // delivery re-reports the same state and never grants a second entitlement.
+    const packagePurpose = (event.data.object as any)?.metadata?.purpose;
+    if (packagePurpose === 'property_package_purchase') {
+      const intent: any = event.data.object;
+      const promotionId = String(intent?.metadata?.promotion_id || '');
+      if (event.type === 'payment_intent.succeeded') {
+        await base44.asServiceRole.functions.invoke('processPropertyPromotions', {
+          action: 'payment_succeeded',
+          promotion_id: promotionId,
+          payment_intent_id: intent.id,
+          amount_cents: intent.amount_received ?? intent.amount ?? 0,
+        }).catch((e) => console.warn('property package activation failed:', e.message));
+      } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
+        await base44.asServiceRole.functions.invoke('processPropertyPromotions', {
+          action: 'payment_failed',
+          promotion_id: promotionId,
+          payment_intent_id: intent.id,
+          reason: intent?.last_payment_error?.message || event.type,
+        }).catch(() => {});
+      }
+      return Response.json({ received: true });
+    }
+
     // Handle payment_intent.succeeded by looking up the checkout session
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;

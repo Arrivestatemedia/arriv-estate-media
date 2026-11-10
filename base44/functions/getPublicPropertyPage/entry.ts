@@ -21,6 +21,7 @@ import {
   directoryQuery,
   hasDirectoryFilters,
 } from "../../shared/propertyDirectoryQuery.ts";
+import { loadRankedDirectory } from "../../shared/propertyDirectoryRanking.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -56,14 +57,12 @@ Deno.serve(async (req) => {
       const query = directoryQuery({ testMode: false });
       applyDirectoryFilters(query, filters);
 
-      const [page, total] = await Promise.all([
-        base44.asServiceRole.entities.PropertyListing.filter(query, {
-          sort: "-published_at",
-          limit: DIRECTORY_MAX_RESULTS,
-        }),
+      // Same eligibility query and the SAME shared ranking as the directory search endpoint.
+      const [ranked, total] = await Promise.all([
+        loadRankedDirectory(base44, { query, limit: DIRECTORY_MAX_RESULTS }),
         base44.asServiceRole.entities.PropertyListing.count(query),
       ]);
-      const payload = buildDirectoryPayload(page?.items || [], { total, filters, filtered });
+      const payload = buildDirectoryPayload(ranked.items, { total, filters, filtered });
 
       if (format === "html") {
         return new Response(renderPropertyDirectoryHtml(payload), {

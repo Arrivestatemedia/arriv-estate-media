@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import {
   PROPERTY_FEATURE_FLAG_KEY,
   PUBLICATION_CONSENT_TEXT,
+  DIRECTORY_SLUG,
   ADVERTISING_DISCLOSURES,
   AVAILABLE_LISTING_STATUSES,
   buildSlug,
@@ -338,7 +339,9 @@ Deno.serve(async (req) => {
       // covers publishing, unpublishing, archiving, listing-status changes and media
       // authorization changes in one place. Inert until the edge secrets exist, and never
       // allowed to fail the customer action.
-      const edgePurge = await purgeListingFromEdge(fresh);
+      // The shared directory page is dropped too: publishing, unpublishing or changing a listing
+      // changes what that page shows, and it is where any paid placement appears.
+      const edgePurge = await purgeListingFromEdge(fresh, [DIRECTORY_SLUG]);
       if (edgePurge && edgePurge.ok === false && edgePurge.skipped !== true) {
         console.log(`edge purge failed for ${fresh.listing_id}: ${edgePurge.error || edgePurge.status}`);
       }

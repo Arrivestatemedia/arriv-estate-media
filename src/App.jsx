@@ -74,6 +74,7 @@ import AutoFund from './pages/AutoFund';
 import AutoFundTerms from './pages/AutoFundTerms';
 import PropertyPageBuilder from './pages/PropertyPageBuilder';
 import PropertyLeads from './pages/PropertyLeads';
+import AdminPropertyPromotions from './pages/AdminPropertyPromotions';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
@@ -605,6 +606,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="MlsUploadQueue">
             <MlsUploadQueue />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPropertyPromotions"
+        element={
+          <LayoutWrapper currentPageName="AdminPropertyPromotions">
+            <AdminPropertyPromotions />
           </LayoutWrapper>
         }
       />

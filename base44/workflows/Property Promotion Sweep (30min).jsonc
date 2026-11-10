@@ -1,0 +1,47 @@
+{
+  "name": "Property Promotion Sweep (30min)",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Keeps paid property placements honest: expiry, pausing and resuming with listing eligibility, warnings before a page is unpublished, and the weekly and final marketing reports. Never publishes or unpublishes a property page.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "property_promotion_sweep",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sweep_promotions": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processPropertyPromotions",
+            "args": {
+              "action": "sweep"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sweep placements",
+            "description": "Expiry, pause and resume, reports"
+          }
+        }
+      }
+    ]
+  }
+}

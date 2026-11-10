@@ -11,6 +11,7 @@ import {
   directoryFilterValues,
   directoryQuery,
 } from "../../shared/propertyDirectoryQuery.ts";
+import { loadRankedDirectory } from "../../shared/propertyDirectoryRanking.ts";
 
 // Public property directory search.
 //
@@ -42,19 +43,20 @@ Deno.serve(async (req) => {
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(p("limit") || 12)));
     const cursor = p("cursor") || undefined;
 
-    const page = await base44.asServiceRole.entities.PropertyListing.filter(query, {
-      sort: "-published_at",
-      limit,
-      cursor,
-    });
-    const items: any[] = page?.items || [];
+    // Placement ranking lives in ONE shared implementation, used by this endpoint and by the
+    // server-rendered directory page, so the two can never disagree about order. Ranking only
+    // reorders listings the eligibility query already returned, so a paid placement can never
+    // surface an unpublished, sold or stale listing.
+    const ranked = await loadRankedDirectory(base44, { query, limit, cursor });
+    const items: any[] = ranked.items;
     const total = await base44.asServiceRole.entities.PropertyListing.count(query);
 
     return Response.json({
       ok: true,
       total,
-      has_more: !!page?.has_more,
-      next_cursor: page?.next_cursor || null,
+      has_more: ranked.has_more,
+      next_cursor: ranked.next_cursor,
+      promoted_count: ranked.promoted_count,
       results: items.map((l: any) => ({
         listing_id: l.listing_id,
         slug: l.public_slug,
@@ -72,6 +74,8 @@ Deno.serve(async (req) => {
         cover_url: l.cover_file_id ? mediaStreamUrl(l.listing_id, l.cover_file_id) : "",
         published_at: l.published_at || null,
         brokerage: l.brokerage_name || "",
+        placement_tier: l.placement_tier || "",
+        placement_label: l.placement_label || "",
       })),
     });
   } catch (error) {
