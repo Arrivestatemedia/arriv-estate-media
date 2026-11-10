@@ -1,0 +1,281 @@
+{
+  "name": "VisibilitySubscription",
+  "type": "object",
+  "properties": {
+    "subscription_id": {
+      "type": "string",
+      "description": "Stable record ID (vsub_...). One record per Stripe subscription, never reused."
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "ProfessionalProfile this subscription grants benefits to"
+    },
+    "profile_type": {
+      "type": "string",
+      "enum": [
+        "agent",
+        "brokerage"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "plan_key": {
+      "type": "string",
+      "description": "Plan tier currently billed (agent_presence, agent_growth, brokerage)"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Verified account that owns the subscription and may cancel or change it"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_checkout",
+        "incomplete",
+        "active",
+        "past_due",
+        "paused",
+        "canceled",
+        "expired"
+      ],
+      "enumColors": [
+        "yellow",
+        "yellow",
+        "green",
+        "red",
+        "gray",
+        "gray",
+        "gray"
+      ],
+      "default": "pending_checkout",
+      "description": "Subscription lifecycle. Benefits are granted only while active."
+    },
+    "amount_cents": {
+      "type": "integer"
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "interval": {
+      "type": "string",
+      "default": "month"
+    },
+    "seats_included": {
+      "type": "integer",
+      "default": 1
+    },
+    "seats_purchased": {
+      "type": "integer",
+      "default": 0
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Unique: one Stripe subscription can never produce two records."
+    },
+    "stripe_checkout_session_id": {
+      "type": "string"
+    },
+    "stripe_price_id": {
+      "type": "string"
+    },
+    "current_period_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancel_at_period_end": {
+      "type": "boolean",
+      "default": false,
+      "description": "Customer cancelled; benefits continue until the paid period ends."
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancel_reason": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pending_plan_key": {
+      "type": "string",
+      "description": "Plan the customer moved to, applied at the next renewal so a change never bills twice"
+    },
+    "pending_plan_effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_invoice_id": {
+      "type": "string"
+    },
+    "last_payment_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_failure_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_failure_reason": {
+      "type": "string"
+    },
+    "billing_history": {
+      "type": "array",
+      "description": "Append-only record of invoices actually reported by Stripe. Never synthesised.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string"
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "period_start": {
+            "type": "string"
+          },
+          "period_end": {
+            "type": "string"
+          },
+          "paid_at": {
+            "type": "string"
+          },
+          "hosted_invoice_url": {
+            "type": "string"
+          },
+          "receipt_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "last_stripe_event_id": {
+      "type": "string",
+      "description": "Most recently applied Stripe event, so a redelivered webhook is applied once"
+    },
+    "applied_event_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Idempotency ledger of applied subscription events (most recent 50 kept)"
+    },
+    "last_stripe_event_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_renewal_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_payment_failed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_canceled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_report_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention_reason": {
+      "type": "string"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Synthetic test subscription. Excluded from reporting and never emailed."
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "subscription_id",
+    "profile_id",
+    "plan_key",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

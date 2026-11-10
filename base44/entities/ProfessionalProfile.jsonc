@@ -1,0 +1,329 @@
+{
+  "name": "ProfessionalProfile",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "Stable profile ID (prof_...). Never reused."
+    },
+    "profile_type": {
+      "type": "string",
+      "enum": [
+        "agent",
+        "brokerage"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Whether this is an individual agent profile or a brokerage profile."
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Public URL slug, unique within its profile type (agent or brokerage)."
+    },
+    "canonical_url": {
+      "type": "string",
+      "description": "Canonical public URL emitted in metadata. Always the profile page, never a tracking URL."
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "brokerage_name": {
+      "type": "string",
+      "description": "Brokerage the agent states they are affiliated with. Displayed only after verification."
+    },
+    "brokerage_profile_id": {
+      "type": "string",
+      "description": "Brokerage profile that verified and manages this agent profile, when one exists."
+    },
+    "brokerage_affiliation_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "An administrator confirmed the stated brokerage affiliation. An unverified affiliation is never presented as fact."
+    },
+    "brokerage_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "brokerage_verified_by": {
+      "type": "string"
+    },
+    "brokerage_evidence": {
+      "type": "string",
+      "description": "What the administrator checked to verify the affiliation."
+    },
+    "license_number": {
+      "type": "string"
+    },
+    "license_state": {
+      "type": "string"
+    },
+    "license_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Only a verified licence may be displayed. Unverified credentials are never published."
+    },
+    "license_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "license_verified_by": {
+      "type": "string"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Business contact address shown on the public profile and the only address inquiries route to."
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "website_url": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "description": "Two-letter state code"
+    },
+    "zip": {
+      "type": "string"
+    },
+    "service_areas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Cities or counties the professional states they serve"
+    },
+    "headline": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Professional biography supplied by the profile owner. Never generated as fact."
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "The verified account that owns and authorizes this profile."
+    },
+    "team_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Brokerage administrators authorized to manage this profile and its agents."
+    },
+    "managed_agent_profile_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Agent profiles this brokerage profile is authorized to manage"
+    },
+    "routing_mode": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "team"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "owner",
+      "description": "Where profile inquiries are delivered. Team routing only applies to a brokerage with configured team emails."
+    },
+    "routing_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Authorized recipients for team routing. Never populated automatically."
+    },
+    "listing_showcase_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional curated order for the profile's property showcase. Only listings that are already publicly eligible ever render."
+    },
+    "publication_state": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "READY_FOR_REVIEW",
+        "APPROVED",
+        "PUBLISHED",
+        "UNPUBLISHED",
+        "ARCHIVED"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "blue",
+        "green",
+        "yellow",
+        "gray"
+      ],
+      "default": "DRAFT",
+      "description": "Only PUBLISHED profiles are publicly reachable, and publication requires both owner authorization and administrator approval plus the publication switch."
+    },
+    "publication_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from_state": {
+            "type": "string"
+          },
+          "to_state": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "authorization_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "The profile owner explicitly authorized publishing this profile."
+    },
+    "authorization_snapshot": {
+      "type": "string",
+      "description": "Exact authorization wording the owner accepted, preserved as evidence."
+    },
+    "authorized_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authorized_by_email": {
+      "type": "string"
+    },
+    "admin_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_approved_by": {
+      "type": "string"
+    },
+    "seo_title": {
+      "type": "string"
+    },
+    "meta_description": {
+      "type": "string"
+    },
+    "structured_data": {
+      "type": "object",
+      "description": "JSON-LD built from verified profile facts only"
+    },
+    "indexing": {
+      "type": "string",
+      "enum": [
+        "index",
+        "noindex"
+      ],
+      "enumColors": [
+        "green",
+        "gray"
+      ],
+      "default": "noindex",
+      "description": "Search indexing directive. Defaults to noindex until the profile is published and approved."
+    },
+    "plan_key": {
+      "type": "string",
+      "description": "Last known subscription plan (display only). Entitlements are always recomputed, never trusted from here."
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention_reason": {
+      "type": "string"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Synthetic test profile. Excluded from public lists, the sitemap and reporting."
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "profile_id",
+    "profile_type",
+    "slug",
+    "display_name",
+    "publication_state"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

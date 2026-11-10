@@ -1,6 +1,16 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import Stripe from 'npm:stripe@17.5.0';
 import { findPartnerRecord, updatePartnerRecord } from '../../shared/stripeConnect.ts';
+import {
+  applySubscriptionUpsert,
+  applySubscriptionDeleted,
+  applyInvoicePaid,
+  applyInvoiceFailed,
+} from '../../shared/visibilitySubscriptionEngine.ts';
+
+function webhookRows(result: any): any[] {
+  return Array.isArray(result) ? result : result?.items || [];
+}
 
 Deno.serve(async (req) => {
   try {
@@ -17,6 +27,70 @@ Deno.serve(async (req) => {
       Deno.env.get('STRIPE_WEBHOOK_SECRET')
     );
     
+    // ── Phase 4: recurring visibility subscriptions ──────────────────────────
+    // Applied here but NEVER returned early, so the one-time package, commission,
+    // Preferred-membership and Connect branches below behave exactly as before. Every event is
+    // applied once: the engine refuses an event id it has already recorded.
+    try {
+      const object: any = (event.data as any)?.object || {};
+      const isSubscriptionEvent =
+        event.type === 'customer.subscription.created' ||
+        event.type === 'customer.subscription.updated' ||
+        event.type === 'customer.subscription.deleted';
+      const isInvoiceEvent = event.type === 'invoice.paid' || event.type === 'invoice.payment_failed';
+
+      let record: any = null;
+      if (isSubscriptionEvent) {
+        record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter({
+          stripe_subscription_id: String(object.id || ''),
+        }))[0] || null;
+        if (!record && String(object?.metadata?.purpose || '') === 'visibility_subscription') {
+          record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter(
+            { profile_id: String(object?.metadata?.profile_id || '') },
+            { sort: '-created_date', limit: 1 },
+          ))[0] || null;
+        }
+      } else if (isInvoiceEvent) {
+        const subscriptionId = typeof object?.subscription === 'string'
+          ? object.subscription
+          : object?.subscription?.id;
+        if (subscriptionId) {
+          record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter({
+            stripe_subscription_id: String(subscriptionId),
+          }))[0] || null;
+        }
+      }
+
+      if (record) {
+        const outcome = isSubscriptionEvent
+          ? (event.type === 'customer.subscription.deleted'
+            ? applySubscriptionDeleted(record, object, event.id, 'stripe')
+            : applySubscriptionUpsert(record, object, event.id, 'stripe'))
+          : (event.type === 'invoice.paid'
+            ? applyInvoicePaid(record, object, event.id, 'stripe')
+            : applyInvoiceFailed(record, object, event.id, 'stripe'));
+
+        if (outcome.changed) {
+          await base44.asServiceRole.entities.VisibilitySubscription.update(record.id, outcome.patch);
+          const planKey = String(record.plan_key || object?.metadata?.plan_key || '');
+          const nextStatus = String(outcome.patch.status || record.status || '');
+          if (planKey && ['active', 'past_due'].includes(nextStatus)) {
+            const profile = webhookRows(await base44.asServiceRole.entities.ProfessionalProfile.filter({
+              profile_id: record.profile_id,
+            }))[0];
+            if (profile) {
+              await base44.asServiceRole.entities.ProfessionalProfile.update(profile.id, {
+                plan_key: planKey,
+                updated_at: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+    } catch (visibilityError: any) {
+      console.warn('visibility subscription webhook:', visibilityError?.message || visibilityError);
+    }
+
     // Property marketing packages.
     //
     // Handled FIRST and returned, so the invoice, commission, Preferred-membership and Connect

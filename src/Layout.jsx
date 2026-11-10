@@ -216,6 +216,8 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
             { label: "Property Packages", page: "AdminPropertyPromotions", icon: Tag },
             { label: "Ad Campaigns", page: "AdminPropertyAdCampaigns", icon: Megaphone },
+            { label: "Visibility & SEO", page: "AdminVisibility", icon: Building2 },
+            { label: "Launch Readiness", page: "LaunchReadiness", icon: CheckCircle2 },
             { label: "B2B Commercial", page: "B2BCommercialCenter", icon: Building2 },
             { label: "Arriv Agreements", page: "ArrivAgreementsCenter", icon: FileText },
             { label: "Gallery Previews", page: "AdminClientGalleryPreview", icon: ImageIcon },
@@ -234,6 +236,7 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
         { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
         { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
+        { label: "Subscription & Visibility", page: "VisibilityDashboard", icon: TrendingUp },
         ...(studioEntitlementActive ? [{ label: "Studio", page: "StudioWorkspace", icon: Film }] : []),
       ]
     : isMediaPartner

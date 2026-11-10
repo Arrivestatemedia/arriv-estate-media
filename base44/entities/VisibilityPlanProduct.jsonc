@@ -1,0 +1,183 @@
+{
+  "name": "VisibilityPlanProduct",
+  "type": "object",
+  "properties": {
+    "product_key": {
+      "type": "string",
+      "description": "Stable product key (agent_presence, agent_growth, brokerage). Never reused, and the key the code matches on."
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "agent_presence",
+        "agent_growth",
+        "brokerage"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "purple"
+      ],
+      "description": "Plan tier. Distinct from the Phase 2 visibility tiers and the Phase 3 advertising tiers."
+    },
+    "name": {
+      "type": "string"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "price_cents": {
+      "type": "integer",
+      "description": "Recurring monthly price in cents. Administrator configurable."
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "interval": {
+      "type": "string",
+      "default": "month",
+      "description": "Billing interval. Only monthly is supported by the current integration."
+    },
+    "seats_included": {
+      "type": "integer",
+      "default": 1,
+      "description": "Agent seats included in the price. Never treated as unlimited."
+    },
+    "additional_seat_price_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Monthly price of one additional agent seat, when the seat policy allows buying one."
+    },
+    "seat_policy": {
+      "type": "string",
+      "enum": [
+        "included_only",
+        "per_seat",
+        "contact_support"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "yellow"
+      ],
+      "default": "included_only",
+      "description": "What happens beyond the included seats. Never assumes unlimited agents or unlimited support."
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Customer-facing benefit list, taken verbatim from the entitlement definition."
+    },
+    "entitlements": {
+      "type": "object",
+      "description": "Machine-readable benefits granted while the subscription is active. Only these are ever unlocked.",
+      "properties": {
+        "directory_priority": {
+          "type": "integer",
+          "default": 0
+        },
+        "enhanced_profile": {
+          "type": "boolean",
+          "default": false
+        },
+        "expanded_showcase": {
+          "type": "boolean",
+          "default": false
+        },
+        "showcase_limit": {
+          "type": "integer",
+          "default": 3
+        },
+        "marketing_graphics": {
+          "type": "boolean",
+          "default": false
+        },
+        "enhanced_reporting": {
+          "type": "boolean",
+          "default": false
+        },
+        "monthly_summary": {
+          "type": "boolean",
+          "default": false
+        },
+        "team_reporting": {
+          "type": "boolean",
+          "default": false
+        },
+        "agent_management": {
+          "type": "boolean",
+          "default": false
+        },
+        "inquiry_routing": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "disclosure": {
+      "type": "string",
+      "description": "Recurring billing disclosure shown before checkout and stored on every subscription record."
+    },
+    "terms_version": {
+      "type": "string"
+    },
+    "stripe_product_id": {
+      "type": "string"
+    },
+    "stripe_price_id": {
+      "type": "string",
+      "description": "Stripe price this product bills with. Empty until an administrator creates it in Stripe."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the product is offered. Deactivating never cancels an existing subscription."
+    },
+    "sort_order": {
+      "type": "integer",
+      "default": 0
+    },
+    "updated_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "product_key",
+    "tier",
+    "name",
+    "price_cents"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

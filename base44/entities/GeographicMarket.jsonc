@@ -1,0 +1,191 @@
+{
+  "name": "GeographicMarket",
+  "type": "object",
+  "properties": {
+    "market_id": {
+      "type": "string",
+      "description": "Stable market ID (geo_...)"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Public slug, for example atlanta-ga. Unique."
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "description": "Two-letter state code"
+    },
+    "state_name": {
+      "type": "string"
+    },
+    "county": {
+      "type": "string"
+    },
+    "canonical_url": {
+      "type": "string"
+    },
+    "intro": {
+      "type": "string",
+      "description": "Administrator-approved factual introduction. Never claims coverage, inventory or operations that the data does not support."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "approved",
+        "published",
+        "unpublished"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green",
+        "yellow"
+      ],
+      "default": "draft",
+      "description": "Only published markets are publicly reachable and indexable."
+    },
+    "minimum_published_listings": {
+      "type": "integer",
+      "default": 3,
+      "description": "Genuine published listings this market must have before it may be published or indexed"
+    },
+    "minimum_published_agents": {
+      "type": "integer",
+      "default": 0
+    },
+    "eligibility": {
+      "type": "object",
+      "description": "Last evaluated eligibility. Recomputed on every sweep and read; a failing market is never indexable.",
+      "properties": {
+        "eligible": {
+          "type": "boolean",
+          "default": false
+        },
+        "published_listings": {
+          "type": "integer",
+          "default": 0
+        },
+        "published_agents": {
+          "type": "integer",
+          "default": 0
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "seo_title": {
+      "type": "string"
+    },
+    "meta_description": {
+      "type": "string"
+    },
+    "structured_data": {
+      "type": "object"
+    },
+    "indexing": {
+      "type": "string",
+      "enum": [
+        "index",
+        "noindex"
+      ],
+      "enumColors": [
+        "green",
+        "gray"
+      ],
+      "default": "noindex"
+    },
+    "sitemap_eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when the market is published and currently eligible, so the sitemap can never fill with thin pages"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "last_index_check_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention_reason": {
+      "type": "string"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "market_id",
+    "slug",
+    "city",
+    "state",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

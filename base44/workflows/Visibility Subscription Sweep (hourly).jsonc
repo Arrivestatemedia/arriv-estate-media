@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "visibility_subscription_sweep",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sweep_visibility_subscriptions": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processVisibilitySubscriptions",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sweep visibility subscriptions",
+            "description": "Stripe reconciliation, expiry, notices, lead retries, market eligibility"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Reconciles recurring visibility subscriptions with Stripe so a missed webhook cannot leave benefits wrong, expires periods that ended, sends the renewal and monthly-summary emails the notification switch allows, retries failed profile lead deliveries, and re-evaluates geographic page eligibility so a market that loses its inventory stops being indexable.",
+  "name": "Visibility Subscription Sweep (hourly)"
+}

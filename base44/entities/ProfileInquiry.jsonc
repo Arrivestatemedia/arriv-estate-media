@@ -1,0 +1,233 @@
+{
+  "name": "ProfileInquiry",
+  "type": "object",
+  "properties": {
+    "inquiry_id": {
+      "type": "string",
+      "description": "Stable inquiry ID (pinq_...)"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "agent_profile",
+        "brokerage_profile",
+        "geo_page"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "description": "Where the inquiry was submitted from. Property-page inquiries stay in PropertyInquiry."
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "ProfessionalProfile the inquiry is addressed to"
+    },
+    "profile_type": {
+      "type": "string",
+      "enum": [
+        "agent",
+        "brokerage"
+      ]
+    },
+    "public_slug": {
+      "type": "string"
+    },
+    "market_slug": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "consent_privacy": {
+      "type": "boolean",
+      "default": false,
+      "description": "Visitor consented to this inquiry being shared with the profile owner it was addressed to"
+    },
+    "consent_text_snapshot": {
+      "type": "string",
+      "description": "Exact disclosure and consent wording shown at submission, preserved as evidence"
+    },
+    "consent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "disclosures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fair housing, no-agency and routing disclosures shown with the form"
+    },
+    "routed_to_email": {
+      "type": "string",
+      "description": "The authorized recipient this inquiry was routed to. Never routed to an unrelated agent."
+    },
+    "routing_mode": {
+      "type": "string"
+    },
+    "routing_reason": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "social",
+        "organic",
+        "referral",
+        "internal",
+        "direct"
+      ]
+    },
+    "utm_source": {
+      "type": "string"
+    },
+    "utm_medium": {
+      "type": "string"
+    },
+    "utm_campaign": {
+      "type": "string"
+    },
+    "referrer_host": {
+      "type": "string",
+      "description": "Hostname only. A full referring URL is never stored."
+    },
+    "landing_page": {
+      "type": "string",
+      "description": "Path only, no query string"
+    },
+    "ip_hash": {
+      "type": "string",
+      "description": "Salted hash of the submitting IP. Personal data is never stored raw."
+    },
+    "user_agent_hash": {
+      "type": "string"
+    },
+    "spam_score": {
+      "type": "number",
+      "default": 0
+    },
+    "spam_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "routed",
+        "review",
+        "rejected_spam",
+        "closed"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "yellow",
+        "red",
+        "gray"
+      ],
+      "default": "received"
+    },
+    "notification_status": {
+      "type": "string",
+      "enum": [
+        "recorded",
+        "pending_recipient_delivery",
+        "retrying",
+        "delivered",
+        "failed"
+      ],
+      "enumColors": [
+        "yellow",
+        "yellow",
+        "yellow",
+        "green",
+        "red"
+      ],
+      "default": "pending_recipient_delivery",
+      "description": "Delivery state. The inquiry record is written before any send is attempted, so a delivery failure never loses the lead."
+    },
+    "delivery_attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_delivery_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_delivery_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivery_message_id": {
+      "type": "string"
+    },
+    "delivery_error": {
+      "type": "string"
+    },
+    "admin_alerted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Synthetic test inquiry. Excluded from reporting and never emailed."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "inquiry_id",
+    "source_type",
+    "profile_id",
+    "name",
+    "email",
+    "consent_privacy"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

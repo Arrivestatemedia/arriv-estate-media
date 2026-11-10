@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search, Home } from "lucide-react";
 import PropertyCard from "@/components/property/PropertyCard";
+import MarketLinks from "@/components/visibility/MarketLinks";
 import { LISTING_STATUS_LABELS } from "@/lib/propertyVisibility";
 
 // Public property directory. Only approved, published, currently authorized listings are
@@ -107,6 +108,8 @@ export default function PropertyDirectory() {
                 )}
               </>
             )}
+
+            <MarketLinks />
 
             <p className="text-xs text-[#1A1A1A]/45 mt-10">
               Listings are shown as {["active", "pending"].map((s) => LISTING_STATUS_LABELS[s].toLowerCase()).join(" or ")} only, and must be reconfirmed periodically by their listing contact.

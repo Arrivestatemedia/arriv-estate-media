@@ -77,6 +77,12 @@ import PropertyLeads from './pages/PropertyLeads';
 import AdminPropertyPromotions from './pages/AdminPropertyPromotions';
 import AdminPropertyAdCampaigns from './pages/AdminPropertyAdCampaigns';
 import PublicPropertyPage from './pages/PublicPropertyPage';
+import AgentDirectory from './pages/AgentDirectory';
+import PublicProfessionalProfile from './pages/PublicProfessionalProfile';
+import GeographicProperties from './pages/GeographicProperties';
+import VisibilityDashboard from './pages/VisibilityDashboard';
+import AdminVisibility from './pages/AdminVisibility';
+import LaunchReadiness from './pages/LaunchReadiness';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
 import MlsUploadQueue from './pages/MlsUploadQueue';
@@ -592,7 +598,36 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/properties" element={<PropertyDirectory />} />
+      <Route path="/properties/in/:marketSlug" element={<GeographicProperties />} />
       <Route path="/properties/:slug" element={<PublicPropertyPage />} />
+      <Route path="/agents" element={<AgentDirectory profileType="agent" />} />
+      <Route path="/agents/:slug" element={<PublicProfessionalProfile />} />
+      <Route path="/brokerages" element={<AgentDirectory profileType="brokerage" />} />
+      <Route path="/brokerages/:slug" element={<PublicProfessionalProfile />} />
+      <Route
+        path="/VisibilityDashboard"
+        element={
+          <LayoutWrapper currentPageName="VisibilityDashboard">
+            <VisibilityDashboard />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminVisibility"
+        element={
+          <LayoutWrapper currentPageName="AdminVisibility">
+            <AdminVisibility />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/LaunchReadiness"
+        element={
+          <LayoutWrapper currentPageName="LaunchReadiness">
+            <LaunchReadiness />
+          </LayoutWrapper>
+        }
+      />
       <Route path="/r/:code" element={<ShortRedirect />} />
       <Route
         path="/InboundCalls"
