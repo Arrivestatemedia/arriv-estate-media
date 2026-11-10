@@ -129,7 +129,11 @@
     },
     "stripe_price_id": {
       "type": "string",
-      "description": "Stripe price this product bills with. Empty until an administrator creates it in Stripe."
+      "description": "Stripe price this product bills with. Empty until an administrator creates it in Stripe. Written by configureVisibilityStripePlans after Stripe confirms the recurring price."
+    },
+    "stripe_seat_price_id": {
+      "type": "string",
+      "description": "Stripe monthly price for one additional agent seat. Only set on a plan whose seat policy is per_seat, and only from a price Stripe confirmed."
     },
     "active": {
       "type": "boolean",
