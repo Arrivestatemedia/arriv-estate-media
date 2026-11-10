@@ -1,0 +1,44 @@
+{
+  "name": "Property Listing Lifecycle (daily)",
+  "description": "Applies the published listing lifecycle rules every morning: asks the owner to confirm a listing 30 days after its last confirmation, and unpublishes a listing that has not been confirmed for 60 days. It never publishes, approves or deletes anything.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "property_listing_lifecycle",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "apply_listing_lifecycle": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processPropertyLifecycle"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Apply lifecycle rules",
+            "description": "Confirmation and deactivation"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

@@ -317,6 +317,18 @@ Deno.serve(async (req) => {
 
     const update = async (data: any, eventType: string, details: any = {}, states: any = {}) => {
       const patch = { ...data, updated_at: nowIso() };
+      // A published page's structured data is a projection of the facts currently on the record, so
+      // it is rebuilt on every change that can move one of them: price, size, status, photography,
+      // contact. Only that machine-readable projection is refreshed. The text the customer approved
+      // is never rewritten here, and seo_source_hash is left alone so it still describes the
+      // generation that approved copy came from.
+      const projected = { ...listing, ...patch };
+      if (projected.publication_state === "PUBLISHED" && projected.structured_data) {
+        patch.structured_data = buildStructuredData(
+          projected,
+          projected.canonical_url || propertyPageUrl(projected.public_slug),
+        );
+      }
       await listings.update(listing.id, patch);
       const fresh = { ...listing, ...patch };
       await recordEvent(base44, fresh, eventType, actor, details, states);

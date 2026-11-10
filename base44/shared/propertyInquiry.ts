@@ -16,6 +16,8 @@ import {
   isValidEmail,
   sanitizeText,
 } from "./propertyVisibility.ts";
+import { normalizeAttribution } from "./propertyAttribution.ts";
+import { deliverPropertyInquiry } from "./propertyLeadDelivery.ts";
 
 export const MAX_INQUIRY_MESSAGE = 2000;
 
@@ -71,8 +73,10 @@ export async function submitValidatedInquiry(client: any, opts: {
   certification: boolean;
   ipHash?: string;
   userAgentHash?: string;
+  attribution?: any;
 }): Promise<{ status: number; body: any }> {
   const { listing, validated, certification } = opts;
+  const attribution = normalizeAttribution(opts.attribution || {});
   const { slug, name, email, phone, message } = validated;
 
   const spam = inquirySpamSignals({ name, email, message, honeypot: opts.honeypot });
@@ -102,6 +106,14 @@ export async function submitValidatedInquiry(client: any, opts: {
     consent_at: new Date().toISOString(),
     privacy_disclosures: INQUIRY_PRIVACY_DISCLOSURES,
     source: "property_page",
+    channel: attribution.channel,
+    utm_source: attribution.utm_source,
+    utm_medium: attribution.utm_medium,
+    utm_campaign: attribution.utm_campaign,
+    utm_content: attribution.utm_content,
+    utm_term: attribution.utm_term,
+    referrer_host: attribution.referrer_host,
+    landing_page: attribution.landing_page,
     ip_hash: opts.ipHash || "",
     user_agent_hash: opts.userAgentHash || "",
     spam_score: spam.score,
@@ -109,9 +121,11 @@ export async function submitValidatedInquiry(client: any, opts: {
     status: spam.score > 0 ? "review" : "routed",
     routed_to_email: routedTo,
     routed_at: new Date().toISOString(),
-    // Recorded server-side; notification delivery to a listing agent who is not an app user
-    // is a deferred item (it needs an authorized agent account or a custom email domain).
+    // The record is written before any send is attempted, so the lead exists even when delivery
+    // fails. The send below moves this to delivered, retrying or failed.
     notification_status: "pending_agent_delivery",
+    delivery_channel: "email",
+    delivery_attempts: 0,
     lead_sharing_status: "not_shared",
     arriv_one_lead_id: "",
     certification_mode: certification === true,
@@ -135,12 +149,17 @@ export async function submitValidatedInquiry(client: any, opts: {
     certification_mode: certification === true,
   });
 
+  // Delivery is layered on top of the durable record rather than in front of it: if the provider is
+  // unavailable the notification is retried by the sweep, and the inquiry is never lost.
+  const delivery = await deliverPropertyInquiry(client, created).catch(() => null);
+
   return {
     status: 200,
     body: {
       ok: true,
       reference: created.property_reference,
       routed_to_listing_contact: true,
+      queued_for_retry: delivery ? delivery.ok !== true : true,
       message: "Your inquiry has been sent to the listing contact.",
     },
   };

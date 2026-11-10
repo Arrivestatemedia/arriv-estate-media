@@ -1,0 +1,79 @@
+{
+  "name": "PropertyTrafficDaily",
+  "type": "object",
+  "properties": {
+    "bucket_key": {
+      "type": "string",
+      "description": "listing_id|day|channel. One row per property per day per acquisition channel, so a month of traffic is a few rows rather than one row per view."
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "PropertyListing the views belong to"
+    },
+    "day": {
+      "type": "string",
+      "description": "Calendar day in the operating timezone (America/New_York), formatted YYYY-MM-DD"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "social",
+        "organic",
+        "referral",
+        "internal",
+        "direct"
+      ],
+      "description": "Acquisition channel the views arrived through"
+    },
+    "source_label": {
+      "type": "string",
+      "description": "The campaign source the views came from (utm_source, or the referring host when there is no campaign tag)"
+    },
+    "campaign": {
+      "type": "string",
+      "description": "Campaign name the views came from (utm_campaign), when one was present"
+    },
+    "views": {
+      "type": "integer",
+      "default": 0,
+      "description": "Page views counted on this property, on this day, through this channel"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "bucket_key",
+    "listing_id",
+    "day",
+    "channel"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

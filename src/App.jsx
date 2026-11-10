@@ -73,6 +73,7 @@ import PrepaidPurchase from './pages/PrepaidPurchase';
 import AutoFund from './pages/AutoFund';
 import AutoFundTerms from './pages/AutoFundTerms';
 import PropertyPageBuilder from './pages/PropertyPageBuilder';
+import PropertyLeads from './pages/PropertyLeads';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
@@ -577,6 +578,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="PropertyPageBuilder">
             <PropertyPageBuilder />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PropertyLeads"
+        element={
+          <LayoutWrapper currentPageName="PropertyLeads">
+            <PropertyLeads />
           </LayoutWrapper>
         }
       />

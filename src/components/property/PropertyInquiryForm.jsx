@@ -20,6 +20,20 @@ export default function PropertyInquiryForm({ slug, reference, prefill }) {
 
   const set = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
+  // The campaign and referrer of the page the visitor is on, so an inquiry can be attributed to the
+  // channel that produced it. Read from the URL and the browser only: nothing is stored on them.
+  const pageAttribution = () => {
+    const params = new URLSearchParams(window.location.search);
+    const attribution = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid", "ttclid"].forEach((key) => {
+      const value = params.get(key);
+      if (value) attribution[key] = value;
+    });
+    attribution.referrer = document.referrer || "";
+    attribution.landing_page = window.location.pathname;
+    return attribution;
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -33,6 +47,7 @@ export default function PropertyInquiryForm({ slug, reference, prefill }) {
         message: form.message,
         consent_privacy: form.consent,
         company_website: form.honeypot,
+        attribution: pageAttribution(),
       });
       const data = res?.data || res;
       if (data?.ok) setSent(data.reference || reference);

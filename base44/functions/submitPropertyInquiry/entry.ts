@@ -71,6 +71,9 @@ Deno.serve(async (req) => {
       certification: false,
       ipHash,
       userAgentHash: userAgent ? await sha256Hex(`${userAgent}|arriv_property_inquiry`) : "",
+      // Where the visitor came from, taken from the page's own URL and Referer. Optional: an
+      // inquiry without it is still a valid lead and is recorded as a direct visit.
+      attribution: body.attribution || { referrer: body.referrer, landing_page: body.landing_page },
     });
     return Response.json(result.body, { status: result.status });
   } catch (error) {

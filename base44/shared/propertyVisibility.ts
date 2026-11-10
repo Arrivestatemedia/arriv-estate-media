@@ -267,6 +267,12 @@ export function inquiryEndpointUrl(): string {
   return `${appOrigin()}/functions/submitPropertyInquiry`;
 }
 
+// The anonymous page-view beacon. Separate from the inquiry endpoint for the same reason: the page
+// is served from the property host and the app's functions live on the app host.
+export function trafficEndpointUrl(): string {
+  return `${appOrigin()}/functions/recordPropertyTraffic`;
+}
+
 // The public directory lives on the property host beside the individual listings, so it is
 // addressed root-relative: the same link is correct on the property host and on the app host.
 export const DIRECTORY_PATH = "/properties";

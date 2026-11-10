@@ -17,6 +17,7 @@ import {
   INQUIRY_PRIVACY_DISCLOSURES,
   MEDIA_SERVICES_URL,
   inquiryEndpointUrl,
+  trafficEndpointUrl,
   mediaStreamUrl,
   propertyPageUrl,
 } from "./propertyVisibility.ts";
@@ -232,6 +233,20 @@ ${remainingPhotos.map((m: any, i: number) => shot(m, visiblePhotos.length + i)).
   var error = document.getElementById("arriv-inquiry-error");
   var sent = document.getElementById("arriv-inquiry-sent");
   var button = document.getElementById("arriv-submit");
+  // What brought this visitor here: the campaign parameters already in the page URL and the host
+  // that referred them. Sent with the inquiry so the lead can be attributed to the channel that
+  // actually produced it. Nothing is read from the visitor beyond the address they are on.
+  function attribution() {
+    var params = new URLSearchParams(window.location.search);
+    var out = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid", "ttclid"].forEach(function (key) {
+      var value = params.get(key);
+      if (value) out[key] = value;
+    });
+    out.referrer = document.referrer || "";
+    out.landing_page = window.location.pathname;
+    return out;
+  }
   // The buttons beside the address bring the visitor straight here and open the message with what
   // they came to ask, so an inquiry is one tap from the top of the page.
   [].slice.call(document.querySelectorAll(".cta[data-ask]")).forEach(function (link) {
@@ -258,6 +273,7 @@ ${remainingPhotos.map((m: any, i: number) => shot(m, visiblePhotos.length + i)).
         message: document.getElementById("arriv-message").value,
         consent_privacy: document.getElementById("arriv-consent").checked,
         company_website: document.getElementById("arriv-honeypot").value,
+        attribution: attribution(),
       }),
     })
       .then(function (response) { return response.json().catch(function () { return {}; }); })
@@ -348,6 +364,40 @@ ${remainingPhotos.map((m: any, i: number) => shot(m, visiblePhotos.length + i)).
     if (event.key === "ArrowLeft") show(index - 1);
     if (event.key === "ArrowRight") show(index + 1);
   });
+})();
+</script>`
+    : "";
+
+  // One anonymous view beacon per page load.
+  //
+  // It carries the listing and the campaign parameters that are already in the URL, and nothing
+  // else: no cookie is set, no device identifier is created, no IP is read on the client, and no
+  // script from a third party is loaded. The server aggregates the counts into one row per property
+  // per day per channel, which is what keeps a view from costing a row or a query of its own.
+  const viewBeacon = payload.listing_id
+    ? `<script>
+(function () {
+  var endpoint = ${JSON.stringify(trafficEndpointUrl())};
+  var listing = ${JSON.stringify(payload.listing_id)};
+  function attribution() {
+    var params = new URLSearchParams(window.location.search);
+    var out = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid", "ttclid"].forEach(function (key) {
+      var value = params.get(key);
+      if (value) out[key] = value;
+    });
+    out.referrer = document.referrer || "";
+    out.landing_page = window.location.pathname;
+    return out;
+  }
+  try {
+    var body = JSON.stringify({ listing: listing, attribution: attribution() });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(endpoint, new Blob([body], { type: "text/plain;charset=UTF-8" }));
+    } else {
+      fetch(endpoint, { method: "POST", headers: { "Content-Type": "text/plain" }, body: body, keepalive: true, mode: "cors", credentials: "omit" });
+    }
+  } catch (e) {}
 })();
 </script>`
     : "";
@@ -533,6 +583,7 @@ ${inquiry}
 </div></footer>
 </div>
 ${lightbox}
+${viewBeacon}
 </body>
 </html>`;
 }

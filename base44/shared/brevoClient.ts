@@ -34,6 +34,7 @@ export async function sendBrevoEmail({
   senderName = DEFAULT_SENDER_NAME,
   senderEmail = DEFAULT_SENDER_EMAIL,
   attachments = [],
+  replyTo = "",
 }) {
   const apiKey = secrets.get("BREVO_API_KEY");
   if (!apiKey) throw new Error("BREVO_API_KEY not configured");
@@ -54,6 +55,8 @@ export async function sendBrevoEmail({
         to: [{ email: to }],
         subject,
         htmlContent: finalHtml,
+        // Lets the recipient answer the person the message is about rather than the sender.
+        ...(replyTo ? { replyTo: { email: replyTo } } : {}),
         ...(attachments.length > 0 ? { attachment: attachments.map(a => ({ content: a.content, name: a.name })) } : {}),
       }),
     });

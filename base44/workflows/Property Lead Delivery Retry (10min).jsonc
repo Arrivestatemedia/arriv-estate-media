@@ -1,0 +1,44 @@
+{
+  "name": "Property Lead Delivery Retry (10min)",
+  "description": "Retries delivery of property inquiries to the listing contact when the first send did not reach the email provider. The inquiry record is always stored first, so this finishes the notification rather than recreating it.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "property_lead_delivery_retry",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "retry_lead_delivery": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processPropertyLeadDeliveries"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Retry lead emails",
+            "description": "Due inquiries only"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/10 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

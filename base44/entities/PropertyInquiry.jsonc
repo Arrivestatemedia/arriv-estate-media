@@ -55,6 +55,41 @@
       "default": "property_page",
       "description": "Where the inquiry originated"
     },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "social",
+        "organic",
+        "referral",
+        "internal",
+        "direct"
+      ],
+      "description": "How the visitor reached the property page, derived from campaign parameters and the referrer at submission time"
+    },
+    "utm_source": {
+      "type": "string"
+    },
+    "utm_medium": {
+      "type": "string"
+    },
+    "utm_campaign": {
+      "type": "string"
+    },
+    "utm_content": {
+      "type": "string"
+    },
+    "utm_term": {
+      "type": "string"
+    },
+    "referrer_host": {
+      "type": "string",
+      "description": "Hostname only of the referring page. A full referring URL is never stored, so a query string that may carry personal data is never retained."
+    },
+    "landing_page": {
+      "type": "string",
+      "description": "Path (no query string) of the page the inquiry was submitted from"
+    },
     "ip_hash": {
       "type": "string",
       "description": "Salted hash of the submitting IP address. Personal data is never stored raw; used only for rate limiting and abuse review."
@@ -99,11 +134,57 @@
       "enum": [
         "recorded",
         "pending_agent_delivery",
+        "retrying",
         "delivered",
         "failed"
       ],
       "default": "pending_agent_delivery",
-      "description": "Delivery state of the inquiry notification. Recorded server-side; agent notification delivery to a non-app-user address is a deferred item."
+      "description": "Delivery state of the agent notification. The inquiry record itself is written before any send is attempted, so a delivery failure never loses the lead."
+    },
+    "delivery_channel": {
+      "type": "string",
+      "default": "email",
+      "description": "How the agent was notified"
+    },
+    "delivery_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of send attempts made for this inquiry"
+    },
+    "last_delivery_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_delivery_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest time the retry sweep may try again. Empty once delivered or terminally failed."
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email provider accepted the agent notification and returned a message receipt"
+    },
+    "delivery_message_id": {
+      "type": "string",
+      "description": "Provider receipt for the delivered notification"
+    },
+    "delivery_error": {
+      "type": "string",
+      "description": "Plain-language reason the most recent send attempt did not succeed"
+    },
+    "admin_alerted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When administrators were last emailed that this lead could not be delivered, so a stuck lead is never silent"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the listing contact marked the inquiry handled"
+    },
+    "closed_by": {
+      "type": "string"
     },
     "lead_sharing_status": {
       "type": "string",
@@ -113,7 +194,7 @@
         "shared"
       ],
       "default": "not_shared",
-      "description": "Cross-app lead sharing state. Deliberately not_shared in v1.0 \u2014 Arriv One lead integration requires explicit approval before activation."
+      "description": "Cross-app lead sharing state. Deliberately not_shared \u2014 Arriv One lead integration requires explicit approval before activation."
     },
     "arriv_one_lead_id": {
       "type": "string",
@@ -122,7 +203,7 @@
     "certification_mode": {
       "type": "boolean",
       "default": false,
-      "description": "True for synthetic certification inquiries. Excluded from production reporting."
+      "description": "True for synthetic certification inquiries. Excluded from production reporting and never emailed."
     },
     "created_at": {
       "type": "string",
