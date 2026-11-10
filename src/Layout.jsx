@@ -266,7 +266,7 @@ function LayoutContent({ children, currentPageName }) {
   const showBackButton = user && !isPrimaryRoute && !effectiveIsSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
+    <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user ? '4.5rem' : '0' }}>
       {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && currentPageName !== "SalesLogin" && <GoogleMapsLoader />}
       <TwilioSdkLoader />
       <style>{`

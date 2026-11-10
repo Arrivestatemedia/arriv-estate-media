@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ExternalLink, Eye, Inbox, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,18 @@ export default function ProfessionalProfileSection() {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [creating, setCreating] = useState(false);
+  const location = useLocation();
+  // A plan chosen on the billing page arrives here, so the free page is set up first and the paid
+  // plan is then attached to it rather than the other way round.
+  const requestedPlan = useMemo(
+    () => new URLSearchParams(location.search).get('plan') || '',
+    [location.search],
+  );
+  const [tab, setTab] = useState(requestedPlan ? 'plan' : 'overview');
+
+  useEffect(() => {
+    if (requestedPlan) setTab('plan');
+  }, [requestedPlan]);
 
   const load = useCallback(async () => {
     try {
@@ -68,6 +81,11 @@ export default function ProfessionalProfileSection() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Choosing a plan opens the profile form straight away when there is no page yet.
+  useEffect(() => {
+    if (!state.loading && !state.data?.profile && requestedPlan) setCreating(true);
+  }, [state.loading, state.data, requestedPlan]);
 
   // Returning from Stripe Checkout: confirm the session so the dashboard shows the truth even if the
   // webhook has not landed yet.
@@ -251,7 +269,7 @@ export default function ProfessionalProfileSection() {
 
       {notice && <p className="mt-4 text-sm text-red-600">{notice}</p>}
 
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs value={tab} onValueChange={setTab} className="mt-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -450,6 +468,17 @@ export default function ProfessionalProfileSection() {
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6 space-y-6">
+          {requestedPlan && (
+            <div className="rounded-2xl border border-[#B8956A]/40 bg-[#FFFBF5] p-4">
+              <p className="text-sm text-[#1A1A1A]">
+                You picked{' '}
+                <span className="font-semibold">
+                  {(plans.find((plan) => plan.product_key === requestedPlan) || {}).name || requestedPlan}
+                </span>
+                . Choose it below to add the paid benefits to your page. Your page stays free until you do.
+              </p>
+            </div>
+          )}
           <div className="rounded-2xl border border-[#1A1A1A]/10 bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

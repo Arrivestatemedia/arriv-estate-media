@@ -52,7 +52,7 @@ const SERVICES = [
     title: "Advertising & Profiles",
     description: "Your agent or brokerage page, plans and property advertising.",
     icon: TrendingUp,
-    to: "/VisibilityDashboard",
+    to: "/VisibilityDashboard#visibility",
     always: true,
   },
   {
@@ -68,7 +68,10 @@ const SERVICES = [
     title: "Prepaid & Auto-Fund",
     description: "Prepay for media and manage automatic funding.",
     icon: Wallet,
-    to: "/PrepaidPurchase",
+    choices: [
+      { label: "Prepaid packages", to: "/PrepaidPurchase" },
+      { label: "Auto-Fund", to: "/AutoFund" },
+    ],
     always: true,
   },
   {
@@ -119,6 +122,26 @@ function ServiceCard({ service }) {
 
   const className =
     "group text-left rounded-2xl border border-[#B8956A]/25 bg-[var(--card-bg)] p-5 transition-all hover:border-[#B8956A] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8956A]";
+
+  // A service with two funding routes lets the customer pick, instead of landing them on one page.
+  if (service.choices) {
+    return (
+      <div className={className}>
+        {body}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {service.choices.map((choice) => (
+            <Link
+              key={choice.to}
+              to={choice.to}
+              className="rounded-full border border-[#B8956A]/40 px-3 py-1.5 text-xs font-semibold text-[#1A1A1A]/75 hover:bg-[#B8956A]/10 hover:text-[#1A1A1A]"
+            >
+              {choice.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (service.to) {
     return (

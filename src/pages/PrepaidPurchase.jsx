@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { withCustomerSession, getCustomerSessionToken, redirectIfSessionExpired } from "@/lib/customerSession";
 import { loadCustomerAccount } from '@/lib/customerAccount';
+import PrepaidCallbackRequest from '@/components/prepaid/PrepaidCallbackRequest';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -583,29 +584,7 @@ export default function PrepaidPurchase() {
         {!isInternal && selectedTier && (() => {
           const tier = TIERS.find((t) => t.key === selectedTier);
           if (!tier) return null;
-          const body = `I would like the ${tier.name} prepaid package ($${tier.price} · ${tier.credits} credits · $${tier.bookingValue} booking value · valid ${tier.validity}) for ${viewer?.email || 'my account'}.`;
-          return (
-            <Card className="mb-8 border-[#B8956A]/30 bg-white">
-              <CardContent className="pt-6 space-y-3">
-                <p className="text-sm text-[#1A1A1A]">
-                  <span className="font-medium">{tier.name}</span> — ${tier.price} for {tier.credits} credits and $
-                  {tier.bookingValue} of booking value, valid {tier.validity}.
-                </p>
-                <p className="text-xs text-[#1A1A1A]/60">
-                  Your selection is arranged with your Arriv specialist using the account email on file
-                  {viewer?.email ? ` (${viewer.email})` : ''}. Nothing is charged from this screen.
-                </p>
-                <a
-                  href={`mailto:bookings@arrivestatemedia.com?subject=${encodeURIComponent(`Prepaid package request — ${tier.name}`)}&body=${encodeURIComponent(body)}`}
-                >
-                  <Button className="bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Request {tier.name}
-                  </Button>
-                </a>
-              </CardContent>
-            </Card>
-          );
+          return <PrepaidCallbackRequest tier={tier} email={viewer?.email || ""} />;
         })()}
 
         {/* Tier Cards (default view) */}

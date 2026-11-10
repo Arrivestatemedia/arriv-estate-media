@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isConfirmedSessionFailure, redirectIfSessionExpired } from '@/lib/customerSession';
 import { loadCustomerAccount } from '@/lib/customerAccount';
@@ -32,9 +32,19 @@ const SECTIONS = [
 ];
 
 export default function VisibilityDashboard() {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [accountError, setAccountError] = useState('');
+
+  // Deep links from the portal (#visibility, #invoices, …) and from a chosen plan.
+  useEffect(() => {
+    if (loading) return;
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+    const target = document.getElementById(hash);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading, location.hash, location.search]);
 
   useEffect(() => {
     loadCustomerAccount().then((account) => setEmail(account.email)).catch((err) => {

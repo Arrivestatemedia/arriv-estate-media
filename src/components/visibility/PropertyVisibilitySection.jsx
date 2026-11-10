@@ -170,9 +170,16 @@ export default function PropertyVisibilitySection({ email }) {
                     ? ` · +${money(plan.additional_seat_price_cents)} per extra seat`
                     : ''}
                 </p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#1A1A1A]/55">
-                  <Lock className="w-3 h-3" />
-                  {state.checkoutOpen ? 'Available at checkout' : 'Not available for purchase yet'}
+                <Link
+                  to={`/VisibilityDashboard?plan=${encodeURIComponent(plan.product_key)}#profile`}
+                  className="mt-3 block"
+                >
+                  <Button className="w-full bg-[#1A1A1A] text-[#FFFBF5] hover:bg-[#2A3536]">
+                    Set up my page with {plan.name}
+                  </Button>
+                </Link>
+                <p className="mt-2 text-[11px] text-[#1A1A1A]/50">
+                  Your free agent or brokerage page is set up first, then this plan's benefits are added to it.
                 </p>
               </div>
             ))}
