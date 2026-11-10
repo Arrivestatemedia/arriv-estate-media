@@ -12,6 +12,9 @@
 //                                          (never cached: one document per query string)
 //   GET /media/<listingId>/<fileId>      → origin streamPropertyMedia
 //   GET /functions/streamPropertyMedia   → same (the shape the rendered HTML already emits)
+//   GET /agents, /brokerages             → origin getPublicVisibilityPage (kind=agent_directory /
+//   GET /agents/<slug>, /brokerages/<slug>  brokerage_directory; kind=profile&profileType=…)
+//   GET /properties/in/<city-state>      → origin getPublicVisibilityPage (kind=market)
 //   GET /sitemap.xml                     → origin generatePropertySitemap
 //   GET /robots.txt                      → generated here
 //   POST /__purge                        → signed cache invalidation (reachable while disabled)
@@ -286,6 +289,83 @@ async function servePage(request, env, c, slug, filters) {
   return finalize(request, built, credentials ? "BYPASS" : filtered ? "SEARCH" : "MISS");
 }
 
+// Phase 4 public page families. Which paths belong to them is decided here and nowhere else, and a
+// path is only ever forwarded when its slug is slug-shaped, so a malformed address is refused at the
+// edge instead of reaching the origin.
+function visibilityRoute(path) {
+  if (path === "/agents") return { kind: "agent_directory" };
+  if (path === "/brokerages") return { kind: "brokerage_directory" };
+  for (const [prefix, profileType] of [["/agents/", "agent"], ["/brokerages/", "brokerage"]]) {
+    if (!path.startsWith(prefix)) continue;
+    const slug = path.slice(prefix.length);
+    return SLUG_PATTERN.test(slug) ? { kind: "profile", profileType, slug } : null;
+  }
+  if (path.startsWith("/properties/in/")) {
+    const slug = path.slice("/properties/in/".length);
+    return SLUG_PATTERN.test(slug) ? { kind: "market", slug } : null;
+  }
+  return null;
+}
+
+// The origin owns indexability: its renderer emits the robots meta tag, and for a market it also
+// sends the header. This repeats that decision on the response so a crawler that ignores meta still
+// sees the truth, and adds one rule of its own: a directory with no profile in it is not indexed.
+function visibilityIndexable(route, html, origin) {
+  if (/<meta name="robots" content="[^"]*noindex/i.test(html)) return false;
+  if (/noindex/i.test(String(origin.headers.get("x-robots-tag") || ""))) return false;
+  if (route.kind === "agent_directory" || route.kind === "brokerage_directory") {
+    const prefix = route.kind === "brokerage_directory" ? "brokerages" : "agents";
+    return html.includes(`href="/${prefix}/`);
+  }
+  return true;
+}
+
+// Mirrors servePage: the cache key is the public path, credentials bypass the cache, only a 200 HTML
+// response is stored, and an origin refusal is a 404 that is never cached as content.
+async function serveVisibilityPage(request, env, c, route) {
+  const { originFetch, cache } = depsOf(env);
+  const credentials = carriesCredentials(request);
+  const url = new URL(request.url);
+  const key = canonicalCacheKey(c.publicBase, url.pathname.replace(/\/+$/, "") || "/");
+
+  if (!credentials && cache) {
+    const hit = await cache.match(key);
+    if (hit) return finalize(request, hit, "HIT");
+  }
+
+  const params = new URLSearchParams({ kind: route.kind, format: "html" });
+  if (route.slug) params.set("slug", route.slug);
+  if (route.profileType) params.set("profileType", route.profileType);
+
+  const built = await singleFlight(key.url, async () => {
+    const origin = await originFetch(
+      new Request(`${c.origin}/functions/getPublicVisibilityPage?${params.toString()}`, {
+        method: "GET",
+        headers: { Accept: "text/html" },
+      }),
+    );
+    if (origin.status >= 500) return originUnavailable();
+    if (origin.status !== 200) return notFoundResponse(c.notFoundTtl, "Page not found");
+    const contentType = contentTypeOf(origin);
+    if (!contentType.includes("text/html")) return uncacheableResponse(await origin.text(), contentType);
+
+    const html = normaliseHosts(await origin.text(), c);
+    const indexable = visibilityIndexable(route, html, origin);
+    const response = new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": credentials ? "private, no-store" : `public, max-age=${c.htmlTtl}`,
+        "X-Robots-Tag": indexable ? "index, follow" : "noindex, follow",
+      },
+    });
+    if (cache && !credentials) await cache.put(key, response.clone());
+    return response;
+  });
+
+  return finalize(request, built, credentials ? "BYPASS" : "MISS");
+}
+
 async function serveSitemap(request, env, c) {
   const { originFetch, cache } = depsOf(env);
   const credentials = carriesCredentials(request);
@@ -379,13 +459,24 @@ function purgeKeysFor(c, payload) {
     keys.push(pageCacheKey(c, slug));
     keys.push(canonicalCacheKey(c.publicBase, `/${slug}`));
   }
+  // Phase 4: a published or unpublished profile or market is purged by its exact public path, which a
+  // slug alone cannot express. Only a rooted path is accepted, never one with a traversal or query.
+  const paths = (Array.isArray(payload.paths) ? payload.paths : [])
+    .map((p) => String(p))
+    .filter((p) => p.startsWith("/") && p.length <= 200 && !p.includes("..") && !p.includes("?"))
+    .slice(0, 50);
+  for (const path of paths) {
+    keys.push(canonicalCacheKey(c.publicBase, path.replace(/\/+$/, "") || "/"));
+  }
+
   keys.push(canonicalCacheKey(c.publicBase, "/sitemap.xml"));
   for (const fileId of fileIds) {
     if (!listingId || !FILE_ID_PATTERN.test(listingId)) break;
     keys.push(mediaCacheKey(c, listingId, fileId));
     keys.push(canonicalCacheKey(c.publicBase, `/media/${listingId}/${fileId}`));
   }
-  return keys;
+  // A duplicate key (e.g. a path that repeats a slug) must not be counted or verified twice.
+  return [...new Map(keys.map((key) => [key.url, key])).values()];
 }
 
 async function handlePurge(request, env, c) {
@@ -479,6 +570,11 @@ async function handle(request, env) {
   // than serving a second, duplicate copy of it.
   if (path === "/") return finalize(request, directoryRedirect(c), "EDGE");
 
+  // Phase 4 public families are matched before the generic slug branch. /properties/in/<slug> cannot
+  // collide with it, because that branch only ever accepts a single segment.
+  const visibility = visibilityRoute(path);
+  if (visibility) return serveVisibilityPage(request, env, c, visibility);
+
   const slug = path.startsWith("/properties/") ? path.slice("/properties/".length) : path.replace(/^\//, "");
   // Only the directory page accepts a search, and its filters ride along to the origin, which
   // decides what may be seen. A listing page ignores them.
@@ -513,6 +609,8 @@ export const __test = {
   canonicalCacheKey,
   pageCacheKey,
   purgeKeysFor,
+  visibilityRoute,
+  visibilityIndexable,
   SLUG_PATTERN,
   FILE_ID_PATTERN,
 };

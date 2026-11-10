@@ -14,6 +14,46 @@ const LISTING_ID = "prop_ab12cd34";
 const FILE_ID = "file_exterior_1";
 const DRIVE_STYLE_FILE_ID = "1AbC_DeF-GhI.Jk";
 
+// Phase 4 fixtures.
+const AGENT_SLUG = "jane-doe-agent";
+const BROKERAGE_SLUG = "acme-realty-brokerage";
+const MARKET_SLUG = "atlanta-ga";
+
+const AGENT_DIRECTORY_HTML = `<!doctype html><html><head>
+<title>Real estate agents on Arriv Estate Media</title>
+<link rel="canonical" href="${ORIGIN}/agents" />
+<meta name="robots" content="index, follow" />
+<script type="application/ld+json">{"@type":"BreadcrumbList"}</script>
+</head><body><h1>Agents</h1>
+<article class="card"><h3><a href="/agents/${AGENT_SLUG}">Jane Doe</a></h3></article>
+</body></html>`;
+
+const EMPTY_DIRECTORY_HTML = `<!doctype html><html><head>
+<title>Real estate agents on Arriv Estate Media</title>
+<link rel="canonical" href="${ORIGIN}/agents" />
+<meta name="robots" content="index, follow" />
+</head><body><h1>Agents</h1><p class="muted">No published profiles yet.</p></body></html>`;
+
+const PROFILE_HTML = `<!doctype html><html><head>
+<title>Jane Doe, agent</title>
+<link rel="canonical" href="${ORIGIN}/agents/${AGENT_SLUG}" />
+<meta name="robots" content="index, follow" />
+</head><body><h1>Jane Doe</h1></body></html>`;
+
+const MARKET_INDEXABLE_HTML = `<!doctype html><html><head>
+<title>Properties in Atlanta, GA</title>
+<link rel="canonical" href="${ORIGIN}/properties/in/${MARKET_SLUG}" />
+<meta name="robots" content="index, follow" />
+</head><body><h1>Properties in Atlanta, GA</h1></body></html>`;
+
+const MARKET_THIN_HTML = `<!doctype html><html><head>
+<title>Properties in Atlanta, GA</title>
+<link rel="canonical" href="${ORIGIN}/properties/in/${MARKET_SLUG}" />
+<meta name="robots" content="noindex, follow" />
+</head><body><h1>Properties in Atlanta, GA</h1></body></html>`;
+
+const UNAVAILABLE_HTML = `<!DOCTYPE html><html><head><meta name="robots" content="noindex,nofollow" /><title>Profile not available</title></head><body><h1>Profile not available</h1></body></html>`;
+
 const INDEXABLE_HTML = `<!doctype html><html><head>
 <title>123 Maple Street, Bethesda MD</title>
 <meta name="description" content="Four bedroom home." />
@@ -40,6 +80,10 @@ function makeHarness(options = {}) {
     sitemapType = "application/xml; charset=utf-8",
     serverError = false,
     stubbornDelete = false,
+    visibilityHtml = AGENT_DIRECTORY_HTML,
+    visibilityStatus = 200,
+    visibilityType = "text/html; charset=utf-8",
+    visibilityRobots = null,
   } = options;
 
   const calls = [];
@@ -69,6 +113,15 @@ function makeHarness(options = {}) {
     requests.push({ url, headers });
 
     if (serverError) return new Response("upstream unavailable", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    if (url.includes("/functions/getPublicVisibilityPage")) {
+      if (visibilityStatus !== 200) {
+        return new Response(UNAVAILABLE_HTML, { status: visibilityStatus, headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" } });
+      }
+      return new Response(visibilityHtml, {
+        status: 200,
+        headers: { "Content-Type": visibilityType, ...(visibilityRobots ? { "X-Robots-Tag": visibilityRobots } : {}) },
+      });
+    }
     if (url.includes("/functions/getPublicPropertyPage")) {
       if (html === null) return new Response("not found", { status: 404, headers: { "Content-Type": "text/plain" } });
       return new Response(html, { status: 200, headers: { "Content-Type": pageType, "Cache-Control": "public, max-age=300" } });
@@ -522,6 +575,154 @@ export async function runWorkerTests(worker) {
       "purge_rejects_a_bad_signature_and_a_replayed_timestamp",
       badSignature.status === 401 && stale.status === 401 && empty.status === 401,
       `bad signature=${badSignature.status}, stale timestamp=${stale.status}, unsigned=${empty.status}`,
+    );
+  }
+
+  // ============================================================ Phase 4 public pages
+  {
+    const h = makeHarness();
+    const res = await worker.fetch(get("/agents"), h.env);
+    const html = await res.text();
+    const originUrl = new URL(h.calls[0]);
+    check(
+      "agent_directory_is_served_from_the_visibility_renderer",
+      res.status === 200 &&
+        String(res.headers.get("content-type")).includes("text/html") &&
+        originUrl.pathname.endsWith("/functions/getPublicVisibilityPage") &&
+        originUrl.searchParams.get("kind") === "agent_directory" &&
+        originUrl.searchParams.get("format") === "html" &&
+        html.includes(`https://${PUBLIC_HOST}/agents`) &&
+        res.headers.get("x-robots-tag") === "index, follow",
+      `status=${res.status}, origin=${originUrl.search}, robots=${res.headers.get("x-robots-tag")}`,
+    );
+    const again = await worker.fetch(get("/agents"), h.env);
+    check("a_visibility_page_is_cached_on_its_public_path", again.status === 200 && again.headers.get("x-arriv-edge") === "HIT" && h.calls.length === 1, `origin calls=${h.calls.length}, tag=${again.headers.get("x-arriv-edge")}`);
+  }
+  {
+    const h = makeHarness();
+    const res = await worker.fetch(get("/brokerages"), h.env);
+    const originUrl = new URL(h.calls[0]);
+    check(
+      "brokerage_directory_requests_its_own_kind",
+      res.status === 200 && originUrl.searchParams.get("kind") === "brokerage_directory",
+      `origin=${originUrl.search}`,
+    );
+  }
+  {
+    const h = makeHarness({ visibilityHtml: EMPTY_DIRECTORY_HTML });
+    const res = await worker.fetch(get("/agents"), h.env);
+    check(
+      "an_empty_directory_is_not_indexed",
+      res.status === 200 && res.headers.get("x-robots-tag") === "noindex, follow",
+      "a directory with no profile card in it is served but never offered to a crawler as a thin page",
+    );
+  }
+  {
+    const h = makeHarness({ visibilityHtml: PROFILE_HTML });
+    const res = await worker.fetch(get(`/agents/${AGENT_SLUG}`), h.env);
+    const originUrl = new URL(h.calls[0]);
+    check(
+      "agent_profile_routes_with_its_slug_and_type",
+      res.status === 200 &&
+        originUrl.searchParams.get("kind") === "profile" &&
+        originUrl.searchParams.get("profileType") === "agent" &&
+        originUrl.searchParams.get("slug") === AGENT_SLUG &&
+        res.headers.get("x-robots-tag") === "index, follow",
+      `origin=${originUrl.search}`,
+    );
+    const brokerage = makeHarness({ visibilityHtml: PROFILE_HTML });
+    await worker.fetch(get(`/brokerages/${BROKERAGE_SLUG}`), brokerage.env);
+    check(
+      "brokerage_profile_is_routed_as_a_brokerage",
+      new URL(brokerage.calls[0]).searchParams.get("profileType") === "brokerage" && new URL(brokerage.calls[0]).searchParams.get("slug") === BROKERAGE_SLUG,
+      `origin=${brokerage.calls[0]}`,
+    );
+  }
+  {
+    const h = makeHarness({ visibilityStatus: 404 });
+    const res = await worker.fetch(get(`/agents/unpublished-agent`), h.env);
+    check(
+      "an_unpublished_profile_is_404_and_never_cached",
+      res.status === 404 && res.headers.get("x-robots-tag") === "noindex, follow" && h.store.size === 0,
+      `status=${res.status}, cache entries=${h.store.size}`,
+    );
+  }
+  {
+    const h = makeHarness({ visibilityHtml: MARKET_INDEXABLE_HTML });
+    const res = await worker.fetch(get(`/properties/in/${MARKET_SLUG}`), h.env);
+    const originUrl = new URL(h.calls[0]);
+    check(
+      "an_eligible_market_page_is_served_and_indexable",
+      res.status === 200 && originUrl.searchParams.get("kind") === "market" && originUrl.searchParams.get("slug") === MARKET_SLUG && res.headers.get("x-robots-tag") === "index, follow",
+      `origin=${originUrl.search}, robots=${res.headers.get("x-robots-tag")}`,
+    );
+  }
+  {
+    const h = makeHarness({ visibilityHtml: MARKET_THIN_HTML });
+    const res = await worker.fetch(get(`/properties/in/${MARKET_SLUG}`), h.env);
+    check(
+      "a_market_below_its_threshold_is_served_noindex",
+      res.status === 200 && res.headers.get("x-robots-tag") === "noindex, follow",
+      `robots=${res.headers.get("x-robots-tag")}`,
+    );
+  }
+  {
+    const h = makeHarness({ visibilityHtml: MARKET_INDEXABLE_HTML, visibilityRobots: "noindex, follow" });
+    const res = await worker.fetch(get(`/properties/in/${MARKET_SLUG}`), h.env);
+    check(
+      "an_origin_noindex_header_overrides_an_indexable_body",
+      res.status === 200 && res.headers.get("x-robots-tag") === "noindex, follow",
+      "the origin's own header is never weakened by the copy served at the edge",
+    );
+  }
+  {
+    const h = makeHarness({ visibilityStatus: 404 });
+    const res = await worker.fetch(get(`/properties/in/unpublished-market`), h.env);
+    check("an_unpublished_market_is_404_and_not_cached", res.status === 404 && h.store.size === 0, `status=${res.status}, cache entries=${h.store.size}`);
+  }
+  {
+    const h = makeHarness();
+    await worker.fetch(get(`/agents/${AGENT_SLUG}`), h.env);
+    const credentialed = await worker.fetch(get(`/agents/${AGENT_SLUG}`, { cookie: "session=abc123" }), h.env);
+    check(
+      "visibility_pages_respect_the_credential_bypass",
+      credentialed.status === 200 && credentialed.headers.get("x-arriv-edge") === "BYPASS" && String(credentialed.headers.get("cache-control")).includes("no-store"),
+      `tag=${credentialed.headers.get("x-arriv-edge")}, cache-control=${credentialed.headers.get("cache-control")}`,
+    );
+  }
+  {
+    const h = makeHarness({ serverError: true });
+    const res = await worker.fetch(get(`/agents/${AGENT_SLUG}`), h.env);
+    check("an_outage_on_a_visibility_page_is_503_and_not_cached", res.status === 503 && h.store.size === 0, `status=${res.status}, cache entries=${h.store.size}`);
+  }
+  {
+    const h = makeHarness();
+    const res = await worker.fetch(get("/agents/a"), h.env);
+    check("a_visibility_path_that_cannot_be_a_slug_is_refused_at_the_edge", res.status === 404 && h.calls.length === 0, `status=${res.status}, origin calls=${h.calls.length}`);
+  }
+  {
+    const h = makeHarness({ visibilityHtml: PROFILE_HTML });
+    await worker.fetch(get(`/agents/${AGENT_SLUG}`), h.env);
+    await worker.fetch(get("/sitemap.xml"), h.env);
+    const before = h.calls.length;
+    const res = await worker.fetch(await postPurge({ paths: [`/agents/${AGENT_SLUG}`, "/sitemap.xml"] }), h.env);
+    const payload = await res.json();
+    check(
+      "a_signed_purge_drops_visibility_paths",
+      res.status === 200 && payload.purged.some((u) => u.endsWith(`/agents/${AGENT_SLUG}`)) && payload.purged.some((u) => u.endsWith("/sitemap.xml")),
+      `${payload.purged.length}/${payload.requested} keys removed by path`,
+    );
+    const after = await worker.fetch(get(`/agents/${AGENT_SLUG}`), h.env);
+    check("a_purged_visibility_page_revalidates_at_the_origin", after.status === 200 && h.calls.length === before + 1, `origin calls before=${before} after=${h.calls.length}`);
+  }
+  {
+    const h = makeHarness();
+    const res = await worker.fetch(await postPurge({ paths: ["agents/not-rooted", "/../etc/passwd", "https://evil.example/x", "/agents/../secrets"] }), h.env);
+    const payload = await res.json();
+    check(
+      "a_purge_never_accepts_an_unrooted_or_traversing_path",
+      res.status === 200 && payload.requested === 1 && h.deleted().every((u) => u.endsWith("/sitemap.xml")),
+      `requested=${payload.requested} (only the sitemap key, which every purge drops)`,
     );
   }
 
