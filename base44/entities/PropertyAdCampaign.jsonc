@@ -1,0 +1,465 @@
+{
+  "name": "PropertyAdCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "Stable campaign ID (adc_...). Never reused, and the durable identifier every launch, provider call and duplicate check is keyed to."
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "PropertyListing being advertised"
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "public_slug": {
+      "type": "string"
+    },
+    "public_url": {
+      "type": "string",
+      "description": "Landing page the advertising links to"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Verified customer who bought the campaign. Matched against the listing's own client_email server-side."
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "package_tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "growth",
+        "premium"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "purple"
+      ],
+      "description": "Advertising package purchased. Separate from Visibility Plus and Pro; never bundled with them."
+    },
+    "package_name": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "total_cents": {
+      "type": "integer",
+      "description": "Total amount the customer paid for this campaign"
+    },
+    "ad_budget_cents": {
+      "type": "integer",
+      "description": "Portion of the payment reserved for platform advertising spend. Never Arriv management revenue."
+    },
+    "management_fee_cents": {
+      "type": "integer",
+      "description": "Portion retained by Arriv for managing the campaign"
+    },
+    "paid_amount_cents": {
+      "type": "integer",
+      "description": "Amount Stripe actually confirmed, recorded separately so a mismatch stays visible"
+    },
+    "processing_fee_cents": {
+      "type": "integer",
+      "description": "Payment processing cost recorded for profitability, never charged to the customer"
+    },
+    "spent_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Actual platform advertising spend observed to date, accumulated from reported spend"
+    },
+    "refunded_cents": {
+      "type": "integer",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "AWAITING_CUSTOMER_APPROVAL",
+        "APPROVED",
+        "AWAITING_PAYMENT",
+        "PAID",
+        "READY_FOR_REVIEW",
+        "READY_TO_LAUNCH",
+        "SUBMITTED",
+        "ACTIVE",
+        "COMPLETED",
+        "REJECTED",
+        "PAUSED",
+        "FAILED",
+        "CANCELLED",
+        "REFUND_PENDING",
+        "REFUNDED"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "blue",
+        "yellow",
+        "blue",
+        "purple",
+        "purple",
+        "blue",
+        "green",
+        "green",
+        "red",
+        "yellow",
+        "red",
+        "gray",
+        "yellow",
+        "gray"
+      ],
+      "default": "DRAFT",
+      "description": "Lifecycle state. Payment alone never advances past READY_FOR_REVIEW: launch needs approvals, provider eligibility and the execution switches."
+    },
+    "status_before_pause": {
+      "type": "string",
+      "description": "Status to restore when a paused campaign resumes"
+    },
+    "pause_reason": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "meta",
+        "google"
+      ],
+      "default": "meta",
+      "description": "Advertising platform. Arriv operates every campaign through its own advertising accounts."
+    },
+    "provider_account_id": {
+      "type": "string"
+    },
+    "provider_page_id": {
+      "type": "string"
+    },
+    "provider_campaign_id": {
+      "type": "string",
+      "description": "Platform campaign id once created. Its presence is what prevents a second launch."
+    },
+    "provider_ad_set_id": {
+      "type": "string"
+    },
+    "provider_creative_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider_ad_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider_status": {
+      "type": "string",
+      "description": "Platform's own reported state (ACTIVE, PAUSED, IN_PROCESS, WITH_ISSUES, ...)"
+    },
+    "provider_last_sync_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provider_last_error": {
+      "type": "string"
+    },
+    "launch_attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "launch_blocks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Safeguards that prevented the last launch attempt, so a held campaign is never silent"
+    },
+    "scheduled_start_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Earliest instant the campaign may launch, chosen by the customer"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Scheduled end, derived from the campaign start plus the purchased duration"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_days": {
+      "type": "integer"
+    },
+    "creative": {
+      "type": "object",
+      "description": "The exact creative that was approved. Deterministic, assembled only from approved listing content: no invented features, price, amenities or availability.",
+      "properties": {
+        "headline": {
+          "type": "string"
+        },
+        "primary_text": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "call_to_action": {
+          "type": "string"
+        },
+        "display_link": {
+          "type": "string"
+        },
+        "link_url": {
+          "type": "string"
+        },
+        "variations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "targeting": {
+          "type": "object"
+        },
+        "special_ad_category": {
+          "type": "string",
+          "default": "HOUSING"
+        },
+        "utm": {
+          "type": "object"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "creative_fingerprint": {
+      "type": "string",
+      "description": "Hash of the creative and budget the customer approved. A material change invalidates the approval."
+    },
+    "authorization": {
+      "type": "object",
+      "description": "Evidence that the customer confirmed authority and advertising rules for exactly this campaign.",
+      "properties": {
+        "confirmed": {
+          "type": "boolean"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "by_email": {
+          "type": "string"
+        },
+        "agreement_version": {
+          "type": "string"
+        },
+        "snapshot": {
+          "type": "string"
+        },
+        "approved_details": {
+          "type": "object"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "customer_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_approved_by": {
+      "type": "string"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "Payment funding this campaign. Unique across campaigns: one payment never creates two campaigns."
+    },
+    "stripe_client_secret": {
+      "type": "string"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Platform-reported figures exactly as the advertising platform returned them. Never estimated, never filled with placeholders.",
+      "properties": {
+        "impressions": {
+          "type": "integer"
+        },
+        "reach": {
+          "type": "integer"
+        },
+        "clicks": {
+          "type": "integer"
+        },
+        "spend_cents": {
+          "type": "integer"
+        },
+        "reported_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "final_report": {
+      "type": "object",
+      "description": "Recorded campaign summary captured when the campaign completed"
+    },
+    "final_report_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention_reason": {
+      "type": "string"
+    },
+    "refund_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "requested",
+        "full",
+        "partial",
+        "declined"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "red",
+        "purple",
+        "gray"
+      ],
+      "default": "none"
+    },
+    "refund_reason": {
+      "type": "string"
+    },
+    "refund_decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "refund_decided_by": {
+      "type": "string",
+      "description": "Administrator who authorized the refund decision. No refund is ever issued without one."
+    },
+    "refund_stripe_id": {
+      "type": "string"
+    },
+    "notified_submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_active_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_failure_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Synthetic test campaign. Excluded from reporting and never sent to a platform."
+    },
+    "events": {
+      "type": "array",
+      "description": "Append-only audit history",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "listing_id",
+    "client_email",
+    "package_tier",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

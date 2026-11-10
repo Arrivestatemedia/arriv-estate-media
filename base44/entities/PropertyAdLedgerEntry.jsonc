@@ -1,0 +1,100 @@
+{
+  "name": "PropertyAdLedgerEntry",
+  "type": "object",
+  "properties": {
+    "entry_id": {
+      "type": "string",
+      "description": "Stable entry ID (adl_...)"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "PropertyAdCampaign this entry belongs to"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "package_tier": {
+      "type": "string"
+    },
+    "entry_type": {
+      "type": "string",
+      "enum": [
+        "budget_commit",
+        "platform_spend",
+        "budget_release",
+        "fee_recognized",
+        "processing_fee",
+        "refund"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray",
+        "green",
+        "yellow",
+        "red"
+      ],
+      "description": "Append-only ledger entry type. Committed advertising budget is never treated as Arriv revenue."
+    },
+    "amount_cents": {
+      "type": "integer",
+      "description": "Signed amount: positive adds to the campaign's remaining advertising allocation, negative consumes or releases it."
+    },
+    "balance_after_cents": {
+      "type": "integer",
+      "description": "Remaining advertising allocation after this entry, so the ledger can always be reconciled"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Provider object id, payment intent, refund id or internal reference this entry documents"
+    },
+    "note": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certification_mode": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "entry_id",
+    "campaign_id",
+    "entry_type",
+    "amount_cents"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

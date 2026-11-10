@@ -1,0 +1,121 @@
+{
+  "name": "PropertyAdProviderAccount",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "meta",
+        "google"
+      ],
+      "description": "Advertising platform this record configures. One record per provider."
+    },
+    "label": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unconfigured",
+        "configured",
+        "connected",
+        "error",
+        "disabled"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "unconfigured",
+      "description": "Only 'connected' allows a campaign to be submitted. Nothing is inferred: an administrator marks it connected after a verified check."
+    },
+    "business_id": {
+      "type": "string",
+      "description": "Arriv-controlled business/portfolio id on the platform"
+    },
+    "ad_account_id": {
+      "type": "string",
+      "description": "Arriv-controlled advertising account campaigns are created in"
+    },
+    "page_id": {
+      "type": "string",
+      "description": "Facebook Page the housing ads run from"
+    },
+    "api_version": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "credential_secret_name": {
+      "type": "string",
+      "description": "Name of the app secret holding the access token. The token itself is never stored in the database."
+    },
+    "special_ad_categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Must include HOUSING for property advertising"
+    },
+    "spend_controls_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Platform-native lifetime budget and scheduling controls confirmed working for this account. Automatic launch is blocked until this is true."
+    },
+    "business_verification_status": {
+      "type": "string"
+    },
+    "last_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_verified_by": {
+      "type": "string"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "provider",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
