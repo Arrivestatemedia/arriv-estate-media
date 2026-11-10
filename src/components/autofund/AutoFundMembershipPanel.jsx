@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +30,11 @@ export default function AutoFundMembershipPanel({ data, catalog, onChanged }) {
   const act = async (action, extra = {}) => {
     setLoading(true); setError(null);
     try {
-      const res = await base44.functions.invoke("manageAutoFund", {
+      const res = await base44.functions.invoke("manageAutoFund", withCustomerSession({
         action,
         subscription_id: sub.id,
         ...extra,
-      });
+      }));
       const payload = res?.data || res;
       if (payload?.error) setError(payload.error);
       else {

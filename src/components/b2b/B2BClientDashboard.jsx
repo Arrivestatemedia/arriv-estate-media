@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { CreditCard, Calendar, TrendingUp, Users, AlertCircle, Loader2, Building2 } from "lucide-react";
 
 export default function B2BClientDashboard({ userEmail }) {
@@ -13,7 +14,7 @@ export default function B2BClientDashboard({ userEmail }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("getB2BClientDashboard", { email: userEmail });
+      const res = await base44.functions.invoke("getB2BClientDashboard", withCustomerSession({}));
       setData(res?.data || res);
     } catch (e) {
       console.error(e);

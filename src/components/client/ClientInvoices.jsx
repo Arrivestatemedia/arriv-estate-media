@@ -39,7 +39,7 @@ export default function ClientInvoices({ email }) {
   const open = (url, invoice, action) => {
     if (url) window.open(url, "_blank", "noopener,noreferrer");
     base44.functions
-      .invoke("trackInvoiceEngagement", { invoiceId: invoice.id, action, clientEmail: email })
+      .invoke("trackInvoiceEngagement", withCustomerSession({ invoiceId: invoice.id, action }))
       .catch(() => {});
   };
 

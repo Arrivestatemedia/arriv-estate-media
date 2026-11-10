@@ -6,6 +6,8 @@
 // record's own owner/team addresses, or used to grant the administrator view — never to decide that
 // something belongs to somebody.
 
+import { requireCustomer } from "./customerSession.ts";
+
 export interface VisibilityActor {
   email: string;
   isAdmin: boolean;
@@ -43,9 +45,22 @@ export async function resolveVisibilityActor(base44: any, body: any): Promise<Vi
     }
   }
 
-  const email = String(
-    (!isSystemSession && platformEmail) || body?.clientEmail || body?.client_email || body?.email || "",
-  ).trim().toLowerCase();
+  const bodyEmail = String(body?.clientEmail || body?.client_email || body?.email || "").trim().toLowerCase();
+
+  // A customer identity is accepted only from a verified session. Without one the customer branch
+  // carries no address at all, so every owner/team check downstream fails closed. Administrators keep
+  // their existing behaviour; the automated sweeps act on isAdmin, never on a claimed address.
+  let verifiedEmail = "";
+  try {
+    const verified = await requireCustomer(base44, null as any, body);
+    if (verified.ok) verifiedEmail = verified.actor.email;
+  } catch {
+    verifiedEmail = "";
+  }
+
+  const email = isAdmin
+    ? String((!isSystemSession && platformEmail) || bodyEmail).trim().toLowerCase()
+    : verifiedEmail;
 
   return { email, isAdmin };
 }

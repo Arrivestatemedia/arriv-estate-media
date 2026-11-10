@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,11 +30,9 @@ export default function WalletPanel({ customerEmail, customerId }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke("managePrepaid", {
+      const res = await base44.functions.invoke("managePrepaid", withCustomerSession({
         action: "get_wallet",
-        customer_email: customerEmail,
-        customer_id: customerId,
-      });
+      }));
       const data = res?.data || res;
       if (data?.wallet) {
         setWallet(data.wallet);

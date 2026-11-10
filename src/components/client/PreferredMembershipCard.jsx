@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Loader2 } from "lucide-react";
@@ -30,7 +31,7 @@ export default function PreferredMembershipCard({ email }) {
         return;
       }
       try {
-        const res = await base44.functions.invoke("checkPreferredMembership", { client_email: email });
+        const res = await base44.functions.invoke("checkPreferredMembership", withCustomerSession({}));
         const data = res?.data || res;
         if (cancelled) return;
         setState({
@@ -52,18 +53,8 @@ export default function PreferredMembershipCard({ email }) {
     setError("");
     setStarting(true);
     try {
-      const accountRes = await base44.functions.invoke("getMyAccount", {});
-      const account = accountRes?.data?.account || accountRes?.data || {};
-      const clientId = account?.id || account?.account_id || "";
-      if (!clientId) {
-        setError("Your account could not be found. Please sign in again.");
-        return;
-      }
-      const res = await base44.functions.invoke("createPreferredMembership", {
-        client_id: clientId,
-        client_email: email,
-        client_name: account?.full_name || "",
-      });
+      // The server derives the account and email from the signed session; nothing identifying is sent.
+      const res = await base44.functions.invoke("createPreferredMembership", withCustomerSession({}));
       const data = res?.data || res;
       if (data?.checkout_url) {
         window.location.href = data.checkout_url;

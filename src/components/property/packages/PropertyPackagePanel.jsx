@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import PackageTierCard from "./PackageTierCard";
@@ -32,7 +33,7 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
     setLoading(true);
     setError("");
     try {
-      const res = await base44.functions.invoke("managePropertyPromotion", { action: "overview", listingId, clientEmail });
+      const res = await base44.functions.invoke("managePropertyPromotion", withCustomerSession({ action: "overview", listingId }));
       const data = res?.data || res;
       if (data?.ok === false) setError(data.message || data.error || "Your packages could not be loaded.");
       else setOverview(data);
@@ -52,7 +53,7 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
     setBusy(tier);
     setNotice("");
     try {
-      const res = await base44.functions.invoke("managePropertyPromotion", { action: "start_purchase", listingId, clientEmail, tier });
+      const res = await base44.functions.invoke("managePropertyPromotion", withCustomerSession({ action: "start_purchase", listingId, tier }));
       const data = res?.data || res;
       if (data?.ok === false) {
         setNotice(data.message || "That purchase could not be started.");
@@ -76,13 +77,12 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
     setCheckout(null);
     setBusy("confirm");
     try {
-      const res = await base44.functions.invoke("managePropertyPromotion", {
+      const res = await base44.functions.invoke("managePropertyPromotion", withCustomerSession({
         action: "confirm_purchase",
         listingId,
-        clientEmail,
         promotionId,
         paymentIntentId,
-      });
+      }));
       const data = res?.data || res;
       setNotice(
         data?.activated
@@ -106,12 +106,11 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
     if (!confirmed) return;
     setBusy("cancel");
     try {
-      const res = await base44.functions.invoke("managePropertyPromotion", {
+      const res = await base44.functions.invoke("managePropertyPromotion", withCustomerSession({
         action: "cancel_promotion",
         listingId,
-        clientEmail,
         promotionId: overview.promotion.promotion_id,
-      });
+      }));
       const data = res?.data || res;
       setNotice(data?.message || "The placement has been ended.");
       await load();

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,13 +13,7 @@ import { Home, Loader2, CheckCircle2, ChevronDown } from "lucide-react";
  * Only the address is required. The record is created as a draft and still goes through the normal
  * Arriv review before anything is published — this form never publishes.
  */
-function sessionToken() {
-  return (
-    localStorage.getItem("customer_session_token") ||
-    sessionStorage.getItem("customer_session_token") ||
-    null
-  );
-}
+
 
 const EMPTY = {
   propertyAddress: "",
@@ -51,16 +46,10 @@ export default function SeoPropertyDraftCard() {
 
     setSaving(true);
     try {
-      const token = sessionToken();
-      if (!token) {
-        setError("Please sign in again to create a property page.");
-        return;
-      }
-      const res = await base44.functions.invoke("managePropertyListing", {
+      const res = await base44.functions.invoke("managePropertyListing", withCustomerSession({
         ...form,
         action: "create_seo_draft",
-        session_token: token,
-      });
+      }));
       const data = res?.data || res;
       if (data?.error) {
         setError(data.error);

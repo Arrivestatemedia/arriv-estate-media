@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { requireCustomer } from '../../shared/customerSession.ts';
 import {
   PREPAID_TIERS,
   PREPAID_CREDIT_VALUE,
@@ -38,6 +39,18 @@ export default async function(req) {
     try {
       user = await base44.auth.me();
     } catch {}
+
+    // A customer reading a wallet is identified by the verified session (or the platform's own
+    // signed-in user). A caller-supplied address is never accepted as identity.
+    let sessionEmail = '';
+    try {
+      const verified = await requireCustomer(base44, req, body);
+      if (verified.ok) sessionEmail = verified.actor.email;
+    } catch {
+      sessionEmail = '';
+    }
+    const identity = sessionEmail || (user?.email ? String(user.email).toLowerCase() : '');
+    const isAdminUser = !!user && user.role === 'admin';
 
     if (ADMIN_ACTIONS.includes(action)) {
       if (!user || user.role !== 'admin') {
@@ -917,10 +930,15 @@ export default async function(req) {
         const wallets = await base44.asServiceRole.entities.PrepaidWallet.filter({ customer_id }, undefined, 1);
         const arr = Array.isArray(wallets) ? wallets : (wallets?.data || []);
         wallet = arr[0];
-      } else if (customer_email) {
-        const wallets = await base44.asServiceRole.entities.PrepaidWallet.filter({ customer_email }, undefined, 1);
+      } else if (customer_email || identity) {
+        const wallets = await base44.asServiceRole.entities.PrepaidWallet.filter({ customer_email: identity }, undefined, 1);
         const arr = Array.isArray(wallets) ? wallets : (wallets?.data || []);
         wallet = arr[0];
+      }
+
+      // A wallet belongs to exactly one customer; the verified identity must match it.
+      if (wallet && !isAdminUser && String(wallet.customer_email || '').toLowerCase() !== identity) {
+        return Response.json({ error: 'Unauthorized: this wallet does not belong to you' }, { status: 403 });
       }
 
       if (!wallet) return Response.json({ error: 'Wallet not found' }, { status: 404 });

@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { withCustomerSession } from './customerSession';
 
 // Thin client for the Phase 4 visibility surfaces. Every call is answered by a backend function that
 // decides what the caller may see; nothing here filters or decides authorization.
@@ -47,7 +48,9 @@ function sessionIdentity() {
     identity.admin_email = email;
   }
   if (salesMemberId) identity.sales_member_id = salesMemberId;
-  return identity;
+  // The verified customer session is what actually proves who is asking; the address above is only
+  // the administrator/employee hint the server already knows how to check.
+  return { ...identity, ...withCustomerSession({}) };
 }
 
 export async function fetchVisibilityDashboard(profileId) {

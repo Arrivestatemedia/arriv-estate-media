@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { requireCustomer } from '../../shared/customerSession.ts';
 import {
   AUTO_FUND_AMOUNT_OPTIONS,
   AUTO_FUND_AMOUNTS,
@@ -67,6 +68,18 @@ export default async function(req) {
 
     const isAdmin = !!user && user.role === 'admin';
 
+    // Customer identity comes from the verified session, then the platform's own signed-in user.
+    // A caller-supplied address is never accepted as identity on a self-service action.
+    let sessionEmail = '';
+    try {
+      const verified = await requireCustomer(base44, req, body);
+      if (verified.ok) sessionEmail = verified.actor.email;
+    } catch {
+      sessionEmail = '';
+    }
+    const identity = sessionEmail || (user?.email ? String(user.email).toLowerCase() : '');
+    const identityName = user?.full_name || '';
+
     /**
      * A signed-in customer may manage THEIR OWN membership from their dashboard; an
      * administrator may act on any. Enforced on every self-service action, so one
@@ -74,8 +87,8 @@ export default async function(req) {
      */
     const assertOwnership = (sub: any) => {
       if (isAdmin) return true;
-      if (!user) return false;
-      return !!sub && !!sub.customer_email && sub.customer_email === user.email;
+      if (!identity) return false;
+      return !!sub && !!sub.customer_email && String(sub.customer_email).toLowerCase() === identity;
     };
 
     // ════════════════════════════════════════════════════════════════════════
@@ -229,7 +242,7 @@ export default async function(req) {
     // customer accepts the recurring-charge terms themselves. A self-service
     // enrollment with no VERIFIED advisor involvement generates NO commission.
     if (action === 'self_service_enroll') {
-      if (!user) return Response.json({ error: 'Sign in to enroll in Auto-Fund.' }, { status: 401 });
+      if (!identity) return Response.json({ error: 'Sign in to enroll in Auto-Fund.' }, { status: 401 });
       if (!globalEnabled) {
         return Response.json({ error: 'Auto-Fund is not available.' }, { status: 403 });
       }
@@ -246,20 +259,20 @@ export default async function(req) {
         tier_amount: amount,
         // The enrolled customer is the SIGNED-IN user — never a caller-supplied
         // address, so one customer cannot enroll another.
-        customer_email: user.email,
-        customer_name: customer_name || user.full_name || '',
+        customer_email: identity,
+        customer_name: customer_name || identityName,
         customer_phone,
         sales_rep_id,
         // Only a deliberate customer choice may carry attribution on this channel.
         attribution_source: attribution_source === 'customer_selected_advisor' ? 'customer_selected_advisor' : '',
         terms_accepted: terms_accepted === true,
-        terms_accepted_by: terms_accepted ? user.email : '',
+        terms_accepted_by: terms_accepted ? identity : '',
         fee_refund_policy,
         // The customer's own billing address, required for the renewal-notice
         // jurisdiction. Validated server-side; enrollment is refused without it.
         billing_address,
         billing_day,
-        actor: user.email,
+        actor: identity,
       });
 
       if (result.status !== 'enrolled') {
@@ -488,7 +501,7 @@ export default async function(req) {
       if (!sub) return Response.json({ error: 'Subscription not found' }, { status: 404 });
 
       // RLS
-      if (user && user.role !== 'admin' && sub.customer_email !== user.email) {
+      if (!isAdmin && String(sub.customer_email || '').toLowerCase() !== identity) {
         return Response.json({ error: 'Access denied' }, { status: 403 });
       }
 
@@ -576,14 +589,14 @@ export default async function(req) {
     // charge, or attribute anything — an advisor may never enroll a customer or
     // accept recurring terms on their behalf.
     if (action === 'request_advisor') {
-      if (!user) return Response.json({ error: 'Sign in to request an advisor.' }, { status: 401 });
+      if (!identity) return Response.json({ error: 'Sign in to request an advisor.' }, { status: 401 });
       const { customer_name, customer_phone, preferred_time, notes } = body;
 
       const requestId = 'afadv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       await base44.asServiceRole.entities.AutoFundAdvisorRequest.create({
         request_id: requestId,
-        customer_email: user.email,
-        customer_name: customer_name || user.full_name || '',
+        customer_email: identity,
+        customer_name: customer_name || identityName,
         customer_phone: customer_phone || '',
         preferred_time: preferred_time || '',
         notes: notes || '',

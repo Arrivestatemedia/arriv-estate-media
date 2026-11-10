@@ -42,17 +42,19 @@ export const INQUIRY_DISCLOSURES = [
   "Arriv Estate Media does not sell inquiry data.",
 ];
 
+import { withCustomerSession } from "./customerSession";
+
 export async function propertyAction(action, payload = {}) {
-  const res = await base44.functions.invoke("managePropertyListing", { action, ...payload });
+  const res = await base44.functions.invoke("managePropertyListing", withCustomerSession({ action, ...payload }));
   return res?.data || res;
 }
 
 export async function loadPropertyContext(jobId, clientEmail) {
-  const res = await base44.functions.invoke("managePropertyListing", {
+  const res = await base44.functions.invoke("managePropertyListing", withCustomerSession({
     action: "get_context",
     jobId,
     clientEmail,
-  });
+  }));
   return res?.data || res;
 }
 

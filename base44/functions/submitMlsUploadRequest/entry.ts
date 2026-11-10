@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { requireCustomer } from '../../shared/customerSession.ts';
 import { loadMlsProviders, getProvider, validateMlsNumber, isSupportedPhoto, isProviderLiveForCustomers, type MlsProvider } from '../../shared/mlsProviders.ts';
 import { loadMlsServiceWindow, computeMlsDeadline, formatEtDeadline, describeWindow } from '../../shared/mlsServiceWindow.ts';
 import { ownsJob, isDeliveryReady, listDeliveryFiles, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
@@ -71,7 +72,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const {
       jobId,
-      clientEmail,
       mlsNumber,
       mlsNumbers = {},
       selectedProviders = [],
@@ -82,7 +82,13 @@ Deno.serve(async (req) => {
     } = body || {};
 
     if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 });
-    if (!clientEmail) return Response.json({ error: 'clientEmail is required' }, { status: 400 });
+
+    // The submitting customer is whoever the signed session proves, never the address in the body.
+    const customerAuth = await requireCustomer(base44, req, body);
+    if (!customerAuth.ok) {
+      return Response.json({ error: customerAuth.error }, { status: customerAuth.status });
+    }
+    const clientEmail = customerAuth.actor.email;
 
     const job = await base44.asServiceRole.entities.Job.get(jobId);
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });

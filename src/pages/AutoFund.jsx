@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2, Wallet } from "lucide-react";
@@ -49,10 +50,9 @@ export default function AutoFund() {
   const loadMembership = async (email) => {
     if (!email) return;
     try {
-      const res = await base44.functions.invoke("manageAutoFund", {
+      const res = await base44.functions.invoke("manageAutoFund", withCustomerSession({
         action: "get_subscription",
-        customer_email: email,
-      });
+      }));
       const data = res?.data || res;
       setMembership(data?.subscription ? data : null);
     } catch {

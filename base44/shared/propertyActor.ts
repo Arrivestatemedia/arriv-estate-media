@@ -9,6 +9,7 @@
 // the administrator view. It is never used to decide that something belongs to somebody.
 
 import { sanitizeText } from "./propertyVisibility.ts";
+import { requireCustomer } from "./customerSession.ts";
 
 export interface PropertyActor {
   email: string;
@@ -28,7 +29,20 @@ export async function resolvePropertyActor(base44: any, body: any): Promise<Prop
     platformEmail = "";
   }
 
-  const clientEmail = String(body?.clientEmail || body?.client_email || "").trim().toLowerCase();
+  const bodyEmail = String(body?.clientEmail || body?.client_email || "").trim().toLowerCase();
+
+  // A customer is identified by the signed session and nothing else. A browser-supplied address is
+  // never accepted as identity: without a verified session the customer branch gets no address at
+  // all, so ownership checks can only fail closed. The automated sweeps do not need it — they act on
+  // actor.isAdmin, which comes from the administrator/staff identity alone.
+  let verifiedEmail = "";
+  try {
+    const verified = await requireCustomer(base44, null as any, body);
+    if (verified.ok) verifiedEmail = verified.actor.email;
+  } catch {
+    verifiedEmail = "";
+  }
+  const clientEmail = verifiedEmail;
 
   let staffAdmin: any = null;
   const claimedId = String(body?.sales_member_id || "").trim();

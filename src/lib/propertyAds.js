@@ -5,13 +5,15 @@ import { base44 } from "@/api/base44Client";
 // Nothing here decides eligibility, price, budget or state: every call goes to the server, which
 // owns the advertising rules. This file only carries the request and formats what comes back.
 
+import { withCustomerSession } from "./customerSession";
+
 export async function adAction(action, payload = {}) {
-  const res = await base44.functions.invoke("managePropertyAdCampaign", { action, ...payload });
+  const res = await base44.functions.invoke("managePropertyAdCampaign", withCustomerSession({ action, ...payload }));
   return res?.data || res;
 }
 
 export async function adminAdAction(action, payload = {}) {
-  const res = await base44.functions.invoke("adminPropertyAdCampaigns", { action, ...payload });
+  const res = await base44.functions.invoke("adminPropertyAdCampaigns", withCustomerSession({ action, ...payload }));
   return res?.data || res;
 }
 

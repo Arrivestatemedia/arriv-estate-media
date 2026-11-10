@@ -1,9 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { email, user_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { user_id } = body || {};
+
+    // Who is asking: the verified session, or an administrator looking at an organization.
+    const customerAuth = await requireCustomer(base44, req, body);
+    if (!customerAuth.ok) {
+      return Response.json({ error: customerAuth.error }, { status: customerAuth.status });
+    }
+    const email = customerAuth.actor.email;
 
     // Resolve B2B entitlement
     const entitlementRes = await base44.asServiceRole.functions.invoke('resolveB2BEntitlement', { email, user_id });

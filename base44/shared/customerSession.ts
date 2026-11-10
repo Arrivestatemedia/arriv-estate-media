@@ -89,7 +89,7 @@ export function verifyCustomerSession(token: string | null | undefined): any | n
 /** Token arrives in the JSON body (SDK invoke) or as a Bearer header. */
 export function readSessionToken(req: Request, body: any): string | null {
   if (body && typeof body.session_token === 'string' && body.session_token) return body.session_token;
-  const header = req.headers.get('authorization') || '';
+  const header = req?.headers?.get?.('authorization') || '';
   if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim();
   return null;
 }

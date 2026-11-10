@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,7 +64,7 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
   const enroll = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await base44.functions.invoke("manageAutoFund", {
+      const res = await base44.functions.invoke("manageAutoFund", withCustomerSession({
         action: "self_service_enroll",
         amount: tier.amount,
         customer_phone: phone || undefined,
@@ -75,7 +76,7 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
           postal_code: postalCode.trim(),
           country: "US",
         },
-      });
+      }));
       const data = res?.data || res;
       if (data?.status === "enrolled" || data?.status === "success") {
         setDone(data);
@@ -94,11 +95,11 @@ export default function AutoFundEnrollPanel({ tier, enrollmentOpen, onEnrolled }
   const requestAdvisor = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await base44.functions.invoke("manageAutoFund", {
+      const res = await base44.functions.invoke("manageAutoFund", withCustomerSession({
         action: "request_advisor",
         customer_phone: phone || undefined,
         notes: advisorNote || undefined,
-      });
+      }));
       const data = res?.data || res;
       if (data?.status === "success") setAdvisorSent(true);
       else setError(data?.error || "We could not send your request.");

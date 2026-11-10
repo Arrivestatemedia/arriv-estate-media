@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 /**
  * trackInvoiceEngagement
@@ -23,17 +24,25 @@ const NOTIFY_WINDOW_MS = 10 * 60 * 1000;
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { invoiceId, action, clientEmail } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { invoiceId, action } = body || {};
 
-    if (!invoiceId || !clientEmail) {
-      return Response.json({ error: 'invoiceId and clientEmail are required' }, { status: 400 });
+    if (!invoiceId) {
+      return Response.json({ error: 'invoiceId is required' }, { status: 400 });
     }
+
+    // Ownership is proved by the signed session: the address in the body is never the identity.
+    const customerAuth = await requireCustomer(base44, req, body);
+    if (!customerAuth.ok) {
+      return Response.json({ error: customerAuth.error }, { status: customerAuth.status });
+    }
+    const clientEmail = customerAuth.actor.email;
 
     const invoice = await base44.asServiceRole.entities.Invoice.get(invoiceId);
     if (!invoice) {
       return Response.json({ error: 'Invoice not found' }, { status: 404 });
     }
-    if ((invoice.client_email || '').toLowerCase() !== String(clientEmail).trim().toLowerCase()) {
+    if ((invoice.client_email || '').toLowerCase() !== clientEmail) {
       return Response.json({ error: 'Unauthorized: this invoice does not belong to you' }, { status: 403 });
     }
 

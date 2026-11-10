@@ -193,7 +193,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
         // Only when the customer completed the address in this modal: the server judges and records
         // the request against the address that was actually checked.
       };
-      const res = await base44.functions.invoke("submitMlsUploadRequest", payload);
+      const res = await base44.functions.invoke("submitMlsUploadRequest", withCustomerSession(payload));
       const data = res?.data || res;
       if (data?.error) throw new Error(data.error);
       setSubmitted(data);
