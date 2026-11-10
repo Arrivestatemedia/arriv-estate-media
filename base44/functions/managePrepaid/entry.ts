@@ -46,9 +46,14 @@ export default async function(req) {
     let sessionEmail = '';
     if (body.session_token) {
       const verified = await requireCustomer(base44, req, body);
-      if (!verified.ok) return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
-      sessionEmail = verified.actor.email;
-      user = null; // A stale platform account cannot override a signed customer.
+      if (verified.ok) {
+        sessionEmail = verified.actor.email;
+        // A signed customer cannot borrow a platform identity. A genuine administrator
+        // keeps the staff view, so no staff screen is broken by a leftover token.
+        if (!(user && user.role === 'admin')) user = null;
+      } else if (!(user && user.role === 'admin')) {
+        return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
+      }
     }
     const identity = sessionEmail || (user?.email ? String(user.email).toLowerCase() : '');
     const isAdminUser = !!user && user.role === 'admin';

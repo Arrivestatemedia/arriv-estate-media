@@ -13,10 +13,11 @@ export default async function(req) {
     // entitlement is resolved from the signed customer session first. Staff keep the platform
     // session. Only when neither exists is the request refused.
     let clientEmail = '';
+    let sessionError = null;
     if (body.session_token) {
       const auth = await requireCustomer(base44, req, body);
-      if (!auth.ok) return Response.json({ code: auth.code, error: auth.error, active: false }, { status: auth.status });
-      clientEmail = auth.actor.email;
+      if (auth.ok) clientEmail = auth.actor.email;
+      else sessionError = auth;
     }
 
     if (!clientEmail) {
@@ -26,7 +27,10 @@ export default async function(req) {
       } catch {
         user = null;
       }
-      if (!user?.email) return Response.json({ error: 'Unauthorized', active: false }, { status: 401 });
+      if (!user?.email) {
+        if (sessionError) return Response.json({ code: sessionError.code, error: sessionError.error, active: false }, { status: sessionError.status });
+        return Response.json({ error: 'Unauthorized', active: false }, { status: 401 });
+      }
       clientEmail = String(user.email).toLowerCase();
     }
 

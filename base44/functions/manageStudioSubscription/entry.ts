@@ -27,7 +27,7 @@ export default async function(req) {
       user = null;
     }
 
-    if (body.session_token && String(action || '') === 'get') {
+    if (body.session_token && !user && String(action || '') === 'get') {
       const auth = await requireCustomer(base44, req, body);
       if (!auth.ok) return Response.json({ code: auth.code, error: auth.error }, { status: auth.status });
       user = { email: auth.actor.email, full_name: auth.actor.full_name, role: 'user' };

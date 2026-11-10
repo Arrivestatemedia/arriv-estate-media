@@ -54,7 +54,6 @@ export default async function(req) {
 
     let user = null;
     try { user = await base44.auth.me(); } catch {}
-    if (body.session_token) user = null;
 
     // Actions only an administrator (or the sales-assisted channel) may perform.
     const ADMIN_ACTIONS = ['enroll', 'topup', 'list_subscriptions'];
@@ -68,7 +67,7 @@ export default async function(req) {
       }
     }
 
-    const isAdmin = !body.session_token && !!user && user.role === 'admin';
+    const isAdmin = !!user && user.role === 'admin';
 
     // Customer identity comes from the verified session, then the platform's own signed-in user.
     // A caller-supplied address is never accepted as identity on a self-service action.
@@ -76,10 +75,14 @@ export default async function(req) {
     let sessionName = '';
     if (body.session_token && action !== 'get_tier_catalog') {
       const verified = await requireCustomer(base44, req, body);
-      if (!verified.ok) return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
-      sessionEmail = verified.actor.email;
-      sessionName = verified.actor.full_name;
-      user = null;
+      if (verified.ok) {
+        sessionEmail = verified.actor.email;
+        sessionName = verified.actor.full_name;
+        // Staff keep their own view; a signed customer never inherits a platform identity.
+        if (!isAdmin) user = null;
+      } else if (!isAdmin) {
+        return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
+      }
     }
     const identity = sessionEmail || (user?.email ? String(user.email).trim().toLowerCase() : '');
     const identityName = sessionName || user?.full_name || '';
