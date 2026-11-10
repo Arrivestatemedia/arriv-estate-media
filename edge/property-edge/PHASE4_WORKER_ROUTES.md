@@ -7,11 +7,19 @@ Target Worker: `edge/property-edge/worker.mjs` (properties.arrivestatemedia.com)
 - **Integrated into `worker.mjs`.** The Phase 4 routes are now real code in the Worker file, not a
   paste-in plan. Local regression suite: **60/60 passing** (`node --test`, hermetic: no network, no
   Cloudflare account, no Base44 call).
-- **Not deployed — neither production nor staging.** Probed live on 2026-11-10:
-  - `https://properties.arrivestatemedia.com/agents` → 404 `Property page not found` (proxied as a
-    listing slug, which the pre-Phase-4 build does for any single segment)
+- **Worker identity (verified 2026-11-10).** The Worker serving production is named
+  **`arriv-property-staging`** — a legacy name; it is the Worker the custom domain
+  `properties.arrivestatemedia.com` is attached to, and it holds the live `PURGE_SECRET`. Its
+  workers.dev alias (`arriv-property-staging.<account-subdomain>.workers.dev`) answers with an
+  identical `/__health`, so both hostnames are one deployment, one cache. Staging is a separate,
+  not-yet-created Worker: **`arriv-property-edge-staging`** (workers.dev only, no route, no domain).
+  `wrangler.toml` names both; a deploy with any other name would create a Worker that serves nothing
+  while the property host keeps answering from the old one.
+- **Not deployed:** the new Phase 4 code is in `worker.mjs` but not on the edge. Probed live on
+  2026-11-10 on both production hostnames:
+  - `/agents` → 404 `Property page not found` (the pre-Phase-4 build proxies any single segment as a
+    listing slug)
   - `/brokerages`, `/agents/<slug>`, `/properties/in/<city-state>` → 404 at the edge
-  - `https://arriv-property-staging.bradcburke.workers.dev` → identical pre-Phase-4 behaviour
 - Everything already live is unchanged by this work: property pages, `/properties` search, media
   streaming (both URL shapes), `/sitemap.xml`, `/robots.txt`, root 301, signed purge, `/__health`.
 
@@ -58,16 +66,22 @@ check 7. Each needs real data plus profile/city publication, which remains off.
 
 ## 3. Findings the operator must act on before deploying
 
-1. **The app's `PROPERTY_EDGE_PURGE_URL` points at the staging Worker**
-   (`arriv-property-staging.bradcburke.workers.dev/__purge`), not production. Verified by a signed,
-   empty, verifying purge: HTTP 200, `verified: true` — so the app's secret matches **staging's**
-   `PURGE_SECRET`, and production never receives a purge. Production copies therefore rely only on
-   the 300-second TTL. Switch this secret to `https://properties.arrivestatemedia.com/__purge`
-   **after** the deploy, then confirm a signed purge returns `verified: true`.
-2. **`ORIGIN_BASE` is not set on the deployed Worker** (`/__health` → `origin_host:
-   arrivestatemedia.base44.app`). This `wrangler.toml` sets it to `https://app.arrivestatemedia.com`;
-   that host was re-verified today (serves `getPublicVisibilityPage`, HTTP 200 HTML). Deploying
-   applies it automatically — confirm `origin_host` afterwards.
+1. **The app's `PROPERTY_EDGE_PURGE_URL` uses the production Worker's workers.dev alias**
+   (`arriv-property-staging.<subdomain>.workers.dev/__purge`). A signed, empty, verifying purge
+   returned HTTP 200 `verified: true`, and that alias is the same deployment as the property host —
+   so purges **do** reach the cache that serves production, and the app secret matches the
+   production `PURGE_SECRET`. Nothing is broken today; the only fragility is that purges depend on
+   the alias staying enabled. After the deploy, point the secret at
+   `https://properties.arrivestatemedia.com/__purge` so purges travel over the custom domain, then
+   confirm one signed purge still returns `verified: true`.
+2. **`ORIGIN_BASE` drift.** The deployed Worker has it unset (`/__health` → `origin_host:
+   arrivestatemedia.base44.app`); `wrangler.toml` pins it to `https://app.arrivestatemedia.com`.
+   That branded host was re-verified today on all four proxied surfaces: `/properties` → the SPA,
+   `generatePropertySitemap` → the app's XML, `getPublicPropertyPage` → the app's JSON,
+   `getPublicVisibilityPage` → the app's HTML. Deploying applies the var; confirm `origin_host`
+   reads `app.arrivestatemedia.com` afterwards. Cache keys are namespaced on `PUBLIC_HOST`, so
+   changing `ORIGIN_BASE` orphans no cached entry. Fallback if that host is ever down: delete the
+   var, and the Worker uses its built-in platform origin.
 3. **No Cloudflare credentials in this workspace** — no `CLOUDFLARE_API_TOKEN`/`ACCOUNT_ID` secret and
    no `wrangler` dependency, so the builder session cannot deploy. An operator with Cloudflare access
    must run the commands below.
@@ -83,18 +97,24 @@ check 7. Each needs real data plus profile/city publication, which remains off.
 ```bash
 cd edge/property-edge
 
-# 0. Confirm the right account owns the Worker
+# 0. Confirm the right account owns the Worker before anything else
 npx wrangler@latest whoami
-npx wrangler@latest deployments list --name arriv-property-edge
+npx wrangler@latest deployments list --name arriv-property-staging   # production (legacy name)
 
-# 1. Rehearse on staging first (the app's purge URL already targets it)
-npx wrangler@latest deploy --env staging
-curl -s https://arriv-property-staging.bradcburke.workers.dev/__health
-curl -sI https://arriv-property-staging.bradcburke.workers.dev/agents | head -20
+# 1. Rehearse on the separate staging Worker (workers.dev only, nothing public under the Arriv domain)
+npx wrangler@latest deploy --env staging        # creates arriv-property-edge-staging
+#    Wrangler prints the real hostname; put it in [env.staging.vars] PUBLIC_HOST
+#    (<worker-name>.<account-subdomain>.workers.dev) or the canonical rewrite targets a dead host.
+npx wrangler@latest secret put PURGE_SECRET --env staging   # staging has its own secret
+curl -s https://arriv-property-edge-staging.<account-subdomain>.workers.dev/__health
+curl -sI https://arriv-property-edge-staging.<account-subdomain>.workers.dev/agents | head -20
 
-# 2. Production
-npx wrangler@latest deploy          # name = arriv-property-edge, vars from [vars]
-curl -s https://properties.arrivestatemedia.com/__health   # origin_host, host, TTLs, purge_secret_configured
+# 2. Production — deploys arriv-property-staging, the Worker the custom domain and PURGE_SECRET
+#    already belong to. A deploy of the same name preserves both.
+npx wrangler@latest deploy
+curl -s https://properties.arrivestatemedia.com/__health   # expect origin_host=app.arrivestatemedia.com
+#    and in the dashboard: Workers → arriv-property-staging → Settings → Domains & Routes
+#    must still list properties.arrivestatemedia.com
 
 # 3. Only if /__health reports purge_secret_configured:false
 npx wrangler@latest secret put PURGE_SECRET   # must equal the app's PROPERTY_EDGE_PURGE_SECRET
@@ -135,8 +155,8 @@ serving and breaks nothing else: every origin function is independent of the Wor
 
 ```bash
 # a. Instant: Cloudflare keeps prior versions
-npx wrangler@latest deployments list --name arriv-property-edge
-npx wrangler@latest rollback --name arriv-property-edge [--version-id <previous>]
+npx wrangler@latest deployments list --name arriv-property-staging
+npx wrangler@latest rollback --name arriv-property-staging [--version-id <previous>]
 
 # b. Or redeploy the previous file
 git show <last-good-sha>:edge/property-edge/worker.mjs > worker.mjs
