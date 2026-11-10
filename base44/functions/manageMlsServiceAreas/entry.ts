@@ -11,6 +11,7 @@ import {
   MLS_PROVIDER_DEFAULTS,
   loadMlsProviders,
   certificationPassed,
+  isProviderLiveForCustomers,
 } from '../../shared/mlsProviders.ts';
 
 /**
@@ -110,7 +111,8 @@ export default async function (req: Request): Promise<Response> {
       providers: Object.values(providers).map((p) => ({
         ...p,
         certification_passed: certificationPassed(p),
-        live_for_customers: p.enabled && certificationPassed(p),
+        live_for_customers: isProviderLiveForCustomers(p),
+        pilot: isProviderLiveForCustomers(p) && !certificationPassed(p),
       })),
       actor: actorEmail,
     });

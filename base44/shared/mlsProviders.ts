@@ -24,6 +24,18 @@ export interface MlsCertification {
   authorized_import: boolean;
 }
 
+/** See MlsProvider.activation: operational authorization, deliberately separate from certification. */
+export interface MlsActivation {
+  customer_publishing: boolean;
+  /** True while live customer submissions are watched personally rather than just processed. */
+  pilot: boolean;
+  approved_at?: string;
+  approved_by?: string;
+  reason?: string;
+  /** Certification tests still awaiting a live submission to prove them. Reporting only. */
+  pending_verification?: string[];
+}
+
 export interface MlsProvider {
   id: string;
   label: string;
@@ -41,7 +53,18 @@ export interface MlsProvider {
   requires_listing_number: boolean;
   /** True for providers whose integration must pass certification before it serves customers. */
   requires_certification: boolean;
+  /**
+   * The four certification tests. Nothing here is ever written by an activation: a switch is true
+   * only when that test was actually verified, and an unverified test stays false however the route
+   * is operated.
+   */
   certification: MlsCertification;
+  /**
+   * An operator's recorded authorization to publish to this MLS for real customers before every
+   * certification test could be closed. Kept apart from `certification` so operating the route never
+   * claims an untested check passed, and so reporting can say exactly what is still unproven.
+   */
+  activation?: MlsActivation;
   /**
    * May this MLS ever be shown to a customer as a publishing destination? False for an integration
    * that is still being built, so it is never advertised as somewhere we can publish.
@@ -85,9 +108,19 @@ export function certificationPassed(provider: MlsProvider | null): boolean {
   return !!(c.authentication && c.manifest && c.media_accessibility && c.authorized_import);
 }
 
+/**
+ * May this provider's automated route be used for a real customer? Either every certification test
+ * passed, or an operator explicitly authorized customer publishing (activation) — the first live
+ * submission being the proof of the remaining tests.
+ */
+export function isCustomerPublishingAuthorized(provider: MlsProvider | null): boolean {
+  if (!provider) return false;
+  return certificationPassed(provider) || provider.activation?.customer_publishing === true;
+}
+
 /** May this provider's route serve a customer right now, end to end? */
 export function isProviderLiveForCustomers(provider: MlsProvider | null): boolean {
-  return !!provider && provider.enabled === true && certificationPassed(provider);
+  return !!provider && provider.enabled === true && isCustomerPublishingAuthorized(provider);
 }
 
 /**
@@ -168,7 +201,8 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     // Real destination: our MLS team works these requests by hand until the route is activated.
     advertised: true,
     operational: true,
-    enabled: false,
+    // Activated for customer publishing on 2026-11-10. Certification is reported separately.
+    enabled: true,
     photo_limit: 100,
     supported_photo_formats: ["jpg", "jpeg", "png"],
     video_support: "virtual_tour_url",
@@ -178,15 +212,27 @@ export const MLS_PROVIDER_DEFAULTS: Record<string, MlsProvider> = {
     number_hint: "Bright listing number, only if Bright asks you for one",
     requires_authorization: true,
     requires_listing_number: false,
-    // Bright Media Sync stays dark until authentication, manifest, media-accessibility and
-    // authorized-import testing have all passed. Until then requests are handled by hand.
+    // Bright Media Sync is operated live under the activation record below, before every switch
+    // could be closed: media retrieval by Bright and an agent completing the import can only be
+    // proven by a real submission, so they stay recorded as unverified in `certification`.
     //
     // Status on 2026-11-09 (see base44/BRIGHT_MLS_CERTIFICATION_STATUS.md): authentication, basic
     // manifest acceptance and the MLS-login redirect were verified through Bright's Code Playground,
     // but Bright fetching our signed media and an agent completing the import are NOT yet verified,
-    // so every switch below stays off and the route is not live for customers.
+    // The switches stay exactly as tested — two remain unverified and are reported as such.
     requires_certification: true,
     certification: UNCERTIFIED,
+    activation: {
+      customer_publishing: true,
+      pilot: true,
+      approved_at: "2026-11-10T00:00:00.000Z",
+      approved_by: "owner authorization (Bright supervised pilot)",
+      reason:
+        "The owner authorized live customer publishing so the first Bright customer is the supervised " +
+        "end-to-end test. Operational activation is recorded here and never written into the " +
+        "certification switches.",
+      pending_verification: ["media_accessibility", "authorized_import"],
+    },
   },
 };
 

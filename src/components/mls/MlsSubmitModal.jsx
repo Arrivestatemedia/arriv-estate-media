@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,16 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     ? Math.min(...chosenDestinations.map((d) => Number(d.photo_limit) || 200), 200)
     : routing?.photo_limit;
   const importUrl = submitted?.import_links?.[0]?.url || submitted?.request?.bright_import_url || "";
+
+  // Bright's redirect opens the customer's own Bright session, so it is opened as soon as it exists.
+  // The button below stays as the fallback when a browser blocks the automatic window.
+  const autoOpenedUrl = useRef("");
+  useEffect(() => {
+    if (!importUrl || autoOpenedUrl.current === importUrl) return;
+    autoOpenedUrl.current = importUrl;
+    const opened = window.open(importUrl, "_blank", "noopener,noreferrer");
+    if (opened) opened.opener = null;
+  }, [importUrl]);
 
   const requiresNumber = !multipleDestinations && !!routing?.requires_listing_number;
   const numberReady = requiresNumber

@@ -117,10 +117,10 @@ export const DEFAULT_MLS_SERVICE_REGIONS: MlsServiceRegion[] = [
     cities: [],
     zip_prefixes: [],
     jurisdictions: BRIGHT_DMV_JURISDICTIONS,
-    // Coverage is verified against Bright's published jurisdiction list; the route itself stays
-    // unactivated until every integration certification test has passed. An eligible property is
-    // therefore named as Bright's and worked by our MLS team, not published automatically.
-    enabled: false,
+    // Coverage is verified against Bright's published jurisdiction list, and the route is activated
+    // for customer publishing (see the Bright provider's activation record). An eligible property is
+    // therefore submitted to Bright automatically.
+    enabled: true,
     verified: true,
     verified_at: "2026-11-09T00:00:00.000Z",
     verified_by: "bright-published-service-area",

@@ -244,7 +244,9 @@ export default function MlsServiceAreasPanel() {
               </p>
               <p className="text-[11px] text-[#1A1A1A]/45">
                 {provider.live_for_customers
-                  ? "Live — certified and activated"
+                  ? (provider.certification_passed
+                    ? "Live — certified and activated"
+                    : `Live under a pilot activation — ${(provider.activation?.pending_verification || []).length} certification test(s) still unproven`)
                   : "Not automated yet. Requests are published by hand until every test below is passed."}
               </p>
               {provider.advertised === false && (

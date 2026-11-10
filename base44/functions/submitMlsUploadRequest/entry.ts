@@ -14,7 +14,7 @@ import {
 } from '../../shared/mlsTerritories.ts';
 import { buildBrightMediaSyncManifest } from '../../shared/brightMediaSync.ts';
 import { submitBrightManifest } from '../../shared/brightSubmission.ts';
-import { notifyAdminOfMlsRequest, resolveAppUrl } from '../../shared/mlsNotifications.ts';
+import { notifyAdminOfMlsRequest, notifyAdminAlert, resolveAppUrl } from '../../shared/mlsNotifications.ts';
 
 /**
  * submitMlsUploadRequest
@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
         duplicate_key: idempotencyKey,
       });
 
-      // Automated transmission only for a live, certified route. Never for a dark one.
+      // Automated transmission for a live route — certified, or operated under an explicit activation.
       let bright: any = null;
       let finalRow = row;
       if (provider.id === 'bright_mls' && isProviderLiveForCustomers(provider)) {
@@ -445,6 +445,30 @@ Deno.serve(async (req) => {
         } catch (sendError: any) {
           console.error('Bright manifest submission failed:', sendError?.message || sendError);
           bright = { outcome: 'error', message: 'The Bright link could not be created.' };
+        }
+      }
+
+      // Pilot monitoring: while Bright runs under an activation, every accepted submission is
+      // reported to a person with its diagnostics, so a failed media fetch or import is caught by
+      // us rather than by the customer. Nothing here retries or resends on its own.
+      if (bright?.outcome === 'accepted' && bright.manifest_id) {
+        try {
+          await notifyAdminAlert(base44, {
+            subject: `Bright pilot: manifest ${bright.manifest_id} accepted for ${propertyAddress}`,
+            body: [
+              `Property: ${propertyAddress}`,
+              `Customer: ${job.client_email}`,
+              `Manifest ID: ${bright.manifest_id}`,
+              `Import link: ${bright.import_url || 'not returned'}`,
+              `Media sent: ${photos.length} photo(s), ${videos.length} video(s)`,
+              `Bright HTTP status: ${bright.status ?? 'unknown'}`,
+              `Media links expire: ${bright.request?.bright_link_expires_at || 'unknown'}`,
+              'Recovery: if Bright cannot fetch the media or the agent cannot import, open this request in the MLS upload queue and authorize a replacement manifest (that records a second billable manifest).',
+            ].join('\n'),
+            jobId,
+          });
+        } catch (alertError: any) {
+          console.error('Bright pilot admin alert failed:', alertError?.message || alertError);
         }
       }
 

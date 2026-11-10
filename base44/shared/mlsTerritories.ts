@@ -48,9 +48,12 @@ export interface MlsDestination {
   basis: MlsRoutingBasis;
   jurisdiction_label: string | null;
   coverage_label: string;
-  /** The provider's automated route is live and certified. */
+  /** The provider's automated route is live for this customer now. */
   live_for_customers: boolean;
+  /** Every certification test passed. Stays false while an activation carries the route. */
   certificate_complete: boolean;
+  /** Live under an operator activation rather than a completed certification. */
+  pilot: boolean;
   requires_certification: boolean;
   requires_listing_number: boolean;
   number_hint: string;
@@ -102,6 +105,7 @@ function destinationFrom(provider: MlsProvider, match: MlsTerritoryMatch): MlsDe
       : match.region_label,
     live_for_customers: live,
     certificate_complete: certificationPassed(provider),
+    pilot: live && !certificationPassed(provider),
     requires_certification: provider.requires_certification === true,
     requires_listing_number: provider.requires_listing_number !== false,
     number_hint: provider.number_hint || "Listing number",

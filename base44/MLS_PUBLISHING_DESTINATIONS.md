@@ -104,8 +104,10 @@ provider named and nothing routed on a guess.
 FMLS's manual queue and validation, Bright's manifest building and gating, the delivery gallery,
 photo selection and order, unbranded YouTube tour links, and the Property Listing Page Builder.
 
-Bright stays dark: region `enabled: false`, provider `enabled: false`, all four certification switches
-`false`. No live Bright submission was made while building this.
+Bright is now live for customer publishing under a recorded **pilot activation** (2026-11-10): region
+`enabled: true`, provider `enabled: true`, certification switches still reporting what was actually
+proven, and `activation.pending_verification` naming the two tests only a live submission can close.
+No live Bright submission was made during setup, and FMLS's manual Matrix workflow is untouched.
 
 ## Test results
 

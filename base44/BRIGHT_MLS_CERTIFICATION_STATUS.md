@@ -30,27 +30,58 @@ Bright's published jurisdiction list is transcribed and used for address routing
 changes none of the switches below: being inside Bright's area proves which MLS serves a property, not
 that the integration is certified, and not that the customer belongs to Bright.
 
-## Certification switches — deliberately still OFF
+## Activation for customer publishing — 2026-11-10
 
-`mlsProviders.ts`, provider `bright_mls`: `enabled: false`, certification
-`authentication/manifest/media_accessibility/authorized_import` all `false`.
+The owner authorized live customer publishing so that the **first Bright customer submission is the
+supervised end-to-end test**. Operational activation is recorded in a field of its own and never
+written into the certification switches, which still say only what was actually proven.
 
-`isProviderLiveForCustomers()` requires **all four** flags, so two verified tests cannot activate the
-route. The two remaining tests (`media_accessibility`, `authorized_import`) must pass before an
-administrator turns anything on. Until then:
+`mlsProviders.ts`, provider `bright_mls`:
 
-- customer requests route by address as before and, where the address maps to Bright, land in the
-  manual queue with `manifest_status: blocked_pending_certification`;
-- nothing is transmitted to Bright automatically;
-- the FMLS manual Matrix queue is unchanged.
+- `enabled: true`, `advertised: true`, `operational: true`;
+- `certification`: still `authentication/manifest/media_accessibility/authorized_import = false` —
+  the two verified tests from the playground are recorded in the table above, not here, and the two
+  unverified ones stay false;
+- `activation: { customer_publishing: true, pilot: true, pending_verification: ["media_accessibility",
+  "authorized_import"] }`.
 
-## Remaining tests, in order
+`isProviderLiveForCustomers()` now accepts **either** a full certification **or** an explicit
+activation, so the route serves customers while `certificationPassed()` still reports `false`. The
+customer gallery therefore shows `publishing_mode: automatic`, `certificate_complete: false`,
+`pilot: true`, and the admin panel states "Live under a pilot activation — 2 certification test(s)
+still unproven" rather than claiming the integration is certified.
 
-1. **Media accessibility** — confirm Bright can fetch `serveBrightMedia` links for a real selected
-   photo set (correct content type, bytes, 14-day expiry tolerance). Must be observed in Bright's
-   logs or by the media appearing on a test listing.
-2. **Authorized import** — a Bright subscriber agent completes the import from the `manifestId` link.
+What a Bright-eligible customer gets now: clicking **Publish to MLS** builds the manifest and POSTs it
+to Bright Media Sync immediately, stores the returned `manifestId`, and opens the
+`/mlsredirect/bright/{manifestId}` link (with a Continue to Bright MLS button as the fallback). The
+customer signs in with their own Bright credentials; Arriv never asks for or stores them.
 
-Only after both are confirmed should an administrator set `enabled: true` and complete the four
-certification flags. Customer publishing stays disabled until then, and no further manifest is sent
-without explicit authorization.
+Pilot behaviour: every accepted submission raises an immediate administrator alert with the manifest
+id, import link, media counts, Bright's HTTP status and the media-link expiry; Bright's raw reply,
+attempt count and link expiry stay on the request. Recovery is the existing authorized-replacement
+path in the MLS upload queue, which records a second billable manifest deliberately.
+
+## Verified locally before activation (2026-11-10, no Bright submission)
+
+Run with real credentials through `testBrightConnection` and `transmitBrightManifest` (preview mode,
+which makes no network call to Bright):
+
+| Check | Result |
+| --- | --- |
+| Configuration / secrets present | Pass — api key, vendor id, vendor name, endpoint, import-link base, signing secret |
+| Manifest endpoint and redirect base | `https://agl1paz1msaasservices.bright-solutions.co` (https) |
+| Media signing | A link signed and verified with the configured secret |
+| Manifest contract | `validateBrightBody` on the real body: 0 blocking issues, 0 warnings, 0 gaps |
+| Signed media accessibility from our side | `serveBrightMedia` returned HTTP 200, `image/png`, 155,637 bytes for the exact Drive file; a tampered token returned 401 |
+| Redirect generation | `https://…/mlsredirect/bright/{manifestId}` formed correctly |
+| Routing | Bethesda, MD → Montgomery County → Bright, `publishing_mode: automatic`, `can_submit: true` |
+| Duplicate protection | An accepted manifest is never re-sent; an ambiguous earlier outcome blocks another send |
+
+## Still unverified (pending the live pilot)
+
+1. **Media accessibility by Bright** — proving Bright's own servers fetched the signed links. Locally
+   the links serve the right bytes; only a live import can show Bright retrieved them.
+2. **Authorized import** — a Bright subscriber agent finishing the import from the `manifestId` link.
+
+When the pilot completes, set the two remaining certification switches after confirming both items,
+which moves Bright from "pilot activation" to "certified" with no other change.
