@@ -494,7 +494,7 @@ const renewedSubscription = cloverSubscription({
 const renewalSweep = reconcileFromStripe({ ...afterFirst, ...firstInvoice.patch }, renewedSubscription, 'sweep', SEAT_OPTS);
 check('SCENARIO renewal: a new period is picked up by reconciliation', () => renewalSweep.changed === true && renewalSweep.patch.current_period_end === new Date(CLOVER_RENEWAL_END * 1000).toISOString());
 check('SCENARIO renewal: a second sweep of the same state writes nothing', () => reconcileFromStripe({ ...afterFirst, ...firstInvoice.patch, ...renewalSweep.patch }, renewedSubscription, 'sweep', SEAT_OPTS).changed === false);
-const renewalInvoice = applyInvoicePaid({ ...afterFirst, ...renewalSweep.patch }, cloverInvoice({ id: 'in_clover_2', period_start: CLOVER_END, period_end: CLOVER_RENEWAL_END }), 'evt_clover_inv_2', 'test', SEAT_OPTS);
+const renewalInvoice = applyInvoicePaid({ ...afterFirst, ...firstInvoice.patch, ...renewalSweep.patch }, cloverInvoice({ id: 'in_clover_2', period_start: CLOVER_END, period_end: CLOVER_RENEWAL_END }), 'evt_clover_inv_2', 'test', SEAT_OPTS);
 check('SCENARIO renewal: the renewal invoice is appended to history', () => renewalInvoice.patch.billing_history.length === 2);
 check('SCENARIO renewal: a seat invoice never shortens the paid period', () => applyInvoicePaid(
   { ...afterFirst, current_period_end: new Date(CLOVER_RENEWAL_END * 1000).toISOString() },

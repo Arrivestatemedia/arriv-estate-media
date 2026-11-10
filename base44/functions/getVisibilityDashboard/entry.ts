@@ -53,8 +53,35 @@ Deno.serve(async (req) => {
       { sort: '-created_date', limit: 1 },
     ))[0] || null;
     const view = subscriptionView(subscription);
-    const entitlements = entitlementsFor(view.plan_key, view.status);
+    // Benefits follow the subscription's real state: an active status without a paid period unlocks
+    // nothing, so entitlements are never read from a stored plan_key alone.
+    const entitlements = entitlementsFor(view.plan_key, view.benefits_active ? 'active' : view.status);
     const plan = plans.find((p) => p.product_key === view.plan_key) || null;
+
+    const seats = plan ? seatAllowance(plan, view.seats_purchased) : null;
+    const seatManagement = plan && seats
+      ? {
+        plan_key: plan.product_key,
+        plan_name: plan.name,
+        seats_included: seats.included,
+        seats_purchased: seats.purchased,
+        seats_total: seats.total,
+        seat_price_cents: Number(plan.additional_seat_price_cents || 0),
+        seat_price_label: planPriceLabel(Number(plan.additional_seat_price_cents || 0)),
+        monthly_total_cents: Number(plan.price_cents || 0) + seats.purchased * Number(plan.additional_seat_price_cents || 0),
+        price_configured: !!plan.stripe_seat_price_id,
+        can_change: seats.canAdd && switches.subscription_checkout === true && view.benefits_active === true,
+        min_seats: 0,
+        max_seats: 50,
+        blocked_reason: !seats.canAdd
+          ? 'This plan does not allow additional seats.'
+          : switches.subscription_checkout !== true
+            ? 'Subscription billing is currently switched off.'
+            : view.benefits_active !== true
+              ? 'Seats can be changed while the plan is active.'
+              : '',
+      }
+      : null;
 
     // --- the customer's own listings -----------------------------------------------------------
     const eligibility = directoryQuery({ testMode: false });
@@ -169,11 +196,15 @@ Deno.serve(async (req) => {
         disclosure: RECURRING_DISCLOSURE,
       },
       entitlements,
+      seat_management: seatManagement,
       plans: plans.map((p) => ({
         product_key: p.product_key,
         name: p.name,
         price_label: planPriceLabel(p.price_cents),
         features: p.features,
+        seats_included: p.seats_included,
+        seat_policy: p.seat_policy,
+        additional_seat_price_label: planPriceLabel(Number(p.additional_seat_price_cents || 0)),
         stripe_ready: !!p.stripe_price_id,
         purchasable: switches.subscription_checkout === true && !!p.stripe_price_id,
       })),

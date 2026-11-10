@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PlanCard from '@/components/visibility/PlanCard';
+import SeatManager from '@/components/visibility/SeatManager';
 import {
   fetchVisibilityDashboard,
   subscriptionAction,
@@ -434,6 +435,18 @@ export default function VisibilityDashboard() {
             {subscription.disclosure && <p className="text-[11px] text-[#1A1A1A]/45 mt-3">{subscription.disclosure}</p>}
             {data?.downgrade_policy && <p className="text-[11px] text-[#1A1A1A]/45 mt-1">{data.downgrade_policy}</p>}
           </div>
+
+          {data?.seat_management && (
+            <SeatManager
+              seat={data.seat_management}
+              busy={busy}
+              onUpdate={(seats) =>
+                run('seats', () =>
+                  subscriptionAction('set_seats', { subscriptionId: subscription.record_id, seats, confirm: true }),
+                )
+              }
+            />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((plan) => (

@@ -1,0 +1,66 @@
+<mjml>
+  <mj-head>
+    <mj-title>Your monthly Arriv visibility summary</mj-title>
+    <mj-preview>What Arriv recorded for your profile this month.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-section background-color="#ffffff" padding="0 36px" />
+      <mj-text color="#1a1a1a" font-size="15px" line-height="1.6" padding="0" />
+      <mj-button background-color="#b8956a" color="#000000" border-radius="6px" font-weight="700" inner-padding="14px 28px" align="left" />
+      <mj-class name="h" font-family="Playfair Display, Georgia, serif" font-weight="700" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#ffffff">
+    <mj-section background-color="#b8956a" padding="20px 36px">
+      <mj-column>
+        <mj-image src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/de5ada746_IMG_60912.JPG" alt="Arriv Estate Media" width="120px" align="left" padding="0" />
+        <mj-text color="#000000" font-size="16px" font-weight="700" padding="8px 0 0">Arriv Estate Media</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="36px 36px 8px">
+      <mj-column>
+        <mj-text mj-class="h" font-size="32px" line-height="1.15">Your month on Arriv</mj-text>
+        <mj-text padding="12px 0 0" color="#5b5b5b" font-size="16px">
+          Here is what Arriv recorded for your profile this month.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="8px 36px">
+      <mj-group>
+        <mj-column background-color="#fffbf5" border="1px solid #e5e7eb" border-radius="6px" padding="20px">
+          <mj-text color="#5b5b5b" font-size="12px" text-transform="uppercase" letter-spacing="1px">Inquiries</mj-text>
+          <mj-text mj-class="h" font-size="28px" padding="6px 0 0">{{inquiries}}</mj-text>
+        </mj-column>
+        <mj-column background-color="#fffbf5" border="1px solid #e5e7eb" border-radius="6px" padding="20px">
+          <mj-text color="#5b5b5b" font-size="12px" text-transform="uppercase" letter-spacing="1px">Delivered to you</mj-text>
+          <mj-text mj-class="h" font-size="28px" padding="6px 0 0">{{delivered}}</mj-text>
+        </mj-column>
+        <mj-column background-color="#fffbf5" border="1px solid #e5e7eb" border-radius="6px" padding="20px">
+          <mj-text color="#5b5b5b" font-size="12px" text-transform="uppercase" letter-spacing="1px">Property views</mj-text>
+          <mj-text mj-class="h" font-size="28px" padding="6px 0 0">{{views}}</mj-text>
+        </mj-column>
+      </mj-group>
+    </mj-section>
+
+    <mj-section padding="8px 36px 24px">
+      <mj-column>
+        <mj-text color="#5b5b5b" font-size="13px">
+          Arriv reports only the figures it records itself. We do not report search rankings, Google impressions or promise any lead volume.
+        </mj-text>
+        <mj-button href="https://app.arrivestatemedia.com/VisibilityDashboard">See the full detail</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="0 36px 32px">
+      <mj-column>
+        <mj-divider border-color="#e5e7eb" />
+        <mj-text color="#5b5b5b" font-size="12px" padding="16px 0 0">
+          You are receiving this because you have an Arriv professional profile. <a href="{{unsubscribe_url}}" style="color:#8C6F45">Unsubscribe from these emails</a>.
+        </mj-text>
+        <mj-text color="#5b5b5b" font-size="12px" padding="8px 0 0">Arriv Estate Media</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
