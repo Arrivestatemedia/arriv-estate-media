@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import SeoPropertyDraftCard from "@/components/property/SeoPropertyDraftCard";
 import {
   Camera,
   Images,
@@ -151,6 +152,7 @@ export default function ClientPortalServices({ studioActive = false, hasMedia = 
           <ServiceCard key={service.key} service={service} />
         ))}
       </div>
+      <SeoPropertyDraftCard />
     </section>
   );
 }

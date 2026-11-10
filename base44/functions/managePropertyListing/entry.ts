@@ -26,6 +26,7 @@ import {
   seoSourceHash,
   transitionError,
 } from "../../shared/propertyVisibility.ts";
+import { requireCustomer } from "../../shared/customerSession.ts";
 import { guardListingAdvertising } from "../../shared/propertyAdListingGuard.ts";
 import { listJobFiles } from "../../shared/jobMedia.ts";
 import { purgeListingFromEdge } from "../../shared/edgeCache.ts";
@@ -163,6 +164,81 @@ Deno.serve(async (req) => {
     const flagEnabled = gate.enabled;
     const certScope = gate.test_mode;
     const inScope = (candidate: any) => recordInScope(candidate, certScope);
+
+    // ---------------------------------------------------------- SEO-only draft (no photography)
+    // A customer who has not bought photography may still start a property page. Identity comes
+    // from the signed session alone, the address is the duplicate key, and the record is created
+    // as a DRAFT: publication still requires the normal review and approval steps, so nothing is
+    // published here and the publication switch is not touched.
+    if (action === "create_seo_draft") {
+      const seoAuth = await requireCustomer(base44, req, body);
+      if (!seoAuth.ok) return Response.json({ error: seoAuth.error }, { status: seoAuth.status });
+
+      const seoAddress = normalizeAddress(sanitizeText(body.propertyAddress, 300));
+      if (!seoAddress) {
+        return Response.json({
+          ok: false,
+          reason: "PROPERTY_ADDRESS_REQUIRED",
+          message: "A property address is required.",
+        }, { status: 409 });
+      }
+
+      const seoListings = base44.asServiceRole.entities.PropertyListing;
+      const mine = (await seoListings.filter({ client_email: seoAuth.actor.email })) || [];
+      const existingSeo = mine.find((l: any) =>
+        inScope(l) && normalizeAddress(l.normalized_address || l.property_address) === seoAddress);
+      if (existingSeo) return Response.json({ ok: true, listing: existingSeo, reused: true });
+
+      const seoListingId = `prop_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      const seoCity = sanitizeText(body.city, 120);
+      const seoState = sanitizeText(body.state, 40).toUpperCase();
+      const seoSlug = buildSlug(seoAddress, seoCity, seoState, seoListingId);
+      const seoActor = { email: seoAuth.actor.email, type: "customer", isAdmin: false, clientEmail: seoAuth.actor.email };
+      const num = (value: any) => (value === "" || value === null || value === undefined ? null : Number(value));
+
+      const created = await seoListings.create({
+        listing_id: seoListingId,
+        tenant_id: "tnt_estate_media",
+        job_id: "",
+        booking_id: "",
+        duplicate_key: duplicateKey("", seoAddress),
+        client_email: seoAuth.actor.email,
+        client_name: seoAuth.actor.full_name || "",
+        property_address: seoAddress,
+        normalized_address: seoAddress,
+        city: seoCity,
+        state: seoState,
+        zip: sanitizeText(body.zip, 12),
+        square_footage: num(body.squareFootage),
+        square_footage_source: body.squareFootage ? "customer" : "",
+        listing_price: num(body.listingPrice),
+        bedrooms: num(body.bedrooms),
+        bathrooms: num(body.bathrooms),
+        property_type: sanitizeText(body.propertyType, 80),
+        property_description: sanitizeText(body.propertyDescription, 2000),
+        amenities: [],
+        listing_status: "draft",
+        agent_email: "",
+        selected_media: [],
+        cover_file_id: "",
+        include_video: false,
+        publication_state: "DRAFT",
+        publication_history: [{ from_state: null, to_state: "DRAFT", at: nowIso(), actor: seoAuth.actor.email, note: "created without photography" }],
+        ai_generation_count: 0,
+        inquiry_count: 0,
+        sitemap_included: false,
+        public_slug: seoSlug,
+        public_url: propertyPageUrl(seoSlug),
+        canonical_url: propertyPageUrl(seoSlug),
+        disclosures_snapshot: ADVERTISING_DISCLOSURES.join("\n"),
+        reso: resoProjection({ listing_id: seoListingId, listing_status: "draft", property_type: "" }),
+        certification_mode: certScope,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      });
+      await recordEvent(base44, created, "listing_created", seoActor, { origin: "seo_only", address: seoAddress });
+      return Response.json({ ok: true, listing: created });
+    }
 
     // Customer-facing authoring stays dark until the flag is switched on.
     if (!actor.isAdmin && !flagEnabled) {

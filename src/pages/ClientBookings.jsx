@@ -13,6 +13,7 @@ import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioProm
 import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
 import AccessSelectionCard from "@/components/client/AccessSelectionCard";
 import ClientInvoices from "@/components/client/ClientInvoices";
+import PreferredMembershipCard from "@/components/client/PreferredMembershipCard";
 import CancelBookingDialog from "@/components/client/CancelBookingDialog";
 import ClientPortalServices from "@/components/client/portal/ClientPortalServices";
 
@@ -324,6 +325,9 @@ export default function ClientBookings() {
         )}
           <div id="invoices" className="scroll-mt-24">
             <ClientInvoices email={user.email} />
+            <div className="mt-6">
+              <PreferredMembershipCard email={user.email} />
+            </div>
           </div>
         </div>
 
