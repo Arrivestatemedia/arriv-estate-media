@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
+import { requireCustomer } from '../../shared/customerSession.ts';
 import { loadMlsProviders, isProviderLiveForCustomers } from '../../shared/mlsProviders.ts';
 import { loadMlsServiceWindow, formatEtDeadline, describeWindow, businessMinutesBetween, computeMlsDeadline } from '../../shared/mlsServiceWindow.ts';
 import { ownsJob, resolvePropertyAddress, resolvePropertyLocation } from '../../shared/mlsJobContext.ts';
@@ -75,7 +76,10 @@ Deno.serve(async (req) => {
       job = null;
     }
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
-    if (!ownsJob(job, clientEmail)) {
+    // The customer audience is authorised by the signed session; the body email is ignored.
+    const auth = await requireCustomer(base44, req, body);
+    if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+    if (!ownsJob(job, auth.actor.email)) {
       return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
     }
 

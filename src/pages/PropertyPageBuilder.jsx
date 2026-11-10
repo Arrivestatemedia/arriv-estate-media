@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { propertyAction, loadPropertyContext, PUBLICATION_STATE_LABELS } from "@/lib/propertyVisibility";
 import { Button } from "@/components/ui/button";
 import { Loader2, Home, ArrowLeft, AlertCircle } from "lucide-react";
@@ -36,7 +37,10 @@ export default function PropertyPageBuilder() {
       setContext(ctx);
       setListing(ctx?.existing_listing || null);
       if (ctx?.eligible) {
-        const media = await base44.functions.invoke("getJobMediaForClient", { jobId, clientEmail });
+        const media = await base44.functions.invoke(
+          "getJobMediaForClient",
+          withCustomerSession({ jobId, clientEmail }),
+        );
         const data = media?.data || media;
         setFiles(data.files || []);
       }

@@ -38,8 +38,8 @@ export default function AdminBackgroundChecks() {
   const { data: pendingSignups = [], isLoading: isLoadingPending } = useQuery({
     queryKey: ["pending-signups-bg"],
     queryFn: async () => {
-      const res = await base44.entities.PendingSignup.filter({ user_type: "media_partner" }, "-created_date", 500);
-      return res || [];
+      const res = await base44.functions.invoke('adminManagePendingSignups', { action: 'list', user_type: 'media_partner' });
+      return res.data?.pending_signups || [];
     },
   });
 

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 /**
  * getJobMediaForClient
@@ -34,12 +35,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Unauthorized: admin access required for preview' }, { status: 403 });
       }
     } else {
-      if (!clientEmail) {
-        return Response.json({ error: 'clientEmail is required' }, { status: 400 });
-      }
-      // Verify the client owns this job (case-insensitive — emails may be stored
-      // with mixed case on the job but normalized to lowercase at signup)
-      if (job.client_email?.toLowerCase() !== clientEmail?.toLowerCase()) {
+      // Ownership comes from the signed customer session, never from the request body.
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+
+      if (job.client_email?.toLowerCase() !== auth.actor.email) {
         return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
       }
     }

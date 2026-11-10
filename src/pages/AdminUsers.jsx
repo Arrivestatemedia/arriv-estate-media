@@ -58,9 +58,10 @@ export default function AdminUsers() {
     queryKey: ["pending-signups"],
     queryFn: async () => {
       try {
-        return await base44.entities.PendingSignup.list();
+        const res = await base44.functions.invoke('adminManagePendingSignups', { action: 'list' });
+        return res.data?.pending_signups || [];
       } catch (e) {
-        console.error('PendingSignup list failed:', e);
+        console.error('Pending signup list failed:', e);
         return [];
       }
     },
@@ -99,7 +100,7 @@ export default function AdminUsers() {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: (userId) => base44.entities.PendingSignup.delete(userId),
+    mutationFn: (userId) => base44.functions.invoke('adminManagePendingSignups', { action: 'delete', ids: [userId] }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-signups"] });
       setDeleteConfirm(null);
@@ -108,7 +109,7 @@ export default function AdminUsers() {
 
   const batchDeleteMutation = useMutation({
     mutationFn: async (userIds) => {
-      await Promise.all(userIds.map((id) => base44.entities.PendingSignup.delete(id)));
+      await base44.functions.invoke('adminManagePendingSignups', { action: 'delete', ids: userIds });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-signups"] });

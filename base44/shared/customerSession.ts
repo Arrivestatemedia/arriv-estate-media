@@ -29,7 +29,7 @@ export type CustomerActor = {
 };
 
 export type CustomerAuth =
-  | { ok: true; actor: CustomerActor }
+  | { ok: true; actor: CustomerActor; record: any }
   | { ok: false; status: number; error: string };
 
 function sessionSecret(): string {
@@ -120,6 +120,7 @@ export async function requireCustomer(base44: any, req: Request, body: any): Pro
 
   return {
     ok: true,
+    record,
     actor: {
       account_id: record.id,
       email: String(record.email || '').toLowerCase(),

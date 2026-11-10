@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Video, FileText, Loader2, ArrowLeft, X, ChevronLeft, ChevronRight, Sparkles, Zap } from "lucide-react";
 import { createPageUrl } from "../utils";
@@ -81,7 +82,7 @@ export default function ClientJobGallery() {
     try {
       const payload = adminPreview
         ? { jobId, adminPreview: true }
-        : { jobId, clientEmail: user.email };
+        : withCustomerSession({ jobId, clientEmail: user.email });
       const res = await base44.functions.invoke("getJobMediaForClient", payload);
       const data = res.data || res;
       const loaded = data.files || [];
@@ -91,7 +92,9 @@ export default function ClientJobGallery() {
       setSelected(new Set(reconcileSelection(jobId, loaded)));
     } catch (err) {
       console.error("Failed to load media:", err);
-      setError(err.message || "Failed to load your media");
+      if (!redirectIfSessionExpired(err)) {
+        setError(err.message || "Failed to load your media");
+      }
     } finally {
       setLoading(false);
     }
@@ -102,11 +105,11 @@ export default function ClientJobGallery() {
   const loadMlsState = async () => {
     if (!jobId || !user?.email || isDemo || adminPreview) return;
     try {
-      const res = await base44.functions.invoke("getMlsUploadRequests", {
+      const res = await base44.functions.invoke("getMlsUploadRequests", withCustomerSession({
         mode: "client",
         jobId,
         clientEmail: user.email,
-      });
+      }));
       const data = res?.data || res;
       if (data?.error) return;
       setMlsRequests(data.requests || []);

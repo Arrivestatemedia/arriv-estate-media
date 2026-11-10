@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,11 +58,15 @@ export default function MediaPartnerDashboard() {
     enabled: !!user?.email,
   });
 
+  // Own account read through the verified session — the browser no longer queries
+  // the credential table directly.
   const { data: userRecord = null } = useQuery({
-    queryKey: ['user-record', user?.email],
-    queryFn: () => {
+    queryKey: ['my-contractor-account', user?.email],
+    queryFn: async () => {
       if (!user?.email) return null;
-      return base44.entities.PendingSignup.filter({ email: user.email }).then(results => results[0] || null);
+      const res = await base44.functions.invoke('getMyAccount', withCustomerSession({}));
+      const data = res?.data || res;
+      return data?.contractor || null;
     },
     enabled: !!user?.email,
   });

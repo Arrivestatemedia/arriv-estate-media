@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,12 +63,12 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
 
   const loadRouting = () =>
     base44.functions
-      .invoke("getMlsUploadRequests", {
+      .invoke("getMlsUploadRequests", withCustomerSession({
         mode: "client",
         jobId,
         clientEmail,
         estimateDeadline: true,
-      })
+      }))
       .then((res) => {
         const data = res?.data || res;
         if (data?.error) throw new Error(data.error);

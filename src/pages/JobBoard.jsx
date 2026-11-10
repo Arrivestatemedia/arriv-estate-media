@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -74,13 +75,16 @@ export default function JobBoard() {
   // base44.auth.me() won't return their background_check_status. Fetch it
   // from PendingSignup and merge it into the status check.
   const bgLookupEmail = user?.email || userEmail;
-  const { data: pendingSignup } = useQuery({
-    queryKey: ["pending-signup-bg", bgLookupEmail],
-    queryFn: () => base44.entities.PendingSignup.filter({ email: bgLookupEmail }),
+  const { data: myAccount } = useQuery({
+    queryKey: ["my-account-bg", bgLookupEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("getMyAccount", withCustomerSession({}));
+      return res?.data || res;
+    },
     enabled: !!bgLookupEmail && user?.user_type === "media_partner" && !user?.background_check_status,
     retry: 1,
   });
-  const pendingBgStatus = pendingSignup?.[0]?.background_check_status;
+  const pendingBgStatus = myAccount?.contractor?.background_check_status;
   const bgStatus = user?.background_check_status || pendingBgStatus;
 
   const { data: acceptedJobs = [] } = useQuery({

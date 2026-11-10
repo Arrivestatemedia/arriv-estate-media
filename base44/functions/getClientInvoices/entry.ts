@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 /**
  * getClientInvoices
@@ -12,14 +13,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { clientEmail } = await req.json().catch(() => ({}));
-    if (!clientEmail) {
-      return Response.json({ error: 'clientEmail is required' }, { status: 400 });
-    }
+    const body = await req.json().catch(() => ({}));
 
-    const emailLower = String(clientEmail).trim().toLowerCase();
+    // Ownership comes from the signed customer session. A clientEmail in the body is
+    // ignored, so naming another customer's address can no longer return their invoices.
+    const auth = await requireCustomer(base44, req, body);
+    if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
-    let rows = await base44.asServiceRole.entities.Invoice.filter({ client_email: clientEmail });
+    const emailLower = auth.actor.email;
+    const clientEmail = emailLower;
+
+    let rows = await base44.asServiceRole.entities.Invoice.filter({ client_email: emailLower });
     if (!rows || rows.length === 0) {
       const all = await base44.asServiceRole.entities.Invoice.list('-created_date', 500);
       rows = all || [];

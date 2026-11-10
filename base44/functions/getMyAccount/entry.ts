@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const auth = await requireCustomer(base44, req, body);
     if (!auth.ok) return Response.json({ ok: false, error: auth.error }, { status: auth.status });
 
-    const { actor } = auth;
+    const { actor, record } = auth;
     const email = actor.email;
 
     const rowsOf = async (entity: string, query: Record<string, unknown>) => {
@@ -82,6 +82,22 @@ Deno.serve(async (req) => {
           status: m.status || 'active',
         })),
       },
+      // Media partner's own operational fields. Credential and payout-account
+      // details are never returned to the browser.
+      contractor:
+        actor.user_type === 'media_partner'
+          ? {
+              stripe_account_id: record.stripe_account_id || '',
+              stripe_payouts_enabled: !!record.stripe_payouts_enabled,
+              background_check_status: record.background_check_status || '',
+              orientationCompleted: !!record.orientationCompleted,
+              onboardingFeePaid: !!record.onboardingFeePaid,
+              apparelPurchased: !!record.apparelPurchased,
+              coverage_area: record.coverage_area || '',
+              state: record.state || '',
+              max_travel_distance: record.max_travel_distance ?? null,
+            }
+          : null,
       // Record-linkage only. Financial figures continue to come from the existing
       // invoice, wallet and Auto-Fund services so no calculation is duplicated here.
       linkage: {

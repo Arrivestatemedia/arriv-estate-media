@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +19,17 @@ export default function ClientInvoices({ email }) {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["clientInvoices", email],
     queryFn: async () => {
-      const res = await base44.functions.invoke("getClientInvoices", { clientEmail: email });
-      return res.data?.invoices || [];
+      try {
+        const res = await base44.functions.invoke(
+          "getClientInvoices",
+          withCustomerSession({ clientEmail: email }),
+        );
+        return res.data?.invoices || [];
+      } catch (err) {
+        // No valid session yet (e.g. signed in before sessions existed) → sign in again.
+        if (!redirectIfSessionExpired(err)) throw err;
+        return [];
+      }
     },
     enabled: !!email,
   });

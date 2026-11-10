@@ -58,3 +58,19 @@ export function withCustomerSession(payload = {}) {
   const token = getCustomerSessionToken();
   return token ? { ...payload, session_token: token } : { ...payload };
 }
+
+/**
+ * A protected call was refused because there is no valid session (for example a
+ * customer who signed in before sessions existed, or an expired 30-day session).
+ * Send them to the existing sign-in screen to get a fresh one — this is a re-login,
+ * never a bypass. Returns true when a redirect was started.
+ */
+export function redirectIfSessionExpired(error) {
+  const message = String(error?.message || error?.response?.data?.error || '');
+  const status = error?.response?.status || error?.status;
+  if (status !== 401 && !/session/i.test(message)) return false;
+  if (typeof window === 'undefined') return false;
+  if (window.location.pathname.toLowerCase().startsWith('/signin')) return false;
+  window.location.replace('/SignIn');
+  return true;
+}

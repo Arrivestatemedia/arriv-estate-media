@@ -455,8 +455,12 @@ Deno.serve(async (req) => {
     const galleryWrongOwner = await callFn("getJobMediaForClient", { jobId: job.id, clientEmail: `${RUN}.stranger@cert.test` });
     const galleryOwner = await callFn("getJobMediaForClient", { jobId: job.id, clientEmail: CLIENT_EMAIL });
     const downloadWrongOwner = await callFn("downloadJobMedia", { jobId: job.id, clientEmail: `${RUN}.stranger@cert.test`, fileId: "cert_file_1" });
-    add("existing_delivery_regression", galleryWrongOwner.status === 403 && galleryOwner.status === 200 && downloadWrongOwner.status === 403,
-      `gallery: stranger ${galleryWrongOwner.status}, owner ${galleryOwner.status}; download: stranger ${downloadWrongOwner.status}`);
+    // Gallery access now requires the signed customer session (Stage 2 portal hardening), so a
+    // request carrying only an email is refused for owner and stranger alike — fail-closed. The
+    // owner path is proven by the customer session suite, not by an unsigned email. Downloads keep
+    // the email-ownership check until the same session guard is applied to them.
+    add("existing_delivery_regression", galleryWrongOwner.status === 401 && galleryOwner.status === 401 && downloadWrongOwner.status === 403,
+      `gallery without session: stranger ${galleryWrongOwner.status}, owner ${galleryOwner.status}; download: stranger ${downloadWrongOwner.status}`);
 
     // ================= 20. Production scope still governs, read-only =================
     // These two calls deliberately send no test mode, i.e. exactly what a real visitor sends.
