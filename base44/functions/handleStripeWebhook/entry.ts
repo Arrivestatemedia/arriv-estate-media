@@ -7,6 +7,14 @@ import {
   applyInvoicePaid,
   applyInvoiceFailed,
 } from '../../shared/visibilitySubscriptionEngine.ts';
+import {
+  VISIBILITY_PURPOSE,
+  visibilityBranchMayAct,
+  preferredBranchMayAct,
+  preferredStatusMayChange,
+  sessionIsRecurring,
+  paymentIntentBelongsToSubscription,
+} from '../../shared/stripeEventRouting.ts';
 
 function webhookRows(result: any): any[] {
   return Array.isArray(result) ? result : result?.items || [];
@@ -26,7 +34,24 @@ Deno.serve(async (req) => {
       signature,
       Deno.env.get('STRIPE_WEBHOOK_SECRET')
     );
-    
+
+    // The prices this account bills for Visibility plans, read once per event. Every branch below then
+    // proves from the event's own price which product it belongs to. A read failure leaves the list empty
+    // and the branches fall back to the metadata markers, exactly as before, so this can never block an
+    // event that would otherwise have been handled.
+    let visibilityPriceIds: string[] = [];
+    try {
+      const planRows = webhookRows(
+        await base44.asServiceRole.entities.VisibilityPlanProduct.list('-created_date', 50),
+      );
+      visibilityPriceIds = planRows
+        .flatMap((plan: any) => [plan?.stripe_price_id, plan?.stripe_seat_price_id])
+        .map((id: any) => String(id || ''))
+        .filter(Boolean);
+    } catch (priceError: any) {
+      console.warn('visibility prices unavailable for routing:', priceError?.message || priceError);
+    }
+
     // ── Phase 4: recurring visibility subscriptions ──────────────────────────
     // Applied here but NEVER returned early, so the one-time package, commission,
     // Preferred-membership and Connect branches below behave exactly as before. Every event is
@@ -44,11 +69,15 @@ Deno.serve(async (req) => {
         record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter({
           stripe_subscription_id: String(object.id || ''),
         }))[0] || null;
-        if (!record && String(object?.metadata?.purpose || '') === 'visibility_subscription') {
-          record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter(
-            { profile_id: String(object?.metadata?.profile_id || '') },
+        // The checkout writes the profile onto the subscription, so an event that arrives before the
+        // subscription id was stored can still be attached — but only to a record still awaiting its
+        // first subscription. An ended or already-bound record is never re-opened by a later event.
+        if (!record && String(object?.metadata?.purpose || '') === VISIBILITY_PURPOSE && object?.metadata?.profile_id) {
+          const candidate = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter(
+            { profile_id: String(object.metadata.profile_id) },
             { sort: '-created_date', limit: 1 },
           ))[0] || null;
+          if (candidate && !candidate.stripe_subscription_id) record = candidate;
         }
       } else if (isInvoiceEvent) {
         const subscriptionId = typeof object?.subscription === 'string'
@@ -61,7 +90,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (record) {
+      // Only a proven Visibility object may touch a Visibility record: never a Preferred membership, an
+      // order, a Connect account or an object carrying markers of two flows.
+      if (record && visibilityBranchMayAct(object, visibilityPriceIds)) {
         const outcome = isSubscriptionEvent
           ? (event.type === 'customer.subscription.deleted'
             ? applySubscriptionDeleted(record, object, event.id, 'stripe')
@@ -149,6 +180,24 @@ Deno.serve(async (req) => {
       const paymentIntent = event.data.object;
       console.log('payment_intent.succeeded:', paymentIntent.id);
 
+      // A payment intent raised by a subscription invoice is a recurring charge. The matching below
+      // falls back to customer email, so without this it could mark a customer's unpaid media invoice
+      // paid. The intent is only skipped once Stripe confirms its invoice belongs to a subscription; if
+      // that lookup fails the original behaviour is kept.
+      if (paymentIntentBelongsToSubscription(paymentIntent)) {
+        let recurringCharge = false;
+        try {
+          const parentInvoice: any = await stripe.invoices.retrieve(String(paymentIntent.invoice));
+          recurringCharge = !!parentInvoice?.subscription;
+        } catch (invoiceError: any) {
+          console.warn('payment_intent.succeeded: could not read parent invoice:', invoiceError?.message);
+        }
+        if (recurringCharge) {
+          console.log('payment_intent.succeeded: recurring subscription charge, not an order', paymentIntent.id);
+          return Response.json({ received: true });
+        }
+      }
+
       // Find invoice by payment intent ID or customer email
       const invoices = await base44.asServiceRole.entities.Invoice.filter({ payment_status: 'unpaid' });
 
@@ -217,6 +266,15 @@ Deno.serve(async (req) => {
 
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
+
+        // A subscription-mode session is a recurring mandate created by a membership or Visibility
+        // checkout, never a media order. Without this guard its completion could be matched by customer
+        // email to an unpaid media invoice and mark it paid.
+        if (sessionIsRecurring(session)) {
+          console.log('Checkout session completed (subscription mode, not an order):', session.id);
+          return Response.json({ received: true });
+        }
+
         console.log('Checkout session completed:', {
           sessionId: session.id,
           paymentLink: session.payment_link,
@@ -377,7 +435,10 @@ Deno.serve(async (req) => {
       const salesOriginatorId = sub.metadata?.sales_originator_id || '';
       const salesOriginatorName = sub.metadata?.sales_originator_name || '';
 
-      if (clientId || clientEmail) {
+      // A Visibility subscription never has client_id/client_email metadata, but the routing decision is
+      // made explicitly rather than assumed: an event proven to be a Visibility subscription, or one
+      // carrying markers of both flows, can never create or modify a membership.
+      if ((clientId || clientEmail) && preferredBranchMayAct(sub, visibilityPriceIds)) {
         try {
           const existing = await base44.asServiceRole.entities.PreferredMembership.filter({
             stripe_subscription_id: sub.id,
@@ -406,8 +467,15 @@ Deno.serve(async (req) => {
           };
 
           if (existing && existing[0]) {
-            await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, membershipData);
+            // A late event must not reopen a membership that already ended.
+            if (preferredStatusMayChange(existing[0].status, membershipData.status)) {
+              await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, membershipData);
+            } else {
+              console.log('preferred membership: ignoring out-of-order status', membershipData.status);
+            }
           } else {
+            // The outer guard already required the membership metadata, so a new record is only ever
+            // created from an event that proves it is a membership.
             await base44.asServiceRole.entities.PreferredMembership.create(membershipData);
           }
         } catch (e) {
@@ -418,18 +486,20 @@ Deno.serve(async (req) => {
 
     if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
-      try {
-        const existing = await base44.asServiceRole.entities.PreferredMembership.filter({
-          stripe_subscription_id: sub.id,
-        });
-        if (existing && existing[0]) {
-          await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, {
-            status: 'canceled',
-            cancelled_at: new Date().toISOString(),
+      if (preferredBranchMayAct(sub, visibilityPriceIds)) {
+        try {
+          const existing = await base44.asServiceRole.entities.PreferredMembership.filter({
+            stripe_subscription_id: sub.id,
           });
+          if (existing && existing[0]) {
+            await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, {
+              status: 'canceled',
+              cancelled_at: new Date().toISOString(),
+            });
+          }
+        } catch (e) {
+          console.warn('subscription.deleted: could not update PreferredMembership:', e.message);
         }
-      } catch (e) {
-        console.warn('subscription.deleted: could not update PreferredMembership:', e.message);
       }
     }
 
@@ -437,7 +507,9 @@ Deno.serve(async (req) => {
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object;
       const subscriptionId = invoice.subscription;
-      if (subscriptionId) {
+      // The membership lookup below is authoritative, so an unrecognised invoice keeps its existing
+      // behaviour; only an invoice proven to belong to a Visibility subscription is refused here.
+      if (subscriptionId && preferredBranchMayAct(invoice, visibilityPriceIds)) {
         try {
           const memberships = await base44.asServiceRole.entities.PreferredMembership.filter({
             stripe_subscription_id: subscriptionId,

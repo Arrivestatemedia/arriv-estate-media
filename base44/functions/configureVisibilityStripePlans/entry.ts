@@ -9,7 +9,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { resolveVisibilityActor, rowsOf, jsonResponse, CORS_HEADERS } from '../../shared/visibilityActor.ts';
 import { readVisibilitySwitches } from '../../shared/visibilitySwitches.ts';
 import { planCatalog, planPriceLabel, DEFAULT_PLAN_PRODUCTS } from '../../shared/visibilityPlans.ts';
-import { ensureStripePlans, matchStripePlans, inspectWebhooks, stripeMode } from '../../shared/stripePlanCatalog.ts';
+import {
+  ensureStripePlans,
+  matchStripePlans,
+  inspectWebhooks,
+  addWebhookEvents,
+  stripeMode,
+  REQUIRED_WEBHOOK_EVENTS,
+} from '../../shared/stripePlanCatalog.ts';
 import {
   applySubscriptionUpsert,
   applySubscriptionDeleted,
@@ -246,6 +253,31 @@ Deno.serve(async (req) => {
           customer_notifications: switches.customer_notifications === true,
         },
         note: 'Read only. Nothing was created in Stripe and no plan record was changed.',
+      });
+    }
+
+    if (action === 'enable_webhook_events') {
+      // Adding events changes a live endpoint, so it needs an explicit confirmation in the request and
+      // must never happen as a side effect of another action.
+      if (String(body?.confirm || '') !== 'add-events') {
+        return jsonResponse({
+          ok: false,
+          error: 'Refused. Pass confirm="add-events" to add the required events to the live endpoint.',
+          required_events: REQUIRED_WEBHOOK_EVENTS,
+        }, 400);
+      }
+      const before = await safeWebhooks(expectedHost);
+      const result = await addWebhookEvents(REQUIRED_WEBHOOK_EVENTS);
+      const after = await safeWebhooks(expectedHost);
+      return jsonResponse({
+        ok: result.ok && after.ready === true,
+        action,
+        required_events: REQUIRED_WEBHOOK_EVENTS,
+        added_events: result.added,
+        endpoint: result.endpoint,
+        before,
+        after,
+        error: result.error,
       });
     }
 

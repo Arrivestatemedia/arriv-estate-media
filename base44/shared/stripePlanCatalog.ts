@@ -235,7 +235,64 @@ export async function ensureStripePlans(targets: PlanStripeTarget[]): Promise<{
   };
 }
 
-// Reads the account's webhook endpoints and reports whether the Phase 4 events are actually delivered.
+// Adds the required events to the endpoint that already serves this app's Stripe webhook, preserving
+// every event it currently has. It only ever adds: no existing event is removed, and no endpoint is
+// created, deleted or repointed. Callers must have made the routing guards live first, because this is
+// what starts delivering the events.
+export async function addWebhookEvents(requiredEvents: string[]): Promise<{
+  ok: boolean;
+  endpoint: any;
+  added: string[];
+  error: string;
+}> {
+  const body = await call("webhook_endpoints?limit=20", { method: "GET" });
+  const endpoints = Array.isArray(body?.data) ? body.data : [];
+  const endpoint = endpoints.find((e: any) => String(e?.url || "").includes("handleStripeWebhook"))
+    || endpoints.find((e: any) => e?.status === "enabled")
+    || null;
+
+  if (!endpoint) {
+    return { ok: false, endpoint: null, added: [], error: "No webhook endpoint exists to update." };
+  }
+
+  const current = Array.isArray(endpoint.enabled_events) ? endpoint.enabled_events : [];
+  if (current.includes("*")) {
+    return { ok: true, endpoint: summarizeEndpoint(endpoint), added: [], error: "" };
+  }
+
+  const missing = requiredEvents.filter((e) => !current.includes(e));
+  if (!missing.length) {
+    return { ok: true, endpoint: summarizeEndpoint(endpoint), added: [], error: "" };
+  }
+
+  const params: Record<string, string> = {};
+  [...current, ...missing].forEach((event, index) => {
+    params[`enabled_events[${index}]`] = event;
+  });
+
+  const updated = await post(`webhook_endpoints/${encodeURIComponent(String(endpoint.id))}`, params);
+  return {
+    ok: true,
+    endpoint: summarizeEndpoint(updated),
+    added: missing,
+    error: "",
+  };
+}
+
+function summarizeEndpoint(endpoint: any) {
+  const events = Array.isArray(endpoint?.enabled_events) ? endpoint.enabled_events : [];
+  return {
+    id: String(endpoint?.id || ""),
+    url: String(endpoint?.url || ""),
+    status: String(endpoint?.status || ""),
+    livemode: endpoint?.livemode === true,
+    api_version: String(endpoint?.api_version || ""),
+    enabled_events: events,
+    enabled_events_count: events.length,
+    missing_events: events.includes("*") ? [] : REQUIRED_WEBHOOK_EVENTS.filter((e) => !events.includes(e)),
+  };
+}
+
 // This is a read only: an endpoint is never created, edited or deleted here, because changing a live
 // endpoint would also change the one-time payment flows that share it.
 export async function inspectWebhooks(expectedHost: string): Promise<{
@@ -263,9 +320,11 @@ export async function inspectWebhooks(expectedHost: string): Promise<{
     };
   });
 
+  // An endpoint that receives every required event and is enabled is ready. `host_matches` stays
+  // informational only: an app's registered URL is whatever the platform assigned it, so a different
+  // host never means the events are undelivered.
   const usable = endpoints.filter((e) => e.status === "enabled" && e.covers_phase4);
-  const matching = usable.filter((e) => e.host_matches !== false);
-  const ready = matching.length > 0;
+  const ready = usable.length > 0;
 
   let blocker = "";
   if (!endpoints.length) {
@@ -273,8 +332,6 @@ export async function inspectWebhooks(expectedHost: string): Promise<{
   } else if (!usable.length) {
     const closest = endpoints.slice().sort((a, b) => a.missing_events.length - b.missing_events.length)[0];
     blocker = `No enabled endpoint receives every Phase 4 event. ${closest.url} is missing: ${closest.missing_events.join(", ")}.`;
-  } else if (!matching.length) {
-    blocker = `An endpoint covers the Phase 4 events but its URL does not point at ${expectedHost}.`;
   }
 
   return { ok: ready, endpoints, ready, blocker };
