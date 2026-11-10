@@ -67,7 +67,10 @@ export default function AutoFund() {
         let me = null;
         try { me = await base44.auth.me(); } catch { /* not signed in */ }
         setUser(me || null);
-        if (me?.email) await loadMembership(me.email);
+        // A customer signed in through the app's own login has no platform account, so their
+        // membership is resolved from the customer session rather than from platform auth.
+        const localEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
+        if (me?.email || localEmail) await loadMembership(me?.email || localEmail);
       } finally {
         setLoading(false);
       }

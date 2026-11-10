@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera, Lock } from "lucide-react";
+import { Calendar, Clock, MapPin, DollarSign, Edit2, Camera, Lock, LogIn } from "lucide-react";
 import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
@@ -22,6 +22,7 @@ import B2BCompanyMembers from "@/components/b2b/B2BCompanyMembers";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [cancelBooking, setCancelBooking] = useState(null);
   const [studioActive, setStudioActive] = useState(() => {
     try {
@@ -35,28 +36,28 @@ export default function ClientBookings() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
-    if (userEmail) {
-      setUser({ email: userEmail });
+    const stored = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
+    if (stored) {
+      setUser({ email: stored });
       return;
     }
-    // Fallback: the user may be authenticated via Base44 auth without the
-    // localStorage keys being set (e.g. session survived a cache clear).
-    // Resolve the email from the auth session so we don't bounce a logged-in
-    // client back to the sign-in page.
-    base44.auth.isAuthenticated().then((isAuth) => {
-      if (!isAuth) {
-        window.location.replace(createPageUrl('SignIn'));
-        return;
-      }
-      base44.auth.me().then((userData) => {
-        if (userData?.email) {
-          setUser({ email: userData.email });
-        } else {
-          window.location.replace(createPageUrl('SignIn'));
+    // No local identity, but the customer session may still be valid (browser storage cleared,
+    // Safari ITP, or a fragment of the app opened directly). The session endpoint re-derives the
+    // account server-side — this is NOT a platform login, so it must not be used to decide that a
+    // signed-in customer is signed out.
+    base44.functions
+      .invoke('getMyAccount', withCustomerSession({}))
+      .then((res) => {
+        const email = (res?.data || res)?.account?.email || '';
+        if (!email) {
+          setNeedsSignIn(true);
+          return;
         }
-      }).catch(() => window.location.replace(createPageUrl('SignIn')));
-    }).catch(() => window.location.replace(createPageUrl('SignIn')));
+        localStorage.setItem('user_email', email);
+        localStorage.setItem('user_type', 'client');
+        setUser({ email });
+      })
+      .catch(() => setNeedsSignIn(true));
   }, []);
 
   // Studio is a paid entitlement. The card only appears when the account actually has it, and the
@@ -75,16 +76,15 @@ export default function ClientBookings() {
   // Fetch broader sets and filter client-side by case-insensitive email match.
   // Job/Booking client_email may be stored with mixed case (entered by sales rep),
   // while the user's signup email is always lowercased — exact-match filters miss those.
+  // Booking is closed to browsers, so the portal reads its own bookings through the
+  // session-authorized endpoint. The server scopes every row to the signed-in account.
   const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ['bookings', user?.email],
-    queryFn: () => {
-      if (!user?.email) return [];
-      return base44.entities.Booking.list('-created_date', 200);
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getClientBookings', withCustomerSession({ limit: 200 }));
+      return (res?.data || res)?.items || [];
     },
     enabled: !!user?.email,
-    select: (data) => (data || []).filter(
-      (b) => b.client_email?.toLowerCase() === user.email?.toLowerCase()
-    ),
   });
 
   const { data: completedJobs = [] } = useQuery({
@@ -123,17 +123,15 @@ export default function ClientBookings() {
     (j) => j.client_access_request_sent_at && (!j.client_access_selection || j.client_access_selection === 'pending')
   );
 
+  // Booking is closed to browsers, so there is no entity subscription to rely on. Refreshing when the
+  // customer comes back to the tab keeps the list current without asking for a reload.
   useEffect(() => {
     if (!user?.email) return;
-    
-    // Subscribe to real-time booking updates
-    const unsubscribe = base44.entities.Booking.subscribe((event) => {
-      if (event.type === 'create' && event.data?.client_email === user.email) {
-        refetch();
-      }
-    });
-
-    return unsubscribe;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [user?.email, refetch]);
 
 
@@ -153,7 +151,29 @@ export default function ClientBookings() {
     await queryClient.invalidateQueries({ queryKey: ['bookings', user?.email] });
   };
 
-  if (!user) return <div className="p-8">Loading...</div>;
+  if (!user) {
+    if (needsSignIn) {
+      return (
+        <div className="max-w-xl mx-auto px-4 py-16">
+          <Card className="border-2 border-[var(--border-color)] text-center py-10 bg-[var(--card-bg)]">
+            <CardContent>
+              <LogIn className="w-8 h-8 text-[var(--accent-color)] mx-auto mb-3" />
+              <p className="text-lg text-[var(--text-primary)] mb-1">Please sign in again</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">
+                Your session has ended. Signing in brings you straight back to your portal.
+              </p>
+              <Link to="/SignIn?redirect=/ClientBookings">
+                <Button className="bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white">
+                  Sign in
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    return <div className="p-8">Loading...</div>;
+  }
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -217,7 +237,9 @@ export default function ClientBookings() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl text-[var(--text-primary)]">{booking.property_address}</CardTitle>
+                      <CardTitle className="text-xl text-[var(--text-primary)]">
+                        {booking.property_address || booking.street_address || "Your shoot"}
+                      </CardTitle>
                       <Badge className={`mt-2 ${statusColors[booking.status] || statusColors.pending}`}>
                         {booking.status?.toUpperCase() || 'PENDING'}
                       </Badge>

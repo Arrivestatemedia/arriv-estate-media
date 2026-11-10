@@ -78,18 +78,54 @@ export function withCustomerSession(payload = {}) {
   };
 }
 
+const REDIRECT_GUARD_KEY = 'customer_session_redirect_at';
+const REDIRECT_GUARD_MS = 15000;
+
 /**
- * A protected call was refused because there is no valid session (for example a
- * customer who signed in before sessions existed, or an expired 30-day session).
- * Send them to the existing sign-in screen to get a fresh one — this is a re-login,
- * never a bypass. Returns true when a redirect was started.
+ * True only when a request was refused because the CUSTOMER SESSION itself is gone:
+ * expired, revoked, or minted for an account that no longer exists. A plain 401
+ * (for example a platform-only endpoint refusing a customer) is not this, and must
+ * never send anybody back to sign-in.
+ */
+export function isSessionFailure(error) {
+  const status = error?.response?.status || error?.status;
+  if (status !== 401) return false;
+  const message = String(
+    error?.response?.data?.error || error?.response?.data?.message || error?.message || '',
+  );
+  // Our session gate words its refusals: "A valid session is required…", "Your session has
+  // ended…", "Your account could not be found…", and getJobRecords' bare "Not authorized."
+  // (which also only ever means the caller had no resolvable session). Nothing else counts.
+  return /session|sign in again|could not be found|^not authorized\.?$/i.test(message.trim());
+}
+
+/**
+ * The session expired mid-session. Ask for ONE sign-in, on the existing sign-in
+ * screen, and return the customer to the page they were on — never a redirect loop
+ * back to the booking form. Returns true when a redirect was started.
  */
 export function redirectIfSessionExpired(error) {
-  const message = String(error?.message || error?.response?.data?.error || '');
-  const status = error?.response?.status || error?.status;
-  if (status !== 401 && !/session/i.test(message)) return false;
+  if (!isSessionFailure(error)) return false;
   if (typeof window === 'undefined') return false;
   if (window.location.pathname.toLowerCase().startsWith('/signin')) return false;
-  window.location.replace('/SignIn');
+
+  // One attempt per window: if this page comes straight back without a new session,
+  // show the inline message instead of redirecting forever.
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(REDIRECT_GUARD_KEY) || 0);
+  } catch {
+    last = 0;
+  }
+  if (last && Date.now() - last < REDIRECT_GUARD_MS) return false;
+  try {
+    sessionStorage.setItem(REDIRECT_GUARD_KEY, String(Date.now()));
+  } catch {
+    /* storage unavailable */
+  }
+
+  clearCustomerSession();
+  const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.replace(`/SignIn?redirect=${returnTo}`);
   return true;
 }

@@ -15,7 +15,7 @@ const TYPE_LABELS = {
   receipt: "Receipt",
 };
 
-export default function ClientInvoices({ email }) {
+export default function ClientInvoices({ email, compact = false }) {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["clientInvoices", email],
     queryFn: async () => {
@@ -44,8 +44,10 @@ export default function ClientInvoices({ email }) {
   };
 
   return (
-    <div className="mt-10">
-      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Invoices &amp; Receipts</h2>
+    <div className={compact ? "" : "mt-10"}>
+      {!compact && (
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Invoices &amp; Receipts</h2>
+      )}
       <div className="space-y-3">
         {invoices.map((inv) => {
           const isPaid = inv.status === "paid";

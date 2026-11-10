@@ -13,7 +13,7 @@ import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 import B2BBookingAdapter from "@/components/b2b/B2BBookingAdapter";
 import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelector";
-import { withCustomerSession } from "@/lib/customerSession";
+import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
 import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
@@ -297,7 +297,14 @@ export default function BookingPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('booking_id');
     if (bookingId) {
-      base44.entities.Booking.get(bookingId).then(booking => {
+      // Booking is closed to browsers, so the reschedule form loads it through the
+      // session-authorized endpoint (which also proves the booking is this customer's own).
+      base44.functions.invoke('getClientBookings', withCustomerSession({ bookingId })).then(res => {
+        const booking = (res?.data || res)?.booking;
+        if (!booking) {
+          window.location.href = createPageUrl('ClientBookings');
+          return;
+        }
         if (!bookingChangeWindow(booking).canChange) {
           alert('Changes close 24 hours before your shoot. Please contact us at bookings@arrivestatemedia.com to change this booking.');
           window.location.href = createPageUrl('ClientBookings');
@@ -307,6 +314,9 @@ export default function BookingPage() {
         setShowBookingForm(true);
       }).catch(err => {
         console.error('Failed to load booking:', err);
+        // Genuine session expiry asks for one sign-in and returns here; anything else goes back
+        // to the portal rather than looping through the login screen.
+        if (redirectIfSessionExpired(err)) return;
         window.location.href = createPageUrl('ClientBookings');
       });
       return;

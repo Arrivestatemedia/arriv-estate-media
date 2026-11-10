@@ -13,6 +13,19 @@ export default function SignIn() {
   const urlParams = new URLSearchParams(window.location.search);
   const redirectPage = urlParams.get('redirect');
   const redirectJobId = urlParams.get('jobId');
+
+  // Where to go once signed in. A screen that had to renew the session sends ?redirect=<path>, so
+  // the customer lands back where they were instead of being bounced to the booking form.
+  const returnTo = (() => {
+    const raw = String(redirectPage || '').trim();
+    if (!raw) return '';
+    const path = raw.startsWith('/') ? raw : `/${raw}`;
+    if (/signin|saleslogin/i.test(path)) return '';
+    if (redirectJobId && !path.includes('jobId')) {
+      return `${path}${path.includes('?') ? '&' : '?'}jobId=${encodeURIComponent(redirectJobId)}`;
+    }
+    return path;
+  })();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,6 +37,11 @@ export default function SignIn() {
     const userType = localStorage.getItem('user_type');
     
     if (userEmail && userType) {
+      // A return path always wins: the customer was sent here from a specific screen.
+      if (returnTo) {
+        window.location.href = returnTo;
+        return;
+      }
       // Honor delivery redirect if present and user is a client
       if (redirectPage && redirectJobId && userType !== "media_partner") {
         window.location.href = `/${redirectPage}?jobId=${redirectJobId}`;
@@ -90,6 +108,12 @@ export default function SignIn() {
         localStorage.removeItem(k);
         sessionStorage.removeItem(k);
       });
+
+      // A return path always wins, so a session renewal lands on the screen that asked for it.
+      if (returnTo) {
+        window.location.href = returnTo;
+        return;
+      }
 
       // Route based on user type and orientation status
       if (response.data.user_role === 'admin') {
