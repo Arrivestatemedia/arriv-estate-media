@@ -75,6 +75,7 @@ import AutoFundTerms from './pages/AutoFundTerms';
 import PropertyPageBuilder from './pages/PropertyPageBuilder';
 import PropertyLeads from './pages/PropertyLeads';
 import AdminPropertyPromotions from './pages/AdminPropertyPromotions';
+import AdminPropertyAdCampaigns from './pages/AdminPropertyAdCampaigns';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
@@ -614,6 +615,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminPropertyPromotions">
             <AdminPropertyPromotions />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPropertyAdCampaigns"
+        element={
+          <LayoutWrapper currentPageName="AdminPropertyAdCampaigns">
+            <AdminPropertyAdCampaigns />
           </LayoutWrapper>
         }
       />

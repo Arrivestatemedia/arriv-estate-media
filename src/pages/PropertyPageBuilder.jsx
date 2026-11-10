@@ -9,6 +9,7 @@ import PropertyDetailsForm from "@/components/property/PropertyDetailsForm";
 import PropertyAuthorizationsForm from "@/components/property/PropertyAuthorizationsForm";
 import PropertyPublishPanel from "@/components/property/PropertyPublishPanel";
 import PropertyPackagePanel from "@/components/property/packages/PropertyPackagePanel";
+import PropertyAdPanel from "@/components/property/ads/PropertyAdPanel";
 import PropertyPagePreview from "@/components/property/PropertyPagePreview";
 
 // Customer-facing builder. Opens from the delivery gallery, is entirely optional, and never
@@ -146,6 +147,7 @@ export default function PropertyPageBuilder() {
           <PropertyPagePreview listing={listing} />
           <PropertyPublishPanel listing={listing} busy={busy} run={run} />
           <PropertyPackagePanel listing={listing} clientEmail={clientEmail} />
+          <PropertyAdPanel listing={listing} clientEmail={clientEmail} />
         </div>
       </div>
     </div>
