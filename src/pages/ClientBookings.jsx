@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { base44 } from "@/api/base44Client";
-import { withCustomerSession } from "@/lib/customerSession";
+import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,10 +78,16 @@ export default function ClientBookings() {
   // while the user's signup email is always lowercased — exact-match filters miss those.
   // Booking is closed to browsers, so the portal reads its own bookings through the
   // session-authorized endpoint. The server scopes every row to the signed-in account.
-  const { data: bookings = [], isLoading, refetch } = useQuery({
+  const { data: bookings = [], isLoading, error: bookingsError, refetch } = useQuery({
     queryKey: ['bookings', user?.email],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getClientBookings', withCustomerSession({ limit: 200 }));
+      const res = await base44.functions
+        .invoke('getClientBookings', withCustomerSession({ limit: 200 }))
+        .catch((error) => {
+          // Only a session that is actually gone asks for a sign-in; anything else shows the retry card.
+          redirectIfSessionExpired(error);
+          throw error;
+        });
       return (res?.data || res)?.items || [];
     },
     enabled: !!user?.email,
@@ -221,6 +227,21 @@ export default function ClientBookings() {
         </h2>
         {isLoading ? (
           <p className="text-[var(--text-secondary)]">Loading your bookings...</p>
+        ) : bookingsError ? (
+          <Card className="border-2 border-red-200 bg-red-50 text-center py-8">
+            <CardContent>
+              <p className="text-sm text-red-800">
+                Your bookings could not be loaded just now. Refresh the page to try again.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4 border-red-300 text-red-800 hover:bg-red-100"
+                onClick={() => refetch()}
+              >
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
         ) : bookings.length === 0 ? (
           <Card className="border-2 border-[var(--border-color)] text-center py-12">
             <p className="text-[var(--text-secondary)] mb-4">You haven't submitted any booking requests yet</p>

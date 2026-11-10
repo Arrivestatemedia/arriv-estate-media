@@ -112,6 +112,29 @@ export async function requireCustomer(base44: any, req: Request, body: any): Pro
   }
 
   if (!record) {
+    // Older customer accounts live in the platform User table instead of PendingSignup. A token is
+    // only ever minted for them after the same password check in verifySignIn, and the address in
+    // the token must match the record exactly. They carry no epoch (0), and never an admin role —
+    // administration always happens through the platform session.
+    try {
+      const user = await base44.asServiceRole.entities.User.get(payload.sub);
+      if (
+        user &&
+        String(user.email || '').trim().toLowerCase() === String(payload.email || '').trim().toLowerCase()
+      ) {
+        record = {
+          ...user,
+          user_type: user.user_type === 'media_partner' ? 'media_partner' : 'client',
+          user_role: 'user',
+          session_epoch: 0,
+        };
+      }
+    } catch {
+      record = null;
+    }
+  }
+
+  if (!record) {
     return { ok: false, status: 401, error: 'Your account could not be found. Please sign in again.' };
   }
   if (Number(record.session_epoch || 0) !== Number(payload.ep || 0)) {

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createPageUrl } from "../utils";
-import { saveCustomerSession, clearCustomerSession } from "@/lib/customerSession";
+import { saveCustomerSession, clearCustomerSession, getCustomerSessionToken } from "@/lib/customerSession";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -33,10 +33,16 @@ export default function SignIn() {
 
   React.useEffect(() => {
     // Check if user is already logged in
-    const userEmail = localStorage.getItem('user_email');
-    const userType = localStorage.getItem('user_type');
-    
-    if (userEmail && userType) {
+    const userEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
+    const userType = localStorage.getItem('user_type') || sessionStorage.getItem('user_type');
+
+    // A customer's app identity is only worth as much as the signed session behind it. Accounts
+    // created before that session existed still hold an email, and forwarding them silently sent
+    // them back to a page that refused them — forever. Without the session, show the form.
+    const needsSession = Boolean(userType) && userType !== 'sales';
+    const hasSession = Boolean(getCustomerSessionToken());
+
+    if (userEmail && userType && (!needsSession || hasSession)) {
       // A return path always wins: the customer was sent here from a specific screen.
       if (returnTo) {
         window.location.href = returnTo;

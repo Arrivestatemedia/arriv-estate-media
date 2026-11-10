@@ -60,7 +60,21 @@ export default function WalletPanel({ customerEmail, customerId }) {
     );
   }
 
-  if (error || !wallet) {
+  if (error) {
+    // A failed read is not the same as "no wallet" — saying nothing here hid real session failures.
+    return (
+      <Card className="border-[#B8956A]/20 bg-white">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 text-[#1A1A1A]/60">
+            <Wallet className="w-5 h-5" />
+            <p className="text-sm">Your wallet could not be loaded just now. Please try again.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!wallet) {
     return (
       <Card className="border-[#B8956A]/20 bg-white">
         <CardContent className="pt-6">

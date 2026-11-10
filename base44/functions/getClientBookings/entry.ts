@@ -83,19 +83,42 @@ export default async function (req: Request) {
       return Response.json({ items: (rows || []).map(safeBooking) });
     }
 
-    // A client only ever sees their own bookings. The exact filter runs first; the case-insensitive
-    // scan only runs when it finds nothing, because an address entered by a sales rep may be stored
-    // with different capitalisation than the signup record.
+    // A booking belongs to the customer on EITHER address field: client_email is the address the
+    // order was placed with, ordering_user_email is the verified person who placed a company order.
+    // A sales rep may have typed either one with different capitalisation, so every comparison is
+    // case- and whitespace-insensitive. The fallback walks the whole table in pages (no fixed row
+    // cap), which is what makes historical bookings resolvable again.
     const target = actor.email;
-    let rows: any[] = await bookings.filter({ client_email: target }, '-created_date', limit);
-    if (!rows || rows.length === 0) {
-      const all = await bookings.list('-created_date', 500);
-      rows = (all || [])
-        .filter((row: any) => String(row.client_email || '').trim().toLowerCase() === target)
+    const asRows = (result: any): any[] => (Array.isArray(result) ? result : (result?.items || []));
+    const owned = (row: any) =>
+      String(row?.client_email || '').trim().toLowerCase() === target ||
+      String(row?.ordering_user_email || '').trim().toLowerCase() === target;
+
+    let rows = asRows(await bookings.filter({ client_email: target }, '-created_date', limit));
+    if (!rows.length) {
+      rows = asRows(await bookings.filter({ ordering_user_email: target }, '-created_date', limit));
+    }
+    if (!rows.length) {
+      const found = new Map<string, any>();
+      let cursor: string | undefined;
+      for (let page = 0; page < 20; page += 1) {
+        const batch: any = await bookings.list({
+          sort: '-created_date',
+          limit: 500,
+          ...(cursor ? { cursor } : {}),
+        });
+        const items = asRows(batch);
+        items.filter(owned).forEach((row: any) => found.set(row.id, row));
+        if (found.size >= limit) break;
+        cursor = batch?.next_cursor;
+        if (!cursor || items.length === 0) break;
+      }
+      rows = [...found.values()]
+        .sort((a: any, b: any) => String(b?.created_date || '').localeCompare(String(a?.created_date || '')))
         .slice(0, limit);
     }
 
-    return Response.json({ items: (rows || []).map(safeBooking) });
+    return Response.json({ items: rows.map(safeBooking) });
   } catch (error: any) {
     return Response.json({ error: error?.message || 'Could not load bookings.' }, { status: 500 });
   }

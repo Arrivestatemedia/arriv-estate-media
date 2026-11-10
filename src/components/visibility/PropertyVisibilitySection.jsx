@@ -1,32 +1,60 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, ExternalLink, Loader2 } from 'lucide-react';
+import { Home, ExternalLink, Loader2, Megaphone, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/api/base44Client';
+import { withCustomerSession } from '@/lib/customerSession';
 import { fetchLeads, listingAddress } from '@/lib/propertyLeads';
 
 /**
- * The customer's property visibility, read from the same lead endpoint the portal already uses.
- * Advertising packages and property promotion live on the property page builder, so this links
- * there instead of duplicating those panels or their checkout.
+ * The customer's property visibility, property pages and the packages behind them.
+ *
+ * Two existing readers are used, both authorised server-side from the signed customer session:
+ *   · the lead dashboard endpoint  -> the customer's own property pages
+ *   · the visibility dashboard    -> the plan catalog and the current switch state
+ *
+ * Pricing is only ever the price the backend reports. While the checkout switch is off (its default)
+ * plans are shown as unavailable for purchase rather than offering a button that cannot work.
  */
+
+const money = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+
 export default function PropertyVisibilitySection({ email }) {
-  const [state, setState] = useState({ loading: true, listings: [], error: '' });
+  const [state, setState] = useState({ loading: true, listings: [], plans: [], checkoutOpen: false, error: '' });
 
   useEffect(() => {
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true }));
-    fetchLeads()
+
+    const loadListings = fetchLeads()
       .then((result) => {
-        if (cancelled) return;
         if (result?.ok === false) {
-          setState({ loading: false, listings: [], error: result.message || result.reason || 'Your properties could not be loaded.' });
-          return;
+          return { listings: [], error: result.message || 'Your properties could not be loaded just now.' };
         }
-        setState({ loading: false, listings: result?.listings || [], error: '' });
+        return { listings: result?.listings || [], error: '' };
       })
-      .catch(() => {
-        if (!cancelled) setState({ loading: false, listings: [], error: 'Your properties could not be loaded.' });
+      .catch(() => ({ listings: [], error: 'Your properties could not be loaded just now.' }));
+
+    const loadPlans = base44.functions
+      .invoke('getVisibilityDashboard', withCustomerSession({ email }))
+      .then((res) => {
+        const data = res?.data || res;
+        const plans = Array.isArray(data?.plans) ? data.plans : [];
+        return { plans, checkoutOpen: data?.switches?.subscription_checkout === true };
+      })
+      .catch(() => ({ plans: [], checkoutOpen: false }));
+
+    Promise.all([loadListings, loadPlans]).then(([listings, plans]) => {
+      if (cancelled) return;
+      setState({
+        loading: false,
+        listings: listings.listings,
+        error: listings.error,
+        plans: plans.plans,
+        checkoutOpen: plans.checkoutOpen,
       });
+    });
+
     return () => {
       cancelled = true;
     };
@@ -108,6 +136,42 @@ export default function PropertyVisibilitySection({ email }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {!state.loading && state.plans.length > 0 && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-[#B8956A]" />
+            <h3 className="text-sm font-semibold text-[#1A1A1A]">Visibility &amp; advertising plans</h3>
+          </div>
+          <p className="text-xs text-[#1A1A1A]/50 mt-1">
+            These are the plans available for a public agent or brokerage presence. Property promotion and ad
+            packages are chosen per property from the property page builder.
+          </p>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {state.plans.map((plan) => (
+              <div key={plan.product_key} className="rounded-2xl border border-[#B8956A]/25 bg-white p-4">
+                <p className="text-sm font-semibold text-[#1A1A1A]">{plan.name}</p>
+                {plan.tagline && <p className="text-[11px] text-[#1A1A1A]/50 mt-0.5">{plan.tagline}</p>}
+                <p className="mt-2 font-serif text-lg text-[#1A1A1A]">
+                  {money(plan.price_cents)}
+                  <span className="text-xs font-sans text-[#1A1A1A]/50"> / {plan.interval || 'month'}</span>
+                </p>
+                <p className="text-[11px] text-[#1A1A1A]/45 mt-1">
+                  {plan.seats_included || 1} {plan.seats_included === 1 ? 'seat' : 'seats'} included
+                  {plan.additional_seat_price_cents > 0
+                    ? ` · +${money(plan.additional_seat_price_cents)} per extra seat`
+                    : ''}
+                </p>
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#1A1A1A]/55">
+                  <Lock className="w-3 h-3" />
+                  {state.checkoutOpen ? 'Available at checkout' : 'Not available for purchase yet'}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </section>

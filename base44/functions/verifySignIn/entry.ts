@@ -162,7 +162,30 @@ Deno.serve(async (req) => {
         user_role: foundUser.user_role === 'admin' ? 'admin' : 'user',
         phone_number: foundUser.phone_number || '',
         orientationCompleted: foundUser.orientationCompleted || false,
-        onboardingFeePaid: foundUser.onboardingFeePaid || false
+        onboardingFeePaid: foundUser.onboardingFeePaid || false,
+        // This branch used to return NO session token, so a customer whose account lives in the
+        // platform user table signed in successfully and then had every session-gated request
+        // refused. The session is minted from the matching PendingSignup account when one exists
+        // (so epoch revocation still applies), otherwise from this verified record.
+        ...(await (async () => {
+          const emailLowerUser = String(foundUser.email || '').trim().toLowerCase();
+          try {
+            const rows = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLowerUser });
+            const list = Array.isArray(rows) ? rows : (rows?.items || []);
+            const account = list.find(
+              (row) => String(row?.email || '').trim().toLowerCase() === emailLowerUser
+            );
+            if (account) return mintCustomerSession(account) || {};
+          } catch {
+            /* fall through to the verified record */
+          }
+          return mintCustomerSession({
+            ...foundUser,
+            user_type: foundUser.user_type === 'media_partner' ? 'media_partner' : 'client',
+            user_role: 'user',
+            session_epoch: 0,
+          }) || {};
+        })()),
       });
     }
 

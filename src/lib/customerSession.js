@@ -125,6 +125,18 @@ export function redirectIfSessionExpired(error) {
   }
 
   clearCustomerSession();
+  // The stored identity is what makes the sign-in screen auto-forward an "already signed in"
+  // person. Leaving it behind is exactly how a customer with a dead session was looped: page →
+  // sign-in → auto-forward → page → refused again, without ever hitting a password field. Clearing
+  // it means the one sign-in request is real, mints a fresh session, and the portal works.
+  try {
+    ['user_email', 'user_name', 'user_type', 'user_role', 'user_phone'].forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+  } catch {
+    /* storage unavailable */
+  }
   const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
   window.location.replace(`/SignIn?redirect=${returnTo}`);
   return true;

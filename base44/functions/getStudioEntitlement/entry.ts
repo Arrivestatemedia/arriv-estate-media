@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 // Verifies the authenticated user's Arriv Studio for Real Estate entitlement.
 // This is the backend security gate — UI tab visibility is NOT the security boundary.
@@ -6,10 +7,29 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized', active: false }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
 
-    const clientEmail = (user.email || '').toLowerCase();
+    // A customer signs in through the app's own login and has no platform account, so their
+    // entitlement is resolved from the signed customer session first. Staff keep the platform
+    // session. Only when neither exists is the request refused.
+    let clientEmail = '';
+    try {
+      const auth = await requireCustomer(base44, req, body);
+      if (auth.ok) clientEmail = auth.actor.email;
+    } catch {
+      clientEmail = '';
+    }
+
+    if (!clientEmail) {
+      let user = null;
+      try {
+        user = await base44.auth.me();
+      } catch {
+        user = null;
+      }
+      if (!user?.email) return Response.json({ error: 'Unauthorized', active: false }, { status: 401 });
+      clientEmail = String(user.email).toLowerCase();
+    }
 
     // Look up active subscription
     const subs = await base44.asServiceRole.entities.ArrivStudioSubscription.filter({

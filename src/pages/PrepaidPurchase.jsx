@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Sparkles, CheckCircle2, Loader2, TrendingUp, AlertTriangle, ArrowRight, RotateCw } from "lucide-react";
+import { Wallet, Sparkles, CheckCircle2, Loader2, TrendingUp, AlertTriangle, ArrowRight, RotateCw, Mail } from "lucide-react";
 
 const TIERS = [
   {
@@ -100,9 +101,43 @@ export default function PrepaidPurchase() {
   const [error, setError] = useState(null);
   const [view, setView] = useState("tiers"); // tiers, wallet, stress
 
+  // Who is viewing this page. The administrative tools that live here (the financial stress test, the
+  // wallet lookup across customers, the generic purchase form and commission attribution) belong to
+  // staff only. A customer sees their own package options and nothing else.
+  const [viewer, setViewer] = useState(null);
+  const [customerWallet, setCustomerWallet] = useState(null);
+
   useEffect(() => {
-    loadWallets();
+    const storedEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
+    const storedRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role') || '';
+
+    base44.auth
+      .me()
+      .then((me) => setViewer({
+        email: String(me?.email || storedEmail).toLowerCase(),
+        isInternal: me?.role === 'admin' || storedRole === 'admin',
+      }))
+      .catch(() => setViewer({
+        email: String(storedEmail).toLowerCase(),
+        isInternal: storedRole === 'admin',
+      }));
   }, []);
+
+  const isInternal = viewer?.isInternal === true;
+
+  // A customer's own wallet, read through the signed session so the identity is never taken from
+  // the browser.
+  useEffect(() => {
+    if (!viewer || isInternal) return;
+    base44.functions
+      .invoke('managePrepaid', withCustomerSession({ action: 'get_wallet' }))
+      .then((res) => setCustomerWallet((res?.data || res)?.wallet || null))
+      .catch(() => setCustomerWallet(null));
+  }, [viewer, isInternal]);
+
+  useEffect(() => {
+    if (isInternal) loadWallets();
+  }, [isInternal]);
 
   const loadWallets = async () => {
     try {
@@ -209,6 +244,7 @@ export default function PrepaidPurchase() {
               Prepaid packages, wallet credits, and booking value management
             </p>
           </div>
+          {isInternal && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -227,6 +263,7 @@ export default function PrepaidPurchase() {
               New Purchase
             </Button>
           </div>
+          )}
         </div>
 
         {error && (
@@ -236,7 +273,7 @@ export default function PrepaidPurchase() {
           </div>
         )}
 
-        {result && view !== "stress" && (
+        {isInternal && result && view !== "stress" && (
           <div className="mb-6 p-5 rounded-lg bg-[#B8956A]/10 border border-[#B8956A]/30">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="w-5 h-5 text-[#B8956A]" />
@@ -264,8 +301,8 @@ export default function PrepaidPurchase() {
           </div>
         )}
 
-        {/* Purchase Form */}
-        {showPurchase && (
+        {/* Purchase Form — staff only: it asks for a customer's details and a commission attribution */}
+        {isInternal && showPurchase && (
           <Card className="mb-8 border-[#B8956A]/20 bg-white">
             <CardHeader>
               <CardTitle className="text-[#1A1A1A]">New Prepaid Purchase</CardTitle>
@@ -330,8 +367,8 @@ export default function PrepaidPurchase() {
           </Card>
         )}
 
-        {/* Wallet Detail View */}
-        {view === "wallet" && selectedWallet && (
+        {/* Wallet Detail View — staff only */}
+        {isInternal && view === "wallet" && selectedWallet && (
           <Card className="mb-8 border-[#B8956A]/20 bg-white">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -421,8 +458,8 @@ export default function PrepaidPurchase() {
           </Card>
         )}
 
-        {/* Stress Test Results */}
-        {view === "stress" && result && (
+        {/* Stress Test Results — staff only */}
+        {isInternal && view === "stress" && result && (
           <Card className="mb-8 border-[#B8956A]/20 bg-white">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -491,8 +528,8 @@ export default function PrepaidPurchase() {
           </Card>
         )}
 
-        {/* Existing Wallets */}
-        {view === "tiers" && wallets.length > 0 && (
+        {/* Existing Wallets — staff only (every customer's wallet) */}
+        {isInternal && view === "tiers" && wallets.length > 0 && (
           <div>
             <h2 className="text-xl font-serif text-[#1A1A1A] mb-4">Active Prepaid Wallets</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -513,6 +550,57 @@ export default function PrepaidPurchase() {
             </div>
           </div>
         )}
+
+        {/* Customer view: their own wallet, and the package they are considering */}
+        {!isInternal && customerWallet && (
+          <Card className="mb-8 border-[#B8956A]/25 bg-white">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-[#1A1A1A]">Your prepaid wallet</p>
+              <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+                <div>
+                  <span className="text-[#1A1A1A]/50">Tier</span>
+                  <p className="font-medium text-[#1A1A1A]">{customerWallet.tier}</p>
+                </div>
+                <div>
+                  <span className="text-[#1A1A1A]/50">Booking value</span>
+                  <p className="font-medium text-[#1A1A1A]">${customerWallet.booking_value_balance}</p>
+                </div>
+                <div>
+                  <span className="text-[#1A1A1A]/50">Credits</span>
+                  <p className="font-medium text-[#1A1A1A]">{customerWallet.credits_balance}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isInternal && selectedTier && (() => {
+          const tier = TIERS.find((t) => t.key === selectedTier);
+          if (!tier) return null;
+          const body = `I would like the ${tier.name} prepaid package ($${tier.price} · ${tier.credits} credits · $${tier.bookingValue} booking value · valid ${tier.validity}) for ${viewer?.email || 'my account'}.`;
+          return (
+            <Card className="mb-8 border-[#B8956A]/30 bg-white">
+              <CardContent className="pt-6 space-y-3">
+                <p className="text-sm text-[#1A1A1A]">
+                  <span className="font-medium">{tier.name}</span> — ${tier.price} for {tier.credits} credits and $
+                  {tier.bookingValue} of booking value, valid {tier.validity}.
+                </p>
+                <p className="text-xs text-[#1A1A1A]/60">
+                  Your selection is arranged with your Arriv specialist using the account email on file
+                  {viewer?.email ? ` (${viewer.email})` : ''}. Nothing is charged from this screen.
+                </p>
+                <a
+                  href={`mailto:bookings@arrivestatemedia.com?subject=${encodeURIComponent(`Prepaid package request — ${tier.name}`)}&body=${encodeURIComponent(body)}`}
+                >
+                  <Button className="bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Request {tier.name}
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Tier Cards (default view) */}
         {view === "tiers" && (
@@ -539,6 +627,19 @@ export default function PrepaidPurchase() {
                         </li>
                       ))}
                     </ul>
+                    {!isInternal && (
+                      <Button
+                        onClick={() => setSelectedTier(tier.key)}
+                        variant={selectedTier === tier.key ? 'default' : 'outline'}
+                        className={`mt-4 w-full ${
+                          selectedTier === tier.key
+                            ? 'bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]'
+                            : 'border-[#B8956A]/40 text-[#1A1A1A] hover:bg-[#B8956A]/10'
+                        }`}
+                      >
+                        {selectedTier === tier.key ? 'Selected' : 'Choose this package'}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}

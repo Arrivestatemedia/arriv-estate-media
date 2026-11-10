@@ -64,20 +64,39 @@ export default function AutoFund() {
     (async () => {
       try {
         await loadCatalog();
+
+        // Who is here? A customer signs in through the app's own login and has no platform account,
+        // so their identity comes from that login — and, if browser storage was cleared, from the
+        // signed session itself. That is what lets an authenticated customer be recognised here
+        // instead of being asked to sign in again.
         let me = null;
-        try { me = await base44.auth.me(); } catch { /* not signed in */ }
-        setUser(me || null);
-        // A customer signed in through the app's own login has no platform account, so their
-        // membership is resolved from the customer session rather than from platform auth.
-        const localEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
-        if (me?.email || localEmail) await loadMembership(me?.email || localEmail);
+        try { me = await base44.auth.me(); } catch { me = null; }
+
+        let email = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
+        if (!email) {
+          try {
+            const res = await base44.functions.invoke('getMyAccount', withCustomerSession({}));
+            email = (res?.data || res)?.account?.email || '';
+            if (email) {
+              localStorage.setItem('user_email', email);
+              localStorage.setItem('user_type', 'client');
+            }
+          } catch { /* not signed in */ }
+        }
+
+        const viewer = me?.email
+          ? { email: String(me.email).toLowerCase(), isAdmin: me.role === 'admin' }
+          : (email ? { email: String(email).toLowerCase(), isAdmin: false } : null);
+
+        setUser(viewer);
+        if (viewer) await loadMembership(viewer.email);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.isAdmin === true;
   const tiers = catalog?.tiers || [];
   const selectedTier = tiers.find(t => t.amount === selectedAmount) || null;
   const enrollmentOpen = catalog?.enrollment_open === true;

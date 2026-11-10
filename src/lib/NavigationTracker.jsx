@@ -10,6 +10,15 @@ export default function NavigationTracker() {
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 
+    // Every page starts at its own heading. The browser's scroll restoration otherwise kept the
+    // previous page's offset, which is why a long page (Billing & Visibility) opened part-way down
+    // and could not be brought back to the top.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }, [location.pathname]);
+
     // Log user activity when navigating to a page
     useEffect(() => {
         // Extract page name from pathname

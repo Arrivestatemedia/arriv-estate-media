@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 // Subscribe, cancel, or manage an Arriv Studio for Real Estate subscription.
 // Admins can also set entitlement overrides (Preferred membership hooks).
@@ -12,11 +13,28 @@ const PLAN_DETAILS = {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const { action, plan_id, entitlement_overrides, subscription_id } = body;
+
+    // Identity: the platform session when the caller has one (staff), otherwise the signed customer
+    // session — and only for the read-only `get`, so no subscription change is reachable without the
+    // session these flows were built around.
+    let user: any = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
+
+    if (!user) {
+      if (String(action || '') !== 'get') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      user = { email: auth.actor.email, full_name: auth.actor.full_name, role: 'user' };
+    }
 
     const clientEmail = (user.email || '').toLowerCase();
 
