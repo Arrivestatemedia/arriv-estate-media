@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createPageUrl } from "../utils";
-import { saveCustomerSession, clearCustomerSession, getCustomerSessionToken } from "@/lib/customerSession";
+import { saveCustomerSession, saveCustomerIdentity, getCustomerSessionToken, isConfirmedSessionFailure } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function SignIn() {
     const raw = String(redirectPage || '').trim();
     if (!raw) return '';
     const path = raw.startsWith('/') ? raw : `/${raw}`;
-    if (/signin|saleslogin/i.test(path)) return '';
+    if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\') || /signin|saleslogin/i.test(path)) return '';
     if (redirectJobId && !path.includes('jobId')) {
       return `${path}${path.includes('?') ? '&' : '?'}jobId=${encodeURIComponent(redirectJobId)}`;
     }
@@ -30,36 +31,19 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(() => !!getCustomerSessionToken());
 
   React.useEffect(() => {
-    // Check if user is already logged in
-    const userEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
-    const userType = localStorage.getItem('user_type') || sessionStorage.getItem('user_type');
-
-    // A customer's app identity is only worth as much as the signed session behind it. Accounts
-    // created before that session existed still hold an email, and forwarding them silently sent
-    // them back to a page that refused them — forever. Without the session, show the form.
-    const needsSession = Boolean(userType) && userType !== 'sales';
-    const hasSession = Boolean(getCustomerSessionToken());
-
-    if (userEmail && userType && (!needsSession || hasSession)) {
-      // A return path always wins: the customer was sent here from a specific screen.
-      if (returnTo) {
-        window.location.href = returnTo;
-        return;
-      }
-      // Honor delivery redirect if present and user is a client
-      if (redirectPage && redirectJobId && userType !== "media_partner") {
-        window.location.href = `/${redirectPage}?jobId=${redirectJobId}`;
-        return;
-      }
-      // User is logged in, redirect to their dashboard
-      if (userType === "media_partner") {
-        window.location.href = '/MediaPartnerDashboard';
-      } else {
-        window.location.href = '/BookingPage';
-      }
-    }
+    if (!getCustomerSessionToken()) return;
+    let cancelled = false;
+    loadCustomerAccount().then((account) => {
+      if (cancelled) return;
+      window.location.replace(returnTo || (account.role === 'admin' ? '/Dashboard'
+        : account.user_type === 'media_partner' ? '/MediaPartnerDashboard' : '/ClientBookings'));
+    }).catch((err) => {
+      if (!cancelled && !isConfirmedSessionFailure(err)) setError('We could not check your existing session. Please retry or sign in below.');
+    }).finally(() => { if (!cancelled) setCheckingSession(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -76,28 +60,16 @@ export default function SignIn() {
 
       if (!response.data.success) {
         setError(response.data.error || "Email or password incorrect");
-        localStorage.clear();
-        clearCustomerSession();
+        // A failed credential attempt must not erase another valid customer or sales session.
         setLoading(false);
         return;
       }
 
-      // Keep the signed session issued by this same password check, so the
-      // customer's backend requests can be authorised server-side.
-      saveCustomerSession(response.data);
-
-      // Store user info in localStorage AND sessionStorage (Safari fallback)
-      const userData = {
-        user_email: response.data.email,
-        user_name: response.data.full_name,
-        user_type: response.data.user_type,
-        user_role: response.data.user_role,
-        user_phone: response.data.phone_number,
-      };
-      Object.entries(userData).forEach(([k, v]) => {
-        localStorage.setItem(k, v);
-        sessionStorage.setItem(k, v);
-      });
+      // Do not report login success unless the credential is persisted AND accepted
+      // by the same server guard the customer's pages use.
+      if (!saveCustomerSession(response.data)) throw new Error('Your session could not be saved. Please allow browser storage and try again.');
+      const account = await loadCustomerAccount();
+      saveCustomerIdentity({ ...account, user_role: response.data.user_role });
 
       // Track first login for media partners
       if (response.data.user_type === 'media_partner' && !response.data.hasLoggedInBefore) {
@@ -110,7 +82,7 @@ export default function SignIn() {
       // Clear any stale sales-team session so the correct nav shows for THIS login.
       // Without this, a prior sales login on the same browser would cause Layout.jsx
       // to show the sales rep nav for clients and media partners.
-      ['sales_member_id', 'sales_member_name', 'sales_member_email', 'sales_member_role', 'sales_force_password_change'].forEach(k => {
+      ['sales_member_id', 'sales_member_name', 'sales_member_email', 'sales_member_role', 'sales_force_password_change', 'sales_session_token'].forEach(k => {
         localStorage.removeItem(k);
         sessionStorage.removeItem(k);
       });
@@ -136,12 +108,12 @@ export default function SignIn() {
         if (redirectPage && redirectJobId) {
           window.location.href = `/${redirectPage}?jobId=${redirectJobId}`;
         } else {
-          window.location.href = '/BookingPage';
+          window.location.href = '/ClientBookings';
         }
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError("Login failed. Please try again.");
+      setError(err?.response?.data?.error || err?.data?.error || err?.message || 'Login failed. Please try again.');
       setLoading(false);
     }
   };
@@ -220,10 +192,10 @@ export default function SignIn() {
             )}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || checkingSession}
               className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
             >
-              {loading ? "Logging in..." : "Log In"}
+              {checkingSession ? 'Checking session...' : loading ? 'Logging in...' : 'Log In'}
             </Button>
 
           </form>

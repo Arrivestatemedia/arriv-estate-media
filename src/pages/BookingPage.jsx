@@ -316,8 +316,8 @@ export default function BookingPage() {
         console.error('Failed to load booking:', err);
         // Genuine session expiry asks for one sign-in and returns here; anything else goes back
         // to the portal rather than looping through the login screen.
-        if (redirectIfSessionExpired(err)) return;
-        window.location.href = createPageUrl('ClientBookings');
+        redirectIfSessionExpired(err);
+        setContextError('This booking could not be loaded. Please retry from My Portal.');
       });
       return;
     }

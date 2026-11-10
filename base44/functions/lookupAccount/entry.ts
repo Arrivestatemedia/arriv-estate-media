@@ -1,48 +1,21 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const { email } = await req.json();
-
-    if (!email) {
-      return Response.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-
-    // Try PendingSignup first
-    const allPendingUsers = await base44.asServiceRole.entities.PendingSignup.list();
-    let user = allPendingUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-
-    // If not in PendingSignup, try User entity
-    if (!user) {
-      const allUsers = await base44.asServiceRole.entities.User.list();
-      user = allUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-    }
-
-    if (!user) {
-      return Response.json({
-        success: false,
-        error: 'No account found with this email'
-      }, { status: 404 });
-    }
-    return Response.json({
-      success: true,
-      account: {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        phone_number: user.phone_number,
-        user_type: user.user_type,
-        payout_method: user.payout_method,
-        zelle_info: user.zelle_info,
-        bank_account_number: user.bank_account_number,
-        bank_routing_number: user.bank_routing_number
-      }
-    });
+    const body = await req.json().catch(() => ({}));
+    const auth = await requireCustomer(base44, req, body);
+    if (!auth.ok) return Response.json({ success: false, code: auth.code, error: auth.error }, { status: auth.status });
+    const user = auth.record;
+    return Response.json({ success: true, account: {
+      id: user.id, email: auth.actor.email, full_name: auth.actor.full_name,
+      phone_number: user.phone_number || '', user_type: auth.actor.user_type,
+      payout_method: user.payout_method || '', zelle_info: user.zelle_info || '',
+      bank_account_number: user.bank_account_number || '', bank_routing_number: user.bank_routing_number || '',
+      stripe_account_id: user.stripe_account_id || '', stripe_payouts_enabled: !!user.stripe_payouts_enabled,
+    } }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('Error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: 'Could not load your account. Please retry.' }, { status: 500 });
   }
-});
+}

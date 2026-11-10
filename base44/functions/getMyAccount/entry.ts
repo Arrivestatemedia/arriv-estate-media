@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { requireCustomer } from '../../shared/customerSession.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
 /**
  * Server-verified account identity and service linkage for the unified client portal.
@@ -8,20 +9,30 @@ import { requireCustomer } from '../../shared/customerSession.ts';
  * server-side from the account's own verified email, so a caller cannot read another
  * customer's services by supplying an email. Read-only: no records are written.
  */
-Deno.serve(async (req) => {
+export default async function(req) {
   const base44 = createClientFromRequest(req);
   try {
     const body = await req.json().catch(() => ({}));
 
     const auth = await requireCustomer(base44, req, body);
-    if (!auth.ok) return Response.json({ ok: false, error: auth.error }, { status: auth.status });
+    if (!auth.ok) return Response.json({ ok: false, code: auth.code, error: auth.error }, { status: auth.status, headers: { 'Cache-Control': 'no-store' } });
 
     const { actor, record } = auth;
     const email = actor.email;
+    const account = {
+      id: actor.account_id, email, full_name: actor.full_name, user_type: actor.user_type,
+      role: actor.role, phone_number: record.phone_number || '',
+      orientationCompleted: !!record.orientationCompleted, onboardingFeePaid: !!record.onboardingFeePaid,
+    };
+    // A health check must not query bookings, Stripe, wallets, Studio or visibility.
+    if (body.identity_only === true) return Response.json({
+      ok: true, account, session_contract: 'customer-v1',
+    }, { headers: { 'Cache-Control': 'no-store' } });
 
     const rowsOf = async (entity: string, query: Record<string, unknown>) => {
       try {
-        const result = await (base44.asServiceRole.entities as any)[entity].filter(query);
+        const scoped = Object.fromEntries(Object.entries(query).map(([field, value]) => [field, customerEmailQuery(field, value)[field]]));
+        const result = await (base44.asServiceRole.entities as any)[entity].filter(scoped);
         const list = Array.isArray(result) ? result : (result?.items || []);
         return list;
       } catch {
@@ -54,13 +65,8 @@ Deno.serve(async (req) => {
 
     return Response.json({
       ok: true,
-      account: {
-        id: actor.account_id,
-        email: actor.email,
-        full_name: actor.full_name,
-        user_type: actor.user_type,
-        role: actor.role,
-      },
+      account,
+      session_contract: 'customer-v1',
       services: {
         bookings: { total: bookings.length, upcoming: upcomingBookings },
         jobs: { total: jobs.length },
@@ -111,4 +117,4 @@ Deno.serve(async (req) => {
     console.error('getMyAccount error:', error?.message);
     return Response.json({ ok: false, error: 'Could not load your account' }, { status: 500 });
   }
-});
+}

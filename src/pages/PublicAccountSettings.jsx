@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { withCustomerSession, getCustomerSessionToken, saveCustomerSession, saveCustomerIdentity, redirectIfSessionExpired } from '@/lib/customerSession';
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function PublicAccountSettings() {
-  const [step, setStep] = useState("lookup"); // lookup, edit, success
+  const [step, setStep] = useState(() => getCustomerSessionToken() ? 'loading' : 'lookup');
   const [email, setEmail] = useState("");
   const [accountData, setAccountData] = useState(null);
   const [editEmail, setEditEmail] = useState("");
@@ -36,15 +37,25 @@ export default function PublicAccountSettings() {
   const [error, setError] = useState("");
   const [payoutSuccess, setPayoutSuccess] = useState(false);
 
+  const applyAccount = (account) => {
+    setAccountData(account); setEditEmail(account.email); setEditPhone(account.phone_number || '');
+    setPayoutMethod(account.payout_method || ''); setZelleInfo(account.zelle_info || '');
+    setBankAccountNumber(account.bank_account_number || ''); setRoutingNumber(account.bank_routing_number || '');
+    setStep('edit');
+  };
+  useEffect(() => {
+    if (!getCustomerSessionToken()) return;
+    base44.functions.invoke('lookupAccount', withCustomerSession({})).then(({ data }) => applyAccount(data.account))
+      .catch((err) => { setStep('lookup'); setError('Your account could not be loaded. Please retry or sign in.'); redirectIfSessionExpired(err); });
+  }, []);
+
   const handleLookup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     
     try {
-      const response = await base44.functions.invoke('lookupAccount', {
-        email: email.toLowerCase()
-      });
+      const response = await base44.functions.invoke('lookupAccount', withCustomerSession({}));
       
       if (response.data.success) {
         setAccountData(response.data.account);
@@ -77,7 +88,9 @@ export default function PublicAccountSettings() {
       });
       
       if (response.data.success) {
-        setAccountData({ ...accountData, email: editEmail, phone_number: editPhone });
+        saveCustomerSession(response.data);
+        saveCustomerIdentity(response.data.account);
+        setAccountData({ ...accountData, ...response.data.account });
         alert('Account updated successfully');
       } else {
         setError(response.data.error || 'Failed to update account');
@@ -101,7 +114,9 @@ export default function PublicAccountSettings() {
       });
       
       if (response.data.success) {
-        setAccountData({ ...accountData, email: editEmail, phone_number: editPhone });
+        saveCustomerSession(response.data);
+        saveCustomerIdentity(response.data.account);
+        setAccountData({ ...accountData, ...response.data.account });
         alert('Phone number updated successfully');
       } else {
         setError(response.data.error || 'Failed to update account');
@@ -139,6 +154,7 @@ export default function PublicAccountSettings() {
       });
       
       if (response.data.success) {
+        saveCustomerSession(response.data);
         setNewPassword("");
         setConfirmPassword("");
         alert('Password updated successfully');
@@ -203,6 +219,7 @@ export default function PublicAccountSettings() {
           </div>
         </div>
 
+        {step === 'loading' && <p className="text-muted-foreground">Loading your account...</p>}
         {step === "lookup" && (
           <Card className="border-[#B8956A]/20">
             <CardHeader>

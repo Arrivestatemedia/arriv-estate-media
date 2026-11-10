@@ -3,13 +3,14 @@ import { verifyPassword, isLegacyHash, hashPassword } from '../../shared/passwor
 import { mintCustomerSession } from '../../shared/customerSession.ts';
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '../../shared/rateLimiter.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
-Deno.serve(async (req) => {
+export default async function(req) {
   const base44 = createClientFromRequest(req);
   try {
-    const { email, password } = await req.json();
+    const { email, password } = await req.json().catch(() => ({}));
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
       return Response.json({ success: false, error: 'Email and password required' }, { status: 400 });
     }
 
@@ -33,23 +34,9 @@ Deno.serve(async (req) => {
 
     const emailLower = email.trim().toLowerCase();
 
-    // Try PendingSignup first with targeted filter, then fall back to full list
-    // (database filters are case-sensitive, but emails may be stored in mixed case)
-    let foundPending = null;
-    try {
-      const pending = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
-      foundPending = (pending || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      if (!foundPending) {
-        // Try original-case email
-        const pendingOrig = await base44.asServiceRole.entities.PendingSignup.filter({ email: email });
-        foundPending = (pendingOrig || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      }
-      if (!foundPending) {
-        // Fall back to full list with case-insensitive match
-        const allPending = await base44.asServiceRole.entities.PendingSignup.list();
-        foundPending = (allPending || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      }
-    } catch (e) { /* table may not exist */ }
+    // Case-insensitive, bounded server lookup; a database outage is not 'account missing'.
+    const pending = await base44.asServiceRole.entities.PendingSignup.filter(customerEmailQuery('email', emailLower), '-created_date', 1);
+    const foundPending = (Array.isArray(pending) ? pending : pending?.items || [])[0];
 
     if (foundPending) {
       const passwordValid = await verifyPassword(password, foundPending.password_hash || '');
@@ -86,6 +73,8 @@ Deno.serve(async (req) => {
         target_id: foundPending.id,
       });
 
+      const session = mintCustomerSession(foundPending, 'pending');
+      if (!session) return Response.json({ success: false, error: 'Sign-in is temporarily unavailable. Please try again.' }, { status: 503 });
       return Response.json({
         success: true,
         id: foundPending.id,
@@ -96,27 +85,12 @@ Deno.serve(async (req) => {
         phone_number: foundPending.phone_number || '',
         orientationCompleted: foundPending.orientationCompleted || false,
         onboardingFeePaid: foundPending.onboardingFeePaid || false,
-        // Signed session for this verified password check. Additive only: the login
-        // response is otherwise unchanged, and no token is issued if the signing
-        // secret is unavailable.
-        ...(mintCustomerSession(foundPending) || {})
+        ...session
       });
     }
 
-    // Try User entity with targeted filter, then fall back to full list
-    let foundUser = null;
-    try {
-      const users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
-      foundUser = (users || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      if (!foundUser) {
-        const usersOrig = await base44.asServiceRole.entities.User.filter({ email: email });
-        foundUser = (usersOrig || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      }
-      if (!foundUser) {
-        const allUsers = await base44.asServiceRole.entities.User.list();
-        foundUser = (allUsers || []).find(u => u.email && u.email.toLowerCase() === emailLower);
-      }
-    } catch (e) { /* table may not exist */ }
+    const users = await base44.asServiceRole.entities.User.filter(customerEmailQuery('email', emailLower));
+    const foundUser = (Array.isArray(users) ? users : users?.items || [])[0];
 
     if (foundUser) {
       const passwordValid = await verifyPassword(password, foundUser.password_hash || '');
@@ -153,39 +127,19 @@ Deno.serve(async (req) => {
         target_id: foundUser.id,
       });
 
+      const session = mintCustomerSession({ ...foundUser, user_role: 'user' }, 'user');
+      if (!session) return Response.json({ success: false, error: 'Sign-in is temporarily unavailable. Please try again.' }, { status: 503 });
       return Response.json({
         success: true,
         id: foundUser.id,
         email: foundUser.email,
         full_name: foundUser.full_name,
-        user_type: foundUser.user_type || 'user',
+        user_type: foundUser.user_type === 'media_partner' ? 'media_partner' : 'client',
         user_role: foundUser.user_role === 'admin' ? 'admin' : 'user',
         phone_number: foundUser.phone_number || '',
         orientationCompleted: foundUser.orientationCompleted || false,
         onboardingFeePaid: foundUser.onboardingFeePaid || false,
-        // This branch used to return NO session token, so a customer whose account lives in the
-        // platform user table signed in successfully and then had every session-gated request
-        // refused. The session is minted from the matching PendingSignup account when one exists
-        // (so epoch revocation still applies), otherwise from this verified record.
-        ...(await (async () => {
-          const emailLowerUser = String(foundUser.email || '').trim().toLowerCase();
-          try {
-            const rows = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLowerUser });
-            const list = Array.isArray(rows) ? rows : (rows?.items || []);
-            const account = list.find(
-              (row) => String(row?.email || '').trim().toLowerCase() === emailLowerUser
-            );
-            if (account) return mintCustomerSession(account) || {};
-          } catch {
-            /* fall through to the verified record */
-          }
-          return mintCustomerSession({
-            ...foundUser,
-            user_type: foundUser.user_type === 'media_partner' ? 'media_partner' : 'client',
-            user_role: 'user',
-            session_epoch: 0,
-          }) || {};
-        })()),
+        ...session,
       });
     }
 
@@ -211,4 +165,4 @@ Deno.serve(async (req) => {
     });
     return Response.json({ success: false, error: 'Sign in failed' }, { status: 500 });
   }
-});
+}

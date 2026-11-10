@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { withCustomerSession } from '@/lib/customerSession';
+import { isConfirmedSessionFailure, redirectIfSessionExpired } from '@/lib/customerSession';
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import ClientInvoices from '@/components/client/ClientInvoices';
 import PreferredMembershipCard from '@/components/client/PreferredMembershipCard';
 import B2BClientDashboard from '@/components/b2b/B2BClientDashboard';
@@ -33,28 +34,13 @@ const SECTIONS = [
 export default function VisibilityDashboard() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [accountError, setAccountError] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
-    if (stored) {
-      setEmail(stored);
-      setLoading(false);
-      return;
-    }
-    // Browser storage may have been cleared while the session is still valid; the session endpoint
-    // re-derives the account server-side.
-    base44.functions
-      .invoke('getMyAccount', withCustomerSession({}))
-      .then((res) => {
-        const resolved = (res?.data || res)?.account?.email || '';
-        if (resolved) {
-          localStorage.setItem('user_email', resolved);
-          localStorage.setItem('user_type', 'client');
-        }
-        setEmail(resolved);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    loadCustomerAccount().then((account) => setEmail(account.email)).catch((err) => {
+      if (!isConfirmedSessionFailure(err)) setAccountError('Your account could not be loaded. Please retry; your session has not been cleared.');
+      redirectIfSessionExpired(err);
+    }).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -65,6 +51,7 @@ export default function VisibilityDashboard() {
     );
   }
 
+  if (accountError) return <div className="p-8 text-center"><p>{accountError}</p><Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button></div>;
   if (!email) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16">

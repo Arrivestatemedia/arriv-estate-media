@@ -3,6 +3,7 @@ import { actorOwnsListing, resolvePropertyActor } from "../../shared/propertyAct
 import { deliverPropertyInquiry } from "../../shared/propertyLeadDelivery.ts";
 import { sanitizeText } from "../../shared/propertyVisibility.ts";
 import { requireCustomer } from "../../shared/customerSession.ts";
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
 // The customer-facing lead dashboard feed.
 //
@@ -31,7 +32,7 @@ function leadStatus(inquiry: any) {
   return "recorded";
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
 
     const owned = (actor.isAdmin
       ? rows(await listingsEntity.filter({}, { sort: "-updated_at", limit: 100 }))
-      : rows(await listingsEntity.filter({ client_email: actor.clientEmail }, { sort: "-updated_at", limit: 100 }))
+      : rows(await listingsEntity.filter(customerEmailQuery('client_email', actor.clientEmail), { sort: "-updated_at", limit: 100 }))
     ).filter((listing: any) => listing?.certification_mode !== true && listing?.listing_id);
 
     const ids = owned.map((listing: any) => listing.listing_id);
@@ -178,4 +179,4 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     return Response.json({ ok: false, error: String(error?.message || error) }, { status: 500 });
   }
-});
+}

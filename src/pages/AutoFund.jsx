@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { withCustomerSession } from "@/lib/customerSession";
+import { withCustomerSession, getCustomerSessionToken, redirectIfSessionExpired } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2, Wallet } from "lucide-react";
@@ -25,6 +26,7 @@ export default function AutoFund() {
   const [membership, setMembership] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("tiers");
+  const [loadError, setLoadError] = useState('');
 
   const [recoveryToken, setRecoveryToken] = useState(null);
   const [stripeSessionId, setStripeSessionId] = useState(null);
@@ -63,7 +65,13 @@ export default function AutoFund() {
   useEffect(() => {
     (async () => {
       try {
-        await loadCatalog();
+        await loadCatalog().catch(() => setLoadError('The Auto-Fund catalog could not be loaded. Please refresh to retry.'));
+        if (getCustomerSessionToken()) {
+          const account = await loadCustomerAccount();
+          setUser({ email: account.email, isAdmin: false });
+          await loadMembership(account.email);
+          return;
+        }
 
         // Who is here? A customer signs in through the app's own login and has no platform account,
         // so their identity comes from that login — and, if browser storage was cleared, from the
@@ -90,6 +98,9 @@ export default function AutoFund() {
 
         setUser(viewer);
         if (viewer) await loadMembership(viewer.email);
+      } catch (err) {
+        setLoadError('Your account could not be loaded. Please refresh to retry.');
+        redirectIfSessionExpired(err);
       } finally {
         setLoading(false);
       }
@@ -122,6 +133,7 @@ export default function AutoFund() {
           </p>
         </div>
 
+        {loadError && <p role="alert" className="mb-6 text-destructive">{loadError}</p>}
         {recoveryToken && !recoveryDismissed && (
           <div className="mb-8">
             <PaymentRecoveryFlow

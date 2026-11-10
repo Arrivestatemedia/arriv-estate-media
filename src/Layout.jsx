@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
+import { getCustomerSessionToken, redirectIfSessionExpired } from '@/lib/customerSession';
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail, GraduationCap, Phone, PhoneIncoming, Building2, ImageIcon, Inbox, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
@@ -76,6 +78,13 @@ function LayoutContent({ children, currentPageName }) {
     const salesMemberId = getItem('sales_member_id');
     const salesMemberName = getItem('sales_member_name');
     const salesMemberEmail = getItem('sales_member_email');
+
+    // A custom customer login is a different credential from a platform login.
+    // Never overwrite it with a cached staff/platform account on navigation.
+    if (getCustomerSessionToken() && !salesMemberId) {
+      loadCustomerAccount().then(setUser).catch(redirectIfSessionExpired);
+      return;
+    }
 
     if (salesMemberId && salesMemberName) {
       const salesMemberRole = getItem('sales_member_role') || 'user';

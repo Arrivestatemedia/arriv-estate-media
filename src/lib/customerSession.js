@@ -11,46 +11,48 @@
 const TOKEN_KEY = 'customer_session_token';
 const EXPIRES_KEY = 'customer_session_expires_at';
 
+function readStored(key) {
+  for (const name of ['localStorage', 'sessionStorage']) {
+    try { const value = window[name].getItem(key); if (value) return value; } catch { /* try the other store */ }
+  }
+  return null;
+}
+
+export function storeCustomerValue(key, value) {
+  let saved = false;
+  for (const name of ['localStorage', 'sessionStorage']) {
+    try { window[name].setItem(key, String(value ?? '')); saved = true; } catch { /* independent fallback */ }
+  }
+  return saved;
+}
+
+function removeStored(key) {
+  for (const name of ['localStorage', 'sessionStorage']) {
+    try { window[name].removeItem(key); } catch { /* independent fallback */ }
+  }
+}
+
 export function saveCustomerSession(response) {
-  if (!response || !response.session_token) return false;
-  try {
-    localStorage.setItem(TOKEN_KEY, response.session_token);
-    sessionStorage.setItem(TOKEN_KEY, response.session_token);
-    if (response.session_expires_at) {
-      localStorage.setItem(EXPIRES_KEY, response.session_expires_at);
-      sessionStorage.setItem(EXPIRES_KEY, response.session_expires_at);
-    }
-    return true;
-  } catch {
-    return false;
-  }
+  const token = response?.session_token || response?.token;
+  if (!token) return false;
+  const saved = storeCustomerValue(TOKEN_KEY, token);
+  const expiry = response.session_expires_at || response.expires_at;
+  if (expiry) storeCustomerValue(EXPIRES_KEY, expiry);
+  removeStored('customer_session_redirect_at');
+  return saved;
 }
 
-export function getCustomerSessionToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || null;
-  } catch {
-    return null;
-  }
-}
-
-export function getCustomerSessionExpiry() {
-  try {
-    return localStorage.getItem(EXPIRES_KEY) || sessionStorage.getItem(EXPIRES_KEY) || null;
-  } catch {
-    return null;
-  }
-}
-
+export function getCustomerSessionToken() { return readStored(TOKEN_KEY); }
+export function getCustomerSessionExpiry() { return readStored(EXPIRES_KEY); }
 export function clearCustomerSession() {
-  try {
-    [TOKEN_KEY, EXPIRES_KEY].forEach((key) => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    });
-  } catch {
-    /* storage unavailable */
-  }
+  [TOKEN_KEY, EXPIRES_KEY].forEach(removeStored);
+}
+
+export function saveCustomerIdentity(account) {
+  Object.entries({ user_email: account.email, user_name: account.full_name,
+    user_type: account.user_type === 'media_partner' ? 'media_partner' : 'client',
+    user_role: account.user_role || account.role || 'user', user_phone: account.phone_number,
+  }).forEach(([key, value]) => storeCustomerValue(key, value));
 }
 
 /** The sales-team bridge token, when the browser holds one. */

@@ -1,5 +1,5 @@
 import { base44 } from "@/api/base44Client";
-import { withCustomerSession } from "@/lib/customerSession";
+import { withCustomerSession, getCustomerSessionToken } from "@/lib/customerSession";
 
 // Thin wrapper around the lead dashboard endpoint. The endpoint decides what this person may see
 // from the listing's own client_email, so nothing here is trusted to filter anything.
@@ -26,7 +26,7 @@ export function leadIdentity() {
 }
 
 export function hasLeadIdentity(identity) {
-  return Boolean(identity.clientEmail || identity.sales_member_id);
+  return Boolean(getCustomerSessionToken() || identity.sales_member_id);
 }
 
 export async function fetchLeads() {

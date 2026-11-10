@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Video, FileText, Loader2, ArrowLeft, X, ChevronLeft, ChevronRight, Sparkles, Zap } from "lucide-react";
 import { createPageUrl } from "../utils";
@@ -42,12 +43,11 @@ export default function ClientJobGallery() {
       setUser({ email: "admin-preview", isAdmin: true });
       return;
     }
-    const userEmail = localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
-    if (!userEmail) {
-      window.location.replace(createPageUrl("SignIn"));
-      return;
-    }
-    setUser({ email: userEmail });
+    loadCustomerAccount().then(setUser).catch((err) => {
+      setError('Your account could not be loaded. Please retry or sign in.');
+      setLoading(false);
+      redirectIfSessionExpired(err);
+    });
   }, [isDemo, adminPreview]);
 
   useEffect(() => {
@@ -301,7 +301,7 @@ export default function ClientJobGallery() {
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxIndex, closeLightbox, navigateLightbox]);
 
-  if (!user) return <div className="p-8 text-center text-white/60">Loading...</div>;
+  if (!user) return <div className="p-8 text-center">{error || 'Loading...'}{error && <Button className="ml-3" onClick={() => window.location.reload()}>Retry</Button>}</div>;
 
   const photoFiles = files.filter((f) => f.isImage);
   const videoFiles = files.filter((f) => f.isVideo);

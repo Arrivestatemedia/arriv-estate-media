@@ -16,7 +16,7 @@ const TYPE_LABELS = {
 };
 
 export default function ClientInvoices({ email, compact = false }) {
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: invoices = [], isLoading, error, refetch } = useQuery({
     queryKey: ["clientInvoices", email],
     queryFn: async () => {
       try {
@@ -34,6 +34,7 @@ export default function ClientInvoices({ email, compact = false }) {
     enabled: !!email,
   });
 
+  if (error) return <div className="mt-6 text-sm text-destructive"><p>Your invoices could not be loaded. You are still signed in.</p><Button variant="outline" className="mt-2" onClick={() => refetch()}>Retry invoices</Button></div>;
   if (isLoading || invoices.length === 0) return null;
 
   const open = (url, invoice, action) => {

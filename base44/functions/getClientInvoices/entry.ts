@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 import { requireCustomer } from '../../shared/customerSession.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
 /**
  * getClientInvoices
@@ -10,7 +11,7 @@ import { requireCustomer } from '../../shared/customerSession.ts';
  * supplied email against each invoice's client_email (the same pattern as
  * getJobMediaForClient). Only the fields the portal displays are returned.
  */
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
@@ -23,14 +24,10 @@ Deno.serve(async (req) => {
     const emailLower = auth.actor.email;
     const clientEmail = emailLower;
 
-    let rows = await base44.asServiceRole.entities.Invoice.filter({ client_email: emailLower });
-    if (!rows || rows.length === 0) {
-      const all = await base44.asServiceRole.entities.Invoice.list('-created_date', 500);
-      rows = all || [];
-    }
+    const rows = await base44.asServiceRole.entities.Invoice.filter(customerEmailQuery('client_email', emailLower), '-created_date', 500);
 
     const invoices = rows
-      .filter((inv) => (inv.client_email || '').toLowerCase() === emailLower)
+      .filter((inv) => (inv.client_email || '').trim().toLowerCase() === emailLower)
       .filter((inv) => !inv.certification_mode && !String(inv.client_email || '').includes('cert.arriv.internal'))
       .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))
       .map((inv) => ({
@@ -53,4 +50,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

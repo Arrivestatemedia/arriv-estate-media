@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { base44 } from "@/api/base44Client";
-import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
+import { withCustomerSession, redirectIfSessionExpired, isConfirmedSessionFailure } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import B2BCompanyMembers from "@/components/b2b/B2BCompanyMembers";
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [accountError, setAccountError] = useState('');
   const [cancelBooking, setCancelBooking] = useState(null);
   const [studioActive, setStudioActive] = useState(() => {
     try {
@@ -36,28 +38,11 @@ export default function ClientBookings() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const stored = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
-    if (stored) {
-      setUser({ email: stored });
-      return;
-    }
-    // No local identity, but the customer session may still be valid (browser storage cleared,
-    // Safari ITP, or a fragment of the app opened directly). The session endpoint re-derives the
-    // account server-side — this is NOT a platform login, so it must not be used to decide that a
-    // signed-in customer is signed out.
-    base44.functions
-      .invoke('getMyAccount', withCustomerSession({}))
-      .then((res) => {
-        const email = (res?.data || res)?.account?.email || '';
-        if (!email) {
-          setNeedsSignIn(true);
-          return;
-        }
-        localStorage.setItem('user_email', email);
-        localStorage.setItem('user_type', 'client');
-        setUser({ email });
-      })
-      .catch(() => setNeedsSignIn(true));
+    loadCustomerAccount().then(setUser).catch((err) => {
+      if (isConfirmedSessionFailure(err)) setNeedsSignIn(true);
+      else setAccountError('Your account could not be loaded. Your session has not been cleared.');
+      redirectIfSessionExpired(err);
+    });
   }, []);
 
   // Studio is a paid entitlement. The card only appears when the account actually has it, and the
@@ -158,6 +143,7 @@ export default function ClientBookings() {
   };
 
   if (!user) {
+    if (accountError) return <div className="p-8 text-center"><p>{accountError}</p><Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button></div>;
     if (needsSignIn) {
       return (
         <div className="max-w-xl mx-auto px-4 py-16">

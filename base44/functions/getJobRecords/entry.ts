@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { resolveRecordActor, contractorBoardQuery, canUseJobView } from '../../shared/recordAccess.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
 /**
  * The only browser path to Job records.
@@ -65,7 +66,7 @@ export default async function (req) {
     if (actor.kind === 'client') {
       if (view !== 'client_mine') return deny();
 
-      const query: any = { client_email: actor.email };
+      const query: any = customerEmailQuery('client_email', actor.email);
       if (body.footage_only) query.footage_uploaded = true;
       if (body.status) query.status = String(body.status);
 

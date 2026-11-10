@@ -1,70 +1,40 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { requireCustomer, mintCustomerSession } from '../../shared/customerSession.ts';
+import { hashPassword } from '../../shared/passwordKdf.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
-const hashPassword = async (password) => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-};
-
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const { accountId, email, phoneNumber, password } = await req.json();
-
-    if (!accountId) {
-      return Response.json(
-        { error: 'Account ID is required' },
-        { status: 400 }
-      );
+    const body = await req.json().catch(() => ({}));
+    const auth = await requireCustomer(base44, req, body);
+    if (!auth.ok) return Response.json({ success: false, code: auth.code, error: auth.error }, { status: auth.status });
+    if (body.accountId && body.accountId !== auth.actor.account_id) return Response.json({ error: 'Not authorized for this account.' }, { status: 403 });
+    const update = {};
+    const email = String(body.email || '').trim().toLowerCase();
+    if (email && email !== auth.actor.email) {
+      if (auth.actor.account_source === 'user') return Response.json({ error: 'This legacy account email is managed by the platform account settings.' }, { status: 400 });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Response.json({ error: 'A valid email is required.' }, { status: 400 });
+      const duplicates = await base44.asServiceRole.entities.PendingSignup.filter(customerEmailQuery('email', email));
+      if (duplicates.some((record) => record.id !== auth.actor.account_id)) return Response.json({ error: 'Email is already registered.' }, { status: 409 });
+      update.email = email;
     }
-
-    const updateData = {};
-
-    // Update email if provided
-    if (email) {
-      const existingUsers = await base44.asServiceRole.entities.PendingSignup.filter({
-        email: email.toLowerCase(),
-      });
-
-      if (existingUsers.length > 0 && existingUsers[0].id !== accountId) {
-        return Response.json(
-          { error: 'Email is already registered' },
-          { status: 409 }
-        );
-      }
-      updateData.email = email.toLowerCase();
+    if (typeof body.phoneNumber === 'string') update.phone_number = body.phoneNumber;
+    if (body.password) {
+      if (typeof body.password !== 'string' || body.password.length < 8) return Response.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
+      update.password_hash = await hashPassword(body.password);
+      update.session_epoch = auth.actor.session_epoch + 1;
     }
-
-    // Update phone number if provided
-    if (phoneNumber) {
-      updateData.phone_number = phoneNumber;
-    }
-
-    // Update password if provided
-    if (password) {
-      const hashedPassword = await hashPassword(password);
-      updateData.password_hash = hashedPassword;
-    }
-
-    // Only update if there's something to update
-    if (Object.keys(updateData).length === 0) {
-      return Response.json(
-        { error: 'No data to update' },
-        { status: 400 }
-      );
-    }
-
-    // Update the account
-    await base44.asServiceRole.entities.PendingSignup.update(accountId, updateData);
-
-    return Response.json({
-      success: true,
-      message: 'Account updated successfully',
-    });
+    if (!Object.keys(update).length) return Response.json({ error: 'No data to update.' }, { status: 400 });
+    const entity = auth.actor.account_source === 'user' ? base44.asServiceRole.entities.User : base44.asServiceRole.entities.PendingSignup;
+    await entity.update(auth.actor.account_id, update);
+    const account = { ...auth.record, ...update };
+    const session = mintCustomerSession(account, auth.actor.account_source);
+    return Response.json({ success: true, ...session, account: {
+      id: account.id, email: account.email, full_name: account.full_name,
+      user_type: auth.actor.user_type, role: auth.actor.role, phone_number: account.phone_number || '',
+    } }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('Error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: 'Could not update your account. Please retry.' }, { status: 500 });
   }
-});
+}

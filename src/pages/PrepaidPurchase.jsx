@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { withCustomerSession } from "@/lib/customerSession";
+import { withCustomerSession, getCustomerSessionToken, redirectIfSessionExpired } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,6 +109,11 @@ export default function PrepaidPurchase() {
   const [customerWallet, setCustomerWallet] = useState(null);
 
   useEffect(() => {
+    if (getCustomerSessionToken()) {
+      loadCustomerAccount().then((account) => setViewer({ email: account.email, isInternal: false }))
+        .catch((err) => { setError('Your account could not be loaded. Please retry.'); redirectIfSessionExpired(err); });
+      return;
+    }
     const storedEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
     const storedRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role') || '';
 
