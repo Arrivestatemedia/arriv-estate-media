@@ -13,7 +13,7 @@
     },
     "job_id": {
       "type": "string",
-      "description": "Completed media job this property page was derived from. One property page per job."
+      "description": "Completed media job this property page was derived from. One property page per job. Empty for a page a customer started without a shoot."
     },
     "booking_id": {
       "type": "string",
@@ -186,7 +186,20 @@
         "type": "object",
         "properties": {
           "drive_file_id": {
-            "type": "string"
+            "type": "string",
+            "description": "File id this media is served by. A Drive id for delivered media, or a stable Arriv id for a photograph the customer uploaded on a page that has no shoot."
+          },
+          "url": {
+            "type": "string",
+            "description": "Publicly served image URL for media the customer uploaded themselves. Empty for delivered media, which is served from the job's private Drive folder through the signed stream endpoint."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "delivered",
+              "uploaded"
+            ],
+            "description": "Where this asset came from. Delivered media is served privately through the stream endpoint; uploaded media is a public image the customer supplied."
           },
           "name": {
             "type": "string"
@@ -206,11 +219,11 @@
           }
         }
       },
-      "description": "Customer-selected media in the customer's approved order. Files stay in the job's private Google Drive folder \u2014 nothing is copied or re-uploaded, and only these assets can ever be served publicly."
+      "description": "Customer-selected media in the customer's approved order. Delivered media stays in the job's private Google Drive folder and is only ever served through the signed stream endpoint; a page started without a shoot holds the customer's own publicly served photographs. Only these assets can ever be served publicly."
     },
     "cover_file_id": {
       "type": "string",
-      "description": "Drive file id of the selected cover photograph"
+      "description": "Id of the selected cover photograph"
     },
     "include_video": {
       "type": "boolean",

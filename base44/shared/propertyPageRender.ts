@@ -55,6 +55,13 @@ export function buildPropertyPagePayload(listing: any, opts: { publiclyAvailable
     .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
   const video = media.find((m: any) => m.kind === "video");
   const streamUrl = (fileId: string) => mediaStreamUrl(listing.listing_id, fileId);
+  // Delivered media is served privately through the signed stream endpoint. A photograph the
+  // customer uploaded themselves on a page with no shoot carries its own public URL, because the
+  // published page renders without a session.
+  const mediaUrl = (m: any) => (m?.url ? m.url : m?.drive_file_id ? streamUrl(m.drive_file_id) : "");
+  const coverMedia = listing.cover_file_id
+    ? media.find((m: any) => m.drive_file_id === listing.cover_file_id)
+    : media.find((m: any) => m.kind === "photo");
 
   return {
     ok: true,
@@ -85,10 +92,10 @@ export function buildPropertyPagePayload(listing: any, opts: { publiclyAvailable
       kind: m.kind,
       alt_text: m.alt_text || "",
       name: m.name,
-      url: streamUrl(m.drive_file_id),
+      url: mediaUrl(m),
     })),
-    cover_url: listing.cover_file_id ? streamUrl(listing.cover_file_id) : "",
-    video_url: video ? streamUrl(video.drive_file_id) : "",
+    cover_url: mediaUrl(coverMedia),
+    video_url: video ? mediaUrl(video) : "",
     published_at: listing.published_at || null,
     last_status_confirmed_at: listing.last_status_confirmed_at || null,
     agent: {

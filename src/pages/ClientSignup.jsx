@@ -16,6 +16,9 @@ export default function ClientSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const roleFromUrl = urlParams.get('role') || 'user';
   const inviteToken = urlParams.get('invite');
+  // Someone who arrived from the free property page is here to make a profile first; the page they
+  // came for opens once the account exists.
+  const freePageIntent = urlParams.get('intent') === 'free-page';
   
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('clientSignupFormData');
@@ -115,6 +118,11 @@ export default function ClientSignup() {
           const rep = salesReps.find(r => r.id === formData.sales_member_id);
           if (rep) localStorage.setItem('selected_sales_member_name', rep.full_name);
         }
+        // A free property page continues straight after login, on the page they signed up for.
+        if (freePageIntent) {
+          window.location.href = `/SignIn?redirect=${encodeURIComponent('/PropertyPageBuilder?intent=free-page')}`;
+          return;
+        }
         // If this signup came from a delivery link (jobId present), redirect
         // to the gallery after login.
         const jobId = urlParams.get('jobId');
@@ -141,9 +149,13 @@ export default function ClientSignup() {
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
             <Camera className="w-8 h-8 text-[#B8956A]" />
           </div>
-          <CardTitle className="text-2xl text-[#1A1A1A]">Book Your Shoot</CardTitle>
+          <CardTitle className="text-2xl text-[#1A1A1A]">
+            {freePageIntent ? 'Create your profile' : 'Book Your Shoot'}
+          </CardTitle>
           <p className="text-[#1A1A1A]/60 mt-2">
-            Sign up to access our professional real estate media services
+            {freePageIntent
+              ? 'Your free property page needs an account to belong to. This is it.'
+              : 'Sign up to access our professional real estate media services'}
           </p>
         </CardHeader>
         <CardContent>

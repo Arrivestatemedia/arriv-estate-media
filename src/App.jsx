@@ -84,6 +84,7 @@ import VisibilityDashboard from './pages/VisibilityDashboard';
 import AdminVisibility from './pages/AdminVisibility';
 import LaunchReadiness from './pages/LaunchReadiness';
 import PropertyDirectory from './pages/PropertyDirectory';
+import FreePropertyPage from './pages/FreePropertyPage';
 import InboundCalls from './pages/InboundCalls';
 import MlsUploadQueue from './pages/MlsUploadQueue';
 import Unsubscribe from './pages/Unsubscribe';
@@ -601,6 +602,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route path="/free-property-page" element={<FreePropertyPage />} />
       <Route path="/properties" element={<PropertyDirectory />} />
       <Route path="/properties/in/:marketSlug" element={<GeographicProperties />} />
       <Route path="/properties/:slug" element={<PublicPropertyPage />} />

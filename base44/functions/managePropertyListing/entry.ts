@@ -473,6 +473,53 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, listing });
     }
 
+    // ------------------------------------------------------------------ uploaded photographs
+    // A page started without a shoot holds the customer's own photographs. Those are stored as public
+    // image URLs, because the published page renders without a session and nothing on it can depend on
+    // a private file. Only a URL this app's storage returns is accepted, so a page can never be pointed
+    // at a host we do not control.
+    if (action === "save_uploaded_media") {
+      if (listing.job_id) {
+        return Response.json({
+          ok: false,
+          reason: "DELIVERED_MEDIA_IN_USE",
+          message: "This page uses your delivered media. Choose your photographs from the gallery instead.",
+        }, { status: 409 });
+      }
+      const incoming = Array.isArray(body.selected_media) ? body.selected_media : [];
+      const cleaned = incoming
+        .slice(0, 30)
+        .map((m: any, index: number) => ({
+          drive_file_id: sanitizeText(m.drive_file_id, 80) || `up_${index}_${Date.now().toString(36)}`,
+          url: sanitizeText(m.url, 900),
+          name: sanitizeText(m.name, 200),
+          kind: "photo",
+          alt_text: sanitizeText(m.alt_text, 200),
+          source: "uploaded",
+          position: index,
+        }))
+        .filter((m: any) => /^https:\/\/[^\s]+$/.test(m.url) && m.url.includes("/storage/v1/object/public/"));
+      if (!cleaned.length) {
+        return Response.json({
+          ok: false,
+          reason: "MEDIA_SELECTION_REQUIRED",
+          message: "Add at least one photograph to the property page.",
+        }, { status: 409 });
+      }
+      const cover = cleaned.find((m: any) => m.drive_file_id === body.cover_file_id) || cleaned[0];
+      await update(
+        {
+          selected_media: cleaned,
+          cover_file_id: cover.drive_file_id,
+          include_video: false,
+          media_selection_approved_at: nowIso(),
+        },
+        "media_selection_saved",
+        { photos: cleaned.length, source: "uploaded" },
+      );
+      return Response.json({ ok: true, listing });
+    }
+
     // ------------------------------------------------------------------ media selection
     if (action === "save_media") {
       const job = await base44.asServiceRole.entities.Job.get(listing.job_id).catch(() => null);

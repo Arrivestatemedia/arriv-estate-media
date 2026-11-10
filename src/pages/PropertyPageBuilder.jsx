@@ -6,6 +6,8 @@ import { propertyAction, loadPropertyContext, PUBLICATION_STATE_LABELS } from "@
 import { Button } from "@/components/ui/button";
 import { Loader2, Home, ArrowLeft, AlertCircle } from "lucide-react";
 import PropertyMediaSelector from "@/components/property/PropertyMediaSelector";
+import FreePageStart from "@/components/property/free/FreePageStart";
+import PropertyPhotoUploader from "@/components/property/free/PropertyPhotoUploader";
 import PropertyDetailsForm from "@/components/property/PropertyDetailsForm";
 import PropertyAuthorizationsForm from "@/components/property/PropertyAuthorizationsForm";
 import PropertyPublishPanel from "@/components/property/PropertyPublishPanel";
@@ -18,6 +20,9 @@ import PropertyPagePreview from "@/components/property/PropertyPagePreview";
 export default function PropertyPageBuilder() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get("jobId");
+  // A page started from the free page offer has no shoot behind it, so there is no job to load:
+  // the property and the customer's own photographs are the whole source.
+  const freeMode = !jobId && searchParams.get("intent") === "free-page";
   const clientEmail = (localStorage.getItem("user_email") || sessionStorage.getItem("user_email") || "").toLowerCase();
 
   const [context, setContext] = useState(null);
@@ -29,7 +34,7 @@ export default function PropertyPageBuilder() {
   const [notice, setNotice] = useState(null);
 
   const load = useCallback(async () => {
-    if (!jobId || !clientEmail) { setLoading(false); return; }
+    if (freeMode || !jobId || !clientEmail) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
@@ -49,7 +54,7 @@ export default function PropertyPageBuilder() {
     } finally {
       setLoading(false);
     }
-  }, [jobId, clientEmail]);
+  }, [freeMode, jobId, clientEmail]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -71,6 +76,10 @@ export default function PropertyPageBuilder() {
 
   if (!clientEmail) return <div className="min-h-[60vh] flex items-center justify-center text-[#1A1A1A]/60">Please sign in to continue.</div>;
   if (loading) return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#B8956A]" /></div>;
+
+  if (freeMode && !listing) {
+    return <FreePageStart onCreated={(created) => setListing(created)} />;
+  }
 
   if (context?.feature_disabled && !context?.existing_listing) {
     return (
@@ -120,8 +129,11 @@ export default function PropertyPageBuilder() {
   return (
     <div className="min-h-screen bg-[#FFFBF5] pb-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <Link to={`/ClientJobGallery?jobId=${jobId}`} className="inline-flex items-center gap-2 text-sm text-[#1A1A1A]/50 hover:text-[#1A1A1A] mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to my media
+        <Link
+          to={freeMode ? "/ClientBookings" : `/ClientJobGallery?jobId=${jobId}`}
+          className="inline-flex items-center gap-2 text-sm text-[#1A1A1A]/50 hover:text-[#1A1A1A] mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" /> {freeMode ? "Back to my portal" : "Back to my media"}
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -139,7 +151,15 @@ export default function PropertyPageBuilder() {
         )}
 
         <div className="space-y-6">
-          <PropertyMediaSelector files={files} listing={listing} busy={busy} onSave={(payload) => run("save_media", payload)} />
+          {freeMode ? (
+            <PropertyPhotoUploader
+              listing={listing}
+              busy={busy}
+              onSave={(payload) => run("save_uploaded_media", payload)}
+            />
+          ) : (
+            <PropertyMediaSelector files={files} listing={listing} busy={busy} onSave={(payload) => run("save_media", payload)} />
+          )}
           <PropertyDetailsForm
             listing={listing}
             busy={busy}
@@ -148,7 +168,14 @@ export default function PropertyPageBuilder() {
             onApprove={(content) => run("approve_content", { content })}
           />
           <PropertyAuthorizationsForm listing={listing} busy={busy} onSave={(payload) => run("record_authorizations", payload)} />
-          <PropertyPagePreview listing={listing} />
+          <PropertyPagePreview
+            listing={listing}
+            mediaUrls={
+              freeMode
+                ? Object.fromEntries((listing.selected_media || []).map((m) => [m.drive_file_id, m.url]))
+                : undefined
+            }
+          />
           <PropertyPublishPanel listing={listing} busy={busy} run={run} />
           <PropertyPackagePanel listing={listing} clientEmail={clientEmail} />
           <PropertyAdPanel listing={listing} clientEmail={clientEmail} />
