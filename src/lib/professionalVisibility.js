@@ -67,6 +67,13 @@ export function formatPrice(cents) {
   return value % 1 === 0 ? `$${value.toFixed(0)}` : `$${value.toFixed(2)}`;
 }
 
+// Property prices are stored in whole dollars, not cents.
+export function formatAmount(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 'Price not published';
+  return `$${number.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
 export function formatDate(value) {
   if (!value) return '';
   const date = new Date(value);

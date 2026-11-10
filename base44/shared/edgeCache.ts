@@ -42,6 +42,11 @@ export interface EdgePurgePayload {
   slug?: string;
   slugs?: string[];
   file_ids?: string[];
+  // Phase 4: full public paths whose cache key must be dropped verbatim, e.g. "/agents/jane-doe" or
+  // "/properties/in/atlanta-ga". A single-segment profile slug cannot express these, because the
+  // cache key is the public path itself. Current Worker builds ignore this field, so sending it is
+  // harmless until the Phase 4 Worker routes are deployed.
+  paths?: string[];
 }
 
 // Fire-and-forget cache invalidation. It never throws: a customer action must not fail because
@@ -56,6 +61,7 @@ export async function requestEdgePurge(payload: EdgePurgePayload): Promise<{ ok:
     slug: payload.slug || "",
     slugs: payload.slugs || [],
     file_ids: payload.file_ids || [],
+    paths: payload.paths || [],
   });
   const timestamp = String(Math.floor(Date.now() / 1000));
 

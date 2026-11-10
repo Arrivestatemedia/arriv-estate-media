@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, BadgeCheck, MapPin, Phone } from 'lucide-react';
 import ProfileInquiryForm from '@/components/visibility/ProfileInquiryForm';
-import { fetchProfessionalProfile, formatPrice } from '@/lib/professionalVisibility';
+import { fetchProfessionalProfile, formatAmount } from '@/lib/professionalVisibility';
 import useSeoMeta, { useNotFoundStatus } from '@/lib/seoMeta';
 
 export default function PublicProfessionalProfile() {
@@ -172,7 +172,7 @@ export default function PublicProfessionalProfile() {
                         {[listing.city, listing.state].filter(Boolean).join(', ')}
                       </p>
                       <p className="text-sm text-[#8C6F45] mt-2">
-                        {listing.listing_price ? formatPrice(listing.listing_price) : 'Price not published'}
+                        {listing.listing_price ? formatAmount(listing.listing_price) : 'Price not published'}
                         {listing.bedrooms ? ` · ${listing.bedrooms} bd` : ''}
                         {listing.bathrooms ? ` · ${listing.bathrooms} ba` : ''}
                       </p>

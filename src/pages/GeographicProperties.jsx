@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, MapPin } from 'lucide-react';
-import { fetchMarket, formatPrice } from '@/lib/professionalVisibility';
+import { fetchMarket, formatAmount } from '@/lib/professionalVisibility';
 import useSeoMeta, { useNotFoundStatus } from '@/lib/seoMeta';
 
 export default function GeographicProperties() {
@@ -97,7 +97,7 @@ export default function GeographicProperties() {
               <h2 className="font-serif text-xl text-[#1A1A1A] mt-2 leading-snug">{listing.property_address}</h2>
               <p className="text-sm text-[#1A1A1A]/50 mt-1">{[listing.city, listing.state].filter(Boolean).join(', ')}</p>
               <p className="text-[#8C6F45] mt-3">
-                {listing.listing_price ? formatPrice(listing.listing_price) : 'Price not published'}
+                {listing.listing_price ? formatAmount(listing.listing_price) : 'Price not published'}
               </p>
               <p className="text-xs text-[#1A1A1A]/45 mt-1">
                 {[listing.bedrooms ? `${listing.bedrooms} bd` : '', listing.bathrooms ? `${listing.bathrooms} ba` : '', listing.square_footage ? `${listing.square_footage} sqft` : '']

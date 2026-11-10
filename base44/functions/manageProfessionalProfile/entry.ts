@@ -15,6 +15,7 @@ import { profileSeoPayload } from '../../shared/professionalSeo.ts';
 import { planCatalog, planPriceLabel, entitlementsFor, seatAllowance } from '../../shared/visibilityPlans.ts';
 import { subscriptionView } from '../../shared/visibilitySubscriptionEngine.ts';
 import { publicOrigin } from '../../shared/propertyVisibility.ts';
+import { requestEdgePurge } from '../../shared/edgeCache.ts';
 
 const SAVEABLE = [
   'display_name', 'headline', 'bio', 'photo_url', 'logo_url',
@@ -246,6 +247,7 @@ Deno.serve(async (req) => {
         events: event(profile, 'unpublished', actor.email),
       };
       await base44.asServiceRole.entities.ProfessionalProfile.update(profile.id, patch);
+      await requestEdgePurge({ paths: [profilePath(profile), '/sitemap.xml'] });
       return jsonResponse({ ok: true, profile: { ...profile, ...patch } });
     }
 
@@ -370,6 +372,7 @@ Deno.serve(async (req) => {
           events: event(profile, 'admin_unpublished', actor.email),
         };
         await base44.asServiceRole.entities.ProfessionalProfile.update(profile.id, patch);
+        await requestEdgePurge({ paths: [profilePath(profile), '/sitemap.xml'] });
         return jsonResponse({ ok: true, profile: { ...profile, ...patch } });
       }
 
@@ -402,6 +405,10 @@ Deno.serve(async (req) => {
       }
 
       await base44.asServiceRole.entities.ProfessionalProfile.update(profile.id, approvePatch);
+      if (action === 'admin_publish') {
+        // Drops the cached page and the sitemap so a newly published profile is visible immediately.
+        await requestEdgePurge({ paths: [profilePath(merged), '/sitemap.xml'] });
+      }
       return jsonResponse({ ok: true, profile: merged });
     }
 

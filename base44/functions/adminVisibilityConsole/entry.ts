@@ -223,7 +223,12 @@ Deno.serve(async (req) => {
         results.push({ slug: market.slug, eligible: eligibility.eligible, indexable, listings: eligibility.published_listings });
       }
 
-      return jsonResponse({ ok: true, results, sitemap_purge: await requestEdgePurge({ slugs: [] }) });
+      const publishedPaths = results.filter((r) => r.indexable).map((r) => `/properties/in/${r.slug}`);
+      return jsonResponse({
+        ok: true,
+        results,
+        sitemap_purge: await requestEdgePurge({ paths: ['/sitemap.xml', ...publishedPaths] }),
+      });
     }
 
     if (action === 'subscriptions') {

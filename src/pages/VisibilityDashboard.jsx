@@ -136,15 +136,45 @@ export default function VisibilityDashboard() {
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="font-serif text-3xl text-[#1A1A1A]">Subscription &amp; Visibility</h1>
         <p className="text-[#1A1A1A]/60 mt-3">
-          Agent and brokerage profiles are created from your Arriv account. If you are a broker or agent who has worked
-          with Arriv, contact us and we will open your profile.
+          Create a public agent or brokerage profile, then choose a plan. A profile is private until you authorize it and
+          Arriv approves it.
         </p>
+        <div className="rounded-2xl border border-[#1A1A1A]/10 bg-white p-6 mt-6 space-y-3">
+          <div>
+            <Label>Profile name</Label>
+            <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} className="mt-1" placeholder="Your name or brokerage name" />
+          </div>
+          <div>
+            <Label>Business email</Label>
+            <Input value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} className="mt-1" placeholder="you@brokerage.com" />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {[
+              ['agent', 'Create agent profile'],
+              ['brokerage', 'Create brokerage profile'],
+            ].map(([type, label]) => (
+              <Button
+                key={type}
+                className="bg-[#1A1A1A] text-[#FFFBF5] hover:bg-[#2A3536]"
+                disabled={busy === type || !form.display_name.trim()}
+                onClick={() =>
+                  run(type, () =>
+                    profileAction('save', {
+                      profile_type: type,
+                      display_name: form.display_name,
+                      contact_email: form.contact_email,
+                    }),
+                  )
+                }
+              >
+                {busy === type ? 'Creating…' : label}
+              </Button>
+            ))}
+          </div>
+        </div>
         <div className="flex gap-3 mt-6">
           <Link to="/properties">
             <Button variant="outline">Browse properties</Button>
-          </Link>
-          <Link to="/properties">
-            <Button className="bg-[#1A1A1A] text-[#FFFBF5] hover:bg-[#2A3536]">Publish a property page</Button>
           </Link>
         </div>
       </div>
