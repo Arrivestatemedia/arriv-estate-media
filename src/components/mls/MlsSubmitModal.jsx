@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -150,15 +150,11 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     : routing?.photo_limit;
   const importUrl = submitted?.import_links?.[0]?.url || submitted?.request?.bright_import_url || "";
 
-  // Bright's redirect opens the customer's own Bright session, so it is opened as soon as it exists.
-  // The button below stays as the fallback when a browser blocks the automatic window.
-  const autoOpenedUrl = useRef("");
-  useEffect(() => {
-    if (!importUrl || autoOpenedUrl.current === importUrl) return;
-    autoOpenedUrl.current = importUrl;
-    const opened = window.open(importUrl, "_blank", "noopener,noreferrer");
-    if (opened) opened.opener = null;
-  }, [importUrl]);
+  // Bright is a pass-through route: submitting sends the media to Bright and takes the customer
+  // there immediately, so nothing is ever queued with Arriv for it.
+  const brightDestination = destinations.length === 1
+    && destinations[0]?.provider_id === "bright_mls"
+    && destinations[0]?.publishing_mode === "automatic";
 
   const requiresNumber = !multipleDestinations && !!routing?.requires_listing_number;
   const numberReady = requiresNumber
@@ -169,6 +165,10 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
     && destinationNumbersReady && (selectedPhotos.length > 0 || readyVideoLinks > 0);
 
   const handleSubmit = async () => {
+    // The Bright tab is created here, inside the click: a window opened after the network round
+    // trip is blocked by the browser. It is pointed at the import link once Bright answers, and
+    // closed again if no link came back. The button in the result panel stays as the fallback.
+    const brightTab = brightDestination ? window.open("about:blank", "_blank") : null;
     setSubmitting(true);
     setError(null);
     try {
@@ -197,7 +197,13 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
       if (data?.error) throw new Error(data.error);
       setSubmitted(data);
       if (onSubmitted) onSubmitted(data);
+      const link = data?.import_links?.[0]?.url || data?.request?.bright_import_url || "";
+      if (brightTab && !brightTab.closed) {
+        if (link) brightTab.location.href = link;
+        else brightTab.close();
+      }
     } catch (err) {
+      if (brightTab && !brightTab.closed) brightTab.close();
       const failure = err?.response?.data || err?.data || null;
       setError(failure?.error || err.message || "Could not submit your MLS request");
       if (failure?.plan?.eligible) setConfig((prev) => (prev ? { ...prev, destinations: failure.plan.eligible } : prev));
@@ -236,7 +242,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             <div className="flex items-start gap-3 p-4 rounded-xl bg-[#B8956A]/10 border border-[#B8956A]/30">
               <CheckCircle2 className="w-5 h-5 text-[#B8956A] shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-[#1A1A1A]">{submitted.already_submitted ? "Already with us" : "Request submitted"}</p>
+                <p className="font-medium text-[#1A1A1A]">
+                  {submitted.already_submitted ? "Already with us" : importUrl ? "Sent to Bright MLS" : "Request submitted"}
+                </p>
                 <p className="text-sm text-[#1A1A1A]/60 mt-1">
                   {submitted.request?.mls_number ? `Listing #${submitted.request.mls_number} — ` : ""}
                   {submitted.request?.photo_count || 0} photos, {submitted.request?.video_count || 0} videos
@@ -261,7 +269,7 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
                 ))}
               </div>
             )}
-            {submitted.deadline_label && (
+            {submitted.deadline_label && !importUrl && (
               <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#B8956A]/20">
                 <Clock className="w-5 h-5 text-[#B8956A] shrink-0 mt-0.5" />
                 <div>
@@ -296,7 +304,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
               </div>
             )}
             <p className="text-xs text-[#1A1A1A]/45">
-              You can follow the status in your gallery. We'll email you as soon as it's done.
+              {importUrl
+                ? "Bright adds the photos to your listing once you finish the import there. You can always reopen the link from your gallery."
+                : "You can follow the status in your gallery. We'll email you as soon as it's done."}
             </p>
           </div>
         ) : loadError ? (
@@ -452,8 +462,18 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
               </label>
             )}
 
-            {/* Deadline */}
-            {(
+            {/* Bright is entered directly, so there is no completion window to show */}
+            {brightDestination ? (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-[#B8956A]/20">
+                <ExternalLink className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
+                <div className="text-xs text-[#1A1A1A]/60">
+                  <p className="font-medium text-[#1A1A1A]">Straight to Bright MLS</p>
+                  <p className="mt-0.5">
+                    Submitting sends your photos to Bright and opens Bright in a new tab, where you sign in and add them to your listing.
+                  </p>
+                </div>
+              </div>
+            ) : (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-[#B8956A]/20">
                 <Clock className="w-4 h-4 text-[#B8956A] mt-0.5 shrink-0" />
                 <div className="text-xs text-[#1A1A1A]/60">
@@ -480,7 +500,9 @@ export default function MlsSubmitModal({ open, onClose, jobId, clientEmail, file
             <>
               <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
               <Button onClick={handleSubmit} disabled={!canSubmit}>
-                {submitting ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Submitting...</> : "Submit MLS request"}
+                {submitting
+                  ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> {brightDestination ? "Sending to Bright..." : "Submitting..."}</>
+                  : brightDestination ? "Send to Bright MLS" : "Submit MLS request"}
               </Button>
             </>
           )}

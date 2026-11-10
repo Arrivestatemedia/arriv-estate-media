@@ -50,9 +50,19 @@ export function brightConfigComplete(config: BrightConfig): boolean {
   return !!(config.apiKey && config.vendorId && config.vendorName && config.endpoint);
 }
 
+/**
+ * Bright serves the agent import redirect at the host root — `/mlsredirect/bright/{manifestId}` —
+ * and nothing else. Any path segment in front of it (for example the manifest endpoint's own
+ * segment) answers 403 `{"message":"Missing Authentication Token"}`, so only the origin of the
+ * configured base is used.
+ */
 export function brightImportUrl(redirectBase: string, manifestId: string): string | null {
   if (!redirectBase || !manifestId) return null;
-  return `${redirectBase}/mlsredirect/bright/${encodeURIComponent(manifestId)}`;
+  let origin = redirectBase.replace(/\/+$/, "");
+  try {
+    origin = new URL(redirectBase).origin;
+  } catch { /* keep the trimmed base when it cannot be parsed */ }
+  return `${origin}/mlsredirect/bright/${encodeURIComponent(manifestId)}`;
 }
 
 function extensionOfName(value: string): string {

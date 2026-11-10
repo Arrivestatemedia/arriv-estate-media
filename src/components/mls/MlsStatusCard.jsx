@@ -41,6 +41,12 @@ export default function MlsStatusCard({ requests = [], providerLabels = {} }) {
     <div className="mb-6 space-y-2">
       {requests.map((r) => {
         const done = r.status === "completed";
+        // A Bright request is finished by the customer inside Bright, so it never reads as work
+        // sitting in a queue and never shows an Arriv completion window.
+        const brightHandoff = !!r.bright_import_url;
+        const note = brightHandoff
+          ? "Sent to Bright MLS — open Bright to add these photos to your listing."
+          : PUBLISHING_NOTE[r.status];
         return (
           <div key={r.request_id} className="rounded-xl border border-[#B8956A]/25 bg-white/[0.03] p-4">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -50,17 +56,17 @@ export default function MlsStatusCard({ requests = [], providerLabels = {} }) {
                 {r.mls_number ? ` · #${r.mls_number}` : ""}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${STATUS_STYLE[r.status] || STATUS_STYLE.submitted}`}>
-                {STATUS_LABEL[r.status] || r.status}
+                {brightHandoff && r.status === "submitted" ? "Sent to Bright" : (STATUS_LABEL[r.status] || r.status)}
               </span>
               {r.status === "completed" && <CheckCircle2 className="w-4 h-4 text-[#B8956A]" />}
             </div>
             <p className="text-xs text-white/50">
               {r.photo_count || 0} photos{r.video_count ? `, ${r.video_count} videos` : ""} · submitted {new Date(r.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </p>
-            {!done && PUBLISHING_NOTE[r.status] && (
-              <p className="text-xs text-white/45 mt-1">{PUBLISHING_NOTE[r.status]}</p>
+            {!done && note && (
+              <p className="text-xs text-white/45 mt-1">{note}</p>
             )}
-            {!done && r.deadline_label && (
+            {!done && !brightHandoff && r.deadline_label && (
               <p className="text-xs text-white/40 flex items-center gap-1.5 mt-1">
                 <Clock className="w-3 h-3 text-[#B8956A]" /> Estimated completion {r.deadline_label}
               </p>

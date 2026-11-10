@@ -304,6 +304,10 @@ Deno.serve(async (req) => {
       const provider = getProvider(providers, destination.provider_id);
       if (!provider) throw new Error(`${destination.provider_label} is no longer available.`);
 
+      // A live Bright route hands the media straight to the customer's own Bright session, so it
+      // never becomes work in Arriv's upload queue and carries no service-window deadline.
+      const brightDirect = provider.id === 'bright_mls' && isProviderLiveForCustomers(provider);
+
       // Listing number: per-destination when several MLS each need one.
       const rawNumber = String((mlsNumbers || {})[destination.provider_id] ?? mlsNumber ?? '').trim();
       const requiresListingNumber = provider.requires_listing_number !== false;
@@ -423,7 +427,7 @@ Deno.serve(async (req) => {
         photo_upload_status: photos.length > 0 ? 'pending' : 'not_required',
         video_upload_status: videos.length > 0 ? 'pending' : 'not_required',
         submitted_at: submittedIso,
-        deadline_at: deadline ? deadline.toISOString() : null,
+        deadline_at: brightDirect ? null : (deadline ? deadline.toISOString() : null),
         status_history: [{
           status: 'submitted',
           at: submittedIso,
@@ -545,8 +549,13 @@ Deno.serve(async (req) => {
 
     const firstCreated = succeeded[0]?.value;
     const providerLabel = destinations.map((d) => d.short_label).join(' + ');
+    // Every destination went straight to Bright: there is nothing for Arriv to upload, so the
+    // queue alert (which carries a 2-business-hour deadline) is not sent. The Bright pilot alert
+    // in the destination flow still reports each accepted manifest.
+    const directOnly = destinationRecords.length > 0
+      && destinationRecords.every((d) => d.provider_id === 'bright_mls' && !!d.manifest_id);
     try {
-      const notified = await notifyAdminOfMlsRequest(base44, {
+      const notified = directOnly ? { emailed: false, smsSent: false } : await notifyAdminOfMlsRequest(base44, {
         request: firstCreated?.row,
         job,
         deadlineLabel,
@@ -579,8 +588,8 @@ Deno.serve(async (req) => {
       destination_count: destinations.length,
       auto_selected: plan.status === 'auto',
       provider_label: providerLabel,
-      deadline_label: deadlineLabel,
-      window_label: windowLabel,
+      deadline_label: directOnly ? null : deadlineLabel,
+      window_label: directOnly ? null : windowLabel,
       bright: firstCreated?.bright
         ? {
           outcome: firstCreated.bright.outcome,

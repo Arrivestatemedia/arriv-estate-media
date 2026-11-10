@@ -77,6 +77,15 @@ which makes no network call to Bright):
 | Routing | Bethesda, MD → Montgomery County → Bright, `publishing_mode: automatic`, `can_submit: true` |
 | Duplicate protection | An accepted manifest is never re-sent; an ambiguous earlier outcome blocks another send |
 
+## Import link shape — corrected 2026-11-10 (verified against Bright)
+
+Bright serves the agent redirect only at the host root: `https://<bright host>/mlsredirect/bright/{manifestId}`
+answers `302` with the agent page (`https://lae.brightmls.com/media-sync?manifestid=…`). Any path in
+front of it — including the manifest endpoint's own segment — answers `403 {"message":"Missing
+Authentication Token"}`. `brightImportUrl` therefore uses the **origin** of the configured
+`BRIGHT_MLS_REDIRECT_BASE_URL` and discards any path, and the secret needs no change. The one request
+sent before this correction had its stored link rebuilt in place (no manifest was re-sent).
+
 ## Still unverified (pending the live pilot)
 
 1. **Media accessibility by Bright** — proving Bright's own servers fetched the signed links. Locally

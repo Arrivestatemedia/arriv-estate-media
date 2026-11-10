@@ -36,7 +36,10 @@ Deno.serve(async (req) => {
       const now = new Date();
       const enriched = (rows || []).map((r: any) => {
         const deadline = r.deadline_at ? new Date(r.deadline_at) : null;
-        const open = !['completed', 'cancelled'].includes(String(r.status));
+        // A Bright request that Bright already accepted is finished on Bright's side by the
+        // customer's own agent import: it is not work waiting in Arriv's upload queue.
+        const handedToBright = String(r.provider) === 'bright_mls' && !!r.bright_manifest_id;
+        const open = !['completed', 'cancelled'].includes(String(r.status)) && !handedToBright;
         return {
           ...r,
           deadline_label: formatEtDeadline(deadline),
