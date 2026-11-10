@@ -1,4 +1,5 @@
 import { requireCustomer } from './customerSession.ts';
+import { requireSalesSession } from './salesSession.ts';
 
 /**
  * Authorization for the three entities that used to be browser-readable:
@@ -72,9 +73,19 @@ export async function resolveRecordActor(base44: any, req: Request, body: any): 
 
   const user = await platformUser(base44);
   const email = String(user?.email || '').trim().toLowerCase();
-  if (!email) return null;
 
-  if (user.role === 'admin') return { kind: 'admin', email };
+  if (email && user?.role === 'admin') return { kind: 'admin', email };
+
+  // A representative signed in through the existing sales login may have no
+  // platform account at all. Their bridge token is verified against the
+  // SalesTeamMember record and always resolves to 'sales' — never admin, and
+  // never a different representative.
+  const sales = await requireSalesSession(base44, req, body);
+  if (sales.ok) {
+    return { kind: 'sales', email: String(sales.member.email || '').toLowerCase(), member: sales.member };
+  }
+
+  if (!email) return null;
 
   const member = await resolveSalesMember(base44, email);
   if (member) return { kind: 'sales', email, member };

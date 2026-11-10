@@ -69,6 +69,11 @@ export default function SalesLogin() {
           sales_member_email: data.email,
           sales_member_role: data.role || 'user',
         };
+        // Bridge token minted by the same password check. Lets a rep with no
+        // platform account be recognised by scoped backend endpoints.
+        if (data.sales_session_token) {
+          salesData.sales_session_token = data.sales_session_token;
+        }
         Object.entries(salesData).forEach(([k, v]) => {
           localStorage.setItem(k, v);
           sessionStorage.setItem(k, v);

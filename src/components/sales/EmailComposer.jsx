@@ -172,6 +172,12 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
         from_email: emailToFilter,
         query: { message_type: "email", source: "email_hub" },
         limit: 200,
+        // Verified bridge token for reps with no platform account; ignored when
+        // the caller already has a platform session.
+        sales_session_token:
+          localStorage.getItem('sales_session_token') ||
+          sessionStorage.getItem('sales_session_token') ||
+          undefined,
       });
       const emails = res?.data?.items || res?.items || [];
       setSentEmails(emails.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));

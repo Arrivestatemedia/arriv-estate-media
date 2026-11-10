@@ -53,10 +53,29 @@ export function clearCustomerSession() {
   }
 }
 
-/** Merge the session token into a function payload. */
+/** The sales-team bridge token, when the browser holds one. */
+export function getSalesSessionToken() {
+  try {
+    return localStorage.getItem('sales_session_token') || sessionStorage.getItem('sales_session_token') || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Merge the verified session credentials this browser holds into a payload.
+ * A customer/contractor sends their customer session; a sales representative
+ * (who may have no platform account) sends the token minted by the existing
+ * sales login. The server checks them independently and never mixes the two.
+ */
 export function withCustomerSession(payload = {}) {
-  const token = getCustomerSessionToken();
-  return token ? { ...payload, session_token: token } : { ...payload };
+  const customer = getCustomerSessionToken();
+  const sales = getSalesSessionToken();
+  return {
+    ...payload,
+    ...(customer ? { session_token: customer } : {}),
+    ...(sales ? { sales_session_token: sales } : {}),
+  };
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { handleSalesBackgroundCheckFailure } from '../../shared/orientationEngine.ts';
 import { verifyPassword, isLegacyHash, hashPassword } from '../../shared/passwordKdf.ts';
+import { mintSalesSession } from '../../shared/salesSession.ts';
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '../../shared/rateLimiter.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
 
@@ -196,6 +197,10 @@ Deno.serve(async (req) => {
       result: 'success',
     });
 
+    // Bridge token so a representative with no platform account can still be
+    // recognised by backend functions. Mints to the 'sales' role only.
+    const salesSession = mintSalesSession(member);
+
     return Response.json({
       success: true,
       memberId: member.id,
@@ -204,6 +209,8 @@ Deno.serve(async (req) => {
       role: platformRole || member.role || 'user',
       forcePasswordChange: member.force_password_change === true,
       platform_access_token: platformAccessToken,
+      sales_session_token: salesSession?.token || null,
+      sales_session_expires_at: salesSession?.expires_at || null,
     });
 
   } catch (error) {

@@ -52,7 +52,12 @@ export default function SendMediaToClient() {
   const { data: allJobs = [] } = useQuery({
     queryKey: ["completedJobs"],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getJobRecords', { view: 'sales_list', sort: '-date', limit: 300 });
+      const res = await base44.functions.invoke('getJobRecords', {
+        view: 'sales_list',
+        sort: '-date',
+        limit: 300,
+        sales_session_token: localStorage.getItem('sales_session_token') || sessionStorage.getItem('sales_session_token') || undefined,
+      });
       return res?.data?.items || res?.items || [];
     },
   });

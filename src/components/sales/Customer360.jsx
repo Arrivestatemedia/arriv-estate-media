@@ -82,11 +82,19 @@ export default function Customer360({ contact, contactKey, activities, onReload,
     try {
       const [bookingResults, jobResults, invoiceResults, signupResults, videoCallResults, docResults] = await Promise.all([
         base44.entities.Booking.list('-created_date', 200).catch(() => []),
-        base44.functions.invoke('getJobRecords', { view: 'sales_client', client_email: customerEmail, limit: 200 })
+        base44.functions.invoke('getJobRecords', {
+          view: 'sales_client',
+          client_email: customerEmail,
+          limit: 200,
+          sales_session_token: localStorage.getItem('sales_session_token') || sessionStorage.getItem('sales_session_token') || undefined,
+        })
           .then(r => (r?.data?.items || r?.items || []))
           .catch(() => []),
         base44.entities.Invoice.list('-created_date', 200).catch(() => []),
-        base44.functions.invoke('getCustomerAccountSummary', { email: customerEmail })
+        base44.functions.invoke('getCustomerAccountSummary', {
+          email: customerEmail,
+          sales_session_token: localStorage.getItem('sales_session_token') || sessionStorage.getItem('sales_session_token') || undefined,
+        })
           .then(r => { const acct = (r?.data || r)?.account; return acct ? [acct] : []; })
           .catch(() => []),
         base44.entities.VideoCallMessage.filter({ recipient_email: customerEmail }).catch(() => []),

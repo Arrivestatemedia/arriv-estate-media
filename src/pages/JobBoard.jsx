@@ -340,8 +340,17 @@ export default function JobBoard() {
   });
 
   const backupMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
-    onMutate: async ({ id, data }) => {
+    mutationFn: ({ id, phoneNumber }) =>
+      base44.functions.invoke(
+        'contractorJobAction',
+        withCustomerSession({ action: 'book_backup', job_id: id, phone_number: phoneNumber })
+      ),
+    onMutate: async ({ id, phoneNumber }) => {
+      const data = {
+        backup_booked_by: user?.email,
+        backup_booked_by_name: user?.full_name,
+        backup_booked_by_phone: phoneNumber,
+      };
       await queryClient.cancelQueries({ queryKey: ["jobs"] });
       const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
       
@@ -452,15 +461,7 @@ export default function JobBoard() {
     
     if (!email) return;
     
-    backupMutation.mutate({
-      id: job.id,
-      data: {
-        ...job,
-        backup_booked_by: email,
-        backup_booked_by_name: name,
-        backup_booked_by_phone: phoneNumber,
-      },
-    });
+    backupMutation.mutate({ id: job.id, phoneNumber });
   };
 
   // Pull to refresh handlers
