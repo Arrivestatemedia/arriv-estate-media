@@ -14,23 +14,25 @@ import {
  * Regression harness for the three entities whose direct browser access was
  * closed: PendingSignup, MessageLog and Job.
  *
- * It mints a session for ONE certification contractor account and ONE
- * certification client account server-side (tokens are never returned or
- * logged) and proves:
+ * IMPORTANT ABOUT SCOPE
+ * A backend function does not run as an ordinary app user: the identity this
+ * harness executes as is reported in `context.executing_identity`. Access-rule
+ * enforcement (RLS) is applied to app-user requests, so it CANNOT be measured
+ * from here — an "anonymous read" attempted in this process is not anonymous.
+ * Runtime denial must be confirmed from a browser session (see the report).
  *
- *   1. A caller with no identity can no longer read any of the three entities.
- *   2. The records still exist for the service role, so (1) is a restriction
- *      and not an empty database.
- *   3. A contractor session resolves as a contractor, never as an admin, and
- *      the board query returns only booking-sourced open/booked gigs.
- *   4. A client session resolves as a client, and their job scope returns only
- *      their own properties (nothing when they have none, while jobs exist).
- *   5. The view gate the endpoints actually call (canUseJobView /
- *      canReadMessageLogs) refuses admin views to contractor and client
- *      identities. These are the same functions getJobRecords and
- *      getMessageLogRecords execute before any query.
- *   6. An endpoint invoked with no identity is refused.
- *   7. No secret field survives the safe account projection, checked against
+ * What this harness does prove, against the real database:
+ *
+ *   1. The records still exist for the service role, so nothing was deleted.
+ *   2. A real contractor session resolves as a contractor — never as an admin.
+ *   3. The contractor board query returns only booking-sourced open/booked gigs
+ *      and never a closed or non-booking job.
+ *   4. A real client session resolves as a client, and the client job scope
+ *      returns only their own records — nothing while jobs exist elsewhere.
+ *   5. The view gate that getJobRecords and getMessageLogRecords execute before
+ *      any query refuses admin views to contractor, client and sales
+ *      identities, and refuses MessageLog to contractor and client identities.
+ *   6. No secret field survives the safe account projection, checked against
  *      every real credential record in the database.
  *
  * Read-only: writes nothing, sends nothing, charges nothing. Admin-only.
@@ -85,26 +87,7 @@ export default async function (req) {
   const checks: Record<string, any> = {};
   const noAuth = { headers: { get: () => null } } as any;
 
-  // ── 1. No identity: direct entity reads must return nothing ───────────────
-  const readCount = async (name: string) => {
-    try {
-      const rows = await base44.entities[name].list('-created_date', 5);
-      const list = Array.isArray(rows) ? rows : rows?.items || [];
-      return { rows: list.length, blocked: false };
-    } catch (error) {
-      return { rows: 0, blocked: true, error: (error as Error).message };
-    }
-  };
-
-  const anonJob = await readCount('Job');
-  const anonSignup = await readCount('PendingSignup');
-  const anonLog = await readCount('MessageLog');
-
-  checks.anonymous_job_read_denied = anonJob.rows === 0;
-  checks.anonymous_pending_signup_read_denied = anonSignup.rows === 0;
-  checks.anonymous_message_log_read_denied = anonLog.rows === 0;
-
-  // ── 2. Records still exist for the service role ───────────────────────────
+  // ── 1. Records still exist for the service role ───────────────────────────
   const svcJobs = await base44.asServiceRole.entities.Job.count({});
   const svcSignups = await base44.asServiceRole.entities.PendingSignup.count({});
   const svcLogs = await base44.asServiceRole.entities.MessageLog.count({});
@@ -113,7 +96,7 @@ export default async function (req) {
   checks.records_still_present_pending_signup = svcSignups > 0;
   checks.records_still_present_message_log = svcLogs > 0;
 
-  // ── 3. Contractor identity and board scope ────────────────────────────────
+  // ── 2. Contractor identity and board scope ────────────────────────────────
   const contractorActor = await resolveRecordActor(base44, noAuth, {
     session_token: contractorSession.token,
   });
@@ -121,6 +104,10 @@ export default async function (req) {
     contractorActor?.kind === 'contractor' &&
     contractorActor?.email === String(contractor.email).toLowerCase();
   checks.contractor_never_resolves_as_admin = contractorActor?.kind !== 'admin';
+  checks.contractor_denied_admin_view = canUseJobView(contractorActor?.kind || '', 'admin_list') === false;
+  checks.contractor_denied_client_view = canUseJobView(contractorActor?.kind || '', 'client_mine') === false;
+  checks.contractor_allowed_board_view =
+    canUseJobView(contractorActor?.kind || '', 'contractor_board') === true;
 
   const boardRows = await base44.asServiceRole.entities.Job.filter(
     contractorBoardQuery('all'),
@@ -136,13 +123,16 @@ export default async function (req) {
     (j: any) => !['completed', 'archived', 'cancelled'].includes(String(j.status))
   );
 
-  // ── 4. Client scope ───────────────────────────────────────────────────────
+  // ── 3. Client identity and scope ──────────────────────────────────────────
   const clientActor = await resolveRecordActor(base44, noAuth, {
     session_token: clientSession.token,
   });
   checks.client_session_resolves_as_client =
     clientActor?.kind === 'client' &&
     clientActor?.email === String(client.email).toLowerCase();
+  checks.client_denied_admin_view = canUseJobView(clientActor?.kind || '', 'admin_list') === false;
+  checks.client_denied_contractor_view =
+    canUseJobView(clientActor?.kind || '', 'contractor_board') === false;
 
   const clientScope = await base44.asServiceRole.entities.Job.filter(
     { client_email: clientActor?.email },
@@ -155,35 +145,15 @@ export default async function (req) {
   );
   checks.client_scope_is_narrower_than_all_jobs = clientRows.length < svcJobs;
 
-  // ── 5. The view gate the endpoints execute ────────────────────────────────
-  checks.contractor_allowed_board_view = canUseJobView('contractor', 'contractor_board') === true;
-  checks.contractor_denied_admin_view = canUseJobView('contractor', 'admin_list') === false;
-  checks.contractor_denied_client_view = canUseJobView('contractor', 'client_mine') === false;
-  checks.client_denied_contractor_view = canUseJobView('client', 'contractor_board') === false;
-  checks.client_denied_admin_view = canUseJobView('client', 'admin_list') === false;
+  // ── 4. Sales/admin gates ──────────────────────────────────────────────────
   checks.sales_denied_admin_view = canUseJobView('sales', 'admin_list') === false;
   checks.admin_allowed_admin_view = canUseJobView('admin', 'admin_list') === true;
   checks.contractor_denied_message_log = canReadMessageLogs('contractor') === false;
   checks.client_denied_message_log = canReadMessageLogs('client') === false;
   checks.sales_allowed_message_log = canReadMessageLogs('sales') === true;
+  checks.admin_allowed_message_log = canReadMessageLogs('admin') === true;
 
-  // ── 6. Endpoint with no identity is refused ───────────────────────────────
-  const invokeNoIdentity = async (name: string) => {
-    try {
-      const res = await base44.asServiceRole.functions.invoke(name, { view: 'client_mine' });
-      const payload: any = res?.data || res;
-      return { refused: !payload || payload.ok !== true, payload };
-    } catch (error: any) {
-      const status = error?.response?.status || error?.status || 0;
-      return { refused: true, status, error: error?.message };
-    }
-  };
-  const jobNoIdentity = await invokeNoIdentity('getJobRecords');
-  const logNoIdentity = await invokeNoIdentity('getMessageLogRecords');
-  checks.endpoint_denies_unknown_caller = jobNoIdentity.refused === true;
-  checks.message_log_endpoint_denies_unknown_caller = logNoIdentity.refused === true;
-
-  // ── 7. Safe projection carries no secret field ────────────────────────────
+  // ── 5. Safe projection carries no secret field ────────────────────────────
   const allSignups = await base44.asServiceRole.entities.PendingSignup.list('-created_date', 500);
   const signupRows = Array.isArray(allSignups) ? allSignups : allSignups?.items || [];
   let leaked: string[] = [];
@@ -193,6 +163,61 @@ export default async function (req) {
   }
   checks.safe_projection_has_no_secret_fields = leaked.length === 0;
 
+  // ── 6. Live HTTP calls against the deployed endpoints ─────────────────────
+  // These carry only the minted customer session — exactly what a browser
+  // sends — so they exercise the real authorization path end to end.
+  const ENDPOINT_BASE = 'https://arrivestatemedia.base44.app/functions/';
+  const callLive = async (name: string, payload: any) => {
+    try {
+      const res = await fetch(ENDPOINT_BASE + name, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      });
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+      return { status: res.status, json };
+    } catch (error) {
+      return { status: 0, json: null, error: (error as Error).message };
+    }
+  };
+
+  const liveBoard = await callLive('getJobRecords', {
+    view: 'contractor_board',
+    session_token: contractorSession.token,
+  });
+  const liveAdminByContractor = await callLive('getJobRecords', {
+    view: 'admin_list',
+    session_token: contractorSession.token,
+  });
+  const liveContractorByClient = await callLive('getJobRecords', {
+    view: 'contractor_board',
+    session_token: clientSession.token,
+  });
+  const liveNoToken = await callLive('getJobRecords', { view: 'client_mine' });
+  const liveLogsByContractor = await callLive('getMessageLogRecords', {
+    session_token: contractorSession.token,
+  });
+  const liveSummaryByContractor = await callLive('getCustomerAccountSummary', {
+    session_token: contractorSession.token,
+    email: contractor.email,
+  });
+
+  const liveBoardItems = Array.isArray(liveBoard.json?.items) ? liveBoard.json.items : null;
+
+  checks.live_contractor_board_200 = liveBoard.status === 200;
+  checks.live_contractor_board_only_booking_jobs =
+    liveBoardItems !== null && liveBoardItems.every((j: any) => j.from_booking === true);
+  checks.live_contractor_denied_admin_view_http = liveAdminByContractor.status === 403;
+  checks.live_client_denied_contractor_view_http = liveContractorByClient.status === 403;
+  checks.live_no_token_denied_http = liveNoToken.status === 401;
+  checks.live_contractor_denied_message_log_http = liveLogsByContractor.status === 403;
+  checks.live_contractor_denied_customer_summary_http = liveSummaryByContractor.status === 403;
+
   const failed = Object.entries(checks).filter(([, passed]) => passed !== true).map(([name]) => name);
 
   return Response.json({
@@ -200,17 +225,25 @@ export default async function (req) {
     checks,
     failed,
     context: {
+      executing_identity: {
+        email: me?.email || null,
+        role: me?.role || null,
+        is_system: system,
+        note: 'RLS cannot be measured from a backend function process; verify denial from a browser.',
+      },
       live_jobs: svcJobs,
       live_pending_signups: svcSignups,
       live_message_logs: svcLogs,
       contractor_board_rows: board.length,
       client_scope_rows: clientRows.length,
-      anonymous_reads: {
-        job: anonJob,
-        pending_signup: anonSignup,
-        message_log: anonLog,
+      live_http: {
+        contractor_board: { status: liveBoard.status, items: liveBoardItems?.length ?? null },
+        contractor_admin_view: liveAdminByContractor.status,
+        client_contractor_view: liveContractorByClient.status,
+        no_token: liveNoToken.status,
+        contractor_message_log: liveLogsByContractor.status,
+        contractor_customer_summary: liveSummaryByContractor.status,
       },
-      no_identity_invocation: { job: jobNoIdentity, message_log: logNoIdentity },
     },
   });
 }
