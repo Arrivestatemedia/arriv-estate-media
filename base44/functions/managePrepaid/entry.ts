@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { requireCustomer } from '../../shared/customerSession.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 import {
   PREPAID_TIERS,
   PREPAID_CREDIT_VALUE,
@@ -43,11 +44,11 @@ export default async function(req) {
     // A customer reading a wallet is identified by the verified session (or the platform's own
     // signed-in user). A caller-supplied address is never accepted as identity.
     let sessionEmail = '';
-    try {
+    if (body.session_token) {
       const verified = await requireCustomer(base44, req, body);
-      if (verified.ok) sessionEmail = verified.actor.email;
-    } catch {
-      sessionEmail = '';
+      if (!verified.ok) return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
+      sessionEmail = verified.actor.email;
+      user = null; // A stale platform account cannot override a signed customer.
     }
     const identity = sessionEmail || (user?.email ? String(user.email).toLowerCase() : '');
     const isAdminUser = !!user && user.role === 'admin';
@@ -931,20 +932,20 @@ export default async function(req) {
         const arr = Array.isArray(wallets) ? wallets : (wallets?.data || []);
         wallet = arr[0];
       } else if (customer_email || identity) {
-        const wallets = await base44.asServiceRole.entities.PrepaidWallet.filter({ customer_email: identity }, undefined, 1);
+        const wallets = await base44.asServiceRole.entities.PrepaidWallet.filter(customerEmailQuery('customer_email', identity), undefined, 1);
         const arr = Array.isArray(wallets) ? wallets : (wallets?.data || []);
         wallet = arr[0];
       }
 
       // A wallet belongs to exactly one customer; the verified identity must match it.
-      if (wallet && !isAdminUser && String(wallet.customer_email || '').toLowerCase() !== identity) {
+      if (wallet && !isAdminUser && String(wallet.customer_email || '').trim().toLowerCase() !== identity) {
         return Response.json({ error: 'Unauthorized: this wallet does not belong to you' }, { status: 403 });
       }
 
       if (!wallet) return Response.json({ error: 'Wallet not found' }, { status: 404 });
 
       // RLS: customer can only see their own wallet
-      if (user && user.role !== 'admin' && wallet.customer_email !== user.email) {
+      if (user && user.role !== 'admin' && String(wallet.customer_email || '').trim().toLowerCase() !== String(user.email || '').trim().toLowerCase()) {
         return Response.json({ error: 'Access denied' }, { status: 403 });
       }
 

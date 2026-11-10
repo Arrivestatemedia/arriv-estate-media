@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { getCustomerSessionToken } from '@/lib/customerSession';
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -127,7 +129,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
         }));
       } else {
         try {
-          const user = await base44.auth.me();
+          const user = getCustomerSessionToken() ? await loadCustomerAccount() : await base44.auth.me();
           if (user) {
             setFormData(prev => ({
               ...prev,

@@ -3,6 +3,7 @@ import { getActivePricingConfig } from "../../shared/mediaConfigLoader.ts";
 import { getActiveLifecycleConfig, resolveTenureStart, computeTenureBand } from "../../shared/customerLifecycleEngine.ts";
 import { determinePricingTier } from "../../shared/propertyDataProvider.ts";
 import { centsToDollars } from "../../shared/moneyUtils.ts";
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 // ============================================================================
 // getCustomerDisplayPricing — Returns tenure-adjusted package prices for the
@@ -20,14 +21,19 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const { property_sqft } = body;
 
-    // Identify the customer. Clients log in via custom auth (localStorage),
-    // so we accept client_email in the payload. Fall back to platform user email.
-    let clientEmail = body.client_email || "";
-    if (!clientEmail) {
-      try {
-        const user = await base44.auth.me();
-        if (user?.email) clientEmail = user.email;
-      } catch (e) { /* not logged in via platform */ }
+    // Personalized history is only resolved for a verified identity. Guests still
+    // receive public base pricing, never another customer's tenure by supplying an email.
+    let clientEmail = '';
+    if (body.session_token) {
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) return Response.json({ code: auth.code, error: auth.error }, { status: auth.status });
+      clientEmail = auth.actor.email;
+    } else {
+      const user = await base44.auth.me().catch((error) => {
+        if (error?.status === 401) return null;
+        throw error;
+      });
+      clientEmail = String(user?.email || '').trim().toLowerCase();
     }
 
     // Load configs

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { saveCustomerSession, saveCustomerIdentity } from '@/lib/customerSession';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +24,9 @@ export default function AccountSettings() {
       const response = await base44.functions.invoke("lookupAccount", {
         email: email.toLowerCase(),
       });
-      setAccountData(response.data);
-      setNewEmail(response.data.email);
-      setPhoneNumber(response.data.phone_number);
+      setAccountData(response.data.account);
+      setNewEmail(response.data.account.email);
+      setPhoneNumber(response.data.account.phone_number);
       setStep("edit");
     } catch (err) {
       const errorMessage =
@@ -42,12 +43,14 @@ export default function AccountSettings() {
     setError("");
 
     try {
-      await base44.functions.invoke("updateAccountDetails", {
+      const response = await base44.functions.invoke("updateAccountDetails", {
         accountId: accountData.id,
         email: newEmail.toLowerCase(),
         phoneNumber,
       });
-      setAccountData({ ...accountData, email: newEmail, phone_number: phoneNumber });
+      saveCustomerSession(response.data);
+      saveCustomerIdentity(response.data.account);
+      setAccountData(response.data.account);
       setError("");
       alert("Account updated successfully");
     } catch (err) {

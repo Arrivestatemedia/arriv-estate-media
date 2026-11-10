@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { clearCustomerSession } from '@/lib/customerSession';
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,8 @@ export default function SalesLogin() {
       const data = result?.data || result;
       
       if (data?.success) {
+        // An explicit successful sales login switches identity; do not forward an old customer credential.
+        clearCustomerSession();
         const salesData = {
           sales_member_id: data.memberId,
           sales_member_name: data.name,

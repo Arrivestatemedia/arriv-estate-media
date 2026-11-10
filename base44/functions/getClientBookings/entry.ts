@@ -19,6 +19,9 @@ import { customerEmailQuery } from '../../shared/customerEmail.ts';
 
 const SAFE_FIELDS = [
   'id',
+  'client_name',
+  'client_email',
+  'client_phone',
   'property_address',
   'street_address',
   'city',

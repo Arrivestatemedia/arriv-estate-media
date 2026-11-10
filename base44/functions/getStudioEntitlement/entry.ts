@@ -13,11 +13,10 @@ export default async function(req) {
     // entitlement is resolved from the signed customer session first. Staff keep the platform
     // session. Only when neither exists is the request refused.
     let clientEmail = '';
-    try {
+    if (body.session_token) {
       const auth = await requireCustomer(base44, req, body);
-      if (auth.ok) clientEmail = auth.actor.email;
-    } catch {
-      clientEmail = '';
+      if (!auth.ok) return Response.json({ code: auth.code, error: auth.error, active: false }, { status: auth.status });
+      clientEmail = auth.actor.email;
     }
 
     if (!clientEmail) {

@@ -19,6 +19,11 @@ export interface PropertyActor {
 }
 
 export async function resolvePropertyActor(base44: any, body: any): Promise<PropertyActor> {
+  if (body?.session_token) {
+    const auth = await requireCustomer(base44, null as any, body);
+    const email = auth.ok ? auth.actor.email : '';
+    return { email, clientEmail: email, type: 'customer', isAdmin: false };
+  }
   let platformEmail = "";
   let platformIsAdmin = false;
   try {

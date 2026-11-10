@@ -18,6 +18,10 @@ export function rowsOf(result: any): any[] {
 }
 
 export async function resolveVisibilityActor(base44: any, body: any): Promise<VisibilityActor> {
+  if (body?.session_token) {
+    const auth = await requireCustomer(base44, null as any, body);
+    return { email: auth.ok ? auth.actor.email : '', isAdmin: false };
+  }
   let me: any = null;
   try {
     me = await base44.auth.me();

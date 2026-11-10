@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { requireCustomer } from '../../shared/customerSession.ts';
+import { customerEmailQuery } from '../../shared/customerEmail.ts';
 import {
   AUTO_FUND_AMOUNT_OPTIONS,
   AUTO_FUND_AMOUNTS,
@@ -66,19 +67,21 @@ export default async function(req) {
       }
     }
 
-    const isAdmin = !!user && user.role === 'admin';
+    const isAdmin = !body.session_token && !!user && user.role === 'admin';
 
     // Customer identity comes from the verified session, then the platform's own signed-in user.
     // A caller-supplied address is never accepted as identity on a self-service action.
     let sessionEmail = '';
-    try {
+    let sessionName = '';
+    if (body.session_token && action !== 'get_tier_catalog') {
       const verified = await requireCustomer(base44, req, body);
-      if (verified.ok) sessionEmail = verified.actor.email;
-    } catch {
-      sessionEmail = '';
+      if (!verified.ok) return Response.json({ code: verified.code, error: verified.error }, { status: verified.status });
+      sessionEmail = verified.actor.email;
+      sessionName = verified.actor.full_name;
+      user = null;
     }
-    const identity = sessionEmail || (user?.email ? String(user.email).toLowerCase() : '');
-    const identityName = user?.full_name || '';
+    const identity = sessionEmail || (user?.email ? String(user.email).trim().toLowerCase() : '');
+    const identityName = sessionName || user?.full_name || '';
 
     /**
      * A signed-in customer may manage THEIR OWN membership from their dashboard; an
@@ -492,8 +495,9 @@ export default async function(req) {
         const subs = await base44.asServiceRole.entities.AutoFundSubscription.filter({ customer_id }, '-created_date', 5);
         const arr = Array.isArray(subs) ? subs : (subs?.data || []);
         sub = arr[0];
-      } else if (customer_email) {
-        const subs = await base44.asServiceRole.entities.AutoFundSubscription.filter({ customer_email }, '-created_date', 5);
+      } else if (identity || (isAdmin && customer_email)) {
+        const target = isAdmin && customer_email ? customer_email : identity;
+        const subs = await base44.asServiceRole.entities.AutoFundSubscription.filter(customerEmailQuery('customer_email', target), '-created_date', 5);
         const arr = Array.isArray(subs) ? subs : (subs?.data || []);
         sub = arr[0];
       }

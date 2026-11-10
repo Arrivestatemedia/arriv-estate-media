@@ -13,7 +13,8 @@ import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 import B2BBookingAdapter from "@/components/b2b/B2BBookingAdapter";
 import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelector";
-import { withCustomerSession, redirectIfSessionExpired } from "@/lib/customerSession";
+import { withCustomerSession, redirectIfSessionExpired, getCustomerSessionToken } from "@/lib/customerSession";
+import { loadCustomerAccount } from '@/lib/customerAccount';
 import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
@@ -339,6 +340,10 @@ export default function BookingPage() {
     }
   }, []);
 
+  const [customer, setCustomer] = useState(null);
+  useEffect(() => {
+    if (getCustomerSessionToken()) loadCustomerAccount().then(setCustomer).catch(redirectIfSessionExpired);
+  }, []);
   const [purchasingContext, setPurchasingContext] = useState(null);
   const [requiresContextChoice, setRequiresContextChoice] = useState(false);
   const [contextError, setContextError] = useState("");
@@ -467,7 +472,7 @@ export default function BookingPage() {
       <>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <PurchasingContextSelector
-          email={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+          email={customer?.email || localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
           onChange={handleContextChange}
         />
         {contextError && (
@@ -616,7 +621,7 @@ export default function BookingPage() {
 
             <div className="mb-6">
               <PurchasingContextSelector
-                email={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+                email={customer?.email || localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
                 onChange={handleContextChange}
               />
             </div>

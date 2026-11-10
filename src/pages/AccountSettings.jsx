@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { getCustomerSessionToken } from '@/lib/customerSession';
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default function AccountSettings() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (getCustomerSessionToken()) { navigate('/PublicAccountSettings', { replace: true }); return; }
     base44.auth.me().then(u => {
       setUser(u);
       setEditEmail(u.email || "");
