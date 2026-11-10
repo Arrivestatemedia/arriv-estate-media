@@ -12,12 +12,14 @@ import {
   authorizationIsCurrent,
   cancelCampaign,
   completeCampaign,
+  confirmManualStop,
   decideRefund,
   launchCampaign,
   launchBlockers,
   loadCampaign,
   loadListing,
   pauseCampaign,
+  requestManualStop,
   requestRefundReview,
   resumeCampaign,
   syncCampaign,
@@ -26,6 +28,19 @@ import {
   appendEvent,
 } from '../../shared/propertyAdEngine.ts';
 import { metaProvider, googleAdsProvider, loadProviderAccount } from '../../shared/propertyAdProviders.ts';
+import {
+  HOUSING_AD_DISCLOSURES,
+  MANUAL_RESULTS_SOURCE,
+  confirmManualActive,
+  isManual,
+  manualActivationBlockers,
+  manualKit,
+  manualLaunchBlockers,
+  manualReportingNote,
+  reconcileManualBudget,
+  recordManualLaunch,
+  recordManualMetrics,
+} from '../../shared/propertyAdManualFulfillment.ts';
 import { AD_REFUND_POLICY, money } from '../../shared/propertyAdPackages.ts';
 import { portfolioSummary, campaignAttribution, buildCampaignReport, budgetPosition } from '../../shared/propertyAdReporting.ts';
 import { issueAdRefund } from '../../shared/stripeAdPayments.ts';
@@ -80,6 +95,16 @@ function adminView(campaign: any) {
     paid_amount_cents: Number(campaign.paid_amount_cents || 0),
     processing_fee_cents: Number(campaign.processing_fee_cents || 0),
     created_at: campaign.created_at || '',
+    fulfillment_mode: isManual(campaign) ? 'manual' : 'api',
+    manual: campaign.manual || null,
+    manual_stop: campaign.manual_stop || null,
+    manual_metrics: (campaign.manual_metrics || []).slice(-25),
+    manual_metrics_source: MANUAL_RESULTS_SOURCE,
+    manual_reporting_note: manualReportingNote(campaign),
+    spend_reconciliation: campaign.spend_reconciliation || null,
+    housing_disclosures: HOUSING_AD_DISCLOSURES,
+    manual_ready: isManual(campaign) && campaign.status === 'READY_TO_LAUNCH',
+    manual_stop_required: campaign.manual_stop?.required === true && campaign.manual_stop?.confirmed !== true,
   };
 }
 
@@ -126,6 +151,12 @@ Deno.serve(async (req) => {
         campaigns: searched.slice(0, 100).map(adminView),
         totals: portfolioSummary(searched),
         refund_policy: AD_REFUND_POLICY,
+        // The two queues an administrator works from while fulfilment is manual.
+        queues: {
+          manual_launch: searched.filter((c) => isManual(c) && c.status === 'READY_TO_LAUNCH').map(adminView),
+          awaiting_activation: searched.filter((c) => isManual(c) && c.status === 'SUBMITTED').map(adminView),
+          stop_required: searched.filter((c) => c.manual_stop?.required === true && c.manual_stop?.confirmed !== true).map(adminView),
+        },
         switches: switchSummary(switches),
         provider: {
           meta: { ...metaProvider.describeReadiness(account), implemented: metaProvider.implemented, account_status: account?.status || 'unconfigured' },
@@ -155,7 +186,12 @@ Deno.serve(async (req) => {
           : null,
         attribution,
         report: campaign.final_report || buildCampaignReport(campaign, attribution),
-        blockers: launchBlockers(campaign, { listing, account, switches, now, manual: true }),
+        blockers: isManual(campaign)
+          ? (campaign.status === 'READY_TO_LAUNCH'
+              ? manualLaunchBlockers(campaign, { listing, now })
+              : manualActivationBlockers(campaign))
+          : launchBlockers(campaign, { listing, account, switches, now, manual: true }),
+        manual_kit: isManual(campaign) ? manualKit(campaign, listing) : null,
       });
     }
 
@@ -169,7 +205,7 @@ Deno.serve(async (req) => {
       }
       const result = await adminApprove(base44, campaign, { actor: actor.email, note: String(body.note || ''), now });
       if (!result.ok) return Response.json({ ok: false, error: result.code, reason: result.reason || '' }, { status: 400 });
-      if (body.launch_now === true) {
+      if (body.launch_now === true && !isManual(result.campaign)) {
         const launched = await launchCampaign(base44, result.campaign, {
           actor: actor.email,
           listing,
@@ -201,6 +237,13 @@ Deno.serve(async (req) => {
     if (action === 'launch') {
       const campaign = await loadCampaign(base44, campaignId);
       if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      if (isManual(campaign)) {
+        return Response.json({
+          ok: false,
+          error: 'MANUAL_FULFILLMENT_ONLY',
+          message: 'This campaign is delivered by hand in Meta Ads Manager. Record the launch instead of using the API path.',
+        }, { status: 400 });
+      }
       const listing = await loadListing(base44, campaign.listing_id);
       const result = await launchCampaign(base44, campaign, {
         actor: actor.email,
@@ -252,6 +295,20 @@ Deno.serve(async (req) => {
       const listing = await loadListing(base44, campaign.listing_id);
       const reason = String(body.reason || '').trim() || `${action} by administrator`;
 
+      // A campaign running by hand at Meta is only ever stopped by a person there. Recording a
+      // local pause here would claim an ad had stopped when it may still be delivering.
+      if (isManual(campaign) && ['pause', 'terminate'].includes(action) && ['SUBMITTED', 'ACTIVE'].includes(campaign.status)) {
+        if (campaign.manual_stop?.confirmed !== true) {
+          const marked = await requestManualStop(base44, campaign, { actor: actor.email, reason, now });
+          return Response.json({
+            ok: false,
+            error: 'MANUAL_STOP_REQUIRED',
+            message: 'Stop this campaign in Meta Ads Manager first, then confirm it here. Nothing is recorded as paused until then.',
+            campaign: adminView(marked.campaign),
+          }, { status: 400 });
+        }
+      }
+
       if (action === 'pause') {
         const result = await pauseCampaign(base44, campaign, { actor: actor.email, reason, provider: metaProvider, account, switches, now });
         if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
@@ -271,6 +328,13 @@ Deno.serve(async (req) => {
     if (action === 'sync') {
       const campaign = await loadCampaign(base44, campaignId);
       if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      if (isManual(campaign)) {
+        return Response.json({
+          ok: false,
+          error: 'MANUAL_REPORTING',
+          message: 'Results for a manually fulfilled campaign are entered from Meta Ads Manager, not synced by API.',
+        }, { status: 400 });
+      }
       const result = await syncCampaign(base44, campaign, { provider: metaProvider, account, switches, now });
       return Response.json({ ok: result.ok !== false, campaign: adminView(await loadCampaign(base44, campaignId)) });
     }
@@ -308,6 +372,108 @@ Deno.serve(async (req) => {
       });
       if (!result.ok) return Response.json({ ok: false, error: result.code, refundable_cents: result.refundable_cents }, { status: 400 });
       return Response.json({ ok: true, campaign: adminView(await loadCampaign(base44, campaignId)), refunded_cents: result.refunded_cents });
+    }
+
+    // ── Manual Meta fulfilment ───────────────────────────────────────────────────────────
+    // Arriv runs these campaigns by hand. Nothing here calls Meta: an administrator records what
+    // they actually did, and a campaign only becomes Active after the four launch checks.
+    if (action === 'manual_launch') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const listing = await loadListing(base44, campaign.listing_id);
+      const result = await recordManualLaunch(base44, campaign, {
+        actor: actor.email,
+        listing,
+        metaCampaignId: String(body.meta_campaign_id || body.metaCampaignId || ''),
+        launchedOn: String(body.launched_on || body.launchedOn || ''),
+        scheduledEndOn: String(body.scheduled_end_on || body.scheduledEndOn || ''),
+        accountLabel: String(body.account_label || body.accountLabel || ''),
+        accountVerified: body.account_verified === true || body.accountVerified === true,
+        note: String(body.note || ''),
+        now,
+      });
+      return Response.json({
+        ok: result.ok,
+        error: result.code || '',
+        blockers: result.blockers || [],
+        campaign: adminView(await loadCampaign(base44, campaignId)),
+      }, { status: result.ok ? 200 : 400 });
+    }
+
+    if (action === 'manual_activate') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const result = await confirmManualActive(base44, campaign, {
+        actor: actor.email,
+        housingCategory: body.housing_category === true,
+        approvedCreative: body.approved_creative === true,
+        budgetCeiling: body.budget_ceiling === true,
+        endDate: body.end_date === true,
+        note: String(body.note || ''),
+        now,
+      });
+      return Response.json({
+        ok: result.ok,
+        error: result.code || '',
+        blockers: result.blockers || [],
+        campaign: adminView(await loadCampaign(base44, campaignId)),
+      }, { status: result.ok ? 200 : 400 });
+    }
+
+    if (action === 'manual_metrics') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const result = await recordManualMetrics(base44, campaign, {
+        actor: actor.email,
+        rows: Array.isArray(body.rows) ? body.rows : [],
+        importText: String(body.import_text || ''),
+        source: String(body.source || MANUAL_RESULTS_SOURCE),
+        note: String(body.note || ''),
+        verified: body.verified === true,
+        now,
+      });
+      return Response.json({
+        ok: result.ok,
+        error: result.code || '',
+        message: result.message || '',
+        errors: result.errors || [],
+        over_budget: result.over_budget === true,
+        results: result.results || null,
+        campaign: adminView(await loadCampaign(base44, campaignId)),
+      }, { status: result.ok ? 200 : 400 });
+    }
+
+    if (action === 'manual_reconcile') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const result = await reconcileManualBudget(base44, campaign, { actor: actor.email, note: String(body.note || ''), now });
+      return Response.json({
+        ok: true,
+        reconciliation: result.reconciliation,
+        campaign: adminView(await loadCampaign(base44, campaignId)),
+      });
+    }
+
+    if (action === 'manual_stop_request') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const reason = String(body.reason || '').trim();
+      if (!reason) return Response.json({ ok: false, error: 'REASON_REQUIRED' }, { status: 400 });
+      const result = await requestManualStop(base44, campaign, { actor: actor.email, reason, now });
+      return Response.json({ ok: true, campaign: adminView(result.campaign) });
+    }
+
+    if (action === 'manual_stop_confirm') {
+      const campaign = await loadCampaign(base44, campaignId);
+      if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
+      const result = await confirmManualStop(base44, campaign, {
+        actor: actor.email,
+        note: String(body.note || ''),
+        reason: String(body.reason || ''),
+        now,
+      });
+      if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
+      return Response.json({ ok: true, campaign: adminView(await loadCampaign(base44, campaignId)) });
     }
 
     // ── Advertising account configuration ───────────────────────────────────────────────

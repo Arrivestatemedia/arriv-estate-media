@@ -19,8 +19,13 @@ export function platformMetrics(campaign: any) {
   const hasReport = metrics.reported_at && (metrics.impressions !== null && metrics.impressions !== undefined);
   const clicks = Number.isFinite(Number(metrics.clicks)) ? Number(metrics.clicks) : null;
   const spend = Number.isFinite(Number(metrics.spend_cents)) ? Number(metrics.spend_cents) : null;
+  const manual = metrics.reporting_mode === "manual";
   return {
-    source: "platform",
+    // A manually reported figure is labelled as such: it is verified by a person, not synced.
+    source: manual ? "manual_entry" : "platform",
+    reporting_mode: manual ? "manual" : "api",
+    source_label: metrics.source || campaign?.provider || "meta",
+    entered_by: metrics.entered_by || null,
     available: !!hasReport,
     impressions: metrics.impressions ?? null,
     reach: metrics.reach ?? null,
@@ -129,9 +134,10 @@ export function buildCampaignReport(campaign: any, attribution: any) {
     },
     // Deliberately explicit: an advertising result is never claimed from a single inquiry.
     cost_per_attributed_inquiry_cents: inquiries > 0 && platform.spend_cents !== null ? Math.round(platform.spend_cents / inquiries) : null,
-    notes: platform.available
-      ? []
-      : ["Platform figures have not been reported for this campaign yet."],
+    notes: [
+      ...(platform.available ? [] : ["Platform figures have not been reported for this campaign yet."]),
+      ...(platform.reporting_mode === "manual" ? ["Results are entered by Arriv from Meta Ads Manager, not synchronised automatically."] : []),
+    ],
     generated_at: new Date().toISOString(),
   };
 }

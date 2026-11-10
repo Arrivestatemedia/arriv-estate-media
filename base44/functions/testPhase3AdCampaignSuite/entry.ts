@@ -42,10 +42,20 @@ import {
   decideRefund,
   refundableAmount,
   guardListingEligibility,
+  confirmManualStop,
   remainingBudget,
   ledgerFor,
   loadCampaign,
 } from '../../shared/propertyAdEngine.ts';
+import {
+  manualKit,
+  manualLaunchBlockers,
+  recordManualLaunch,
+  confirmManualActive,
+  recordManualMetrics,
+  reconcileManualBudget,
+  parseMetricRows,
+} from '../../shared/propertyAdManualFulfillment.ts';
 import { portfolioSummary, buildCampaignReport, campaignAttribution } from '../../shared/propertyAdReporting.ts';
 import { PACKAGES as VISIBILITY_PACKAGES, CHECKOUT_GATE_KEY } from '../../shared/propertyPackages.ts';
 
@@ -587,6 +597,94 @@ Deno.serve(async (req) => {
     const foreign = await createDraftCampaign(store9.client, { listing: otherListing, tier: 'starter', actor: { email: 'owner@example.com' }, publicUrl: otherListing.public_url });
     check('A draft is created for the listing owner recorded on the property', foreign.ok && foreign.campaign.client_email === 'owner@example.com');
     check('The advertising engine never writes publication state', true);
+
+    // ── 15. Manual Meta fulfilment ───────────────────────────────────────────────────
+    // Everything here runs with every advertising switch OFF and no API account, which is exactly
+    // the point: manual fulfilment needs no Meta credential and opens no automatic publishing path.
+    const store10 = makeStore();
+    const built10 = await buildReviewedCampaign(store10.client, listing, 'growth', AD_SWITCH_OFF, null);
+    const kit = manualKit(built10.campaign, listing);
+    check('Manual launch needs no API switch and no API account', manualLaunchBlockers(built10.campaign, { listing }).length === 0, manualLaunchBlockers(built10.campaign, { listing }).join(' | '));
+    check('The manual kit carries the approved copy', String(kit.headline || '').length > 0 && String(kit.primary_text || '').length > 0);
+    check('The manual kit carries the authorized budget and duration', kit.ad_budget_cents === 17500 && kit.duration_days === 14);
+    check('The manual kit carries the housing disclosures', kit.disclosures.length >= 4 && kit.special_ad_category === 'HOUSING');
+    check('The manual kit carries the property page the ad must link to', kit.property_url === listing.public_url);
+
+    const now10 = new Date();
+    const end10 = new Date(now10.getTime() + 14 * 86400000).toISOString();
+    const unverified = await recordManualLaunch(store10.client, built10.campaign, {
+      actor: 'admin@arriv.com', listing, metaCampaignId: '1202555001', launchedOn: now10.toISOString(),
+      scheduledEndOn: end10, accountLabel: 'act_123', accountVerified: false,
+    });
+    check('A manual launch cannot be recorded without a verified account', unverified.ok === false && unverified.code === 'ACCOUNT_NOT_VERIFIED');
+    const badEnd = await recordManualLaunch(store10.client, built10.campaign, {
+      actor: 'admin@arriv.com', listing, metaCampaignId: '1202555001', launchedOn: now10.toISOString(),
+      scheduledEndOn: new Date(now10.getTime() - 86400000).toISOString(), accountLabel: 'act_123', accountVerified: true,
+    });
+    check('A campaign cannot end before it launches', badEnd.ok === false && badEnd.code === 'END_BEFORE_START');
+
+    const launched10 = await recordManualLaunch(store10.client, built10.campaign, {
+      actor: 'admin@arriv.com', listing, metaCampaignId: '1202555001', launchedOn: now10.toISOString(),
+      scheduledEndOn: end10, accountLabel: 'act_123 · Arriv Media', accountVerified: true, note: 'Built by hand',
+    });
+    check('Recording a manual launch moves the campaign to created, not running', launched10.ok && launched10.campaign.status === 'SUBMITTED');
+    check('The Meta campaign id is stored as evidence', launched10.campaign.manual.meta_campaign_id === '1202555001');
+    check('A manual campaign never receives an API provider campaign id', !launched10.campaign.provider_campaign_id);
+    check('The recorded end date becomes the campaign end date', launched10.campaign.ends_at === end10);
+
+    const partial10 = await confirmManualActive(store10.client, launched10.campaign, {
+      actor: 'admin@arriv.com', housingCategory: true, approvedCreative: true, budgetCeiling: false, endDate: false,
+    });
+    check('Activation is refused until all four checks are confirmed', partial10.ok === false && (partial10.blockers || []).length >= 2);
+    check('A partially confirmed campaign is not marked active', (await loadCampaign(store10.client, launched10.campaign.campaign_id)).status === 'SUBMITTED');
+    const active10 = await confirmManualActive(store10.client, await loadCampaign(store10.client, launched10.campaign.campaign_id), {
+      actor: 'admin@arriv.com', housingCategory: true, approvedCreative: true, budgetCeiling: true, endDate: true, note: 'Checked in Meta',
+    });
+    check('All four confirmations make the manual campaign active', active10.ok && active10.campaign.status === 'ACTIVE');
+
+    const recorded10 = await recordManualMetrics(store10.client, active10.campaign, {
+      actor: 'admin@arriv.com', rows: [{ impressions: '12000', reach: '9000', clicks: '140', spend: '63.50' }], verified: true,
+    });
+    check('Manual results are recorded with their source', recorded10.ok && recorded10.campaign.metrics.reporting_mode === 'manual' && recorded10.campaign.metrics.source === 'Meta Ads Manager');
+    check('Manual results keep who entered them and when', recorded10.campaign.metrics.entered_by === 'admin@arriv.com' && !!recorded10.campaign.metrics.reported_at);
+    check('Manual spend is applied to the campaign', recorded10.campaign.spent_cents === 6350, recorded10.campaign.spent_cents);
+    const ledger10 = await ledgerFor(store10.client, launched10.campaign.campaign_id);
+    check('Manual spend writes the same budget ledger entry the API path writes', ledger10.some((entry) => entry.entry_type === 'platform_spend' && entry.amount_cents === -6350));
+    check('Manual results are appended to the reporting history', (recorded10.campaign.manual_metrics || []).length === 1);
+
+    const imported10 = await recordManualMetrics(store10.client, await loadCampaign(store10.client, launched10.campaign.campaign_id), {
+      actor: 'admin@arriv.com', importText: 'impressions,reach,clicks,spend\n15000,11000,180,84.25',
+    });
+    check('A pasted Meta export is read into figures', imported10.ok && imported10.campaign.metrics.spend_cents === 8425);
+    check('The imported spend replaces the reported total, not the ledger delta', imported10.campaign.spent_cents === 8425);
+    const badPaste = parseMetricRows('totally unreadable');
+    check('An unreadable paste is refused rather than guessed', badPaste.rows.length === 0 && badPaste.errors.length > 0);
+    const incomplete = await recordManualMetrics(store10.client, await loadCampaign(store10.client, launched10.campaign.campaign_id), {
+      actor: 'admin@arriv.com', rows: [{ impressions: '100' }],
+    });
+    check('Figures without clicks and spend are refused', incomplete.ok === false && incomplete.code === 'METRICS_INCOMPLETE');
+
+    const live10 = await loadCampaign(store10.client, launched10.campaign.campaign_id);
+    const guarded10 = await guardListingEligibility(store10.client, {
+      listing: listingFixture({ listing_status: 'sold' }),
+      reason: 'The property was marked sold.',
+      actor: 'system',
+      now: now10,
+    });
+    check('An ineligible listing raises an urgent manual stop', guarded10.needs_stop.includes(live10.campaign_id));
+    const stillLive10 = await loadCampaign(store10.client, live10.campaign_id);
+    check('A manual campaign is not marked paused before Meta confirms the stop', stillLive10.status === 'ACTIVE' && stillLive10.manual_stop.required === true);
+    check('The outstanding stop is visible on the campaign', stillLive10.manual_stop.confirmed !== true && String(stillLive10.attention_reason).includes('Meta Ads Manager'));
+
+    const stopped10 = await confirmManualStop(store10.client, stillLive10, { actor: 'admin@arriv.com', note: 'Paused in Meta Ads Manager' });
+    check('Confirming the Meta stop is what records it as paused', stopped10.ok && stopped10.campaign.status === 'PAUSED' && stopped10.campaign.manual_stop.confirmed === true);
+
+    const reconciled10 = await reconcileManualBudget(store10.client, stopped10.campaign, { actor: 'admin@arriv.com', note: 'Read from Meta' });
+    check('Reconciliation separates verified spend from unspent budget', reconciled10.reconciliation.authorized_cents === 17500 && reconciled10.reconciliation.spent_cents === 8425 && reconciled10.reconciliation.unspent_cents === 9075);
+    check('Unspent budget is surfaced as refund due, never auto-refunded', reconciled10.reconciliation.refund_due_cents === 9075 && Number(reconciled10.campaign.refunded_cents || 0) === 0);
+    check('Reconciliation keeps the management fee out of the advertising budget', reconciled10.reconciliation.management_fee_cents === 12400);
+    const ledger10b = await ledgerFor(store10.client, live10.campaign_id);
+    check('An active campaign is not yet released from its budget', !ledger10b.some((entry) => entry.entry_type === 'budget_release'));
 
     const results = {
       ok: checks.every((entry) => entry.pass),

@@ -120,7 +120,7 @@
         "gray"
       ],
       "default": "DRAFT",
-      "description": "Lifecycle state. Payment alone never advances past READY_FOR_REVIEW: launch needs approvals, provider eligibility and the execution switches."
+      "description": "Lifecycle state. Payment alone never advances past READY_FOR_REVIEW: launch needs approvals, eligibility and the execution switches."
     },
     "status_before_pause": {
       "type": "string",
@@ -128,6 +128,190 @@
     },
     "pause_reason": {
       "type": "string"
+    },
+    "fulfillment_mode": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "api"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue"
+      ],
+      "default": "manual",
+      "description": "How Arriv delivers the campaign. 'manual' means an administrator creates and runs it by hand in Meta Ads Manager and the API publishing path is never used. 'api' is the automated path and stays blocked until its switches and credentials are enabled."
+    },
+    "manual": {
+      "type": "object",
+      "description": "Evidence of what an administrator actually created in Meta Ads Manager. Recorded by hand, never inferred.",
+      "properties": {
+        "meta_campaign_id": {
+          "type": "string",
+          "description": "Campaign ID copied from Meta Ads Manager"
+        },
+        "account_label": {
+          "type": "string",
+          "description": "The advertising account the campaign was created in, as verified in Meta"
+        },
+        "account_verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "Administrator confirmed the campaign sits in an Arriv-controlled, verified advertising account"
+        },
+        "launched_on": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Actual launch date recorded from Meta Ads Manager"
+        },
+        "scheduled_end_on": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End date set on the Meta campaign"
+        },
+        "recorded_by": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmations": {
+          "type": "object",
+          "description": "The four checks an administrator must confirm before the campaign is recorded as Active",
+          "properties": {
+            "housing_category": {
+              "type": "boolean",
+              "default": false
+            },
+            "approved_creative": {
+              "type": "boolean",
+              "default": false
+            },
+            "budget_ceiling": {
+              "type": "boolean",
+              "default": false
+            },
+            "end_date": {
+              "type": "boolean",
+              "default": false
+            },
+            "note": {
+              "type": "string"
+            },
+            "confirmed_by": {
+              "type": "string"
+            },
+            "confirmed_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "manual_stop": {
+      "type": "object",
+      "description": "An urgent stop that must be carried out by a person in Meta Ads Manager. Until an administrator confirms it there, the campaign is never recorded as paused.",
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "requested_by": {
+          "type": "string"
+        },
+        "confirmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmed_by": {
+          "type": "string"
+        },
+        "confirmation_note": {
+          "type": "string",
+          "description": "Administrator's note of what they saw and did in Meta Ads Manager"
+        }
+      }
+    },
+    "manual_metrics": {
+      "type": "array",
+      "description": "Append-only record of results read from Meta Ads Manager. Every entry carries its source, who entered it and when, so a customer figure can always be traced back.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "entered_by": {
+            "type": "string"
+          },
+          "impressions": {
+            "type": "integer"
+          },
+          "reach": {
+            "type": "integer"
+          },
+          "clicks": {
+            "type": "integer"
+          },
+          "spend_cents": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spend_reconciliation": {
+      "type": "object",
+      "description": "Verified spend reconciled against the prepaid advertising budget, so unspent customer money is never left unattributed.",
+      "properties": {
+        "authorized_cents": {
+          "type": "integer"
+        },
+        "spent_cents": {
+          "type": "integer"
+        },
+        "unspent_cents": {
+          "type": "integer"
+        },
+        "refunded_cents": {
+          "type": "integer"
+        },
+        "refund_due_cents": {
+          "type": "integer"
+        },
+        "management_fee_cents": {
+          "type": "integer"
+        },
+        "reconciled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reconciled_by": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
     },
     "provider": {
       "type": "string",
@@ -146,7 +330,7 @@
     },
     "provider_campaign_id": {
       "type": "string",
-      "description": "Platform campaign id once created. Its presence is what prevents a second launch."
+      "description": "Platform campaign id created through the API. Manual campaigns never set this, so the API path can never act on a campaign a person created by hand."
     },
     "provider_ad_set_id": {
       "type": "string"
@@ -311,7 +495,7 @@
     },
     "metrics": {
       "type": "object",
-      "description": "Platform-reported figures exactly as the advertising platform returned them. Never estimated, never filled with placeholders.",
+      "description": "Figures exactly as the advertising source returned them. Never estimated, never filled with placeholders.",
       "properties": {
         "impressions": {
           "type": "integer"
@@ -330,7 +514,28 @@
           "format": "date-time"
         },
         "source": {
+          "type": "string",
+          "description": "Where the figures came from: the platform API, or a person reading Meta Ads Manager"
+        },
+        "reporting_mode": {
+          "type": "string",
+          "enum": [
+            "api",
+            "manual"
+          ],
+          "enumColors": [
+            "blue",
+            "yellow"
+          ],
+          "description": "How the figures were obtained. 'manual' is always identified as such to the customer."
+        },
+        "entered_by": {
           "type": "string"
+        },
+        "verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "An administrator confirmed the figures against Meta Ads Manager, in full"
         }
       }
     },

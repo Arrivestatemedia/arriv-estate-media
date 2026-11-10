@@ -140,6 +140,31 @@ export default function AdminPropertyAdCampaigns() {
               platform, and no budget can be spent.
             </p>
           )}
+          <p className="mt-3 text-xs leading-relaxed text-[#1A1A1A]/55">
+            Delivery method: manual Meta Ads Manager fulfilment. API publishing stays switched off, and campaign checkout stays
+            closed until manual fulfilment is verified and activation is explicitly authorized.
+          </p>
+        </div>
+
+        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+          {[
+            ["Ready for manual launch", data?.queues?.manual_launch?.length || 0, "Approved, paid campaigns waiting to be built in Meta."],
+            ["Awaiting activation confirmation", data?.queues?.awaiting_activation?.length || 0, "Created in Meta; the four launch checks are not confirmed yet."],
+            ["Urgent stop required", data?.queues?.stop_required?.length || 0, "Stop these in Meta Ads Manager, then confirm here."],
+          ].map(([label, count, help]) => (
+            <div
+              key={label}
+              className={`rounded-2xl border p-4 ${
+                label === "Urgent stop required" && count > 0
+                  ? "border-red-300 bg-red-50"
+                  : "border-[#B8956A]/25 bg-white"
+              }`}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A1A1A]/40">{label}</p>
+              <p className="mt-1 font-serif text-xl text-[#1A1A1A]">{count}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[#1A1A1A]/50">{help}</p>
+            </div>
+          ))}
         </div>
 
         <AdCampaignTable campaigns={data?.campaigns || []} loading={false} onOpen={setOpenId} />

@@ -34,6 +34,7 @@ import { readAdSwitches } from '../../shared/propertyAdSwitches.ts';
 import { createAdPaymentIntent, verifyAdPayment } from '../../shared/stripeAdPayments.ts';
 import { buildCampaignReport, campaignAttribution, budgetPosition } from '../../shared/propertyAdReporting.ts';
 import { metaProvider } from '../../shared/propertyAdProviders.ts';
+import { MANUAL_STATUS_HELP, isManual, manualReportingNote } from '../../shared/propertyAdManualFulfillment.ts';
 
 // Customer-facing advertising. A customer can only ever act on their own listing, and every
 // purchase step re-checks eligibility, authorization and the advertising switches server-side.
@@ -44,6 +45,7 @@ function rows(result: any): any[] {
 
 function customerView(campaign: any) {
   if (!campaign) return null;
+  const manual = isManual(campaign);
   return {
     campaign_id: campaign.campaign_id,
     listing_id: campaign.listing_id,
@@ -51,9 +53,17 @@ function customerView(campaign: any) {
     package_name: campaign.package_name,
     status: campaign.status,
     status_label: AD_STATUS_LABELS[campaign.status] || campaign.status,
-    status_help: AD_STATUS_HELP[campaign.status] || "",
+    status_help: (manual && MANUAL_STATUS_HELP[campaign.status]) || AD_STATUS_HELP[campaign.status] || "",
     actions: AD_CUSTOMER_ACTIONS[campaign.status] || [],
     provider: campaign.provider,
+    fulfillment_mode: manual ? "manual" : "api",
+    delivery_method: manual ? "Arriv creates and manages this campaign in Meta Ads Manager." : "Arriv publishes this campaign through the advertising API.",
+    // Results are only ever what Arriv read from the advertising source, and manual entry is said plainly.
+    reporting_mode: campaign.metrics?.reporting_mode || (manual ? "manual" : "api"),
+    reported_by: manual ? "Arriv, from Meta Ads Manager" : "Advertising platform",
+    reporting_note: manualReportingNote(campaign),
+    // A stop that Arriv has asked for but cannot perform is shown as outstanding, never as stopped.
+    stop_outstanding: campaign.manual_stop?.required === true && campaign.manual_stop?.confirmed !== true,
     duration_days: campaign.duration_days,
     scheduled_start_at: campaign.scheduled_start_at || "",
     started_at: campaign.started_at || "",
@@ -114,6 +124,9 @@ Deno.serve(async (req) => {
           : 'Advertising checkout is not open yet. You can review the packages and creative; nothing will be charged.',
         agreement_version: AD_AGREEMENT_VERSION,
         disclosure: AD_DISCLOSURE,
+        delivery_mode: 'manual_meta_ads_manager',
+        delivery_note: 'Arriv creates, publishes and manages this campaign by hand in Meta Ads Manager. No automatic advertising API is used.',
+        results_note: 'Results are entered by Arriv from Meta Ads Manager and are identified as manually reported.',
         eligibility_note: AD_ELIGIBILITY_NOTE,
         authorization_points: AD_AUTHORIZATION_POINTS,
         refund_policy: AD_REFUND_POLICY,

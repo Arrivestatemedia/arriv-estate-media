@@ -2,6 +2,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import { AD_STATUS_LABELS, adminAdAction, formatDate, metric, money } from "@/lib/propertyAds";
+import ManualKitPanel from "./ManualKitPanel";
+import ManualLaunchForm from "./ManualLaunchForm";
+import ManualActivationForm from "./ManualActivationForm";
+import ManualResultsForm from "./ManualResultsForm";
+import ManualStopPanel from "./ManualStopPanel";
+import ManualReconciliationPanel from "./ManualReconciliationPanel";
 
 // One campaign, in full, for an administrator: the exact creative and authorization the customer
 // approved, the budget position, what the platform reported, and every action recorded in the audit
@@ -102,6 +108,36 @@ export default function AdCampaignDetail({ campaignId, onClose, onChanged }) {
               </div>
             )}
 
+            {campaign.fulfillment_mode === "manual" && (
+              <div className="rounded-xl border border-[#B8956A]/40 bg-[#B8956A]/5 px-3 py-2 text-[11px] leading-relaxed text-[#1A1A1A]/70">
+                <span className="font-semibold text-[#1A1A1A]">Manual Meta fulfilment.</span> Arriv builds and runs this campaign
+                by hand in Meta Ads Manager. No advertising API is used, and none of the automatic launch switches apply.
+              </div>
+            )}
+
+            {campaign.fulfillment_mode === "manual" && <ManualKitPanel kit={data?.manual_kit} />}
+
+            {campaign.fulfillment_mode === "manual" && (
+              <ManualStopPanel campaign={campaign} busy={busy} onRun={run} />
+            )}
+
+            {campaign.fulfillment_mode === "manual" && campaign.status === "READY_TO_LAUNCH" && (
+              <ManualLaunchForm campaign={campaign} busy={busy} onRun={run} />
+            )}
+
+            {campaign.fulfillment_mode === "manual" && campaign.status === "SUBMITTED" && (
+              <ManualActivationForm campaign={campaign} busy={busy} onRun={run} blockers={data?.blockers} />
+            )}
+
+            {campaign.fulfillment_mode === "manual" &&
+              ["SUBMITTED", "ACTIVE", "PAUSED", "COMPLETED"].includes(campaign.status) && (
+                <ManualResultsForm campaign={campaign} busy={busy} onRun={run} />
+              )}
+
+            {campaign.fulfillment_mode === "manual" && (
+              <ManualReconciliationPanel campaign={campaign} busy={busy} onRun={run} />
+            )}
+
             <div className="rounded-xl border border-[#B8956A]/20 p-3 text-xs text-[#1A1A1A]/65">
               <p>Authorization: {campaign.authorization_current ? "current" : "not current — launch is blocked"}</p>
               <p className="mt-1">Provider: {campaign.provider} {campaign.provider_campaign_id ? `· ${campaign.provider_campaign_id}` : "· not created yet"}</p>
@@ -128,8 +164,8 @@ export default function AdCampaignDetail({ campaignId, onClose, onChanged }) {
             <div className="flex flex-wrap gap-2">
               {[
                 ["approve", "Approve"],
-                ["launch", "Launch"],
-                ["sync", "Sync from platform"],
+                // The API launch and platform sync never apply to a hand-built campaign.
+                ...(campaign.fulfillment_mode === "manual" ? [] : [["launch", "Launch"], ["sync", "Sync from platform"]]),
                 ["pause", "Pause"],
                 ["resume", "Resume"],
                 ["reject", "Reject"],

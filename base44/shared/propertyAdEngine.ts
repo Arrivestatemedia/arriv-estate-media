@@ -190,6 +190,9 @@ export async function createDraftCampaign(client: any, input: {
     spent_cents: 0,
     refunded_cents: 0,
     provider: pkg.platform,
+    // Arriv delivers campaigns by hand in Meta Ads Manager today. The API path exists but stays
+    // switched off, so a campaign only ever reaches it if it is explicitly moved to 'api'.
+    fulfillment_mode: "manual",
     status: "AWAITING_CUSTOMER_APPROVAL",
     creative,
     creative_fingerprint: fingerprint(creative),
@@ -661,6 +664,8 @@ export async function launchCampaign(client: any, campaign: any, input: {
     campaign,
     {
       status: activated.ok ? "ACTIVE" : "SUBMITTED",
+      // Created through the API, so this campaign is the API's to control from now on.
+      fulfillment_mode: "api",
       provider_campaign_id: providerCampaignId,
       provider_ad_set_id: working.provider_ad_set_id,
       provider_creative_ids: creativeIds,
@@ -1017,6 +1022,76 @@ export async function decideRefund(client: any, campaign: any, input: {
   return { ok: true as const, campaign: saved, refunded_cents: amount, refund_policy: AD_REFUND_POLICY };
 }
 
+// ── Manual stop ──────────────────────────────────────────────────────────────────────────────
+
+// A manually run campaign can only be stopped by a person in Meta Ads Manager. This records the
+// urgent action without changing the status: nothing here claims a live external ad has stopped.
+export async function requestManualStop(client: any, campaign: any, input: { actor: string; reason: string; now?: Date }) {
+  const now = input.now || new Date();
+  const saved = await updateCampaign(
+    client,
+    campaign,
+    {
+      manual_stop: {
+        ...(campaign.manual_stop || {}),
+        required: true,
+        reason: input.reason,
+        requested_at: now.toISOString(),
+        requested_by: input.actor,
+        confirmed: false,
+      },
+      review_required: true,
+      attention_reason: `Stop this campaign in Meta Ads Manager: ${input.reason}`,
+    },
+    { type: "manual_stop_required", actor: input.actor, note: input.reason },
+    now,
+  );
+  return { ok: true as const, campaign: saved };
+}
+
+// Only after an administrator has actually stopped it in Meta. Until then the campaign keeps its
+// status and stays flagged, because a local status change does not stop delivery.
+export async function confirmManualStop(client: any, campaign: any, input: {
+  actor: string;
+  note?: string;
+  reason?: string;
+  now?: Date;
+}) {
+  const now = input.now || new Date();
+  if (campaign.manual_stop?.confirmed === true && campaign.status === "PAUSED") {
+    return { ok: true as const, duplicate: true, campaign };
+  }
+  if (campaign.manual_stop?.required !== true) {
+    return { ok: false as const, code: "NO_STOP_PENDING" };
+  }
+  if (!canTransition(campaign.status, "PAUSED")) {
+    return { ok: false as const, code: "INVALID_STATE", status: campaign.status };
+  }
+  const saved = await updateCampaign(
+    client,
+    campaign,
+    {
+      status: "PAUSED",
+      status_before_pause: campaign.status,
+      pause_reason: input.reason || campaign.manual_stop?.reason || "",
+      provider_status: "PAUSED_MANUAL",
+      manual_stop: {
+        ...(campaign.manual_stop || {}),
+        required: true,
+        confirmed: true,
+        confirmed_at: now.toISOString(),
+        confirmed_by: input.actor,
+        confirmation_note: String(input.note || ""),
+      },
+      review_required: false,
+      attention_reason: "",
+    },
+    { type: "manual_stop_confirmed", actor: input.actor, note: input.note || "Stopped in Meta Ads Manager" },
+    now,
+  );
+  return { ok: true as const, campaign: saved };
+}
+
 // ── Listing eligibility enforcement ─────────────────────────────────────────────────────────
 
 // Called the moment a listing becomes ineligible, so critical enforcement never waits for a sweep.
@@ -1038,6 +1113,13 @@ export async function guardListingEligibility(client: any, input: {
   const needs_stop: string[] = [];
   for (const campaign of affected) {
     if (["SUBMITTED", "ACTIVE"].includes(campaign.status)) {
+      // A campaign a person created by hand in Meta Ads Manager cannot be stopped from here. It is
+      // left in its real state and raised as an urgent stop action until someone confirms in Meta.
+      if (String(campaign.fulfillment_mode || "api") === "manual") {
+        const marked = await requestManualStop(client, campaign, { actor: input.actor, reason: input.reason, now });
+        needs_stop.push(marked.campaign.campaign_id);
+        continue;
+      }
       if (!campaign.provider_campaign_id) {
         // Nothing is running at the platform, so the record can be paused directly.
         await pauseCampaign(client, campaign, { actor: input.actor, reason: input.reason, now });

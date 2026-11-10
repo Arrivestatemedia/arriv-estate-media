@@ -124,3 +124,71 @@ decisions, reporting attribution, listing-change enforcement and certification i
 The suite simulates every advertising call. A passing suite proves accounting, eligibility, state
 transitions and safeguards; it does not establish live advertising capability. Phase 2 remains green
 (77 checks) and the app builds cleanly.
+
+---
+
+# Addendum — Manual Meta Fulfilment Mode
+
+Added as an extension of Phase 3. No new phase, no new billing workflow, and no change to media-order or
+property-visibility payments.
+
+## Delivery method
+
+Every new campaign is created in `fulfillment_mode: "manual"`. Arriv builds, publishes and runs the
+advertising by hand in Meta Ads Manager. No Meta credential is read, no request leaves the system, and the
+automatic publishing path stays switched off. A manually fulfilled campaign never receives a
+`provider_campaign_id`, so the API code cannot act on a campaign a person created.
+
+The API path, its switches, its provider adapter and its account readiness checks are untouched and stay
+available for future automation. A campaign only reaches them if it is explicitly moved to
+`fulfillment_mode: "api"`, which the console does not offer.
+
+## Administrator flow
+
+1. **Ready for manual launch** — approved, paid campaigns appear in their own queue. The panel shows the
+   approved creative and copy, the property URL the ad must use, the authorized advertising budget, the
+   purchased duration, and the required housing advertising disclosures.
+2. **Record the Meta campaign** — Meta campaign ID, actual launch date, campaign end date, and the verified
+   advertising account (an explicit confirmation that it is Arriv-controlled). The campaign moves to
+   "created, awaiting confirmation" — never straight to Active.
+3. **Confirm activation** — four separate confirmations are required: housing special ad category,
+   approved creative, budget ceiling, and end date. Only then is the campaign recorded as Active.
+4. **Record results** — impressions, reach, clicks and spend, entered by hand or imported from a pasted
+   Meta CSV/JSON export. Every entry keeps its source, who entered it and when. Spend goes through the
+   same budget ledger and ceiling check the API path uses.
+5. **Reconcile** — authorized budget, verified spend, unspent amount and refund due are recorded against
+   the prepaid budget. Unspent customer money is raised as a refund decision; it is never refunded
+   automatically, and the management fee is never treated as advertising budget.
+
+## Honest status and stopping
+
+- The customer sees the real status, the fact that the campaign is managed by hand, and a plain statement
+  that results are entered by Arriv from Meta Ads Manager rather than synced. Unreported figures still
+  read "not reported yet", never zero.
+- A sold, withdrawn, unpublished or unauthorized property raises an urgent stop action immediately, on the
+  listing change rather than only on the sweep. The campaign keeps its real status and is flagged as still
+  running until an administrator confirms in Meta Ads Manager that it is stopped. Only that confirmation
+  records it as paused. Local pause, terminate and platform sync are refused for a live manual campaign
+  for the same reason.
+
+## Activation state
+
+All six advertising switches are unset, which the code reads as off: customer checkout, Meta connection,
+automatic publishing, Google publishing, budget execution and customer notifications. Campaign checkout
+therefore remains closed and no campaign can be purchased. Campaign records: none.
+
+Unlocking purchase takes an explicit decision by the owner in Advertising Management → safety switches,
+where each change requires its own confirmation: verify manual fulfilment end to end first, then enable
+customer checkout. Nothing in this change enables anything.
+
+## Verification
+
+`testPhase3AdCampaignSuite` — **182 checks, 182 passing** (was 151; 31 added for manual fulfilment). New
+coverage: manual launch works with every switch off and no API account; the manual kit carries the
+approved copy, budget, duration and disclosures; a launch cannot be recorded without a verified account
+or with an end date before the launch; the Meta campaign ID is stored and no API id is ever set;
+activation is refused until all four confirmations are in; manual spend writes the same ledger entry as
+the API path; a pasted export is parsed while an unreadable one is refused; incomplete figures are
+refused; an ineligible listing raises an urgent stop without changing the status; only the confirmed stop
+records a pause; and reconciliation separates verified spend from unspent budget with a refund due that is
+never issued automatically. Phase 2 remains green at 77 checks and the app builds cleanly.

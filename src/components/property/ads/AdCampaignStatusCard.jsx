@@ -34,6 +34,20 @@ export default function AdCampaignStatusCard({ campaign, busy, onCancel, onRefre
         </div>
       )}
 
+      {campaign.fulfillment_mode === "manual" && campaign.delivery_method && (
+        <p className="mt-3 text-[11px] leading-relaxed text-[#1A1A1A]/50">{campaign.delivery_method}</p>
+      )}
+
+      {campaign.stop_outstanding && (
+        <div className="mt-3 flex gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-xs leading-relaxed text-red-900">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <span>
+            This property is no longer eligible for advertising, so this campaign is being stopped in Meta Ads Manager. It is shown
+            with its real status until Arriv confirms the stop.
+          </span>
+        </div>
+      )}
+
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Budget</p>
@@ -55,6 +69,11 @@ export default function AdCampaignStatusCard({ campaign, busy, onCancel, onRefre
 
       <div className="mt-4 rounded-xl border border-[#B8956A]/20 bg-[#FFFBF5] p-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A1A1A]/45">Platform results</p>
+        {campaign.reporting_mode === "manual" && (
+          <p className="mt-1 text-[11px] leading-relaxed text-[#1A1A1A]/45">
+            {campaign.reported_by || "Arriv, from Meta Ads Manager"} — {campaign.reporting_note || "figures are entered by hand, not synced automatically."}
+          </p>
+        )}
         {metrics.reported_at ? (
           <div className="mt-2 grid grid-cols-3 gap-3">
             <div>
