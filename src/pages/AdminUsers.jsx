@@ -70,7 +70,10 @@ export default function AdminUsers() {
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["all-jobs"],
-    queryFn: () => base44.entities.Job.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getJobRecords', { view: 'admin_list', limit: 500 });
+      return res?.data?.items || res?.items || [];
+    },
   });
 
   const { data: bookings = [] } = useQuery({

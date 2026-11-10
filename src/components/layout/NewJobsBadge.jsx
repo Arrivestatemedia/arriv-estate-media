@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 
 export default function NewJobsBadge() {
   const [newJobsCount, setNewJobsCount] = useState(0);
@@ -13,8 +14,13 @@ export default function NewJobsBadge() {
         const user = await base44.auth.me();
         if (user?.user_type !== 'media_partner') return;
 
-        // Get all open jobs
-        const allJobs = await base44.entities.Job.filter({ status: 'open' });
+        // Open gigs come from the scoped endpoint — the browser no longer reads
+        // the Job entity directly.
+        const res = await base44.functions.invoke(
+          'getJobRecords',
+          withCustomerSession({ view: 'contractor_board', status_filter: 'open', limit: 200 })
+        );
+        const allJobs = res?.data?.items || res?.items || [];
         
         if (!user.last_viewed_jobs_at) {
           // If they've never viewed, all jobs are new
@@ -33,14 +39,11 @@ export default function NewJobsBadge() {
 
     fetchNewJobsCount();
 
-    // Subscribe to Job changes to update badge in real-time
-    const unsubscribe = base44.entities.Job.subscribe((event) => {
-      if (event.type === 'create' && event.data?.status === 'open') {
-        fetchNewJobsCount();
-      }
-    });
+    // Live Job subscriptions require direct entity read access, which is closed
+    // to contractors; refresh the scoped endpoint on an interval instead.
+    const interval = setInterval(fetchNewJobsCount, 60000);
 
-    return unsubscribe;
+    return () => clearInterval(interval);
   }, []);
 
   if (newJobsCount === 0) return null;

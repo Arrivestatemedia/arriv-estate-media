@@ -76,7 +76,8 @@ export default function JobDetail() {
       setEditors(queueRes?.data?.editors || []);
 
       // Fetch the job directly
-      const jobs = await base44.entities.Job.filter({ id: jobId });
+      const res = await base44.functions.invoke('getJobRecords', { view: 'admin_one', job_id: jobId });
+      const jobs = res?.data?.items || res?.items || [];
       if (jobs && jobs.length > 0) setJob(jobs[0]);
     } catch (err) {
       console.error("JobDetail load error:", err);

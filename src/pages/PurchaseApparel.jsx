@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,13 @@ export default function PurchaseApparel() {
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["apparel-balance-jobs", user?.email],
-    queryFn: () => base44.entities.Job.filter({ booked_by: user?.email }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'contractor_mine', limit: 200 })
+      );
+      return res?.data?.items || res?.items || [];
+    },
     enabled: !!user?.email,
   });
 

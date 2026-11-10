@@ -18,7 +18,8 @@ export default function AdminClientGalleryPreview() {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      const allJobs = await base44.entities.Job.list("-created_date", 200);
+      const jobsRes = await base44.functions.invoke('getJobRecords', { view: 'admin_list', limit: 200 });
+      const allJobs = jobsRes?.data?.items || jobsRes?.items || [];
       const withMedia = (allJobs || []).filter(
         (j) => j.source_storage_folder_id || j.google_drive_folder_url
       );

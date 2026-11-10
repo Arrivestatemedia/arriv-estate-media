@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,9 +89,13 @@ export default function ClientBookings() {
 
   const { data: completedJobs = [] } = useQuery({
     queryKey: ['completedJobsWithMedia', user?.email],
-    queryFn: () => {
+    queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.Job.filter({ footage_uploaded: true }, '-date', 200);
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'client_mine', footage_only: true, sort: '-date', limit: 200 })
+      );
+      return res?.data?.items || res?.items || [];
     },
     enabled: !!user?.email,
     select: (data) => (data || []).filter(
@@ -100,9 +105,13 @@ export default function ClientBookings() {
 
   const { data: accessJobs = [], refetch: refetchAccessJobs } = useQuery({
     queryKey: ['accessSelectionJobs', user?.email],
-    queryFn: () => {
+    queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.Job.filter({ status: 'booked' }, '-date', 200);
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'client_mine', status: 'booked', sort: '-date', limit: 200 })
+      );
+      return res?.data?.items || res?.items || [];
     },
     enabled: !!user?.email,
     select: (data) => (data || []).filter(

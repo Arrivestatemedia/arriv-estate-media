@@ -51,7 +51,10 @@ export default function SendMediaToClient() {
 
   const { data: allJobs = [] } = useQuery({
     queryKey: ["completedJobs"],
-    queryFn: () => base44.entities.Job.filter({ from_booking: true }, "-date"),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getJobRecords', { view: 'sales_list', sort: '-date', limit: 300 });
+      return res?.data?.items || res?.items || [];
+    },
   });
 
   // Sales reps: fetch their scheduled bookings to find which booking IDs belong to them

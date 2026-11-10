@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,13 @@ export default function ApparelRequirementDialog({ open, onOpenChange, email, co
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["apparel-gate-jobs", email],
-    queryFn: () => base44.entities.Job.filter({ booked_by: email }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'contractor_mine', limit: 200 })
+      );
+      return res?.data?.items || res?.items || [];
+    },
     enabled: open && !!email,
   });
 

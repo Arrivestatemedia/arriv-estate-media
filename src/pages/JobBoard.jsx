@@ -89,7 +89,13 @@ export default function JobBoard() {
 
   const { data: acceptedJobs = [] } = useQuery({
     queryKey: ["accepted-jobs-count", user?.email],
-    queryFn: () => base44.entities.Job.filter({ booked_by: user?.email }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'contractor_mine', limit: 500 })
+      );
+      return res?.data?.items || res?.items || [];
+    },
     enabled: !!user?.email && user?.user_type === "media_partner",
   });
   const acceptedJobsCount = acceptedJobs.filter(j =>
@@ -103,19 +109,23 @@ export default function JobBoard() {
       if (filter === "booked") {
         const email = user?.email || userEmail;
         if (!email) return [];
-        return base44.entities.Job.filter({ 
-          booked_by: email,
-          status: "booked",
-          from_booking: true
-        }, "-created_date");
+        const res = await base44.functions.invoke(
+          'getJobRecords',
+          withCustomerSession({ view: 'contractor_mine', limit: 500 })
+        );
+        const mine = res?.data?.items || res?.items || [];
+        return mine.filter(j => j.status === "booked" && j.from_booking === true);
       }
-      
-      const baseQuery = {
-        status: filter === "open" ? "open" : { $in: ["open", "booked"] },
-        from_booking: true
-      };
 
-      return base44.entities.Job.filter(baseQuery, "-created_date");
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({
+          view: 'contractor_board',
+          status_filter: filter === "open" ? "open" : "all",
+          limit: 500
+        })
+      );
+      return res?.data?.items || res?.items || [];
     },
     enabled: filter !== "booked" || !!user?.email || !!userEmail,
   });
@@ -242,13 +252,14 @@ export default function JobBoard() {
   }, [jobs, hasCoverage, coverage?.coverage_lat, coverage?.coverage_lng]);
 
   useEffect(() => {
-    const unsubscribe = base44.entities.Job.subscribe((event) => {
-      // Invalidate all jobs queries regardless of filters/parameters
-      queryClient.invalidateQueries({ 
+    // Live Job subscriptions need direct entity read access, which is closed to
+    // contractors; refresh the scoped endpoint on an interval instead.
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === "jobs"
       });
-    });
-    return unsubscribe;
+    }, 60000);
+    return () => clearInterval(interval);
   }, [queryClient]);
 
   useEffect(() => {

@@ -82,9 +82,13 @@ export default function Customer360({ contact, contactKey, activities, onReload,
     try {
       const [bookingResults, jobResults, invoiceResults, signupResults, videoCallResults, docResults] = await Promise.all([
         base44.entities.Booking.list('-created_date', 200).catch(() => []),
-        base44.entities.Job.list('-created_date', 200).catch(() => []),
+        base44.functions.invoke('getJobRecords', { view: 'sales_client', client_email: customerEmail, limit: 200 })
+          .then(r => (r?.data?.items || r?.items || []))
+          .catch(() => []),
         base44.entities.Invoice.list('-created_date', 200).catch(() => []),
-        base44.entities.PendingSignup.filter({ email: customerEmail }).catch(() => []),
+        base44.functions.invoke('getCustomerAccountSummary', { email: customerEmail })
+          .then(r => { const acct = (r?.data || r)?.account; return acct ? [acct] : []; })
+          .catch(() => []),
         base44.entities.VideoCallMessage.filter({ recipient_email: customerEmail }).catch(() => []),
         base44.entities.JobApplication.filter({ email: customerEmail }).catch(() => []),
       ]);

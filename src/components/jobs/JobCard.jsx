@@ -14,6 +14,7 @@ const CAPABILITY_LABELS = {
 import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import JobCompletionDialog from "./JobCompletionDialog";
 import ApparelRequirementDialog from "./ApparelRequirementDialog";
 import AttireVerificationDialog from "./AttireVerificationDialog";
@@ -60,9 +61,11 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     const checkShootCount = async () => {
       if (!currentUserEmail) return;
       try {
-        const allJobs = await base44.entities.Job.filter(
-          { booked_by: currentUserEmail }, '-created_date', 500
+        const res = await base44.functions.invoke(
+          'getJobRecords',
+          withCustomerSession({ view: 'contractor_mine', limit: 500 })
         );
+        const allJobs = res?.data?.items || res?.items || [];
         // Count all non-cancelled jobs the contractor has ever booked
         const validJobs = allJobs.filter(j => j.status !== 'cancelled');
         setIsFirstTwoShoots(validJobs.length <= 2);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Briefcase, DollarSign, TrendingUp, Calendar } from "lucide-react";
@@ -25,10 +26,14 @@ export default function ContractorDashboard() {
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['contractor-jobs', user?.email],
-    queryFn: () => base44.entities.Job.filter({ 
-      booked_by: user?.email,
-      status: { $in: ['booked', 'in_progress', 'completed'] }
-    }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'contractor_mine', limit: 200 })
+      );
+      const mine = res?.data?.items || res?.items || [];
+      return mine.filter(j => ['booked', 'in_progress', 'completed'].includes(j.status));
+    },
     enabled: !!user?.email,
   });
 

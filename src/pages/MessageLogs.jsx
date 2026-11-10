@@ -26,7 +26,10 @@ export default function MessageLogs() {
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['messageLogs'],
-    queryFn: () => base44.entities.MessageLog.list('-created_date', 100),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getMessageLogRecords', { limit: 100 });
+      return res?.data?.items || res?.items || [];
+    },
   });
 
   if (userLoading || isLoading) {

@@ -33,21 +33,28 @@ export default function MediaPartnerDashboard() {
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['media-partner-jobs', user?.email],
-    queryFn: () => base44.entities.Job.filter({ 
-      booked_by: user?.email,
-      status: { $in: ['booked', 'in_progress', 'completed'] },
-      from_booking: true
-    }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke(
+        'getJobRecords',
+        withCustomerSession({ view: 'contractor_mine', limit: 200 })
+      );
+      const mine = res?.data?.items || res?.items || [];
+      return mine.filter(j =>
+        ['booked', 'in_progress', 'completed'].includes(j.status) && j.from_booking === true
+      );
+    },
     enabled: !!user?.email,
   });
 
   useEffect(() => {
-    const unsubscribe = base44.entities.Job.subscribe((event) => {
-      queryClient.invalidateQueries({ 
+    // Live Job subscriptions need direct entity read access, which is closed to
+    // contractors; refresh the scoped endpoint on an interval instead.
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === 'media-partner-jobs'
       });
-    });
-    return unsubscribe;
+    }, 60000);
+    return () => clearInterval(interval);
   }, [queryClient]);
 
   const { data: payoutHistory = [] } = useQuery({

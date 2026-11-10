@@ -168,11 +168,12 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     setLoadingSent(true);
     try {
       const emailToFilter = fromEmail || salesMember?.company_email || salesMember?.email;
-      const emails = await base44.entities.MessageLog.filter({ 
-        message_type: "email", 
-        source: "email_hub",
-        sales_member_email: emailToFilter
+      const res = await base44.functions.invoke('getMessageLogRecords', {
+        from_email: emailToFilter,
+        query: { message_type: "email", source: "email_hub" },
+        limit: 200,
       });
+      const emails = res?.data?.items || res?.items || [];
       setSentEmails(emails.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     } catch (e) {
       console.error(e);
