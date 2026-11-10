@@ -15,6 +15,13 @@ import {
   sessionIsRecurring,
   paymentIntentBelongsToSubscription,
 } from '../../shared/stripeEventRouting.ts';
+import {
+  invoiceSubscriptionId,
+  invoicePeriod,
+  subscriptionPeriod,
+  secondsToIso,
+} from '../../shared/stripeObjects.ts';
+import { stripeHeaders } from '../../shared/stripeApiVersion.ts';
 
 function webhookRows(result: any): any[] {
   return Array.isArray(result) ? result : result?.items || [];
@@ -40,11 +47,12 @@ Deno.serve(async (req) => {
     // and the branches fall back to the metadata markers, exactly as before, so this can never block an
     // event that would otherwise have been handled.
     let visibilityPriceIds: string[] = [];
+    let visibilityPlanRows: any[] = [];
     try {
-      const planRows = webhookRows(
+      visibilityPlanRows = webhookRows(
         await base44.asServiceRole.entities.VisibilityPlanProduct.list('-created_date', 50),
       );
-      visibilityPriceIds = planRows
+      visibilityPriceIds = visibilityPlanRows
         .flatMap((plan: any) => [plan?.stripe_price_id, plan?.stripe_seat_price_id])
         .map((id: any) => String(id || ''))
         .filter(Boolean);
@@ -80,9 +88,9 @@ Deno.serve(async (req) => {
           if (candidate && !candidate.stripe_subscription_id) record = candidate;
         }
       } else if (isInvoiceEvent) {
-        const subscriptionId = typeof object?.subscription === 'string'
-          ? object.subscription
-          : object?.subscription?.id;
+        // Clover moved the invoice's subscription under parent.subscription_details.subscription; the
+        // deprecated invoice.subscription field is still read as a fallback for older objects.
+        const subscriptionId = invoiceSubscriptionId(object);
         if (subscriptionId) {
           record = webhookRows(await base44.asServiceRole.entities.VisibilitySubscription.filter({
             stripe_subscription_id: String(subscriptionId),
@@ -93,12 +101,19 @@ Deno.serve(async (req) => {
       // Only a proven Visibility object may touch a Visibility record: never a Preferred membership, an
       // order, a Connect account or an object carrying markers of two flows.
       if (record && visibilityBranchMayAct(object, visibilityPriceIds)) {
+        // Which price is the additional-seat line is stated by the plan, so the seat quantity is read
+        // from Stripe's own item instead of being guessed from amounts.
+        const seatPriceId = String(
+          object?.metadata?.seat_price_id
+          || visibilityPlanRows.find((plan: any) => String(plan?.product_key || '') === String(record.plan_key || ''))?.stripe_seat_price_id
+          || '',
+        );
         const outcome = isSubscriptionEvent
           ? (event.type === 'customer.subscription.deleted'
-            ? applySubscriptionDeleted(record, object, event.id, 'stripe')
-            : applySubscriptionUpsert(record, object, event.id, 'stripe'))
+            ? applySubscriptionDeleted(record, object, event.id, 'stripe', { seatPriceId })
+            : applySubscriptionUpsert(record, object, event.id, 'stripe', { seatPriceId }))
           : (event.type === 'invoice.paid'
-            ? applyInvoicePaid(record, object, event.id, 'stripe')
+            ? applyInvoicePaid(record, object, event.id, 'stripe', { seatPriceId })
             : applyInvoiceFailed(record, object, event.id, 'stripe'));
 
         if (outcome.changed) {
@@ -216,7 +231,7 @@ Deno.serve(async (req) => {
       if (!invoice) {
         try {
           const sessions = await fetch(`https://api.stripe.com/v1/checkout/sessions?payment_intent=${paymentIntent.id}&limit=1`, {
-            headers: { 'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}` }
+            headers: stripeHeaders({ 'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}` })
           });
           const sessionData = await sessions.json();
           const session = sessionData.data?.[0];
@@ -447,6 +462,9 @@ Deno.serve(async (req) => {
             active: 'active', past_due: 'past_due', canceled: 'canceled',
             incomplete: 'incomplete', trialing: 'trialing', paused: 'paused',
           };
+          // The period lives on the subscription items under the pinned API version; the
+          // subscription-level fields are read as a fallback so a membership never records null dates.
+          const preferredPeriod = subscriptionPeriod(sub);
           const membershipData = {
             client_id: clientId || '',
             client_email: clientEmail || '',
@@ -458,10 +476,8 @@ Deno.serve(async (req) => {
             sales_originator_name: salesOriginatorName,
             stripe_customer_id: sub.customer,
             stripe_subscription_id: sub.id,
-            current_period_start: sub.current_period_start
-              ? new Date(sub.current_period_start * 1000).toISOString() : null,
-            current_period_end: sub.current_period_end
-              ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            current_period_start: secondsToIso(preferredPeriod.start) || null,
+            current_period_end: secondsToIso(preferredPeriod.end) || null,
             cancel_at_period_end: sub.cancel_at_period_end || false,
             started_at: sub.start_date ? new Date(sub.start_date * 1000).toISOString() : null,
           };
@@ -506,7 +522,7 @@ Deno.serve(async (req) => {
     // Preferred membership: $10 monthly residual commission on invoice.paid
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object;
-      const subscriptionId = invoice.subscription;
+      const subscriptionId = invoiceSubscriptionId(invoice);
       // The membership lookup below is authoritative, so an unrecognised invoice keeps its existing
       // behaviour; only an invoice proven to belong to a Visibility subscription is refused here.
       if (subscriptionId && preferredBranchMayAct(invoice, visibilityPriceIds)) {
@@ -516,8 +532,7 @@ Deno.serve(async (req) => {
           });
           const membership = memberships?.[0];
           if (membership && membership.sales_originator_id && membership.status === 'active') {
-            const periodEnd = invoice.period_end
-              ? new Date(invoice.period_end * 1000).toISOString() : null;
+            const periodEnd = secondsToIso(invoicePeriod(invoice).end) || null;
 
             // Idempotency: skip if residual already paid for this period
             if (periodEnd && membership.last_residual_period_end === periodEnd) {

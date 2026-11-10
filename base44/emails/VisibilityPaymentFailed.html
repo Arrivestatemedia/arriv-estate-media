@@ -1,0 +1,54 @@
+<mjml>
+  <mj-head>
+    <mj-title>We could not process your Arriv plan payment</mj-title>
+    <mj-preview>Update your card to restore your plan.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-section background-color="#ffffff" padding="0 36px" />
+      <mj-text color="#1a1a1a" font-size="15px" line-height="1.6" padding="0" />
+      <mj-button background-color="#b8956a" color="#000000" border-radius="6px" font-weight="700" inner-padding="14px 28px" align="left" />
+      <mj-class name="h" font-family="Playfair Display, Georgia, serif" font-weight="700" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#ffffff">
+    <mj-section background-color="#b8956a" padding="20px 36px">
+      <mj-column>
+        <mj-image src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/de5ada746_IMG_60912.JPG" alt="Arriv Estate Media" width="120px" align="left" padding="0" />
+        <mj-text color="#000000" font-size="16px" font-weight="700" padding="8px 0 0">Arriv Estate Media</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="36px 36px 8px">
+      <mj-column>
+        <mj-text mj-class="h" font-size="32px" line-height="1.15">Your payment did not go through</mj-text>
+        <mj-text padding="12px 0 0" color="#5b5b5b" font-size="16px">
+          Stripe could not complete the most recent charge for your {{plan_name}} plan, so paid benefits are paused.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="8px 36px">
+      <mj-column background-color="#fffbf5" border="1px solid #e5e7eb" border-radius="6px" padding="24px">
+        <mj-text font-size="15px">Amount due: {{amount}}</mj-text>
+        <mj-text font-size="15px" padding="8px 0 0">Your profile, your property pages and every lead already recorded stay exactly where they are.</mj-text>
+        <mj-text font-size="15px" padding="8px 0 0">Updating the card on your subscription restores the plan immediately.</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="8px 36px 36px">
+      <mj-column>
+        <mj-button href="https://app.arrivestatemedia.com/VisibilityDashboard">Update my payment method</mj-button>
+        <mj-text padding="20px 0 0" color="#5b5b5b" font-size="13px">
+          This is a billing notice about the plan you hold.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="0 36px 32px">
+      <mj-column>
+        <mj-divider border-color="#e5e7eb" />
+        <mj-text color="#5b5b5b" font-size="12px" padding="16px 0 0">Arriv Estate Media</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

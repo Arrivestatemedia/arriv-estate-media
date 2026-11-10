@@ -1,0 +1,80 @@
+{
+  "name": "NotificationPreference",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "The normalized address this preference belongs to. Opting out is the only state that has to be recorded."
+    },
+    "marketing_opt_out": {
+      "type": "boolean",
+      "default": false,
+      "description": "True means no non-transactional email may be sent to this address. Required billing and account notices are unaffected."
+    },
+    "marketing_opt_out_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "marketing_opt_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the address last opted back in. Kept so a later change always has a history."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "unsubscribe_link",
+        "resubscribe_link",
+        "admin",
+        "import"
+      ],
+      "enumColors": [
+        "gray",
+        "green",
+        "blue",
+        "purple"
+      ],
+      "description": "How the current state was set"
+    },
+    "last_event_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

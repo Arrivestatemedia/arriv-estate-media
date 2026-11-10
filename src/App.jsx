@@ -86,6 +86,8 @@ import LaunchReadiness from './pages/LaunchReadiness';
 import PropertyDirectory from './pages/PropertyDirectory';
 import InboundCalls from './pages/InboundCalls';
 import MlsUploadQueue from './pages/MlsUploadQueue';
+import Unsubscribe from './pages/Unsubscribe';
+import NotificationPreferences from './pages/NotificationPreferences';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -563,6 +565,8 @@ const AuthenticatedApp = () => {
       <Route path="/AdminClientGalleryPreview" element={<AdminClientGalleryPreview />} />
       <Route path="/sign/:token" element={<SignDocumentPage />} />
       <Route path="/join" element={<RegionalJobRouter />} />
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
+      <Route path="/notification-preferences" element={<NotificationPreferences />} />
       <Route path="/careers/continue/:token" element={<CareersProfile />} />
       <Route
         path="/PrepaidPurchase"

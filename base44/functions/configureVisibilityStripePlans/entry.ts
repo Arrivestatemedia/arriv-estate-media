@@ -25,6 +25,7 @@ import {
   benefitsActive,
   shouldExpire,
   expirePatch,
+  reconcileFromStripe,
 } from '../../shared/visibilitySubscriptionEngine.ts';
 
 const SEAT_KEY = 'brokerage_seat';
@@ -108,55 +109,98 @@ function recordPayload(plan, result) {
 }
 
 // Pure simulation of the webhook: the same engine functions the handler calls, fed synthetic Stripe
-// objects. Nothing is written, no network call is made and no email is sent.
+// objects shaped exactly as the pinned API version (2025-12-15.clover) sends them — the billing period
+// on the subscription items, and the invoice's subscription under invoice.parent. Nothing is written,
+// no network call is made and no email is sent.
 function simulateHandlers() {
   const checks = [];
   const add = (name, pass, detail = '') => checks.push({ name, pass, detail });
 
-  const base = { subscription_id: 'vsub_test', status: 'pending_checkout', plan_key: 'agent_growth' };
+  const base = { subscription_id: 'vsub_test', status: 'pending_checkout', plan_key: 'brokerage' };
   const now = Math.floor(Date.now() / 1000);
   const future = now + 30 * 86400;
 
-  const created = applySubscriptionUpsert(base, {
-    id: 'sub_sim_1', status: 'active', customer: 'cus_sim_1', current_period_start: now,
-    current_period_end: future, cancel_at_period_end: false,
-    items: { data: [{ price: { id: 'price_sim_growth', unit_amount: 9900 } }] },
-  }, 'evt_sim_created');
+  const cloverSubscription = (overrides = {}) => ({
+    id: 'sub_sim_1',
+    object: 'subscription',
+    status: 'active',
+    customer: 'cus_sim_1',
+    cancel_at_period_end: false,
+    metadata: { purpose: 'visibility_subscription', profile_id: 'prof_sim', plan_key: 'brokerage', seat_price_id: 'price_sim_seat' },
+    items: {
+      object: 'list',
+      data: [
+        { id: 'si_sim_plan', quantity: 1, current_period_start: now, current_period_end: future, price: { id: 'price_sim_brokerage', unit_amount: 24900 } },
+        { id: 'si_sim_seat', quantity: 1, current_period_start: now, current_period_end: future, price: { id: 'price_sim_seat', unit_amount: 2900 } },
+      ],
+    },
+    ...overrides,
+  });
+
+  const cloverInvoice = (overrides = {}) => ({
+    id: 'in_sim_1',
+    object: 'invoice',
+    amount_paid: 27800,
+    amount_due: 0,
+    currency: 'usd',
+    status: 'paid',
+    parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_sim_1' } },
+    period_start: now,
+    period_end: future,
+    status_transitions: { paid_at: now },
+    ...overrides,
+  });
+
+  const created = applySubscriptionUpsert(base, cloverSubscription(), 'evt_sim_created', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A new subscription activates the record', created.changed && created.patch.status === 'active');
   add('The subscription id is captured', created.patch.stripe_subscription_id === 'sub_sim_1');
-  add('The billed price and amount are captured', created.patch.stripe_price_id === 'price_sim_growth' && created.patch.amount_cents === 9900);
+  add('The period is read from the subscription items', created.patch.current_period_end === new Date(future * 1000).toISOString());
+  add('The plan price is captured, not the seat price', created.patch.stripe_price_id === 'price_sim_brokerage');
+  add('The billed total includes the seat line', created.patch.amount_cents === 27800);
+  add('The purchased seat quantity is captured', created.patch.seats_purchased === 1);
 
   const afterCreate = { ...base, ...created.patch };
-  const replay = applySubscriptionUpsert(afterCreate, { id: 'sub_sim_1', status: 'active' }, 'evt_sim_created');
+  const replay = applySubscriptionUpsert(afterCreate, cloverSubscription(), 'evt_sim_created', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A redelivered event is applied once', replay.changed === false);
 
-  const pastDue = applySubscriptionUpsert(afterCreate, { id: 'sub_sim_1', status: 'past_due', current_period_end: future }, 'evt_sim_past_due');
+  const pastDue = applySubscriptionUpsert(afterCreate, cloverSubscription({ status: 'past_due' }), 'evt_sim_past_due', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A failed payment moves the subscription to past_due', pastDue.patch.status === 'past_due');
 
-  const paid = applyInvoicePaid(afterCreate, {
-    id: 'in_sim_1', amount_paid: 9900, currency: 'usd', status: 'paid',
-    period_start: now, period_end: future, status_transitions: { paid_at: now },
-  }, 'evt_sim_invoice_paid');
+  const paid = applyInvoicePaid(afterCreate, cloverInvoice(), 'evt_sim_invoice_paid', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A paid invoice activates the subscription', paid.patch.status === 'active');
   add('A paid invoice is recorded once in billing history', Array.isArray(paid.patch.billing_history) && paid.patch.billing_history.length === 1);
+  add('A paid invoice resolves its subscription under invoice.parent', paid.patch.billing_history[0].subscription_id === 'sub_sim_1');
 
-  const paidAgain = applyInvoicePaid({ ...afterCreate, ...paid.patch }, { id: 'in_sim_1', amount_paid: 9900, status: 'paid', period_end: future }, 'evt_sim_invoice_paid_2');
+  const paidAgain = applyInvoicePaid({ ...afterCreate, ...paid.patch }, cloverInvoice(), 'evt_sim_invoice_paid_2', 'sim', { seatPriceId: 'price_sim_seat' });
   add('The same invoice is never recorded twice', paidAgain.patch.billing_history.length === 1);
 
-  const failed = applyInvoiceFailed(afterCreate, { id: 'in_sim_2', status: 'open' }, 'evt_sim_invoice_failed');
+  const failed = applyInvoiceFailed(afterCreate, cloverInvoice({ id: 'in_sim_2', status: 'open', amount_paid: 0, amount_due: 27800 }), 'evt_sim_invoice_failed');
   add('A failed invoice moves the subscription to past_due', failed.patch.status === 'past_due');
   add('A failed invoice keeps a reason', !!failed.patch.last_failure_reason);
 
-  const deleted = applySubscriptionDeleted(afterCreate, { id: 'sub_sim_1', status: 'canceled', ended_at: now }, 'evt_sim_deleted');
+  const deleted = applySubscriptionDeleted(afterCreate, cloverSubscription({ status: 'canceled', ended_at: now }), 'evt_sim_deleted', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A deleted subscription cancels the record', deleted.patch.status === 'canceled' && !!deleted.patch.ended_at);
 
-  const late = applySubscriptionUpsert({ ...afterCreate, status: 'canceled' }, { id: 'sub_sim_1', status: 'active', current_period_end: future }, 'evt_sim_late_arrival');
+  const late = applySubscriptionUpsert({ ...afterCreate, status: 'canceled' }, cloverSubscription(), 'evt_sim_late_arrival', 'sim', { seatPriceId: 'price_sim_seat' });
   add('A late event never resurrects a canceled subscription', late.patch.status === undefined);
+
+  const firstReconcile = reconcileFromStripe({ ...afterCreate, status: 'active', current_period_end: new Date(future * 1000).toISOString(), seats_purchased: 1, amount_cents: 27800, stripe_price_id: 'price_sim_brokerage' }, cloverSubscription(), 'sim', { seatPriceId: 'price_sim_seat' });
+  add('A reconciliation of unchanged Stripe state writes nothing', firstReconcile.changed === false);
+
+  const renewed = reconcileFromStripe(
+    { ...afterCreate, status: 'active', current_period_end: new Date(future * 1000).toISOString() },
+    cloverSubscription({ items: { object: 'list', data: [{ id: 'si_sim_plan', quantity: 1, current_period_start: future, current_period_end: future + 30 * 86400, price: { id: 'price_sim_brokerage', unit_amount: 24900 } }] } }),
+    'sim',
+    { seatPriceId: 'price_sim_seat' },
+  );
+  add('A later renewal is never discarded by reconciliation', renewed.changed === true && renewed.patch.current_period_end === new Date((future + 30 * 86400) * 1000).toISOString());
 
   add('Benefits are on only for an active, unexpired subscription',
     benefitsActive({ status: 'active', current_period_end: new Date(future * 1000).toISOString() }) === true);
   add('An expired period stops benefits',
     benefitsActive({ status: 'active', current_period_end: new Date((now - 86400) * 1000).toISOString() }) === false);
+  add('A subscription with no known period grants no benefits',
+    benefitsActive({ status: 'active', current_period_end: '' }) === false);
   add('An elapsed period is flagged for expiry',
     shouldExpire({ status: 'active', current_period_end: new Date((now - 86400) * 1000).toISOString() }) === true);
   add('Expiring ends the record without deleting it', expirePatch({}).status === 'expired');

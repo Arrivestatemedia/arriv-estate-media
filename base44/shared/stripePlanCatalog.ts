@@ -11,6 +11,8 @@
 //   2. a price is matched by product + recurring monthly + exact amount + currency.
 // A second run therefore returns the same ids and creates nothing.
 
+import { stripeHeaders } from "./stripeApiVersion.ts";
+
 const STRIPE_API = "https://api.stripe.com/v1/";
 const PRODUCT_FAMILY = "visibility_subscription";
 const SEAT_KEY = "brokerage_seat";
@@ -43,7 +45,7 @@ async function call(path: string, init: RequestInit & { idempotencyKey?: string 
   const { idempotencyKey, ...rest } = init;
   const headers: Record<string, string> = {
     Authorization: `Bearer ${secretKey()}`,
-    ...((rest.headers as Record<string, string>) || {}),
+    ...stripeHeaders((rest.headers as Record<string, string>) || {}),
   };
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   const res = await fetch(`${STRIPE_API}${path}`, { ...rest, headers, signal: AbortSignal.timeout(20000) });

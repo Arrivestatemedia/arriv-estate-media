@@ -39,7 +39,25 @@ import {
   subscriptionView,
   seatUsage,
   alreadyApplied,
+  reconcileFromStripe,
 } from '../../shared/visibilitySubscriptionEngine.ts';
+import {
+  subscriptionPeriod,
+  subscriptionTotalCents,
+  subscriptionSeats,
+  planItemOf,
+  invoiceSubscriptionId,
+  invoicePeriod,
+} from '../../shared/stripeObjects.ts';
+import {
+  sessionIsRecurring,
+  paymentIntentBelongsToSubscription,
+  preferredBranchMayAct,
+  visibilityBranchMayAct,
+} from '../../shared/stripeEventRouting.ts';
+import { seatChangeDecision } from '../../shared/visibilitySeats.ts';
+import { noticeAllowed, NOTICE_CLASS_SERVICE, NOTICE_CLASS_MARKETING } from '../../shared/notificationPreference.ts';
+import { noticeByKey, noticeHtml } from '../../shared/visibilityEmails.ts';
 
 // Phase 4 certification suite.
 //
@@ -105,25 +123,37 @@ function subscription(overrides: any = {}) {
   };
 }
 
+// A subscription as the pinned API version (2025-12-15.clover) sends it: the billing period lives on
+// the subscription items, and there is no subscription-level current_period_end.
 function stripeSubscription(overrides: any = {}) {
   return {
     id: 'sub_live_1',
     status: 'active',
     customer: 'cus_1',
-    current_period_start: 1762776000,
-    current_period_end: 1765368000,
     cancel_at_period_end: false,
-    items: { data: [{ id: 'si_1', price: { id: 'price_growth', unit_amount: 9900 } }] },
+    items: {
+      data: [{
+        id: 'si_1',
+        quantity: 1,
+        current_period_start: 1762776000,
+        current_period_end: 1765368000,
+        price: { id: 'price_growth', unit_amount: 9900 },
+      }],
+    },
     ...overrides,
   };
 }
 
+// An invoice as clover sends it: the subscription is under parent.subscription_details.
 function invoice(overrides: any = {}) {
   return {
     id: 'in_1',
+    object: 'invoice',
     amount_paid: 9900,
+    amount_due: 0,
     currency: 'usd',
     status: 'paid',
+    parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_live_1' } },
     period_start: 1762776000,
     period_end: 1765368000,
     status_transitions: { paid_at: 1762776100 },
@@ -369,6 +399,190 @@ check('No renewal notice is due outside the window', () => renewalNoticeDue(subs
 check('A cancelling customer is not sent a renewal notice', () => renewalNoticeDue(subscription({ cancel_at_period_end: true, current_period_end: '2026-11-13T12:00:00.000Z' }), NOW, 5) === false);
 check('Seat usage detects a roster beyond the allowance', () => seatUsage(subscription(), DEFAULT_PLAN_PRODUCTS[2], 6).exceeded === true);
 check('Seat usage stays within a valid roster', () => seatUsage(subscription(), DEFAULT_PLAN_PRODUCTS[2], 2).exceeded === false);
+
+// ==== Stripe 2025-12-15.clover payload contract ================================================
+const CLOVER_START = 1762776000; // 2025-11-10
+const CLOVER_END = 1765368000; // 2025-12-10
+const CLOVER_RENEWAL_END = CLOVER_END + 30 * 86400;
+const SEAT_PRICE = 'price_seat_brokerage';
+const CLOVER_NOW = new Date('2025-11-15T00:00:00.000Z');
+
+function planItem(quantity: number, start: number, end: number) {
+  return { id: 'si_plan', quantity, current_period_start: start, current_period_end: end, price: { id: 'price_brokerage', unit_amount: 24900 } };
+}
+
+function cloverSubscription(overrides: any = {}) {
+  return {
+    id: 'sub_clover_1',
+    object: 'subscription',
+    status: 'active',
+    customer: 'cus_clover_1',
+    cancel_at_period_end: false,
+    metadata: { purpose: 'visibility_subscription', profile_id: 'prof_test', plan_key: 'brokerage', seat_price_id: SEAT_PRICE },
+    items: {
+      object: 'list',
+      data: [
+        planItem(1, CLOVER_START, CLOVER_END),
+        { id: 'si_seat', quantity: 2, current_period_start: CLOVER_START, current_period_end: CLOVER_END, price: { id: SEAT_PRICE, unit_amount: 2900 } },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+function cloverInvoice(overrides: any = {}) {
+  return {
+    id: 'in_clover_1',
+    object: 'invoice',
+    amount_paid: 30700,
+    amount_due: 0,
+    currency: 'usd',
+    status: 'paid',
+    parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_clover_1' } },
+    period_start: CLOVER_START,
+    period_end: CLOVER_END,
+    status_transitions: { paid_at: CLOVER_START + 30 },
+    ...overrides,
+  };
+}
+
+const cloverPlan = { ...DEFAULT_PLAN_PRODUCTS[2], stripe_price_id: 'price_brokerage', stripe_seat_price_id: SEAT_PRICE };
+const SEAT_OPTS = { seatPriceId: SEAT_PRICE };
+const cloverBase: any = {
+  subscription_id: 'vsub_clover',
+  profile_id: 'prof_test',
+  plan_key: 'brokerage',
+  status: 'pending_checkout',
+  seats_included: 3,
+  seats_purchased: 0,
+  amount_cents: 24900,
+  stripe_price_id: 'price_brokerage',
+  current_period_start: '',
+  current_period_end: '',
+  cancel_at_period_end: false,
+  applied_event_ids: [],
+  billing_history: [],
+};
+
+check('The billing period is read from the subscription items', () => {
+  const period = subscriptionPeriod(cloverSubscription());
+  return period.start === CLOVER_START && period.end === CLOVER_END;
+});
+check('A legacy subscription-level period is still read', () => subscriptionPeriod({ current_period_start: CLOVER_START, current_period_end: CLOVER_END }).end === CLOVER_END);
+check('The plan item is found by price, never the seat line', () => planItemOf(cloverSubscription(), SEAT_PRICE)?.price?.id === 'price_brokerage');
+check('The billed total includes every seat', () => subscriptionTotalCents(cloverSubscription()) === 30700);
+check('The purchased seat quantity comes from Stripe', () => subscriptionSeats(cloverSubscription(), SEAT_PRICE) === 2);
+check('An invoice resolves its subscription under invoice.parent', () => invoiceSubscriptionId(cloverInvoice()) === 'sub_clover_1');
+check('A legacy invoice.subscription field is still honoured', () => invoiceSubscriptionId({ subscription: 'sub_legacy' }) === 'sub_legacy');
+check('An invoice period falls back to its line items', () => invoicePeriod({ lines: { data: [{ period: { start: CLOVER_START, end: CLOVER_END } }] } }).end === CLOVER_END);
+check('No period is invented when Stripe states none', () => subscriptionPeriod({ items: { data: [{ id: 'si', quantity: 1, price: { id: 'p' } }] } }).end === undefined);
+
+// ---- scenario 1: first payment ----
+const firstEvent = applySubscriptionUpsert(cloverBase, cloverSubscription(), 'evt_clover_first', 'test', SEAT_OPTS);
+const afterFirst: any = { ...cloverBase, ...firstEvent.patch };
+check('SCENARIO first payment: the plan activates with a real period', () => afterFirst.status === 'active' && afterFirst.current_period_end === new Date(CLOVER_END * 1000).toISOString());
+check('SCENARIO first payment: benefits are on inside the paid period', () => benefitsActive(afterFirst, CLOVER_NOW) === true);
+check('SCENARIO first payment: the seat quantity and billed total are stored', () => afterFirst.seats_purchased === 2 && afterFirst.amount_cents === 30700);
+const firstInvoice = applyInvoicePaid(afterFirst, cloverInvoice(), 'evt_clover_inv_1', 'test', SEAT_OPTS);
+const historyAfterFirst: any[] = firstInvoice.patch.billing_history || [];
+check('SCENARIO first payment: the invoice is recorded against the right subscription', () => historyAfterFirst.length === 1 && historyAfterFirst[0].subscription_id === 'sub_clover_1' && historyAfterFirst[0].amount_cents === 30700);
+
+// ---- scenario 2: renewal ----
+const renewedSubscription = cloverSubscription({
+  items: { object: 'list', data: [planItem(1, CLOVER_END, CLOVER_RENEWAL_END)] },
+});
+const renewalSweep = reconcileFromStripe({ ...afterFirst, ...firstInvoice.patch }, renewedSubscription, 'sweep', SEAT_OPTS);
+check('SCENARIO renewal: a new period is picked up by reconciliation', () => renewalSweep.changed === true && renewalSweep.patch.current_period_end === new Date(CLOVER_RENEWAL_END * 1000).toISOString());
+check('SCENARIO renewal: a second sweep of the same state writes nothing', () => reconcileFromStripe({ ...afterFirst, ...firstInvoice.patch, ...renewalSweep.patch }, renewedSubscription, 'sweep', SEAT_OPTS).changed === false);
+const renewalInvoice = applyInvoicePaid({ ...afterFirst, ...renewalSweep.patch }, cloverInvoice({ id: 'in_clover_2', period_start: CLOVER_END, period_end: CLOVER_RENEWAL_END }), 'evt_clover_inv_2', 'test', SEAT_OPTS);
+check('SCENARIO renewal: the renewal invoice is appended to history', () => renewalInvoice.patch.billing_history.length === 2);
+check('SCENARIO renewal: a seat invoice never shortens the paid period', () => applyInvoicePaid(
+  { ...afterFirst, current_period_end: new Date(CLOVER_RENEWAL_END * 1000).toISOString() },
+  cloverInvoice({ id: 'in_seat_proration', amount_paid: 2900, period_end: CLOVER_END }),
+  'evt_seat_inv',
+  'test',
+  SEAT_OPTS,
+).patch.current_period_end === undefined);
+
+// ---- scenario 3: failed payment ----
+const failedClover = applyInvoiceFailed(afterFirst, cloverInvoice({ id: 'in_clover_fail', status: 'open', amount_paid: 0, amount_due: 30700 }), 'evt_clover_fail');
+const afterFail: any = { ...afterFirst, ...failedClover.patch };
+check('SCENARIO failed payment: the record moves to past_due', () => afterFail.status === 'past_due');
+check('SCENARIO failed payment: benefits stop while past due', () => benefitsActive(afterFail, CLOVER_NOW) === false);
+check('SCENARIO failed payment: the failure is recorded with a reason', () => !!afterFail.last_failure_reason);
+
+// ---- scenario 4: recovery ----
+const recovered = applyInvoicePaid(afterFail, cloverInvoice({ id: 'in_clover_recover' }), 'evt_clover_recover', 'test', SEAT_OPTS);
+check('SCENARIO recovery: a successful charge restores the plan', () => recovered.patch.status === 'active');
+check('SCENARIO recovery: the failure is cleared', () => recovered.patch.last_failure_reason === undefined);
+check('SCENARIO recovery: benefits are on again', () => benefitsActive({ ...afterFail, ...recovered.patch }, CLOVER_NOW) === true);
+
+// ---- scenario 5: cancellation ----
+const cancelScheduled = applySubscriptionUpsert(afterFirst, cloverSubscription({ cancel_at_period_end: true }), 'evt_clover_cancel', 'test', SEAT_OPTS);
+check('SCENARIO cancellation: the plan stays active until the paid period ends', () => cancelScheduled.patch.status === 'active' && cancelScheduled.patch.cancel_at_period_end === true);
+check('SCENARIO cancellation: benefits continue to the period end', () => benefitsActive({ ...afterFirst, ...cancelScheduled.patch }, CLOVER_NOW) === true);
+const canceledEvent = applySubscriptionDeleted({ ...afterFirst, ...cancelScheduled.patch }, cloverSubscription({ status: 'canceled', ended_at: CLOVER_END }), 'evt_clover_deleted', 'test', SEAT_OPTS);
+check('SCENARIO cancellation: the deleted event ends the plan', () => canceledEvent.patch.status === 'canceled' && benefitsActive({ ...afterFirst, ...canceledEvent.patch }, CLOVER_NOW) === false);
+check('SCENARIO cancellation: a late active event cannot reopen it', () => (applySubscriptionUpsert({ ...afterFirst, ...canceledEvent.patch }, cloverSubscription(), 'evt_clover_late', 'test', SEAT_OPTS).patch.status || 'canceled') === 'canceled');
+
+// ---- scenario 6: expiration ----
+const afterPeriod = new Date('2026-01-01T00:00:00.000Z');
+check('SCENARIO expiration: a lapsed period is expired by the sweep', () => shouldExpire(afterFirst, afterPeriod) === true);
+check('SCENARIO expiration: benefits stop at the period end', () => benefitsActive(afterFirst, afterPeriod) === false);
+check('SCENARIO expiration: a plan with no period grants no benefits', () => benefitsActive({ ...afterFirst, current_period_end: '' }, CLOVER_NOW) === false && shouldExpire({ ...afterFirst, current_period_end: '' }, CLOVER_NOW) === false);
+
+// ---- scenarios 7 and 8: seats ----
+const seatBuy = seatChangeDecision({ record: { ...afterFirst, seats_purchased: 0, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 2, checkoutEnabled: true });
+check('SCENARIO seat purchase: two seats are added at the seat price', () => seatBuy.ok && seatBuy.quantity === 2 && seatBuy.seatPriceCents === 2900);
+check('SCENARIO seat purchase: additional seats are billed immediately', () => seatBuy.prorationBehavior === 'always_invoice' && seatBuy.needsInvoice === true);
+check('SCENARIO seat purchase: the monthly total is the plan plus seats', () => seatBuy.monthlyTotalCents === 24900 + 2 * 2900);
+const seatDown = seatChangeDecision({ record: { ...afterFirst, seats_purchased: 3, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 1, checkoutEnabled: true });
+check('SCENARIO seat quantity change: removed seats are credited on the next invoice', () => seatDown.ok && seatDown.increase === false && seatDown.prorationBehavior === 'create_prorations' && seatDown.needsInvoice === false);
+check('SCENARIO seat quantity change: an unchanged quantity never charges', () => seatChangeDecision({ record: { ...afterFirst, seats_purchased: 2, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 2, checkoutEnabled: true }).noop === true);
+check('A seat change is refused while billing is switched off', () => seatChangeDecision({ record: { ...afterFirst, seats_purchased: 0, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 1, checkoutEnabled: false }).ok === false);
+check('A seat change is refused on a plan without additional seats', () => seatChangeDecision({ record: { ...afterFirst, stripe_subscription_id: 'sub_clover_1' }, plan: DEFAULT_PLAN_PRODUCTS[0], requestedSeats: 1, checkoutEnabled: true }).ok === false);
+check('A seat change is refused without a configured seat price', () => seatChangeDecision({ record: { ...afterFirst, stripe_subscription_id: 'sub_clover_1' }, plan: { ...cloverPlan, stripe_seat_price_id: '' }, requestedSeats: 1, checkoutEnabled: true }).ok === false);
+check('A seat change is refused for a fractional or excessive quantity', () => {
+  const fractional = seatChangeDecision({ record: { ...afterFirst, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 1.5, checkoutEnabled: true });
+  const excessive = seatChangeDecision({ record: { ...afterFirst, stripe_subscription_id: 'sub_clover_1' }, plan: cloverPlan, requestedSeats: 51, checkoutEnabled: true });
+  return fractional.ok === false && excessive.ok === false;
+});
+
+// ---- scenario 9: duplicate webhook delivery ----
+check('SCENARIO duplicate delivery: the same event id is applied once', () => alreadyApplied(afterFirst, 'evt_clover_first') === true && applySubscriptionUpsert(afterFirst, cloverSubscription(), 'evt_clover_first', 'test', SEAT_OPTS).changed === false);
+check('SCENARIO duplicate delivery: the same invoice is not double counted', () => applyInvoicePaid({ ...afterFirst, ...firstInvoice.patch }, cloverInvoice(), 'evt_clover_inv_1b', 'test', SEAT_OPTS).patch.billing_history.length === 1);
+check('SCENARIO duplicate delivery: reconciliation repeated records nothing twice', () => {
+  const once = reconcileFromStripe(cloverBase, cloverSubscription(), 'sweep', SEAT_OPTS);
+  return reconcileFromStripe({ ...cloverBase, ...once.patch }, cloverSubscription(), 'sweep', SEAT_OPTS).changed === false;
+});
+
+// ---- isolation from media orders and Preferred memberships ----
+const VISIBILITY_PRICES = ['price_brokerage', SEAT_PRICE];
+check('ISOLATION a subscription-mode checkout is never a media order', () => sessionIsRecurring({ mode: 'subscription' }) === true && sessionIsRecurring({ mode: 'payment' }) === false);
+check('ISOLATION a subscription charge is never matched to a media invoice', () => paymentIntentBelongsToSubscription({ invoice: 'in_1' }) === true && paymentIntentBelongsToSubscription({}) === false);
+check('ISOLATION the membership branch never acts on a visibility subscription', () => preferredBranchMayAct(cloverSubscription(), VISIBILITY_PRICES) === false);
+check('ISOLATION the membership branch still acts on an ordinary event', () => preferredBranchMayAct({ metadata: {} }, VISIBILITY_PRICES) === true);
+check('ISOLATION an event marked with both flows is refused by both branches', () => {
+  const both = { metadata: { purpose: 'visibility_subscription', profile_id: 'p1', client_email: 'a@b.example' } };
+  return visibilityBranchMayAct(both, VISIBILITY_PRICES) === false && preferredBranchMayAct(both, VISIBILITY_PRICES) === false;
+});
+check('ISOLATION an unrelated media payment is not a visibility object', () => visibilityBranchMayAct({ metadata: { order_id: 'order_1' }, items: { data: [{ price: { id: 'price_media_order' } }] } }, VISIBILITY_PRICES) === false);
+
+// ---- notifications: classes, opt-out and the switch ----
+check('NOTIFICATIONS billing and marketing notices are separate classes', () => noticeByKey('payment_failed').notice_class === NOTICE_CLASS_SERVICE
+  && noticeByKey('activated').notice_class === NOTICE_CLASS_SERVICE
+  && noticeByKey('canceled').notice_class === NOTICE_CLASS_SERVICE
+  && noticeByKey('renewal').notice_class === NOTICE_CLASS_MARKETING
+  && noticeByKey('monthly_summary').notice_class === NOTICE_CLASS_MARKETING);
+check('NOTIFICATIONS every notice is off while the switch is off', () => noticeAllowed(NOTICE_CLASS_SERVICE, { switchOn: false, marketingAllowed: true }) === false
+  && noticeAllowed(NOTICE_CLASS_MARKETING, { switchOn: false, marketingAllowed: true }) === false);
+check('NOTIFICATIONS a service notice needs only the switch', () => noticeAllowed(NOTICE_CLASS_SERVICE, { switchOn: true, marketingAllowed: false }) === true);
+check('NOTIFICATIONS a marketing notice needs the switch and no opt-out', () => noticeAllowed(NOTICE_CLASS_MARKETING, { switchOn: true, marketingAllowed: false }) === false
+  && noticeAllowed(NOTICE_CLASS_MARKETING, { switchOn: true, marketingAllowed: true }) === true);
+check('NOTIFICATIONS every marketing notice carries an unsubscribe link', () => ['renewal', 'monthly_summary']
+  .map((key) => noticeByKey(key))
+  .every((notice) => noticeHtml(notice, { unsubscribeUrl: 'https://example.test/notification-preferences?token=t' }).includes('Unsubscribe')));
+check('NOTIFICATIONS a service notice carries no unsubscribe link', () => !noticeHtml(noticeByKey('payment_failed'), { appUrl: 'https://example.test' }).includes('Unsubscribe'));
 
 Deno.serve(async (req) => {
   try {
