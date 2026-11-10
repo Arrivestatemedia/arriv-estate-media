@@ -45,7 +45,12 @@ export default function PlanCard({ plan, current, canPurchase, onChoose, busy })
           {isCurrent ? 'Your plan' : busy ? 'Starting…' : canPurchase ? `Choose ${plan.name}` : 'Checkout unavailable'}
         </Button>
         {plan.seats_included > 1 && (
-          <p className="text-xs text-[#1A1A1A]/45">Includes {plan.seats_included} agent seats.</p>
+          <p className="text-xs text-[#1A1A1A]/45">
+            Includes {plan.seats_included} agent seats
+            {plan.seat_policy === 'per_seat' && plan.additional_seat_price_label && plan.additional_seat_price_cents > 0
+              ? `, additional seats ${plan.additional_seat_price_label}/month each.`
+              : '.'}
+          </p>
         )}
       </div>
     </div>
