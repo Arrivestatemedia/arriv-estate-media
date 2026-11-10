@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Receipt, CreditCard } from "lucide-react";
 import moment from "moment";
+import CollapsibleList from "@/components/shared/CollapsibleList";
 
 const TYPE_LABELS = {
   pay_up_front: "Invoice",
@@ -49,8 +50,12 @@ export default function ClientInvoices({ email, compact = false }) {
       {!compact && (
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Invoices &amp; Receipts</h2>
       )}
-      <div className="space-y-3">
-        {invoices.map((inv) => {
+      <CollapsibleList
+        items={invoices}
+        initialCount={3}
+        expandLabel="Show all invoices"
+        listClassName="space-y-3"
+        renderItem={(inv) => {
           const isPaid = inv.status === "paid";
           const Icon = isPaid ? Receipt : FileText;
           const label = TYPE_LABELS[inv.invoiceType] || "Document";
@@ -137,8 +142,8 @@ export default function ClientInvoices({ email, compact = false }) {
               </CardContent>
             </Card>
           );
-        })}
-      </div>
+        }}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { withCustomerSession } from '@/lib/customerSession';
 import { fetchLeads, listingAddress } from '@/lib/propertyLeads';
+import CollapsibleList from '@/components/shared/CollapsibleList';
 
 /**
  * The customer's property visibility, property pages and the packages behind them.
@@ -104,8 +105,12 @@ export default function PropertyVisibilitySection({ email }) {
       )}
 
       {!state.loading && state.listings.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-[#B8956A]/25 bg-white divide-y divide-black/5">
-          {state.listings.map((listing) => (
+        <CollapsibleList
+          items={state.listings}
+          initialCount={3}
+          expandLabel="Show all jobs"
+          listClassName="mt-4 rounded-2xl border border-[#B8956A]/25 bg-white divide-y divide-black/5"
+          renderItem={(listing) => (
             <div key={listing.listing_id} className="p-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-[#1A1A1A] truncate">{listingAddress(listing) || listing.public_slug}</p>
@@ -135,8 +140,8 @@ export default function PropertyVisibilitySection({ email }) {
                 )}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
 
       {!state.loading && state.plans.length > 0 && (

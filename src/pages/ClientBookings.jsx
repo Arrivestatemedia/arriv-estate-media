@@ -20,6 +20,7 @@ import CancelBookingDialog from "@/components/client/CancelBookingDialog";
 import ClientPortalServices from "@/components/client/portal/ClientPortalServices";
 import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelector";
 import B2BCompanyMembers from "@/components/b2b/B2BCompanyMembers";
+import CollapsibleList from "@/components/shared/CollapsibleList";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -353,8 +354,12 @@ export default function ClientBookings() {
         {completedJobs.length > 0 && (
           <div id="galleries" className="mt-10 scroll-mt-24">
             <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Your Media</h2>
-            <div className="space-y-3">
-              {completedJobs.map((job) => (
+            <CollapsibleList
+              items={completedJobs}
+              initialCount={3}
+              expandLabel="Show all jobs"
+              listClassName="space-y-3"
+              renderItem={(job) => (
                 <Card key={job.id} className="border-2 border-[var(--border-color)] hover:shadow-lg transition-shadow bg-[var(--card-bg)]">
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -376,8 +381,8 @@ export default function ClientBookings() {
                     </Link>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              )}
+            />
           </div>
         )}
           <div id="invoices" className="scroll-mt-24">
