@@ -27,23 +27,61 @@ export async function fetchMarket(slug) {
   return unwrap(res) || { ok: false };
 }
 
+// The app signs people in with its own session (a customer's address, or the sales console's staff
+// record). These calls tell the backend which of those it is, so ownership and administrator access are
+// decided from the account that is actually signed in here. The server still compares the address
+// against the record's own owner before allowing anything.
+function sessionIdentity() {
+  const read = (key) => {
+    try {
+      return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
+    } catch {
+      return '';
+    }
+  };
+  const email = (read('user_email') || read('sales_member_email') || '').trim().toLowerCase();
+  const salesMemberId = read('sales_member_id');
+  const identity = {};
+  if (email) {
+    identity.email = email;
+    identity.admin_email = email;
+  }
+  if (salesMemberId) identity.sales_member_id = salesMemberId;
+  return identity;
+}
+
 export async function fetchVisibilityDashboard(profileId) {
-  const res = await base44.functions.invoke('getVisibilityDashboard', profileId ? { profileId } : {});
+  const res = await base44.functions.invoke('getVisibilityDashboard', {
+    ...sessionIdentity(),
+    ...(profileId ? { profileId } : {}),
+  });
   return unwrap(res) || { profile: null };
 }
 
 export async function fetchSubscriptionOverview(profileId) {
-  const res = await base44.functions.invoke('manageVisibilitySubscription', { action: 'overview', profileId });
+  const res = await base44.functions.invoke('manageVisibilitySubscription', {
+    ...sessionIdentity(),
+    action: 'overview',
+    profileId,
+  });
   return unwrap(res);
 }
 
 export async function subscriptionAction(action, payload = {}) {
-  const res = await base44.functions.invoke('manageVisibilitySubscription', { action, ...payload });
+  const res = await base44.functions.invoke('manageVisibilitySubscription', {
+    ...sessionIdentity(),
+    action,
+    ...payload,
+  });
   return unwrap(res);
 }
 
 export async function profileAction(action, payload = {}) {
-  const res = await base44.functions.invoke('manageProfessionalProfile', { action, ...payload });
+  const res = await base44.functions.invoke('manageProfessionalProfile', {
+    ...sessionIdentity(),
+    action,
+    ...payload,
+  });
   return unwrap(res);
 }
 
@@ -58,7 +96,11 @@ export async function fetchLaunchReadiness() {
 }
 
 export async function adminVisibility(action, payload = {}) {
-  const res = await base44.functions.invoke('adminVisibilityConsole', { action, ...payload });
+  const res = await base44.functions.invoke('adminVisibilityConsole', {
+    ...sessionIdentity(),
+    action,
+    ...payload,
+  });
   return unwrap(res) || { ok: false };
 }
 

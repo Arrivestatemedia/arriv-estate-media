@@ -43,10 +43,14 @@ export default function VisibilityDashboard() {
         setForm((prev) => ({
           ...prev,
           display_name: data.profile.display_name || '',
+          headline: data.profile.headline || '',
+          bio: data.profile.bio || '',
           contact_email: data.profile.contact_email || '',
+          contact_phone: data.profile.contact_phone || '',
           city: data.profile.city || '',
           state: data.profile.state || '',
-          brokerage_name: '',
+          brokerage_name: data.profile.brokerage_name || '',
+          service_areas: (data.profile.service_areas || []).join(', '),
         }));
       }
     } catch (error) {

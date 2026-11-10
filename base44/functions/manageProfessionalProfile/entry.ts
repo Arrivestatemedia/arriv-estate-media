@@ -93,10 +93,14 @@ Deno.serve(async (req) => {
     const origin = publicOrigin();
     const plans = planCatalog(rowsOf(await base44.asServiceRole.entities.VisibilityPlanProduct.list('-created_date', 50)));
 
+    // The dashboard holds the public profile id (prof_...), not the record id, so both are accepted:
+    // looking up only the record id would treat an existing profile as new and lose the edit.
     const loadProfile = async (id) => {
       if (!id) return null;
-      const found = await base44.asServiceRole.entities.ProfessionalProfile.filter({ id });
-      return rowsOf(found)[0] || null;
+      const byProfileId = rowsOf(await base44.asServiceRole.entities.ProfessionalProfile.filter({ profile_id: String(id) }))[0];
+      if (byProfileId) return byProfileId;
+      const byRecordId = rowsOf(await base44.asServiceRole.entities.ProfessionalProfile.filter({ id: String(id) }))[0];
+      return byRecordId || null;
     };
 
     // ---- read ---------------------------------------------------------------------------------

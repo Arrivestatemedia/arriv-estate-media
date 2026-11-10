@@ -186,6 +186,14 @@ Deno.serve(async (req) => {
         plan_key: profile.plan_key || '',
         city: profile.city || '',
         state: profile.state || '',
+        // The owner's own editable fields, so the form is filled from what was saved rather than being
+        // blank and wiping the biography or the stated brokerage on the next save.
+        headline: profile.headline || '',
+        bio: profile.bio || '',
+        contact_phone: profile.contact_phone || '',
+        website_url: profile.website_url || '',
+        brokerage_name: profile.brokerage_name || '',
+        service_areas: Array.isArray(profile.service_areas) ? profile.service_areas : [],
       },
       subscription: {
         ...view,
