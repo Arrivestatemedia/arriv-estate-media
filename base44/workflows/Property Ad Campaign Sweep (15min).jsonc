@@ -1,0 +1,47 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "property_ad_campaign_sweep",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sweep_ad_campaigns": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processPropertyAdCampaigns",
+            "args": {
+              "action": "sweep"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sweep ad campaigns",
+            "description": "Launch, sync, budget, eligibility"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/15 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Monitors purchased advertising campaigns: launches only when every safeguard passes, synchronizes platform status and spend, pauses a campaign whose property became ineligible, enforces the authorized advertising budget, and completes campaigns at their scheduled end. Never launches on payment alone.",
+  "name": "Property Ad Campaign Sweep (15min)"
+}

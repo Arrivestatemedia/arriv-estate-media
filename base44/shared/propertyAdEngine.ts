@@ -1033,12 +1033,29 @@ export async function guardListingEligibility(client: any, input: {
   const affected = (await campaignsForListing(client, input.listing.listing_id))
     .filter((campaign) => NON_TERMINAL.includes(campaign.status) && campaign.status !== "DRAFT");
   const paused: string[] = [];
+  // Campaigns that exist at the platform but could not be stopped here. They are flagged loudly
+  // instead of being marked paused locally, because a local pause does not stop delivery.
+  const needs_stop: string[] = [];
   for (const campaign of affected) {
     if (["SUBMITTED", "ACTIVE"].includes(campaign.status)) {
-      if (!campaign.provider_campaign_id || !input.provider) {
+      if (!campaign.provider_campaign_id) {
         // Nothing is running at the platform, so the record can be paused directly.
         await pauseCampaign(client, campaign, { actor: input.actor, reason: input.reason, now });
         paused.push(campaign.campaign_id);
+        continue;
+      }
+      if (!input.provider) {
+        await updateCampaign(
+          client,
+          campaign,
+          {
+            review_required: true,
+            attention_reason: `Advertising must be stopped at the platform: ${input.reason}`,
+          },
+          { type: "stop_required", actor: input.actor, note: input.reason },
+          now,
+        );
+        needs_stop.push(campaign.campaign_id);
         continue;
       }
       const result = await pauseCampaign(client, campaign, {
@@ -1064,7 +1081,7 @@ export async function guardListingEligibility(client: any, input: {
       paused.push(campaign.campaign_id);
     }
   }
-  return { affected: affected.map((c) => c.campaign_id), paused };
+  return { affected: affected.map((c) => c.campaign_id), paused, needs_stop };
 }
 
 export function campaignSummaryLine(campaign: any): string {

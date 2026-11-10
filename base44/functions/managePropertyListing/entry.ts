@@ -26,6 +26,7 @@ import {
   seoSourceHash,
   transitionError,
 } from "../../shared/propertyVisibility.ts";
+import { guardListingAdvertising } from "../../shared/propertyAdListingGuard.ts";
 import { listJobFiles } from "../../shared/jobMedia.ts";
 import { purgeListingFromEdge } from "../../shared/edgeCache.ts";
 
@@ -344,6 +345,21 @@ Deno.serve(async (req) => {
       const edgePurge = await purgeListingFromEdge(fresh, [DIRECTORY_SLUG]);
       if (edgePurge && edgePurge.ok === false && edgePurge.skipped !== true) {
         console.log(`edge purge failed for ${fresh.listing_id}: ${edgePurge.error || edgePurge.status}`);
+      }
+      // Advertising follows the listing immediately. A property that stops being eligible has
+      // its advertising stopped here, not at the next scheduled sweep.
+      const advertisingRelevant = ["publication_state", "listing_status", "authority_confirmed", "status_confirmation_due_at"]
+        .some((key) => key in patch);
+      if (advertisingRelevant) {
+        try {
+          const advertising = await guardListingAdvertising(base44, fresh, { actor: actor?.email || "listing-update" });
+          if (advertising?.paused?.length || advertising?.needs_stop?.length) {
+            console.log(`advertising guarded for ${fresh.listing_id}: paused ${advertising.paused.length}, needs stop ${advertising.needs_stop.length}`);
+          }
+        } catch (guardError: any) {
+          // Never allowed to fail the customer's listing action; the campaign stays flagged.
+          console.log(`advertising guard failed for ${fresh.listing_id}: ${guardError?.message || "unknown"}`);
+        }
       }
       return fresh;
     };

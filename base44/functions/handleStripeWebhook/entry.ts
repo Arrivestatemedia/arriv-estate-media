@@ -44,6 +44,32 @@ Deno.serve(async (req) => {
       return Response.json({ received: true });
     }
 
+    // Property advertising campaigns.
+    //
+    // Handled here and returned, so the invoice, commission, membership and Connect branches
+    // below are untouched. Idempotent: a repeated delivery re-reports the same state and can
+    // never create a second campaign or a second advertising budget.
+    if (packagePurpose === 'property_ad_purchase') {
+      const intent: any = event.data.object;
+      const campaignId = String(intent?.metadata?.campaign_id || '');
+      if (event.type === 'payment_intent.succeeded') {
+        await base44.asServiceRole.functions.invoke('processPropertyAdCampaigns', {
+          action: 'payment_succeeded',
+          campaign_id: campaignId,
+          payment_intent_id: intent.id,
+          amount_cents: intent.amount_received ?? intent.amount ?? 0,
+        }).catch((e) => console.warn('property advertising activation failed:', e.message));
+      } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
+        await base44.asServiceRole.functions.invoke('processPropertyAdCampaigns', {
+          action: 'payment_failed',
+          campaign_id: campaignId,
+          payment_intent_id: intent.id,
+          reason: intent?.last_payment_error?.message || event.type,
+        }).catch(() => {});
+      }
+      return Response.json({ received: true });
+    }
+
     // Handle payment_intent.succeeded by looking up the checkout session
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;

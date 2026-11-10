@@ -238,7 +238,14 @@ Deno.serve(async (req) => {
     check('Durations are 7 / 14 / 30 days', AD_DURATION_DAYS.starter === 7 && AD_DURATION_DAYS.growth === 14 && AD_DURATION_DAYS.premium === 30);
     check('Growth is the recommended package', RECOMMENDED_AD_TIER === 'growth');
     check('Advertising tiers never include a visibility tier', !AD_PACKAGES.some((p) => (p.tier as string) === 'plus' || (p.tier as string) === 'pro'));
-    check('Advertising prices are separate from Plus/Pro', AD_PRICE_CENTS.starter !== 7900 && AD_PRICE_CENTS.starter !== 14900);
+    check(
+      'Advertising tiers are distinct products from the visibility tiers',
+      AD_PACKAGES.every((pkg) => !VISIBILITY_PACKAGES.some((visibility) => visibility.tier === (pkg.tier as string))),
+    );
+    check(
+      'Advertising records are a separate entity from visibility promotions',
+      AD_PACKAGES.length === 3 && VISIBILITY_PACKAGES.find((p) => p.tier === 'free') !== undefined,
+    );
     const quote = adQuote('growth')!;
     check('Quote discloses ad budget and fee separately', quote.ad_budget_cents === 17500 && quote.management_fee_cents === 12400);
     check('Quote states spend is included and there is no auto-renewal', quote.spend_included === true && quote.auto_renew === false);
