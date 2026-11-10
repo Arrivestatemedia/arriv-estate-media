@@ -93,7 +93,36 @@ export async function resolveB2BEntitlement(client: any, params: {
     try { member = await client.entities.B2BOrganizationMember.get(organization_member_id); } catch {}
   }
   if (!member && email) {
-    const members = await client.entities.B2BOrganizationMember.filter({ user_email: email, status: 'active' });
+    // An explicit organization always wins: one person may belong to several
+    // organizations, so the member row must be resolved for THAT organization.
+    const query: any = { user_email: email, status: 'active' };
+    if (organization_id) query.organization_id = organization_id;
+    let members = await client.entities.B2BOrganizationMember.filter(query);
+
+    // Membership emails may be stored with mixed case.
+    if (!members || members.length === 0) {
+      const all = await client.entities.B2BOrganizationMember.filter({ status: 'active' });
+      const target = String(email).trim().toLowerCase();
+      members = (all || []).filter((m: any) =>
+        String(m.user_email || '').trim().toLowerCase() === target &&
+        (!organization_id || m.organization_id === organization_id)
+      );
+    }
+
+    // No organization named and more than one active membership: never guess.
+    // Guessing would silently move an order onto another company's contract.
+    if (members.length > 1 && !organization_id) {
+      return {
+        commercial_domain: 'RETAIL',
+        can_book: true,
+        membership_ambiguous: true,
+        organization_count: members.length,
+        organization_ids: members.map((m: any) => m.organization_id),
+        reason_if_cannot_book: null,
+        reason: 'MULTIPLE_ORGANIZATIONS: the purchasing context must be chosen explicitly.',
+      };
+    }
+
     member = members[0];
   }
   if (!member && user_id) {

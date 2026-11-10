@@ -68,6 +68,15 @@
     },
     "deactivation_reason": {
       "type": "string"
+    },
+    "customer_account_id": {
+      "type": "string",
+      "description": "Verified customer account (PendingSignup) this membership is linked to. Lets an invited person join with their EXISTING login instead of creating a second account."
+    },
+    "linked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the membership was matched to a verified signed-in account"
     }
   },
   "required": [

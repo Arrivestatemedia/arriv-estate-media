@@ -5,7 +5,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { user_id } = body || {};
+    const { user_id, organization_id } = body || {};
 
     // Who is asking: the verified session, or an administrator looking at an organization.
     const customerAuth = await requireCustomer(base44, req, body);
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const email = customerAuth.actor.email;
 
     // Resolve B2B entitlement
-    const entitlementRes = await base44.asServiceRole.functions.invoke('resolveB2BEntitlement', { email, user_id });
+    const entitlementRes = await base44.asServiceRole.functions.invoke('resolveB2BEntitlement', { email, user_id, organization_id });
     const entitlement = entitlementRes?.data || entitlementRes;
 
     if (entitlement?.commercial_domain !== 'B2B') {
@@ -37,18 +37,27 @@ Deno.serve(async (req) => {
       recentLedger = await base44.asServiceRole.entities.B2BReservedCapacityLedger.filter({ period_id: entitlement.period_id }, '-timestamp', 10);
     }
 
-    // Get recent bookings for this organization's members
+    // Organization roles decide what is visible. A company administrator sees the
+    // team's company orders; every other member sees only their own. Nothing here
+    // exposes a colleague's bookings or standing to a non-administrator.
     const members = await base44.asServiceRole.entities.B2BOrganizationMember.filter({ organization_id: entitlement.organization_id, status: 'active' });
-    const memberEmails = members.map((m: any) => m.user_email).filter(Boolean);
+    const isOrgAdmin = entitlement.organization_role === 'admin';
+    const visibleEmails = isOrgAdmin
+      ? members.map((m: any) => m.user_email).filter(Boolean)
+      : [email];
+
     let recentBookings: any[] = [];
-    if (memberEmails.length > 0) {
-      // Get bookings for any member email
-      for (const email of memberEmails.slice(0, 10)) {
-        const bookings = await base44.asServiceRole.entities.Booking.filter({ client_email: email }, '-created_date', 5);
-        recentBookings.push(...bookings);
-      }
-      recentBookings = recentBookings.sort((a: any, b: any) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()).slice(0, 10);
+    for (const memberEmail of visibleEmails.slice(0, 10)) {
+      const bookings = await base44.asServiceRole.entities.Booking.filter(
+        { client_email: memberEmail, purchasing_context: 'organization' },
+        '-created_date',
+        5
+      );
+      recentBookings.push(...bookings);
     }
+    recentBookings = recentBookings
+      .sort((a: any, b: any) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())
+      .slice(0, 10);
 
     // Get upcoming bookings
     const upcomingBookings = recentBookings.filter((b: any) => b.status === 'approved' || b.status === 'pending');
@@ -64,7 +73,11 @@ Deno.serve(async (req) => {
           recent_ledger: recentLedger,
           recent_bookings: recentBookings,
           upcoming_bookings: upcomingBookings,
-          members: members.map((m: any) => ({ name: m.user_name, email: m.user_email, role: m.role, status: m.status })),
+          is_org_admin: isOrgAdmin,
+          members: (isOrgAdmin
+            ? members
+            : members.filter((m: any) => String(m.user_email || '').toLowerCase() === email)
+          ).map((m: any) => ({ name: m.user_name, email: m.user_email, role: m.role, status: m.status })),
         },
       },
     });

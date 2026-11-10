@@ -10,24 +10,33 @@ import { CreditCard, Loader2, AlertCircle } from "lucide-react";
  * 
  * Does NOT replace the booking form — it adapts the commercial display.
  */
-export default function B2BBookingAdapter({ userEmail, packageName, propertySqft, addOns }) {
+export default function B2BBookingAdapter({ userEmail, organizationId, packageName, propertySqft, addOns }) {
   const [entitlement, setEntitlement] = useState(null);
   const [requirement, setRequirement] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadEntitlement();
-  }, [userEmail]);
+  }, [userEmail, organizationId]);
 
   useEffect(() => {
-    if (entitlement && packageName && propertySqft) {
+    if (entitlement && organizationId && packageName && propertySqft) {
       calculateRequirement();
     }
-  }, [entitlement, packageName, propertySqft, addOns]);
+  }, [entitlement, organizationId, packageName, propertySqft, addOns]);
 
   const loadEntitlement = async () => {
+    // A company requirement is only ever shown for the company the customer
+    // explicitly selected — never inferred from a membership.
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await base44.functions.invoke("resolveB2BEntitlement", { email: userEmail });
+      const res = await base44.functions.invoke("resolveB2BEntitlement", {
+        email: userEmail,
+        organization_id: organizationId,
+      });
       setEntitlement(res?.data || res);
     } catch (e) {
       console.error(e);
@@ -38,8 +47,9 @@ export default function B2BBookingAdapter({ userEmail, packageName, propertySqft
   const calculateRequirement = async () => {
     try {
       const res = await base44.functions.invoke("resolveB2BBookingEntitlementRequirement", {
-        email: userEmail,
-        package_name: packageName,
+        organization_id: organizationId,
+        contract_id: entitlement?.contract_id,
+        package: packageName,
         property_sqft: propertySqft,
         addon_ids: addOns || [],
       });
@@ -48,6 +58,8 @@ export default function B2BBookingAdapter({ userEmail, packageName, propertySqft
       console.error(e);
     }
   };
+
+  if (!organizationId) return null;
 
   if (loading) {
     return <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-[#B8956A]" /></div>;

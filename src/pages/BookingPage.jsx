@@ -12,6 +12,8 @@ import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceFo
 import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 import B2BBookingAdapter from "@/components/b2b/B2BBookingAdapter";
+import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelector";
+import { withCustomerSession } from "@/lib/customerSession";
 import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
@@ -327,8 +329,29 @@ export default function BookingPage() {
     }
   }, []);
 
+  const [purchasingContext, setPurchasingContext] = useState(null);
+  const [requiresContextChoice, setRequiresContextChoice] = useState(false);
+  const [contextError, setContextError] = useState("");
+
+  const handleContextChange = (context, meta) => {
+    setPurchasingContext(context);
+    setRequiresContextChoice(!!meta?.hasOrganizations && !context);
+    if (context) setContextError("");
+  };
+
   const createBookingMutation = useMutation({
-    mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
+    mutationFn: (data) =>
+      base44.functions.invoke(
+        'handleBookingSubmission',
+        withCustomerSession({
+          booking: {
+            ...data,
+            purchasing_context: purchasingContext?.type === 'organization'
+              ? { type: 'organization', organization_id: purchasingContext.organization_id }
+              : { type: 'personal' },
+          },
+        })
+      ),
     onSuccess: () => {
       localStorage.removeItem('pending_invite_token');
       localStorage.removeItem('selected_sales_member_id');
@@ -402,6 +425,14 @@ export default function BookingPage() {
   const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0) + studioAddOnTotal + studioBundleTotal;
 
   const handleSubmitBooking = async (bookingData) => {
+    // An order can never commit against an assumed account. If this person
+    // belongs to a company, they must state who they are ordering for first.
+    if (requiresContextChoice || !purchasingContext) {
+      setContextError("Choose who you are ordering for before submitting this booking.");
+      return Promise.resolve();
+    }
+    setContextError("");
+
     return new Promise((resolve) => {
       createBookingMutation.mutate({
         ...bookingData,
@@ -423,6 +454,18 @@ export default function BookingPage() {
 
   if (showBookingForm) {
     return (
+      <>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <PurchasingContextSelector
+          email={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+          onChange={handleContextChange}
+        />
+        {contextError && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {contextError}
+          </div>
+        )}
+      </div>
       <BookingForm
       selectedPackage={selectedPackage}
       cartAddOns={cartAddOns}
@@ -455,6 +498,7 @@ export default function BookingPage() {
         lockedSalesRepName={lockedInvite?.sales_member_name || null}
         defaultSalesRepId={localStorage.getItem('selected_sales_member_id') || null}
       />
+      </>
     );
   }
 
@@ -560,8 +604,16 @@ export default function BookingPage() {
             ))}
             </div>
 
+            <div className="mb-6">
+              <PurchasingContextSelector
+                email={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+                onChange={handleContextChange}
+              />
+            </div>
+
             <B2BBookingAdapter
               userEmail={localStorage.getItem('user_email') || sessionStorage.getItem('user_email')}
+              organizationId={purchasingContext?.type === 'organization' ? purchasingContext.organization_id : ''}
               packageName={selectedPackage?.id}
               propertySqft={propertySqft}
               addOns={cartAddOns}

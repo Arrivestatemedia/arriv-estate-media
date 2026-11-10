@@ -16,6 +16,8 @@ import ClientInvoices from "@/components/client/ClientInvoices";
 import PreferredMembershipCard from "@/components/client/PreferredMembershipCard";
 import CancelBookingDialog from "@/components/client/CancelBookingDialog";
 import ClientPortalServices from "@/components/client/portal/ClientPortalServices";
+import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelector";
+import B2BCompanyMembers from "@/components/b2b/B2BCompanyMembers";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -28,6 +30,7 @@ export default function ClientBookings() {
       return false;
     }
   });
+  const [purchasingContext, setPurchasingContext] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -154,9 +157,21 @@ export default function ClientBookings() {
             </p>
           </header>
 
+          <PurchasingContextSelector
+            email={user.email}
+            onChange={setPurchasingContext}
+            className="mb-8"
+          />
+
           <ClientPortalServices studioActive={studioActive} hasMedia={completedJobs.length > 0} />
 
           <B2BClientDashboard email={user.email} />
+
+          {purchasingContext?.type === "organization" && purchasingContext.is_admin && (
+            <div className="mb-8">
+              <B2BCompanyMembers organizationId={purchasingContext.organization_id} />
+            </div>
+          )}
 
           {pendingAccessJobs.length > 0 && (
             <div className="space-y-4 mb-8">

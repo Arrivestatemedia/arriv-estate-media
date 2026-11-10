@@ -2,6 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { resolveMarketplaceSalesRep } from '../../shared/payoutV2.ts';
 import { assertVipWalletRedemption } from '../../shared/autoFundVipEnforcement.ts';
 import { sendBrevoEmail, BOOKINGS_SENDER_EMAIL } from '../../shared/brevoClient.ts';
+import { requireCustomer } from '../../shared/customerSession.ts';
+import { authorizeOrderContext } from '../../shared/customerPurchasingContext.ts';
+import {
+  reserveB2BMediaCredits,
+  reserveB2BCapacity,
+  resolveB2BBookingEntitlementRequirement,
+} from '../../shared/b2bEntitlementEngine.ts';
 
 // Determine which funding program backs the wallet balance being redeemed.
 // Auto-Fund issues 'reload' credit lots; Prepaid purchases issue 'purchase' lots.
@@ -25,10 +32,79 @@ async function resolveWalletFundingSource(base44, walletId) {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const { booking } = await req.json();
+    const body = await req.json();
+    const { booking } = body || {};
 
     if (!booking) {
       return Response.json({ error: 'Booking data is required' }, { status: 400 });
+    }
+
+    // ── Purchasing context: personal, or a company the person is authorized for ─
+    // The choice must be explicit. A company order is refused outright rather than
+    // silently falling back to a personal wallet or to another organization.
+    const requestedContext = booking.purchasing_context;
+    const requestedOrgId =
+      requestedContext && typeof requestedContext === 'object'
+        ? requestedContext.organization_id || ''
+        : typeof requestedContext === 'string' && requestedContext.startsWith('org:')
+        ? requestedContext.slice(4)
+        : '';
+    const wantsOrganization = !!requestedOrgId;
+
+    const orderingEmail = String(booking.client_email || '').trim().toLowerCase();
+    let orderContext: any = { type: 'personal', credit_source: 'personal' };
+    let membershipAccount: any = null;
+
+    if (wantsOrganization) {
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) {
+        return Response.json(
+          { error: auth.error, code: 'SESSION_REQUIRED' },
+          { status: auth.status }
+        );
+      }
+      if (auth.actor.email !== orderingEmail) {
+        return Response.json(
+          {
+            error: 'A company order must be placed by the signed-in customer.',
+            code: 'ORDERING_IDENTITY_MISMATCH',
+          },
+          { status: 403 }
+        );
+      }
+
+      membershipAccount = auth.record;
+      const evaluated = await authorizeOrderContext(base44.asServiceRole, {
+        account: membershipAccount,
+        organization_id: requestedOrgId,
+      });
+
+      if (!evaluated?.authorized || !evaluated?.can_order) {
+        return Response.json(
+          {
+            error: evaluated?.reason || 'You cannot order for this organization.',
+            code: evaluated?.code || 'ORGANIZATION_CONTEXT_REFUSED',
+          },
+          { status: 403 }
+        );
+      }
+
+      // A company order with an empty credit pool is refused before anything is
+      // created — never silently converted into a personal or cash order.
+      if (
+        evaluated.credits?.source === 'b2b_media_credit' &&
+        Number(evaluated.credits?.available_units || 0) <= 0
+      ) {
+        return Response.json(
+          {
+            error: `${evaluated.organization_name} has no media credits available right now. Order personally, or contact your organization administrator.`,
+            code: 'INSUFFICIENT_COMPANY_CREDITS',
+          },
+          { status: 409 }
+        );
+      }
+
+      orderContext = evaluated;
     }
 
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
@@ -74,14 +150,32 @@ export default async function(req) {
       }
     }
 
+    // Which pool actually funds a personal order. Company orders are stamped below
+    // with the organization's own pool — the two are never mixed.
+    const personalCreditSource = !isWalletFunded
+      ? 'personal_cash'
+      : walletFundingSource === 'auto_fund'
+      ? 'personal_auto_fund'
+      : 'personal_prepaid';
+
     // Create booking in database — auto-approve past shoots
-    const { wallet: _walletInput, ...bookingFields } = booking;
+    const { wallet: _walletInput, purchasing_context: _contextInput, ...bookingFields } = booking;
     const createdBooking = await base44.asServiceRole.entities.Booking.create({
       ...bookingFields,
       wallet_applied_cents: walletAppliedCents,
       wallet_id: isWalletFunded ? (walletInput.wallet_id || '') : '',
       wallet_funding_source: walletFundingSource,
       booking_funding_classification: isWalletFunded ? 'wallet_funded' : 'standard_marketplace',
+      ordering_user_email: orderingEmail,
+      purchasing_context: orderContext.type === 'organization' ? 'organization' : 'personal',
+      purchasing_organization_id: orderContext.type === 'organization' ? orderContext.organization_id : '',
+      purchasing_organization_name: orderContext.type === 'organization' ? orderContext.organization_name || '' : '',
+      b2b_organization_member_id: orderContext.type === 'organization' ? orderContext.member_id || '' : '',
+      b2b_contract_id: orderContext.type === 'organization' ? orderContext.contract_id || '' : '',
+      credit_source: orderContext.type === 'organization'
+        ? (orderContext.credit_source || 'b2b_contract')
+        : personalCreditSource,
+      b2b_credit_status: orderContext.type === 'organization' ? 'pending' : 'not_applicable',
       status: isPastShoot ? 'approved' : 'pending'
     });
 
@@ -125,6 +219,112 @@ export default async function(req) {
       }
     } catch (pricingErr) {
       console.error('Canonical pricing calculation error:', pricingErr.message);
+    }
+
+    // ── Company credit application (organization orders only) ────────────────
+    // Uses the EXISTING B2B credit engine, which reserves from the ORGANIZATION's
+    // own period (AVAILABLE → RESERVED). Retail pricing, invoices, commissions and
+    // the personal prepaid/Auto-Fund wallet are not touched by this step.
+    if (orderContext.type === 'organization' && orderContext.contract_id) {
+      try {
+        if (!orderContext.period_id) {
+          await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+            b2b_credit_status: 'needs_review',
+            b2b_credit_note: 'The company has no active credit period yet.',
+          });
+        } else {
+          const requirement = await resolveB2BBookingEntitlementRequirement(base44.asServiceRole, {
+            organization_id: orderContext.organization_id,
+            contract_id: orderContext.contract_id,
+            package: booking.package,
+            property_sqft: booking.property_sqft || 0,
+            addon_ids: booking.add_ons || [],
+            selected_add_ons: [],
+          });
+
+          if (!requirement?.success || requirement.requires_custom_quote) {
+            await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+              b2b_credit_status: 'needs_review',
+              b2b_credit_note: requirement?.requires_custom_quote
+                ? 'Custom quote required for this property size under the company contract.'
+                : requirement?.reason || 'Company contract pricing could not be resolved.',
+            });
+          } else if (requirement.funding_mode === 'media_credit') {
+            const units = Number(requirement.total_credit_requirement || 0);
+            const reservation = await reserveB2BMediaCredits(base44.asServiceRole, {
+              period_id: orderContext.period_id,
+              amount_units: units,
+              idempotency_key: `booking_${createdBooking.id}_reserve`,
+              reservation_id: `res_${createdBooking.id}`,
+              booking_reference: createdBooking.id,
+              actor: `customer:${orderContext.ordering_person_email}`,
+              acting_user_id: membershipAccount?.id,
+              organization_member_id: orderContext.member_id,
+              contract_id: orderContext.contract_id,
+              contract_version_id: orderContext.contract_version_id,
+              allow_split_tender: true,
+            });
+
+            if (reservation?.success) {
+              const shortfall = Number(reservation.credit_shortfall || 0);
+              await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+                b2b_credit_status: 'reserved',
+                b2b_credit_reservation_id: reservation.reservation_id || `res_${createdBooking.id}`,
+                b2b_credit_units_reserved: Number(reservation.credit_applied || 0),
+                b2b_credit_note:
+                  shortfall > 0
+                    ? `Company credits covered ${(Number(reservation.credit_applied || 0) / 100).toFixed(2)}; $${Number(
+                        reservation.cash_remainder || 0
+                      ).toFixed(2)} remains a cash obligation on the company contract.`
+                    : '',
+              });
+            } else {
+              await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+                b2b_credit_status: 'reservation_failed',
+                b2b_credit_note: reservation?.reason || 'Company credits could not be reserved.',
+              });
+            }
+          } else if (requirement.funding_mode === 'reserved_capacity') {
+            const shoots = Number(requirement.reserved_shoot_requirement || 1);
+            const reservation = await reserveB2BCapacity(base44.asServiceRole, {
+              period_id: orderContext.period_id,
+              shoots,
+              idempotency_key: `booking_${createdBooking.id}_reserve`,
+              reservation_id: `res_${createdBooking.id}`,
+              booking_reference: createdBooking.id,
+              actor: `customer:${orderContext.ordering_person_email}`,
+              acting_user_id: membershipAccount?.id,
+              organization_member_id: orderContext.member_id,
+              contract_id: orderContext.contract_id,
+              contract_version_id: orderContext.contract_version_id,
+              allow_overage: true,
+            });
+
+            if (reservation?.success) {
+              await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+                b2b_credit_status: 'reserved',
+                b2b_credit_reservation_id: reservation.reservation_id || `res_${createdBooking.id}`,
+                b2b_credit_units_reserved: Number(reservation.shoots_applied || 0),
+                b2b_credit_note:
+                  Number(reservation.shoots_shortfall || 0) > 0
+                    ? `${reservation.shoots_shortfall} shoot(s) exceeded the contracted capacity and were recorded as company overage.`
+                    : '',
+              });
+            } else {
+              await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+                b2b_credit_status: 'reservation_failed',
+                b2b_credit_note: reservation?.reason || 'Company capacity could not be reserved.',
+              });
+            }
+          }
+        }
+      } catch (creditErr) {
+        console.error('Company credit reservation error:', creditErr.message);
+        await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+          b2b_credit_status: 'reservation_failed',
+          b2b_credit_note: creditErr.message,
+        }).catch(() => {});
+      }
     }
 
     // PAYOUT_V2: Always create a pending commission for marketplace gigs.

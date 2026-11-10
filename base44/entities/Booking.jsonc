@@ -169,6 +169,74 @@
       ],
       "default": "standard_marketplace",
       "description": "Reliable server-side booking classification. 'wallet_funded' bookings (Auto-Fund or Prepaid redemption) generate ZERO booking-level sales commission \u2014 the advisor was already compensated at funding time. Standard marketplace bookings keep the existing 15% marketplace commission."
+    },
+    "ordering_user_email": {
+      "type": "string",
+      "description": "Verified person who placed the order. Always the signed-in customer, never a company name."
+    },
+    "purchasing_context": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "organization"
+      ],
+      "default": "personal",
+      "description": "The purchasing context explicitly chosen at checkout. An order never changes context on its own."
+    },
+    "purchasing_organization_id": {
+      "type": "string",
+      "description": "B2BOrganization record id that owns this order. Empty for personal orders."
+    },
+    "purchasing_organization_name": {
+      "type": "string",
+      "description": "Organization display name captured at order time"
+    },
+    "b2b_organization_member_id": {
+      "type": "string",
+      "description": "B2BOrganizationMember row that authorized this company order"
+    },
+    "b2b_contract_id": {
+      "type": "string",
+      "description": "Governing B2B contract applied to this order (company orders only)"
+    },
+    "credit_source": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "personal_cash",
+        "personal_prepaid",
+        "personal_auto_fund",
+        "b2b_media_credit",
+        "b2b_reserved_capacity",
+        "b2b_contract"
+      ],
+      "default": "personal",
+      "description": "Which pool funded this order. Personal and company pools are never interchangeable."
+    },
+    "b2b_credit_reservation_id": {
+      "type": "string",
+      "description": "Reservation id written to the company credit ledger for this order"
+    },
+    "b2b_credit_units_reserved": {
+      "type": "integer",
+      "description": "Company credit units reserved for this order. 0 when no company credits were applied."
+    },
+    "b2b_credit_status": {
+      "type": "string",
+      "enum": [
+        "not_applicable",
+        "pending",
+        "reserved",
+        "insufficient_company_credits",
+        "needs_review",
+        "reservation_failed"
+      ],
+      "default": "not_applicable",
+      "description": "Company credit state for this order. 'not_applicable' means a personal order."
+    },
+    "b2b_credit_note": {
+      "type": "string",
+      "description": "Plain-language reason the company credit step did not complete, when it did not"
     }
   },
   "required": [
