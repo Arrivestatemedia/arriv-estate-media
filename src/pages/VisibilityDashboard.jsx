@@ -177,6 +177,9 @@ export default function VisibilityDashboard() {
             ))}
           </div>
         </div>
+        {notice && (
+          <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{notice}</p>
+        )}
         <div className="flex gap-3 mt-6">
           <Link to="/properties">
             <Button variant="outline">Browse properties</Button>

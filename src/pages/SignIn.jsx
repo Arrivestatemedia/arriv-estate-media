@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createPageUrl } from "../utils";
+import { saveCustomerSession, clearCustomerSession } from "@/lib/customerSession";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -52,9 +53,14 @@ export default function SignIn() {
       if (!response.data.success) {
         setError(response.data.error || "Email or password incorrect");
         localStorage.clear();
+        clearCustomerSession();
         setLoading(false);
         return;
       }
+
+      // Keep the signed session issued by this same password check, so the
+      // customer's backend requests can be authorised server-side.
+      saveCustomerSession(response.data);
 
       // Store user info in localStorage AND sessionStorage (Safari fallback)
       const userData = {

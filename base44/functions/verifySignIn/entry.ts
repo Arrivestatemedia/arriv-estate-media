@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { verifyPassword, isLegacyHash, hashPassword } from '../../shared/passwordKdf.ts';
+import { mintCustomerSession } from '../../shared/customerSession.ts';
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '../../shared/rateLimiter.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
 
@@ -94,7 +95,11 @@ Deno.serve(async (req) => {
         user_role: foundPending.user_role === 'admin' ? 'admin' : 'user',
         phone_number: foundPending.phone_number || '',
         orientationCompleted: foundPending.orientationCompleted || false,
-        onboardingFeePaid: foundPending.onboardingFeePaid || false
+        onboardingFeePaid: foundPending.onboardingFeePaid || false,
+        // Signed session for this verified password check. Additive only: the login
+        // response is otherwise unchanged, and no token is issued if the signing
+        // secret is unavailable.
+        ...(mintCustomerSession(foundPending) || {})
       });
     }
 

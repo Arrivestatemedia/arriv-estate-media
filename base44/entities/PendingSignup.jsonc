@@ -35,6 +35,15 @@
       "type": "string",
       "description": "SHA-256 hash of the user's password"
     },
+    "session_epoch": {
+      "type": "number",
+      "default": 0,
+      "description": "Session generation counter. Incrementing it revokes every outstanding customer session token for this account without changing the password or the login experience."
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer bound to this verified account. Used so checkouts reuse one customer instead of matching on an unverified email."
+    },
     "status": {
       "type": "string",
       "enum": [
