@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { actorOwnsListing, resolvePropertyActor } from "../../shared/propertyActor.ts";
 import { deliverPropertyInquiry } from "../../shared/propertyLeadDelivery.ts";
 import { sanitizeText } from "../../shared/propertyVisibility.ts";
+import { requireCustomer } from "../../shared/customerSession.ts";
 
 // The customer-facing lead dashboard feed.
 //
@@ -37,8 +38,15 @@ Deno.serve(async (req) => {
     const action = String(body.action || "summary");
     const actor = await resolvePropertyActor(base44, body);
 
-    if (!actor.isAdmin && !actor.clientEmail) {
-      return Response.json({ ok: false, reason: "SIGNED_OUT", message: "Sign in to view your leads." }, { status: 401 });
+    // A customer's identity comes from the signed session, never from the body. Administrators keep
+    // the existing verified sales-console identity.
+    if (!actor.isAdmin) {
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) {
+        return Response.json({ ok: false, reason: "SESSION_REQUIRED", message: auth.error }, { status: auth.status });
+      }
+      actor.clientEmail = auth.actor.email;
+      actor.email = auth.actor.email;
     }
 
     const listingsEntity = base44.asServiceRole.entities.PropertyListing;

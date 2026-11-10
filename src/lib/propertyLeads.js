@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { withCustomerSession } from "@/lib/customerSession";
 
 // Thin wrapper around the lead dashboard endpoint. The endpoint decides what this person may see
 // from the listing's own client_email, so nothing here is trusted to filter anything.
@@ -29,26 +30,29 @@ export function hasLeadIdentity(identity) {
 }
 
 export async function fetchLeads() {
-  const res = await base44.functions.invoke("getPropertyLeads", { action: "summary", ...leadIdentity() });
+  const res = await base44.functions.invoke(
+    "getPropertyLeads",
+    withCustomerSession({ action: "summary", ...leadIdentity() }),
+  );
   return res?.data || res;
 }
 
 export async function setLeadStatus(inquiryId, status) {
-  const res = await base44.functions.invoke("getPropertyLeads", {
+  const res = await base44.functions.invoke("getPropertyLeads", withCustomerSession({
     action: "update_inquiry",
     inquiryId,
     status,
     ...leadIdentity(),
-  });
+  }));
   return res?.data || res;
 }
 
 export async function resendLead(inquiryId) {
-  const res = await base44.functions.invoke("getPropertyLeads", {
+  const res = await base44.functions.invoke("getPropertyLeads", withCustomerSession({
     action: "resend_delivery",
     inquiryId,
     ...leadIdentity(),
-  });
+  }));
   return res?.data || res;
 }
 

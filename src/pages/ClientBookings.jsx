@@ -14,10 +14,19 @@ import B2BClientDashboard from "@/components/b2b/B2BClientDashboard";
 import AccessSelectionCard from "@/components/client/AccessSelectionCard";
 import ClientInvoices from "@/components/client/ClientInvoices";
 import CancelBookingDialog from "@/components/client/CancelBookingDialog";
+import ClientPortalServices from "@/components/client/portal/ClientPortalServices";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
   const [cancelBooking, setCancelBooking] = useState(null);
+  const [studioActive, setStudioActive] = useState(() => {
+    try {
+      const cached = localStorage.getItem("studio_entitlement");
+      return cached ? JSON.parse(cached)?.active === true : false;
+    } catch {
+      return false;
+    }
+  });
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -44,6 +53,19 @@ export default function ClientBookings() {
       }).catch(() => window.location.replace(createPageUrl('SignIn')));
     }).catch(() => window.location.replace(createPageUrl('SignIn')));
   }, []);
+
+  // Studio is a paid entitlement. The card only appears when the account actually has it, and the
+  // server remains the authority — this only decides whether to show the door.
+  useEffect(() => {
+    if (!user?.email) return;
+    base44.functions.invoke("getStudioEntitlement", {})
+      .then((res) => {
+        const active = !!(res?.data || res)?.active;
+        setStudioActive(active);
+        localStorage.setItem("studio_entitlement", JSON.stringify({ active }));
+      })
+      .catch(() => {});
+  }, [user?.email]);
 
   // Fetch broader sets and filter client-side by case-insensitive email match.
   // Job/Booking client_email may be stored with mixed case (entered by sales rep),
@@ -124,7 +146,14 @@ export default function ClientBookings() {
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="min-h-screen bg-[var(--bg-primary)] py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-8">Your Booking Requests</h1>
+          <header className="mb-8">
+            <h1 className="text-4xl font-bold text-[var(--text-primary)]">Your portal</h1>
+            <p className="mt-2 text-[var(--text-secondary)]">
+              One place for your bookings, media, property pages, invoices and plans.
+            </p>
+          </header>
+
+          <ClientPortalServices studioActive={studioActive} hasMedia={completedJobs.length > 0} />
 
           <B2BClientDashboard email={user.email} />
 
@@ -141,6 +170,10 @@ export default function ClientBookings() {
             </div>
           )}
 
+        <div id="bookings" className="scroll-mt-24">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-4">
+          My bookings
+        </h2>
         {isLoading ? (
           <p className="text-[var(--text-secondary)]">Loading your bookings...</p>
         ) : bookings.length === 0 ? (
@@ -257,8 +290,10 @@ export default function ClientBookings() {
           </div>
         )}
 
+        </div>
+
         {completedJobs.length > 0 && (
-          <div className="mt-10">
+          <div id="galleries" className="mt-10 scroll-mt-24">
             <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">Your Media</h2>
             <div className="space-y-3">
               {completedJobs.map((job) => (
@@ -287,7 +322,9 @@ export default function ClientBookings() {
             </div>
           </div>
         )}
-          <ClientInvoices email={user.email} />
+          <div id="invoices" className="scroll-mt-24">
+            <ClientInvoices email={user.email} />
+          </div>
         </div>
 
         <CancelBookingDialog

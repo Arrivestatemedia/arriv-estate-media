@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import { base44 } from "@/api/base44Client";
-import { Briefcase, LayoutDashboard, Settings, Key, Wallet, Film } from "lucide-react";
+import { Briefcase, LayoutDashboard, Settings, Key, Wallet, Film, Home } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
@@ -40,9 +40,12 @@ export default function MobileBottomTabs({ user }) {
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
 
+  // One portal: the hub is the entry point for every customer service, then the two things a
+  // customer does most often. Services the account is not entitled to never take a tab.
   const clientTabs = [
+    { label: "Portal", page: "ClientBookings", icon: LayoutDashboard },
     { label: "Book", page: "BookingPage", icon: Briefcase },
-    { label: "Bookings", page: "ClientBookings", icon: Briefcase },
+    { label: "Properties", page: "PropertyLeads", icon: Home },
   ];
   // CONDITIONAL: Studio tab only appears when entitlement is active
   if (studioActive) {

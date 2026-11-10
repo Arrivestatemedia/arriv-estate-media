@@ -12,6 +12,7 @@ import {
   resendLead,
   setLeadStatus,
 } from "@/lib/propertyLeads";
+import { redirectIfSessionExpired } from "@/lib/customerSession";
 
 // The lead inbox for the customer who owns the property page, and for an administrator.
 //
@@ -40,7 +41,11 @@ export default function PropertyLeads() {
         setError("");
       }
     } catch (err) {
-      setError(err?.message || "Your leads could not be loaded.");
+      // No valid session (e.g. signed in before sessions existed) → sign in again rather than
+      // showing a misleading empty inbox.
+      if (!redirectIfSessionExpired(err)) {
+        setError(err?.message || "Your leads could not be loaded.");
+      }
     } finally {
       setLoading(false);
     }

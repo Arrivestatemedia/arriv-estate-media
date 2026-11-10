@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { ownsJob, listDeliveryFiles } from '../../shared/mlsJobContext.ts';
 import { buildZipResponse, zipNameForAddress, ZipTooLargeError } from '../../shared/mediaZip.ts';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 /**
  * downloadGalleryZip
@@ -21,14 +22,17 @@ Deno.serve(async (req) => {
     const { jobId, clientEmail, fileIds } = body || {};
 
     if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 });
-    if (!clientEmail) return Response.json({ error: 'clientEmail is required' }, { status: 400 });
     if (!Array.isArray(fileIds) || fileIds.length === 0) {
       return Response.json({ error: 'Select the media you want to download.' }, { status: 400 });
     }
 
+    // Identity comes from the signed customer session; the body's clientEmail is never trusted.
+    const auth = await requireCustomer(base44, req, body);
+    if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+
     const job = await base44.asServiceRole.entities.Job.get(jobId);
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
-    if (!ownsJob(job, clientEmail)) {
+    if (!ownsJob(job, auth.actor.email)) {
       return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
     }
 

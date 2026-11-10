@@ -161,7 +161,7 @@ export default function ClientJobGallery() {
       const res = await base44.functions.fetch("/downloadJobMedia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId, clientEmail: user.email, fileId: file.id }),
+        body: JSON.stringify(withCustomerSession({ jobId, clientEmail: user.email, fileId: file.id })),
       });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
@@ -185,7 +185,7 @@ export default function ClientJobGallery() {
     const res = await base44.functions.fetch("/downloadGalleryZip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId, clientEmail: user.email, fileIds: ids }),
+      body: JSON.stringify(withCustomerSession({ jobId, clientEmail: user.email, fileIds: ids })),
     });
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}));

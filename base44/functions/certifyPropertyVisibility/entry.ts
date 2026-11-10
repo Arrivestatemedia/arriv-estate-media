@@ -459,7 +459,7 @@ Deno.serve(async (req) => {
     // request carrying only an email is refused for owner and stranger alike — fail-closed. The
     // owner path is proven by the customer session suite, not by an unsigned email. Downloads keep
     // the email-ownership check until the same session guard is applied to them.
-    add("existing_delivery_regression", galleryWrongOwner.status === 401 && galleryOwner.status === 401 && downloadWrongOwner.status === 403,
+    add("existing_delivery_regression", galleryWrongOwner.status === 401 && galleryOwner.status === 401 && downloadWrongOwner.status === 401,
       `gallery without session: stranger ${galleryWrongOwner.status}, owner ${galleryOwner.status}; download: stranger ${downloadWrongOwner.status}`);
 
     // ================= 20. Production scope still governs, read-only =================

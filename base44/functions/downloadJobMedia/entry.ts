@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
+import { requireCustomer } from '../../shared/customerSession.ts';
 
 /**
  * downloadJobMedia
@@ -36,11 +37,14 @@ Deno.serve(async (req) => {
         return Response.json({ error: auth.error }, { status: 403 });
       }
     } else {
-      if (!clientEmail) {
-        return Response.json({ error: 'clientEmail is required' }, { status: 400 });
+      // The browser-supplied clientEmail is no longer proof of anything: identity comes from the
+      // signed customer session, and ownership from the job's own client_email.
+      const auth = await requireCustomer(base44, req, body);
+      if (!auth.ok) {
+        return Response.json({ error: auth.error }, { status: auth.status });
       }
-      // Verify the client owns this job
-      if (job.client_email !== clientEmail) {
+      const jobEmail = String(job.client_email || '').trim().toLowerCase();
+      if (!jobEmail || jobEmail !== auth.actor.email) {
         return Response.json({ error: 'Unauthorized: this job does not belong to you' }, { status: 403 });
       }
     }

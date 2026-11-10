@@ -233,10 +233,10 @@ function LayoutContent({ children, currentPageName }) {
         ]
         : isClient
     ? [
+        { label: "My Portal", page: "ClientBookings", icon: LayoutDashboard },
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
-        { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
-        { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
-        { label: "Subscription & Visibility", page: "VisibilityDashboard", icon: TrendingUp },
+        { label: "My Properties", page: "PropertyLeads", icon: Inbox },
+        { label: "Billing & Visibility", page: "VisibilityDashboard", icon: TrendingUp },
         ...(studioEntitlementActive ? [{ label: "Studio", page: "StudioWorkspace", icon: Film }] : []),
       ]
     : isMediaPartner
@@ -248,10 +248,11 @@ function LayoutContent({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = (isDualAdmin && adminMode === 'editing') ? "EditorWorkspace" : isAdmin ? "AdminHub" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
+  // A customer's home is the portal hub, not the booking form.
+  const dashboardPage = (isDualAdmin && adminMode === 'editing') ? "EditorWorkspace" : isAdmin ? "AdminHub" : isClient ? "ClientBookings" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
-  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PropertyAccess", "PayoutRecords", "StudioWorkspace"];
+  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PropertyLeads", "PublicAccountSettings", "SupraAccess", "PropertyAccess", "PayoutRecords", "StudioWorkspace"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
   const showBackButton = user && !isPrimaryRoute && !effectiveIsSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
