@@ -111,8 +111,15 @@ function navDirective(page: string, params: Record<string, any> = {}) {
   for (const key of entry.params) {
     const raw = params?.[key];
     if (raw === undefined || raw === null || raw === '') continue;
-    const value = String(raw);
-    if (!/^[A-Za-z0-9:_@.\- ]{1,80}$/.test(value)) continue;
+    // A real street address carries a comma ("1428 Maple Ridge Dr, Atlanta GA") — an unexpected
+    // character is stripped so the value never disappears. It only becomes one encoded
+    // query parameter.
+    const value = String(raw)
+      .replace(/[^A-Za-z0-9:_@.\- '’,#&/]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    if (!value) continue;
     clean[key] = value;
   }
   const query = Object.entries(clean)

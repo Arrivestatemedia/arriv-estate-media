@@ -42,7 +42,14 @@ const SURFACE_FOR_PAGE = {
 /** The workspace is the base of the Preferred experience; panels float on top of it. */
 const SHELL_PATH = '/PreferredWorkspace';
 
-const ALLOWED_PARAM_PATTERN = /^[A-Za-z0-9:_@.\- ]{1,80}$/;
+// Addresses arrive with commas ("1428 Maple Ridge Dr, Atlanta GA"): dropping one for that
+// would leave the booking form blank, so anything unexpected is stripped instead of the
+// whole value being thrown away. It only ever becomes one encoded query parameter.
+const PARAM_CLEANER = /[^A-Za-z0-9:_@.\- '’,#&/]/g;
+
+export function cleanConciergeParam(value) {
+  return String(value ?? "").replace(PARAM_CLEANER, "").replace(/\s+/g, " ").trim().slice(0, 120);
+}
 const GALLERY_SIZES = ['small', 'medium', 'large'];
 
 export function sanitizeConciergeUi(ui) {
@@ -57,8 +64,9 @@ export function sanitizeConciergeUi(ui) {
   const params = new URLSearchParams();
   for (const [key, value] of new URLSearchParams(query).entries()) {
     if (!allowedParams.includes(key)) continue;
-    if (!ALLOWED_PARAM_PATTERN.test(value)) continue;
-    params.set(key, value);
+    const cleaned = cleanConciergeParam(value);
+    if (!cleaned) continue;
+    params.set(key, cleaned);
   }
 
   const queryString = params.toString();
@@ -80,7 +88,7 @@ export function sanitizeConciergeDisplay(ui) {
   return {
     target,
     size,
-    open_job_id: ALLOWED_PARAM_PATTERN.test(jobId) ? jobId : "",
+    open_job_id: /^[A-Za-z0-9:_@.\-]{1,80}$/.test(jobId) ? jobId : "",
   };
 }
 
