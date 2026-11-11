@@ -292,16 +292,19 @@ Deno.serve(async (req) => {
     // ── 3. Campaign eligibility ─────────────────────────────────────────────────────────
     check('A published, available, authorized property is eligible', campaignEligibility(listingFixture()).eligible === true);
     check('A draft page cannot advertise', campaignEligibility(listingFixture({ publication_state: 'DRAFT' })).eligible === false);
-    check('A sold listing cannot advertise', campaignEligibility(listingFixture({ listing_status: 'sold' })).eligible === false);
-    check('A withdrawn listing cannot advertise', campaignEligibility(listingFixture({ listing_status: 'withdrawn' })).eligible === false);
+    // A property recorded as sold can be offered for rent, so the listing status never decides
+    // eligibility on its own: the administrator's approval does.
+    check('A sold listing is not refused by its status alone', campaignEligibility(listingFixture({ listing_status: 'sold' })).eligible === true);
+    check('A withdrawn listing is not refused by its status alone', campaignEligibility(listingFixture({ listing_status: 'withdrawn' })).eligible === true);
     check('Missing authority blocks advertising', campaignEligibility(listingFixture({ authority_confirmed: false })).eligible === false);
     check('A certification listing never advertises', campaignEligibility(listingFixture({ certification_mode: true })).eligible === false);
     check('An overdue status confirmation blocks advertising', campaignEligibility(listingFixture({ status_confirmation_due_at: '2020-01-01T00:00:00Z' })).eligible === false);
     const draftGate = campaignPurchaseGate(listingFixture({ publication_state: 'DRAFT', authority_confirmed: false }));
     check('A page still in draft can reserve a campaign that starts later', draftGate.ok === true && draftGate.live_now === false, draftGate);
     check('An unpublished page still cannot advertise', campaignEligibility(listingFixture({ publication_state: 'DRAFT' })).eligible === false);
-    check('A sold property cannot even reserve a campaign', campaignPurchaseGate(listingFixture({ listing_status: 'sold' })).ok === false);
-    check('A withdrawn property cannot even reserve a campaign', campaignPurchaseGate(listingFixture({ listing_status: 'withdrawn' })).ok === false);
+    check('A sold property can reserve a campaign for review', campaignPurchaseGate(listingFixture({ listing_status: 'sold' })).ok === true);
+    check('A withdrawn property can reserve a campaign for review', campaignPurchaseGate(listingFixture({ listing_status: 'withdrawn' })).ok === true);
+    check('A property with no public page still cannot reserve a campaign', campaignPurchaseGate(listingFixture({ public_url: '', public_slug: '' })).ok === false);
 
     // ── 4. Creative assembly ────────────────────────────────────────────────────────────
     const creative = buildAdCreative({ listing: listingFixture(), tier: 'growth', publicUrl: listingFixture().public_url, campaignId: 'adc_test' });
@@ -346,7 +349,7 @@ Deno.serve(async (req) => {
     const approved = await approveByCustomer(store.client, campaign, { actor: { email: 'owner@example.com' }, listing });
     check('The customer can approve once authorized', approved.ok === true && approved.campaign.status === 'APPROVED');
 
-    const notEligibleApprove = await approveByCustomer(store.client, { ...campaign, status: 'AWAITING_CUSTOMER_APPROVAL' }, { actor: { email: 'owner@example.com' }, listing: listingFixture({ listing_status: 'sold' }) });
+    const notEligibleApprove = await approveByCustomer(store.client, { ...campaign, status: 'AWAITING_CUSTOMER_APPROVAL' }, { actor: { email: 'owner@example.com' }, listing: listingFixture({ public_url: '', public_slug: '' }) });
     check('Approval is refused if the listing became ineligible', notEligibleApprove.ok === false && notEligibleApprove.code === 'LISTING_NOT_ELIGIBLE');
 
     // ── 6. Payment idempotency and accounting ───────────────────────────────────────────
@@ -507,14 +510,14 @@ Deno.serve(async (req) => {
     });
     check('Campaign is live before the listing changes', launch5.campaign.status === 'ACTIVE');
     const guard = await guardListingEligibility(store5.client, {
-      listing: listingFixture({ listing_status: 'sold' }),
-      reason: 'The property is no longer available.',
+      listing: listingFixture({ publication_state: 'UNPUBLISHED' }),
+      reason: 'The property page is no longer published.',
       actor: 'listing-sync',
       provider: built5.provider,
       account: ACCOUNT,
       switches: SWITCHES_ON,
     });
-    check('A sold property stops its live campaign immediately', guard.paused.length === 1);
+    check('An unpublished property page stops its live campaign immediately', guard.paused.length === 1);
     const afterGuard = await loadCampaign(store5.client, built5.campaign.campaign_id);
     check('The stopped campaign is paused, not deleted', afterGuard.status === 'PAUSED');
     check('The eligibility reason is on the record', String(afterGuard.pause_reason).length > 0);
@@ -684,8 +687,8 @@ Deno.serve(async (req) => {
 
     const live10 = await loadCampaign(store10.client, launched10.campaign.campaign_id);
     const guarded10 = await guardListingEligibility(store10.client, {
-      listing: listingFixture({ listing_status: 'sold' }),
-      reason: 'The property was marked sold.',
+      listing: listingFixture({ publication_state: 'UNPUBLISHED' }),
+      reason: 'The property page was unpublished.',
       actor: 'system',
       now: now10,
     });

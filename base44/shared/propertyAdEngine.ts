@@ -116,9 +116,9 @@ export function campaignEligibility(listing: any, now = new Date()): AdEligibili
   if (!listing) return { eligible: false, blockers: ["The property could not be found."] };
   if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
   if (listing.publication_state !== "PUBLISHED") blockers.push("The property page must be published before it can be advertised.");
-  if (!["active", "pending"].includes(String(listing.listing_status || ""))) {
-    blockers.push("The property is not currently shown as available. Sold, withdrawn and expired properties cannot be advertised.");
-  }
+  // The listing status is never used to refuse advertising: a property recorded as sold can be
+  // offered for rent, and only a person reviewing the campaign knows which it is. Availability is
+  // decided by the administrator's approval, not inferred here.
   if (listing.authority_confirmed !== true) blockers.push("Authority to advertise this property has not been confirmed.");
   if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
   const due = Date.parse(String(listing.status_confirmation_due_at || ""));
@@ -146,11 +146,9 @@ export function campaignPurchaseGate(listing: any, now = new Date()): AdPurchase
   const blockers: string[] = [];
   if (!listing) return { ok: false, blockers: ["The property could not be found."], live_now: false };
   if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
-  // Only a property that can no longer be advertised at all is refused. A new page still marked
-  // draft is not sold or withdrawn: it can carry a campaign that starts once the page goes live.
-  if (["sold", "withdrawn", "expired"].includes(String(listing.listing_status || ""))) {
-    blockers.push("This property is marked sold, withdrawn or expired, so it cannot be advertised.");
-  }
+  // Only a property with nothing to advertise is refused here. Listing status deliberately plays no
+  // part: a page still in draft can reserve a campaign that starts once it is live, and a property
+  // marked sold may be offered for rent. The administrator reviews every campaign before it runs.
   if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
   return { ok: blockers.length === 0, blockers, live_now: campaignEligibility(listing, now).eligible };
 }

@@ -79,7 +79,7 @@ export const AD_DISCLOSURE =
   "Arriv Estate Media creates, publishes and manages this campaign inside its own advertising accounts. The price includes both the advertising budget and the management fee, shown separately. Arriv does not guarantee impressions, reach, clicks, leads or sales, and no advertising result is promised.";
 
 export const AD_ELIGIBILITY_NOTE =
-  "You can reserve a campaign at any time. Nothing is charged when you reserve it: your card is held and charged only once the property page is approved, live and still shown as available, and the campaign is about to start. Its paid days begin on the day it launches.";
+  "You can reserve a campaign at any time. Nothing is charged when you reserve it: your card is held and charged only once your property page is approved and live, Arriv has reviewed the campaign, and it is about to start. Its paid days begin on the day it launches.";
 
 export const AD_PLATFORM_NOTE =
   "Campaigns run on Meta advertising and must use the Housing special ad category. Targeting is location-based only.";
