@@ -83,6 +83,18 @@ export default function PreferredProvider({ user, children }) {
     return () => body.classList.remove("preferred-portal");
   }, [state.preferred, inPortal]);
 
+  // The workspace replaces the whole client portal for a Preferred member, and the nav
+  // lives above this provider: publish the verdict so it can collapse to that one page.
+  useEffect(() => {
+    try {
+      if (state.preferred) localStorage.setItem("arriv_preferred", "1");
+      else localStorage.removeItem("arriv_preferred");
+    } catch {
+      /* storage unavailable: the nav simply keeps its default items */
+    }
+    window.dispatchEvent(new CustomEvent("arriv:preferred", { detail: { preferred: state.preferred } }));
+  }, [state.preferred]);
+
   const value = useMemo(() => ({ ...state, refresh }), [state, refresh]);
   // The workspace page runs the concierge on its own stage; the floating dock would be a second session.
   const onWorkspace = location.pathname === "/PreferredWorkspace";
