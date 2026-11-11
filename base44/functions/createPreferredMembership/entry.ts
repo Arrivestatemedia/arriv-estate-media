@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.48";
 import Stripe from "npm:stripe@17.5.0";
 import { requireCustomer } from "../../shared/customerSession.ts";
-import { isCompedEmail, compPeriod } from "../../shared/preferredComp.ts";
+import { isCompedEmail, compPeriod, isZeroCheckoutEmail } from "../../shared/preferredComp.ts";
 
 // Create a Preferred membership subscription via Stripe Checkout.
 // $29.99/month, tracks the sales originator for the $10 monthly residual.
@@ -93,10 +93,41 @@ export default async function (req) {
       return Response.json({ error: "Failed to create Stripe customer" }, { status: 500 });
     }
 
+    // A $0.00 walkthrough: an allowlisted verified address goes through the real Stripe
+    // checkout, but a 100%-off coupon brings the amount due to nothing. The membership is
+    // still created by the same subscription webhook as a paid one, so nothing else differs.
+    let zeroCouponId = "";
+    if (await isZeroCheckoutEmail(base44, client_email)) {
+      zeroCouponId = "preferred_zero_walkthrough";
+      try {
+        await stripe.coupons.retrieve(zeroCouponId);
+      } catch {
+        await stripe.coupons.create({
+          id: zeroCouponId,
+          percent_off: 100,
+          duration: "forever",
+          name: "Arriv Preferred — $0 walkthrough",
+        });
+      }
+    }
+
     // Create Checkout session for $29.99/mo subscription
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: stripeCustomerId,
+      ...(zeroCouponId ? { discounts: [{ coupon: zeroCouponId }] } : {}),
+      // The subscription itself must carry the membership identity: activation happens from
+      // customer.subscription.created, which reads these fields, not the session's.
+      subscription_data: {
+        metadata: {
+          client_id,
+          client_email,
+          client_name,
+          sales_originator_id,
+          sales_originator_name,
+          purpose: "preferred_membership",
+        },
+      },
       line_items: [
         {
           price_data: {

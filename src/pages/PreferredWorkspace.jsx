@@ -18,6 +18,7 @@ export default function PreferredWorkspace() {
   const { preferred, loading, entitlement, customer, refresh } = usePreferred();
   const [data, setData] = useState(null);
   const [failure, setFailure] = useState("");
+  const [starting, setStarting] = useState(false);
   // Arriving straight from checkout: the membership is still being activated, so the
   // customer gets their welcome instead of a portal that looks unchanged.
   const [welcoming, setWelcoming] = useState(
@@ -76,6 +77,25 @@ export default function PreferredWorkspace() {
     );
   }
 
+  async function startMembership() {
+    setStarting(true);
+    setFailure("");
+    try {
+      // The account and email come from the signed customer session, never from the page.
+      const response = await base44.functions.invoke("createPreferredMembership", withCustomerSession({}));
+      const payload = response?.data ?? response;
+      if (payload?.checkout_url) {
+        window.location.href = payload.checkout_url;
+        return;
+      }
+      refresh();
+    } catch (err) {
+      setFailure(err?.message || "Membership checkout could not be started.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
   if (!preferred) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -87,12 +107,24 @@ export default function PreferredWorkspace() {
           Preferred members work with a dedicated Arriv concierge who books, publishes and manages
           your marketing for you. Your current portal keeps working exactly as it does today.
         </p>
-        <Link
-          to="/VisibilityDashboard"
-          className="mt-6 inline-flex rounded-full bg-[#B8956A] px-6 py-2.5 text-sm font-medium text-[#1A1A1A]"
-        >
-          See Preferred membership
-        </Link>
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={startMembership}
+            disabled={starting}
+            className="inline-flex items-center gap-2 rounded-full bg-[#B8956A] px-6 py-2.5 text-sm font-medium text-[#1A1A1A] disabled:opacity-60"
+          >
+            {starting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {starting ? "Opening checkout" : "Become Preferred"}
+          </button>
+          <Link
+            to="/VisibilityDashboard"
+            className="text-xs font-medium text-[#1A1A1A]/50 underline underline-offset-4"
+          >
+            See Preferred membership
+          </Link>
+        </div>
+        {failure && <p className="mt-4 text-xs text-red-600">{failure}</p>}
       </div>
     );
   }
