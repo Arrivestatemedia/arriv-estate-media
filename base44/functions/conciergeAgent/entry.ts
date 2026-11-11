@@ -77,11 +77,6 @@ ${JSON.stringify(catalog).slice(0, 6000)}
 
 HOW TO ANSWER
 - Choose 0 to ${MAX_ACTIONS} actions that actually answer the request. Prefer the smallest set.
-- Match the member's words to the action that OPENS what they asked for:
-  * "analytics", "performance", "traffic", "stats", "page views", "leads", "dashboard", "how is my property doing" -> show_analytics. Never answer these with get_account_overview.
-  * "my invoices", "what do I owe", "payments", "billing" -> list_invoices or get_payment_summary.
-  * "my photos", "gallery", "footage" -> list_galleries. "my properties" -> list_properties. "my bookings", "my portal" -> list_bookings.
-- Use get_account_overview only when the member asks for a general summary of their whole account.
 - Only use action names from the list. Only pass inputs the action's schema allows.
 - Never invent a record id, address, price, invoice or membership fact. Use values from the snapshot or the customer's own words.
 - If the customer wants to see or change something, choose the action; the system renders the real result on screen, so you do not need to describe the data yourself.
