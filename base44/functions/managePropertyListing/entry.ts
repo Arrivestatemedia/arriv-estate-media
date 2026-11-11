@@ -732,9 +732,9 @@ Deno.serve(async (req) => {
 
     // ------------------------------------------------------------------ SEO draft (cost-gated)
     if (action === "generate_seo") {
-      // The copy is drafted from the facts on the record, and from the photographs when any have
-      // been selected. A page with no photography yet can still be drafted: the writer simply
-      // describes only what the details state.
+      if (!listing.selected_media?.length) {
+        return Response.json({ ok: false, reason: "MEDIA_SELECTION_REQUIRED", message: "Select media before generating page content." }, { status: 409 });
+      }
       const sourceHash = await seoSourceHash(listing);
       // Content is generated once and regenerated only when relevant information changes.
       if (!body.force && listing.seo_source_hash === sourceHash && listing.ai_draft?.generated_at) {
