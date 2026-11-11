@@ -75,6 +75,7 @@ import AutoFundTerms from './pages/AutoFundTerms';
 import PropertyPageBuilder from './pages/PropertyPageBuilder';
 import PropertyLeads from './pages/PropertyLeads';
 import AdminPropertyPromotions from './pages/AdminPropertyPromotions';
+import AdminPreferredMembers from './pages/AdminPreferredMembers';
 import AdminPropertyAdCampaigns from './pages/AdminPropertyAdCampaigns';
 import PublicPropertyPage from './pages/PublicPropertyPage';
 import AgentDirectory from './pages/AgentDirectory';
@@ -673,6 +674,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminPropertyAdCampaigns">
             <AdminPropertyAdCampaigns />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPreferredMembers"
+        element={
+          <LayoutWrapper currentPageName="AdminPreferredMembers">
+            <AdminPreferredMembers />
           </LayoutWrapper>
         }
       />

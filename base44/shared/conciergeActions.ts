@@ -20,6 +20,7 @@
 
 import { customerEmailQuery } from './customerEmail.ts';
 import { calculateMediaPricing, DEFAULT_PRICING_CONFIG } from './mediaPricingEngine.ts';
+import { notifySalesRepOfCancellation, resolveSalesRepForClient } from './preferredCancellation.ts';
 
 export type ConciergeContext = {
   base44: any;
@@ -934,6 +935,72 @@ define({
       ok: true,
       speech: 'I’ve logged this for an Arriv specialist, with your account attached. You can keep using the portal while we pick it up.',
       data: { logged: true, topic, account: ctx.email },
+    };
+  },
+});
+
+define({
+  name: 'request_membership_cancellation',
+  description: 'File the customer’s request to cancel their Preferred membership and alert their Arriv advisor by email and text. Never cancels the membership itself.',
+  schema: { type: 'object', properties: { reason: { type: 'string', description: 'Why they want to cancel, in their own words' } } },
+  mutating: true,
+  async run(ctx, input) {
+    const memberships = rowsOf(await ctx.base44.asServiceRole.entities.PreferredMembership
+      .filter(customerEmailQuery('client_email', ctx.email), { sort: '-created_date', limit: 10 }).catch(() => []));
+    const membership = memberships.find((record: any) => ['active', 'trialing'].includes(String(record.status || '').toLowerCase())) || null;
+    if (!membership) {
+      return {
+        ok: false,
+        speech: 'There is no active Preferred membership on your account, so there is nothing to cancel.',
+        error: 'NO_ACTIVE_MEMBERSHIP',
+      };
+    }
+
+    const existing = rowsOf(await ctx.base44.asServiceRole.entities.PreferredCancellationRequest
+      .filter({ membership_id: membership.id, status: 'requested' }, { limit: 1 }).catch(() => []))[0] || null;
+    const rep = await resolveSalesRepForClient(ctx.base44, membership);
+
+    const request = existing || await ctx.base44.asServiceRole.entities.PreferredCancellationRequest.create({
+      request_id: `pcr_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
+      membership_id: membership.id,
+      client_id: ctx.accountId || membership.client_id || '',
+      client_email: ctx.email,
+      client_name: ctx.fullName || membership.client_name || '',
+      plan: membership.plan || 'preferred_monthly',
+      membership_status: String(membership.status || '').toLowerCase(),
+      period_end: membership.current_period_end || '',
+      status: 'requested',
+      requested_via: ctx.channel === 'video' ? 'concierge_video' : 'concierge_text',
+      utterance: String(input?.reason || '').slice(0, 500),
+      sales_rep_id: rep.id,
+      sales_rep_name: rep.name,
+      sales_rep_email: rep.email,
+      sales_rep_phone: rep.phone,
+      created_at: new Date().toISOString(),
+    });
+
+    // Already with the advisor: never alert them twice for the same request.
+    const delivery = existing
+      ? { email: !!existing.email_sent_at, sms: !!existing.sms_sent_at, errors: [] as string[] }
+      : await notifySalesRepOfCancellation(ctx.base44, { request, membership, rep });
+
+    const reached = delivery.email || delivery.sms;
+    const speech = reached
+      ? `I’ve sent your cancellation request to ${rep.name}. They’ll reach out to you to take care of it, and your membership stays exactly as it is until then.`
+      : `I’ve recorded your cancellation request on your account and ${rep.name} will pick it up from there. Your membership stays exactly as it is until it’s handled.`;
+
+    return {
+      ok: true,
+      speech: existing ? `Your cancellation request is already with ${rep.name}. They’ll reach out to you to take care of it.` : speech,
+      data: {
+        request_id: request.request_id,
+        status: 'requested',
+        advisor: rep.name,
+        email_sent: delivery.email === true,
+        sms_sent: delivery.sms === true,
+        membership_unchanged: true,
+        note: 'A request only. The membership is cancelled by Arriv once the advisor has spoken with the customer.',
+      },
     };
   },
 });

@@ -1,0 +1,139 @@
+{
+  "name": "PreferredCancellationRequest",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Stable request id (pcr_...). One record per cancellation request, never reused."
+    },
+    "membership_id": {
+      "type": "string",
+      "description": "PreferredMembership record this request is about"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Verified customer account id the request came from"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Verified customer email. Always taken from the customer session, never from the model."
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "plan": {
+      "type": "string"
+    },
+    "membership_status": {
+      "type": "string",
+      "description": "Membership status at the moment the customer asked"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Paid period end of the membership when the request was filed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "cancelled",
+        "closed",
+        "declined"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray",
+        "gray"
+      ],
+      "default": "requested",
+      "description": "Where the request stands. 'requested' means the customer asked and the advisor was alerted; the membership itself is untouched until an administrator cancels it."
+    },
+    "requested_via": {
+      "type": "string",
+      "enum": [
+        "concierge_text",
+        "concierge_video",
+        "admin"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "description": "Which channel the customer used"
+    },
+    "utterance": {
+      "type": "string",
+      "description": "What the customer said when they asked, so the advisor has the context"
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember id of the advisor on file for this client"
+    },
+    "sales_rep_name": {
+      "type": "string"
+    },
+    "sales_rep_email": {
+      "type": "string"
+    },
+    "sales_rep_phone": {
+      "type": "string"
+    },
+    "email_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sms_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notification_error": {
+      "type": "string",
+      "description": "Plain-language reason a notification could not be delivered, so a silent failure is never assumed to be a success"
+    },
+    "handled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "handled_by": {
+      "type": "string"
+    },
+    "handler_note": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "request_id",
+    "client_email",
+    "membership_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

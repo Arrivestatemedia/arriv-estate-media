@@ -227,6 +227,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "MLS Upload Queue", page: "MlsUploadQueue", icon: ShieldCheck },
             { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
             { label: "Property Packages", page: "AdminPropertyPromotions", icon: Tag },
+            { label: "Preferred Members", page: "AdminPreferredMembers", icon: Heart },
             { label: "Ad Campaigns", page: "AdminPropertyAdCampaigns", icon: Megaphone },
             { label: "Visibility & SEO", page: "AdminVisibility", icon: Building2 },
             { label: "Launch Readiness", page: "LaunchReadiness", icon: CheckCircle2 },
