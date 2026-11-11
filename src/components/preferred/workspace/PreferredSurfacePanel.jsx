@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Crown, Loader2, X } from "lucide-react";
 import { SURFACES } from "@/components/preferred/surface/surfaces";
 import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
+import { HostedSurfaceProvider } from "@/components/preferred/surface/HostedSurfaceContext";
 
 /**
  * The working half of the workspace.
@@ -69,7 +70,9 @@ export default function PreferredSurfacePanel() {
             </div>
           )}
         >
-          <Component />
+          <HostedSurfaceProvider value={true}>
+            <Component />
+          </HostedSurfaceProvider>
         </Suspense>
       </div>
     </section>

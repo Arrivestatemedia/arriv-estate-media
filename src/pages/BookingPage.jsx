@@ -16,6 +16,8 @@ import PurchasingContextSelector from "@/components/b2b/PurchasingContextSelecto
 import { withCustomerSession, redirectIfSessionExpired, getCustomerSessionToken } from "@/lib/customerSession";
 import { loadCustomerAccount } from '@/lib/customerAccount';
 import { bookingChangeWindow } from "@/lib/bookingChangeWindow";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
+import { useIsHostedSurface } from "@/components/preferred/surface/HostedSurfaceContext";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
   return (
@@ -482,6 +484,18 @@ export default function BookingPage() {
     });
   };
 
+  // Opened as a Preferred surface, this screen lives inside the member's workspace: cancelling
+  // closes the panel and hands them straight back to the concierge, without reloading the app.
+  const { close: closeSurface } = usePreferredSurface();
+  const hosted = useIsHostedSurface();
+  const leaveBooking = () => {
+    if (hosted) {
+      closeSurface();
+      return;
+    }
+    window.location.href = createPageUrl('ClientBookings');
+  };
+
   if (showBookingForm) {
     return (
       <>
@@ -520,8 +534,11 @@ export default function BookingPage() {
         onCancel={() => {
           setShowBookingForm(false);
           setEditingBooking(null);
-          window.location.href = createPageUrl('ClientBookings');
+          leaveBooking();
         }}
+        // Inside the workspace "Back to Packages" returns to the package list in the same
+        // panel; cancelling hands them back to the concierge.
+        onBack={hosted ? () => setShowBookingForm(false) : undefined}
         isEditing={!!editingBooking}
         editingBooking={editingBooking}
         salesReps={salesReps}

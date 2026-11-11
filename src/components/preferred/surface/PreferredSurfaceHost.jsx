@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { Crown, Loader2, X } from "lucide-react";
 import { SURFACES } from "./surfaces";
 import { usePreferredSurface } from "./PreferredSurfaceContext";
+import { HostedSurfaceProvider } from "./HostedSurfaceContext";
 
 /**
  * The floating surface itself: the workspace stays visible behind it, the screen opens in the
@@ -92,7 +93,9 @@ export default function PreferredSurfaceHost() {
               </div>
             )}
           >
-            <Component />
+            <HostedSurfaceProvider value={true}>
+              <Component />
+            </HostedSurfaceProvider>
           </Suspense>
         </main>
       </div>

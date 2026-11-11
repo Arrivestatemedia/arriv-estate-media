@@ -41,7 +41,7 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null, prefillDate = null, adjustedPackagePrice = null, lifecycleAdjustmentDollars = 0 }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, onBack = onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null, prefillDate = null, adjustedPackagePrice = null, lifecycleAdjustmentDollars = 0 }) {
   // Local sqft lookup state — used when the client didn't look up the address
   // on the previous page and enters it directly here.
   const [localSqft, setLocalSqft] = useState(null);
@@ -302,7 +302,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     <div className="min-h-screen bg-[#FFFBF5] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Button
-          onClick={onCancel}
+          onClick={onBack}
           variant="ghost"
           className="mb-6 text-[#1A1A1A]/60 hover:text-[#1A1A1A]"
         >
