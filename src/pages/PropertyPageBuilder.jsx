@@ -33,6 +33,20 @@ export default function PropertyPageBuilder() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
+  // Opening an existing page fills in whatever it is still missing from the records we already
+  // hold (the city, state and ZIP inside its address, and the contact on file). Only empty fields
+  // are touched, so nothing the customer has entered is changed.
+  const refreshListing = useCallback(async (listingId) => {
+    if (!listingId) return;
+    try {
+      const res = await propertyAction("get_free_page_prefill", { listingId });
+      if (res?.listing) setListing(res.listing);
+      return res?.listing || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const load = useCallback(async () => {
     if (freeMode || !jobId || !clientEmail) { setLoading(false); return; }
     setLoading(true);
@@ -41,6 +55,7 @@ export default function PropertyPageBuilder() {
       const ctx = await loadPropertyContext(jobId, clientEmail);
       setContext(ctx);
       setListing(ctx?.existing_listing || null);
+      if (ctx?.existing_listing?.listing_id) await refreshListing(ctx.existing_listing.listing_id);
       if (ctx?.eligible) {
         const media = await base44.functions.invoke(
           "getJobMediaForClient",
@@ -54,7 +69,7 @@ export default function PropertyPageBuilder() {
     } finally {
       setLoading(false);
     }
-  }, [freeMode, jobId, clientEmail]);
+  }, [freeMode, jobId, clientEmail, refreshListing]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -78,7 +93,14 @@ export default function PropertyPageBuilder() {
   if (loading) return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#B8956A]" /></div>;
 
   if (freeMode && !listing) {
-    return <FreePageStart onCreated={(created) => setListing(created)} />;
+    return (
+      <FreePageStart
+        onCreated={async (created) => {
+          setListing(created);
+          await refreshListing(created?.listing_id);
+        }}
+      />
+    );
   }
 
   if (context?.feature_disabled && !context?.existing_listing) {

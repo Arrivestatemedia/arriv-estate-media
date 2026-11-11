@@ -53,6 +53,45 @@ const CONTENT_SENSITIVE_FIELDS = new Set(DETAIL_FIELDS);
 
 function nowIso() { return new Date().toISOString(); }
 
+// The city, state and ZIP written inside an address we already hold, so a page whose address was
+// captured as one line still shows the parts instead of three blank fields. This only reads what the
+// address literally says: when it does not carry the parts, they stay empty.
+function addressParts(address: any) {
+  const raw = String(address || "").replace(/\s+/g, " ").trim();
+  const withZip = raw.match(/^(.*),\s*([^,]+?),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+  if (withZip) return { street: withZip[1].trim(), city: withZip[2].trim(), state: withZip[3].toUpperCase(), zip: withZip[4] };
+  const withState = raw.match(/^(.*),\s*([^,]+?),\s*([A-Za-z]{2})$/);
+  if (withState) return { street: withState[1].trim(), city: withState[2].trim(), state: withState[3].toUpperCase(), zip: "" };
+  const cityOnly = raw.match(/^([^,]+?),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+  if (cityOnly) return { street: "", city: cityOnly[1].trim(), state: cityOnly[2].toUpperCase(), zip: cityOnly[3] };
+  return { street: raw, city: "", state: "", zip: "" };
+}
+
+// The facts a listing is missing that we already hold, so an existing page is filled in rather than
+// left blank. Only empty fields are proposed and nothing is overwritten.
+function listingFactsPatch(listing: any, known: any) {
+  const parts = addressParts(listing.property_address || "");
+  const patch: Record<string, any> = {};
+  const fill = (field: string, value: any) => {
+    const current = listing[field];
+    if (current === null || current === undefined || String(current).trim() === "") {
+      if (value !== null && value !== undefined && String(value).trim() !== "") patch[field] = String(value).trim();
+    }
+  };
+  fill("city", parts.city || known.city);
+  fill("state", parts.state || known.state);
+  fill("zip", parts.zip || known.zip);
+  fill("agent_name", known.full_name);
+  fill("agent_email", known.agent_email);
+  fill("agent_phone", known.phone);
+  fill("approved_contact_email", known.agent_email);
+  fill("approved_contact_phone", known.phone);
+  fill("brokerage_name", known.brokerage_name);
+  fill("agent_license_number", known.license_number);
+  fill("agent_photo_url", known.photo_url);
+  return patch;
+}
+
 async function recordEvent(base44: any, listing: any, eventType: string, actor: any, details: any = {}, states: any = {}) {
   await base44.asServiceRole.entities.PropertyListingEvent.create({
     event_id: `plev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -198,12 +237,13 @@ async function knownCustomerFacts(base44: any, auth: any) {
     const mine = (await base44.asServiceRole.entities.PropertyListing.filter({ client_email: email })) || [];
     const open = mine.find((l: any) => !l.job_id && ["DRAFT", "UNPUBLISHED"].includes(l.publication_state));
     if (open) {
+      const openParts = addressParts(open.property_address || "");
       facts.property = {
         listing_id: open.listing_id,
         propertyAddress: open.property_address || "",
-        city: open.city || "",
-        state: open.state || "",
-        zip: open.zip || "",
+        city: open.city || openParts.city,
+        state: open.state || openParts.state,
+        zip: open.zip || openParts.zip,
         listingPrice: open.listing_price ?? "",
         bedrooms: open.bedrooms ?? "",
         bathrooms: open.bathrooms ?? "",
@@ -256,7 +296,31 @@ Deno.serve(async (req) => {
     if (action === "get_free_page_prefill") {
       const prefillAuth = await requireCustomer(base44, req, body);
       if (!prefillAuth.ok) return Response.json({ error: prefillAuth.error }, { status: prefillAuth.status });
-      return Response.json({ ok: true, prefill: await knownCustomerFacts(base44, prefillAuth) });
+      const prefill = await knownCustomerFacts(base44, prefillAuth);
+
+      // The page being opened is filled in from what we already hold: the city, state and ZIP written
+      // inside the address it was created with, and the contact details on file. Only empty fields are
+      // written, so anything the customer already entered or changed is left exactly as they left it.
+      const openingId = String(body.listingId || "").trim();
+      let listing = null;
+      if (openingId) {
+        const rows = (await base44.asServiceRole.entities.PropertyListing.filter({ listing_id: openingId })) || [];
+        const current = rows[0] || null;
+        if (!current) return Response.json({ error: "Listing not found" }, { status: 404 });
+        const owner = String(current.client_email || "").toLowerCase();
+        if (owner !== String(prefillAuth.actor.email || "").toLowerCase()) {
+          return Response.json({ error: "Unauthorized: this property page does not belong to you" }, { status: 403 });
+        }
+        const patch = listingFactsPatch(current, prefill);
+        if (Object.keys(patch).length) {
+          await base44.asServiceRole.entities.PropertyListing.update(current.id, { ...patch, updated_at: nowIso() });
+          listing = { ...current, ...patch, updated_at: nowIso() };
+          await recordEvent(base44, listing, "details_updated", { email: prefillAuth.actor.email, type: "customer" }, { filled_from_existing_records: Object.keys(patch) });
+        } else {
+          listing = current;
+        }
+      }
+      return Response.json({ ok: true, prefill, listing });
     }
 
     if (action === "create_seo_draft") {
@@ -280,8 +344,9 @@ Deno.serve(async (req) => {
       if (existingSeo) return Response.json({ ok: true, listing: existingSeo, reused: true });
 
       const seoListingId = `prop_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-      const seoCity = sanitizeText(body.city, 120);
-      const seoState = sanitizeText(body.state, 40).toUpperCase();
+      const seoParts = addressParts(seoAddress);
+      const seoCity = sanitizeText(body.city, 120) || seoParts.city;
+      const seoState = sanitizeText(body.state, 40).toUpperCase() || seoParts.state;
       const seoSlug = buildSlug(seoAddress, seoCity, seoState, seoListingId);
       const seoActor = { email: seoAuth.actor.email, type: "customer", isAdmin: false, clientEmail: seoAuth.actor.email };
       const num = (value: any) => (value === "" || value === null || value === undefined ? null : Number(value));
@@ -298,7 +363,7 @@ Deno.serve(async (req) => {
         normalized_address: seoAddress,
         city: seoCity || known.city,
         state: seoState || known.state,
-        zip: sanitizeText(body.zip, 12) || known.zip,
+        zip: sanitizeText(body.zip, 12) || seoParts.zip || known.zip,
         square_footage: num(body.squareFootage),
         square_footage_source: body.squareFootage ? "customer" : "",
         listing_price: num(body.listingPrice),
@@ -431,7 +496,10 @@ Deno.serve(async (req) => {
       const duplicate = existingByKey.find((l: any) => inScope(l));
       if (duplicate) return Response.json({ ok: true, listing: duplicate, reused: true });
 
-      const slug = buildSlug(address, facts.city || "", facts.state || "", listingId);
+      // A page built from a delivered shoot starts with the parts of the address and the customer
+      // details the order itself carries, so the customer confirms rather than retypes.
+      const parts = addressParts(address);
+      const slug = buildSlug(address, facts.city || parts.city, facts.state || parts.state, listingId);
       const created = await listings.create({
         listing_id: listingId,
         tenant_id: job.tenant_id || "tnt_estate_media",
@@ -442,9 +510,9 @@ Deno.serve(async (req) => {
         client_name: job.client_name || "",
         property_address: address,
         normalized_address: address,
-        city: facts.city || "",
-        state: facts.state || "",
-        zip: facts.zip || "",
+        city: facts.city || parts.city,
+        state: facts.state || parts.state,
+        zip: facts.zip || parts.zip,
         square_footage: facts.square_footage ?? null,
         square_footage_source: facts.square_footage_source || "",
         listing_price: null,
@@ -454,7 +522,11 @@ Deno.serve(async (req) => {
         property_description: "",
         amenities: [],
         listing_status: "draft",
-        agent_email: "",
+        agent_name: job.client_name || "",
+        agent_email: job.client_email || "",
+        agent_phone: job.client_phone || "",
+        approved_contact_email: job.client_email || "",
+        approved_contact_phone: job.client_phone || "",
         selected_media: [],
         cover_file_id: "",
         include_video: false,
