@@ -4,12 +4,24 @@ import { createPageUrl } from "../../utils";
 import { base44 } from "@/api/base44Client";
 import { Briefcase, LayoutDashboard, Settings, Key, Wallet, Film, Home } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
+import { usePreferred } from "@/components/preferred/PreferredProvider";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
+
+// A Preferred member's tabs open inside their workspace instead of leaving it.
+const SURFACE_FOR_PAGE = {
+  ClientBookings: "dashboard",
+  BookingPage: "booking",
+  PropertyLeads: "properties",
+  PublicAccountSettings: "account",
+};
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
 
 export default function MobileBottomTabs({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { preferred } = usePreferred();
+  const { active: openSurfaceState, open: openSurface } = usePreferredSurface();
   const currentPath = location.pathname;
   const scrollPositions = useRef({});
   const isRestoringScroll = useRef(false);
@@ -143,8 +155,30 @@ export default function MobileBottomTabs({ user }) {
       <nav className="flex items-center justify-around h-16">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = currentPath === `/${tab.page}`;
-          
+          const surfaceKey = preferred ? SURFACE_FOR_PAGE[tab.page] : null;
+          const isActive = surfaceKey
+            ? openSurfaceState?.key === surfaceKey
+            : currentPath === `/${tab.page}`;
+
+          if (surfaceKey) {
+            return (
+              <button
+                key={tab.page}
+                type="button"
+                onClick={() => openSurface(surfaceKey)}
+                className="flex flex-col items-center justify-center flex-1 h-full relative"
+                style={{ userSelect: 'none' }}
+              >
+                <div className={`flex flex-col items-center gap-1 ${isActive ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`}>
+                  <div className="relative">
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium">{tab.label}</span>
+                </div>
+              </button>
+            );
+          }
+
           return (
             <Link
               key={tab.page}

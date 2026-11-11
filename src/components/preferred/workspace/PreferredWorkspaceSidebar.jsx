@@ -1,5 +1,4 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
 import {
   BarChart3,
   BadgeCheck,
@@ -12,17 +11,19 @@ import {
   Receipt,
   Sparkles,
 } from "lucide-react";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
+import { SURFACES } from "@/components/preferred/surface/surfaces";
 
 const NAV = [
-  { label: "Concierge", to: "/PreferredWorkspace", icon: Sparkles },
-  { label: "Dashboard", to: "/ClientBookings", icon: LayoutDashboard },
-  { label: "My Properties", to: "/PropertyLeads", icon: Building2 },
-  { label: "Bookings", to: "/BookingPage", icon: CalendarClock },
-  { label: "Galleries", to: "/ClientBookings", icon: Images },
-  { label: "Marketing Growth", to: "/PropertyPageBuilder", icon: Megaphone },
-  { label: "Analytics", to: "/VisibilityDashboard", icon: BarChart3 },
-  { label: "Invoices & Billing", to: "/VisibilityDashboard", icon: Receipt },
-  { label: "Membership", to: "/VisibilityDashboard", icon: BadgeCheck },
+  { label: "Concierge", surface: null, icon: Sparkles },
+  { label: "Dashboard", surface: "dashboard", icon: LayoutDashboard },
+  { label: "My Properties", surface: "properties", icon: Building2 },
+  { label: "Bookings", surface: "booking", icon: CalendarClock },
+  { label: "Galleries", surface: "galleries", icon: Images },
+  { label: "Marketing Growth", surface: "marketing", icon: Megaphone },
+  { label: "Analytics", surface: "analytics", icon: BarChart3 },
+  { label: "Invoices & Billing", surface: "billing", icon: Receipt },
+  { label: "Membership", surface: "membership", icon: BadgeCheck },
 ];
 
 function greeting() {
@@ -33,7 +34,7 @@ function greeting() {
 }
 
 export default function PreferredWorkspaceSidebar({ firstName }) {
-  const location = useLocation();
+  const { active, open, close } = usePreferredSurface();
 
   return (
     <aside className="preferred-glass h-fit p-3">
@@ -48,12 +49,18 @@ export default function PreferredWorkspaceSidebar({ firstName }) {
       <nav className="preferred-scroll space-y-1">
         {NAV.map((item) => {
           const Icon = item.icon;
-          const active = location.pathname === item.to;
+          const isActive = item.surface ? active?.key === item.surface : !active;
           return (
-            <Link key={item.label} to={item.to} className="preferred-nav-item preferred-focus" data-active={active}>
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => (item.surface ? open(item.surface, { hash: SURFACES[item.surface]?.hash }) : close())}
+              className="preferred-nav-item preferred-focus w-full text-left"
+              data-active={isActive}
+            >
               <Icon className="h-4 w-4 shrink-0" />
               {item.label}
-            </Link>
+            </button>
           );
         })}
       </nav>

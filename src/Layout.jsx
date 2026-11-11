@@ -24,6 +24,7 @@ import FinalEditsUploadStatusBanner from "@/components/editing/FinalEditsUploadS
 import PreferredProvider from "@/components/preferred/PreferredProvider";
 import PreferredHeaderChip from "@/components/preferred/PreferredHeaderChip";
 import PreferredAwareNav from "@/components/preferred/PreferredAwareNav";
+import PreferredSurfaceLink from "@/components/preferred/surface/PreferredSurfaceLink";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
@@ -381,7 +382,8 @@ function LayoutContent({ children, currentPageName }) {
               )}
 
                   {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
-                  <Link
+                  <PreferredSurfaceLink
+                    surface="account"
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       currentPageName === "PublicAccountSettings"
@@ -391,7 +393,7 @@ function LayoutContent({ children, currentPageName }) {
                   >
                     <Settings className="w-4 h-4" />
                     Account Settings
-                  </Link>
+                  </PreferredSurfaceLink>
                   )}
 
               </nav>
@@ -480,7 +482,8 @@ function LayoutContent({ children, currentPageName }) {
               />
             )}
             {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
-              <Link
+              <PreferredSurfaceLink
+                surface="account"
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
@@ -491,7 +494,7 @@ function LayoutContent({ children, currentPageName }) {
               >
                 <Settings className="w-4 h-4" />
                 Account Settings
-              </Link>
+              </PreferredSurfaceLink>
             )}
               {user && (
                 <>

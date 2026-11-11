@@ -1,6 +1,7 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { BarChart3, Building2, CalendarClock, Crown, Images, Play, TrendingUp } from "lucide-react";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
+import { SURFACES } from "@/components/preferred/surface/surfaces";
 
 function money(cents) {
   return `$${Math.round(Number(cents || 0) / 100).toLocaleString("en-US")}`;
@@ -15,6 +16,7 @@ function shortDate(value) {
 
 export default function PreferredWorkspaceRail({ stats, latestMedia, plan, periodEnd }) {
   const media = latestMedia || null;
+  const { open } = usePreferredSurface();
 
   return (
     <aside className="space-y-4">
@@ -71,15 +73,16 @@ export default function PreferredWorkspaceRail({ stats, latestMedia, plan, perio
             </div>
           )}
           {media && (
-            <Link
-              to="/ClientBookings"
+            <button
+              type="button"
+              onClick={() => open("galleries")}
               aria-label="Open the delivered gallery"
               className="preferred-focus absolute inset-0 flex items-center justify-center bg-black/25 transition-colors hover:bg-black/10"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#c8a87c]/50 bg-black/45">
                 <Play className="ml-0.5 h-4 w-4 text-[#f0dcb9]" />
               </span>
-            </Link>
+            </button>
           )}
         </div>
         <div className="px-4 py-3">
@@ -95,13 +98,14 @@ export default function PreferredWorkspaceRail({ stats, latestMedia, plan, perio
         </div>
       </div>
 
-      <Link
-        to="/VisibilityDashboard"
-        className="preferred-focus flex items-center justify-between rounded-xl border border-[#c8a87c]/20 px-4 py-2.5 text-[12px] text-[#f6f1e8]/70 transition-colors hover:border-[#c8a87c]/45 hover:text-[#f6f1e8]"
+      <button
+        type="button"
+        onClick={() => open("analytics", { hash: SURFACES.analytics?.hash })}
+        className="preferred-focus flex w-full items-center justify-between rounded-xl border border-[#c8a87c]/20 px-4 py-2.5 text-[12px] text-[#f6f1e8]/70 transition-colors hover:border-[#c8a87c]/45 hover:text-[#f6f1e8]"
       >
         View performance
         <BarChart3 className="h-3.5 w-3.5 text-[#c8a87c]" />
-      </Link>
+      </button>
     </aside>
   );
 }

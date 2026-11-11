@@ -4,6 +4,8 @@ import { getCustomerSessionToken } from "@/lib/customerSession";
 import { fetchConciergeEntitlement } from "@/lib/conciergeClient";
 import PreferredConcierge from "@/components/preferred/PreferredConcierge";
 import PreferredWelcome from "@/components/preferred/PreferredWelcome";
+import { PreferredSurfaceProvider } from "@/components/preferred/surface/PreferredSurfaceContext";
+import PreferredSurfaceHost from "@/components/preferred/surface/PreferredSurfaceHost";
 import "@/preferred.css";
 
 /**
@@ -90,11 +92,14 @@ export default function PreferredProvider({ user, children }) {
 
   return (
     <PreferredContext.Provider value={value}>
-      {children}
-      {state.preferred && !onWorkspace && state.entitlement?.concierge_enabled !== false && (
-        <PreferredConcierge user={user} customer={state.customer} entitlement={state.entitlement} />
-      )}
-      {state.preferred && <PreferredWelcome customer={state.customer} />}
+      <PreferredSurfaceProvider>
+        {children}
+        {state.preferred && !onWorkspace && state.entitlement?.concierge_enabled !== false && (
+          <PreferredConcierge user={user} customer={state.customer} entitlement={state.entitlement} />
+        )}
+        {state.preferred && <PreferredWelcome customer={state.customer} />}
+        {state.preferred && <PreferredSurfaceHost />}
+      </PreferredSurfaceProvider>
     </PreferredContext.Provider>
   );
 }
