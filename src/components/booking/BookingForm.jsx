@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getPackagePriceForTier, getTierLabel, determinePricingTier } from "@/lib/services";
 import WalletCheckout from "@/components/booking/WalletCheckout";
+import { splitAddress } from "@/lib/addressSplit";
 
 const inputStyles = "";
 
@@ -60,13 +61,17 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   const isCustomQuote = effectiveTier === "CUSTOM";
   const totalPrice = isCustomQuote ? 0 : tierPackagePrice + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
 
+  // An address handed over as one string ("141 Trigg Court, Lawrenceville, Georgia 30047")
+  // fills the street, city and state fields separately.
+  const handedAddress = splitAddress(propertyAddress);
+
   const [formData, setFormData] = useState({
     client_name: "",
     client_email: "",
     client_phone: "",
-    street_address: editingBooking?.street_address || propertyAddress || "",
-    city: editingBooking?.city || "",
-    state: editingBooking?.state || "",
+    street_address: editingBooking?.street_address || handedAddress?.street || propertyAddress || "",
+    city: editingBooking?.city || handedAddress?.city || "",
+    state: editingBooking?.state || handedAddress?.state || "",
     preferred_date: editingBooking?.preferred_date || prefillDate || null,
     preferred_time: editingBooking?.preferred_time || "",
     notes: editingBooking?.notes || "",
@@ -79,11 +84,15 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   });
 
   useEffect(() => {
+    const split = splitAddress(propertyAddress);
     setFormData(prev => ({
       ...prev,
       total_price: totalPrice,
       property_sqft: editingBooking?.property_sqft || effectiveSqft || null,
-      street_address: editingBooking?.street_address || prev.street_address || propertyAddress || "",
+      street_address: editingBooking?.street_address || prev.street_address || split?.street || propertyAddress || "",
+      // City and state come with that address, but a value the customer typed is never replaced.
+      city: prev.city?.trim() ? prev.city : (split?.city || ""),
+      state: prev.state?.trim() ? prev.state : (split?.state || ""),
     }));
   }, [totalPrice, effectiveSqft, propertyAddress, editingBooking]);
 
@@ -210,7 +219,14 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   };
 
   const handleAddressSelect = (prediction) => {
-    setFormData({ ...formData, street_address: prediction.description });
+    // A picked suggestion is a whole address too — it fills all three fields.
+    const split = splitAddress(prediction.description);
+    setFormData({
+      ...formData,
+      street_address: split?.street || prediction.description,
+      city: split?.city || formData.city,
+      state: split?.state || formData.state,
+    });
     setPredictions([]);
     setShowPredictions(false);
   };
