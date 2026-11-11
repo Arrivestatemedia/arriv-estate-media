@@ -44,6 +44,7 @@ import {
 import { AD_REFUND_POLICY, money } from '../../shared/propertyAdPackages.ts';
 import { portfolioSummary, campaignAttribution, buildCampaignReport, budgetPosition } from '../../shared/propertyAdReporting.ts';
 import { issueAdRefund } from '../../shared/stripeAdPayments.ts';
+import { ensureCampaignCaptured, releaseCampaignAuthorization } from '../../shared/propertyAdPaymentCapture.ts';
 
 // Arriv Advertising Management console. Every action re-checks that the caller is an administrator
 // server-side and records who did what in the campaign's audit history.
@@ -93,6 +94,9 @@ function adminView(campaign: any) {
     metrics: campaign.metrics || null,
     events: campaign.events || [],
     paid_amount_cents: Number(campaign.paid_amount_cents || 0),
+    payment_state: campaign.payment_state || 'pending',
+    payment_authorized_at: campaign.payment_authorized_at || '',
+    payment_captured_at: campaign.payment_captured_at || '',
     processing_fee_cents: Number(campaign.processing_fee_cents || 0),
     created_at: campaign.created_at || '',
     fulfillment_mode: isManual(campaign) ? 'manual' : 'api',
@@ -206,7 +210,17 @@ Deno.serve(async (req) => {
       const result = await adminApprove(base44, campaign, { actor: actor.email, note: String(body.note || ''), now });
       if (!result.ok) return Response.json({ ok: false, error: result.code, reason: result.reason || '' }, { status: 400 });
       if (body.launch_now === true && !isManual(result.campaign)) {
-        const launched = await launchCampaign(base44, result.campaign, {
+        // Nothing is launched until the held payment is actually taken.
+        const captured = await ensureCampaignCaptured(base44, result.campaign, { actor: actor.email, now });
+        if (!captured.ok) {
+          return Response.json({
+            ok: false,
+            error: captured.code,
+            reason: captured.reason || '',
+            campaign: adminView(await loadCampaign(base44, campaignId)),
+          }, { status: 400 });
+        }
+        const launched = await launchCampaign(base44, captured.campaign || result.campaign, {
           actor: actor.email,
           listing,
           account,
@@ -228,7 +242,15 @@ Deno.serve(async (req) => {
       if (!reason) return Response.json({ ok: false, error: 'REASON_REQUIRED' }, { status: 400 });
       const result = await adminReject(base44, campaign, { actor: actor.email, reason, now });
       if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
-      if (Number(campaign.paid_amount_cents || 0) > 0) {
+      // A rejected campaign never ran, so a held card is released rather than refunded.
+      if (campaign.payment_state !== 'captured' && campaign.payment_state !== 'voided') {
+        await releaseCampaignAuthorization(base44, result.campaign, {
+          actor: actor.email,
+          note: `Campaign rejected: ${reason}`,
+          now,
+        });
+      }
+      if (campaign.payment_state === 'captured' && Number(campaign.paid_amount_cents || 0) > 0) {
         await requestRefundReview(base44, result.campaign, { actor: actor.email, reason: `Campaign not launched: ${reason}`, now });
       }
       return Response.json({ ok: true, campaign: adminView(await loadCampaign(base44, campaignId)) });
@@ -245,7 +267,17 @@ Deno.serve(async (req) => {
         }, { status: 400 });
       }
       const listing = await loadListing(base44, campaign.listing_id);
-      const result = await launchCampaign(base44, campaign, {
+      const captured = await ensureCampaignCaptured(base44, campaign, { actor: actor.email, now });
+      if (!captured.ok) {
+        return Response.json({
+          ok: false,
+          error: captured.code,
+          reason: captured.reason || '',
+          blockers: [],
+          campaign: adminView(await loadCampaign(base44, campaignId)),
+        }, { status: 400 });
+      }
+      const result = await launchCampaign(base44, captured.campaign || campaign, {
         actor: actor.email,
         listing,
         account,
@@ -354,12 +386,23 @@ Deno.serve(async (req) => {
       let amountCents = Number(body.amountCents || body.amount_cents || 0);
       // A Stripe refund is only ever attempted when the administrator explicitly asks for it.
       if (decision !== 'decline' && body.issue_refund === true) {
-        const refundable = refundableAmount(campaign);
-        amountCents = decision === 'full' ? refundable : Math.min(amountCents, refundable);
-        if (amountCents <= 0) return Response.json({ ok: false, error: 'NOTHING_TO_REFUND' }, { status: 400 });
-        if (!campaign.stripe_payment_intent_id) return Response.json({ ok: false, error: 'NO_PAYMENT_ON_FILE' }, { status: 400 });
-        const refund = await issueAdRefund(campaign.stripe_payment_intent_id, amountCents);
-        stripeRefundId = String(refund?.id || '');
+        // Nothing was charged if the card is still only held: release the hold instead of refunding.
+        if (campaign.payment_state !== 'captured') {
+          const released = await releaseCampaignAuthorization(base44, campaign, {
+            actor: actor.email,
+            note: reason,
+            now,
+          });
+          if (!released.ok) return Response.json({ ok: false, error: released.code, reason: released.reason || '' }, { status: 400 });
+          amountCents = 0;
+        } else {
+          const refundable = refundableAmount(campaign);
+          amountCents = decision === 'full' ? refundable : Math.min(amountCents, refundable);
+          if (amountCents <= 0) return Response.json({ ok: false, error: 'NOTHING_TO_REFUND' }, { status: 400 });
+          if (!campaign.stripe_payment_intent_id) return Response.json({ ok: false, error: 'NO_PAYMENT_ON_FILE' }, { status: 400 });
+          const refund = await issueAdRefund(campaign.stripe_payment_intent_id, amountCents);
+          stripeRefundId = String(refund?.id || '');
+        }
       }
 
       const result = await decideRefund(base44, campaign, {
@@ -381,7 +424,18 @@ Deno.serve(async (req) => {
       const campaign = await loadCampaign(base44, campaignId);
       if (!campaign) return Response.json({ ok: false, error: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
       const listing = await loadListing(base44, campaign.listing_id);
-      const result = await recordManualLaunch(base44, campaign, {
+      // A hand-run campaign starts real spend, so the held payment is taken first.
+      const captured = await ensureCampaignCaptured(base44, campaign, { actor: actor.email, now });
+      if (!captured.ok) {
+        return Response.json({
+          ok: false,
+          error: captured.code,
+          reason: captured.reason || '',
+          blockers: [],
+          campaign: adminView(await loadCampaign(base44, campaignId)),
+        }, { status: 400 });
+      }
+      const result = await recordManualLaunch(base44, captured.campaign || campaign, {
         actor: actor.email,
         listing,
         metaCampaignId: String(body.meta_campaign_id || body.metaCampaignId || ''),

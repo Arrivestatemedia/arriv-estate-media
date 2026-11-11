@@ -172,7 +172,16 @@ Deno.serve(async (req) => {
     if (packagePurpose === 'property_ad_purchase') {
       const intent: any = event.data.object;
       const campaignId = String(intent?.metadata?.campaign_id || '');
-      if (event.type === 'payment_intent.succeeded') {
+      // A campaign purchase holds the money on the card and captures it later, when the campaign
+      // actually starts, so authorizing and charging are two separate events.
+      if (event.type === 'payment_intent.amount_capturable_updated') {
+        await base44.asServiceRole.functions.invoke('processPropertyAdCampaigns', {
+          action: 'payment_authorized',
+          campaign_id: campaignId,
+          payment_intent_id: intent.id,
+          amount_cents: intent.amount_capturable ?? intent.amount ?? 0,
+        }).catch((e) => console.warn('property advertising authorization failed:', e.message));
+      } else if (event.type === 'payment_intent.succeeded') {
         await base44.asServiceRole.functions.invoke('processPropertyAdCampaigns', {
           action: 'payment_succeeded',
           campaign_id: campaignId,

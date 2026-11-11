@@ -117,7 +117,7 @@ export function campaignEligibility(listing: any, now = new Date()): AdEligibili
   if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
   if (listing.publication_state !== "PUBLISHED") blockers.push("The property page must be published before it can be advertised.");
   if (!["active", "pending"].includes(String(listing.listing_status || ""))) {
-    blockers.push("The property is not currently available for sale.");
+    blockers.push("The property is not currently shown as available. Sold, withdrawn and expired properties cannot be advertised.");
   }
   if (listing.authority_confirmed !== true) blockers.push("Authority to advertise this property has not been confirmed.");
   if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
@@ -147,7 +147,7 @@ export function campaignPurchaseGate(listing: any, now = new Date()): AdPurchase
   if (!listing) return { ok: false, blockers: ["The property could not be found."], live_now: false };
   if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
   if (!["active", "pending"].includes(String(listing.listing_status || ""))) {
-    blockers.push("The property is not currently available for sale.");
+    blockers.push("The property is not currently shown as available. Sold, withdrawn and expired properties cannot be advertised.");
   }
   if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
   return { ok: blockers.length === 0, blockers, live_now: campaignEligibility(listing, now).eligible };
@@ -341,6 +341,7 @@ export async function confirmPayment(client: any, input: {
   campaignId?: string;
   paymentIntentId: string;
   amountCents: number;
+  captured?: boolean;
   now?: Date;
 }) {
   const now = input.now || new Date();
@@ -372,7 +373,12 @@ export async function confirmPayment(client: any, input: {
     stripe_payment_intent_id: input.paymentIntentId,
     paid_amount_cents: Number(input.amountCents || 0),
     processing_fee_cents: Math.round(Number(input.amountCents || 0) * 0.029) + 30,
+    // The money is secured, not necessarily taken: an authorized card is captured only when the
+    // campaign actually starts running.
+    payment_state: input.captured ? "captured" : "authorized",
+    payment_authorized_at: now.toISOString(),
   };
+  if (input.captured) patch.payment_captured_at = now.toISOString();
   if (shortfall > 0) {
     patch.review_required = true;
     patch.attention_reason = `Payment received was ${money(input.amountCents)} against a quoted ${money(campaign.total_cents)}. Launch is blocked pending review.`;
@@ -392,11 +398,81 @@ export async function confirmPayment(client: any, input: {
     entry_type: "budget_commit",
     amount_cents: Number(campaign.ad_budget_cents || 0),
     reference: input.paymentIntentId,
-    note: "Advertising budget reserved from the customer payment",
+    note: input.captured
+      ? "Advertising budget reserved from the customer payment"
+      : "Advertising budget reserved against the customer's held card; charged when the campaign starts",
     now,
   });
 
   return { ok: true as const, duplicate: false, campaign: saved || campaign };
+}
+
+// The charge itself. Only ever recorded after Stripe confirms the held money was taken.
+export async function recordPaymentCaptured(client: any, campaign: any, input: {
+  amountCents?: number;
+  actor?: string;
+  reference?: string;
+  now?: Date;
+}) {
+  const now = input.now || new Date();
+  if (!campaign?.id) return { ok: false as const, campaign };
+  if (campaign.payment_state === "captured") return { ok: true as const, already: true, campaign };
+  const patch: Record<string, any> = {
+    payment_state: "captured",
+    payment_captured_at: now.toISOString(),
+  };
+  if (Number(input.amountCents || 0) > 0) patch.paid_amount_cents = Number(input.amountCents);
+  const saved = await updateCampaign(
+    client,
+    campaign,
+    patch,
+    {
+      type: "payment_captured",
+      actor: input.actor || "stripe",
+      note: `${money(input.amountCents || campaign.paid_amount_cents)} taken when the campaign started`,
+    },
+    now,
+  );
+  return { ok: true as const, already: false, campaign: saved };
+}
+
+// The card could not be charged when the campaign was due to start (an expired hold, a declined
+// authorization). Nothing runs, and a person has to look at it rather than it failing silently.
+export async function recordPaymentCaptureFailed(client: any, campaign: any, input: {
+  reason: string;
+  actor?: string;
+  now?: Date;
+}) {
+  const now = input.now || new Date();
+  const saved = await updateCampaign(
+    client,
+    campaign,
+    {
+      payment_state: "capture_failed",
+      review_required: true,
+      attention_reason: `The card could not be charged when the campaign was due to start: ${input.reason}`,
+    },
+    { type: "payment_capture_failed", actor: input.actor || "sweep", note: input.reason },
+    now,
+  );
+  return { ok: true as const, campaign: saved };
+}
+
+// A campaign that will never run releases the hold, so the customer's money is never tied up.
+export async function recordPaymentVoided(client: any, campaign: any, input: {
+  actor?: string;
+  note?: string;
+  now?: Date;
+}) {
+  const now = input.now || new Date();
+  const saved = await updateCampaign(
+    client,
+    campaign,
+    { payment_state: "voided" },
+    { type: "payment_authorization_released", actor: input.actor || "system", note: input.note || "Nothing was charged" },
+    now,
+  );
+  return { ok: true as const, campaign: saved };
 }
 
 export async function markPaymentFailed(client: any, campaign: any, input: { paymentIntentId?: string; reason?: string; now?: Date }) {
@@ -523,6 +599,8 @@ export function launchBlockers(campaign: any, input: {
   }
   if (!authorizationIsCurrent(campaign)) blockers.push("The customer authorization is missing or out of date.");
   if (!campaign.stripe_payment_intent_id || Number(campaign.paid_amount_cents || 0) <= 0) blockers.push("The campaign has not been paid for.");
+  if (campaign.payment_state === "voided") blockers.push("The card authorization for this campaign was released, so it cannot run.");
+  if (campaign.payment_state === "capture_failed") blockers.push(campaign.attention_reason || "The card could not be charged for this campaign.");
   if (!campaign.admin_approved_at) blockers.push("An administrator has not approved this campaign.");
   if (campaign.review_required) blockers.push(campaign.attention_reason || "The campaign is flagged for review.");
 

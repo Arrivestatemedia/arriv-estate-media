@@ -71,6 +71,7 @@ export function manualLaunchBlockers(campaign: any, input: { listing: any; now?:
   if (campaign.status !== "READY_TO_LAUNCH") blockers.push(`Campaign state ${campaign.status} is not ready for manual launch.`);
   if (!authorizationIsCurrent(campaign)) blockers.push("The customer authorization is missing or out of date.");
   if (!campaign.stripe_payment_intent_id || Number(campaign.paid_amount_cents || 0) <= 0) blockers.push("The campaign has not been paid for.");
+  if (campaign.payment_state === "voided") blockers.push("The card authorization for this campaign was released, so it cannot run.");
   if (!campaign.admin_approved_at) blockers.push("An administrator has not approved this campaign.");
   if (campaign.review_required) blockers.push(campaign.attention_reason || "The campaign is flagged for review.");
   for (const issue of creativeComplianceIssues(campaign.creative)) blockers.push(issue);

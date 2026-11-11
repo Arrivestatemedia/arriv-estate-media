@@ -58,6 +58,7 @@ export const AD_AUTHORIZATION_POINTS = [
   "Arriv Estate Media may use my approved photography and video in paid advertising for this property.",
   "Arriv Estate Media will create and manage this campaign through its own advertising accounts, not mine.",
   "The advertising spend is included in the package price I am paying, as shown in the breakdown.",
+  "My card is authorized when I reserve this campaign and charged only when it actually starts running.",
   "Impressions, reach, clicks, leads and sales are not guaranteed.",
   "The advertising platform may review, limit or reject the campaign, and that can delay or prevent delivery.",
   "This advertising will comply with applicable MLS, brokerage, fair housing, privacy and advertising rules.",
@@ -65,6 +66,7 @@ export const AD_AUTHORIZATION_POINTS = [
 ];
 
 export const AD_REFUND_POLICY = [
+  "Nothing is charged when a campaign is reserved: the card is only held, and a campaign that never starts releases that hold.",
   "Full refund when a campaign cannot launch and no advertising budget has been spent.",
   "Refund review when the advertising platform rejects a campaign and no advertising budget has been spent.",
   "Unused advertising budget is reconciled when a campaign ends early, and any amount not spent is reviewed for refund.",
@@ -77,7 +79,7 @@ export const AD_DISCLOSURE =
   "Arriv Estate Media creates, publishes and manages this campaign inside its own advertising accounts. The price includes both the advertising budget and the management fee, shown separately. Arriv does not guarantee impressions, reach, clicks, leads or sales, and no advertising result is promised.";
 
 export const AD_ELIGIBILITY_NOTE =
-  "You can choose and pay for a campaign at any time. It only starts running once the property page is approved and live and the property is still shown as available, and its paid days begin on the day it launches.";
+  "You can reserve a campaign at any time. Nothing is charged when you reserve it: your card is held and charged only once the property page is approved, live and still shown as available, and the campaign is about to start. Its paid days begin on the day it launches.";
 
 export const AD_PLATFORM_NOTE =
   "Campaigns run on Meta advertising and must use the Housing special ad category. Targeting is location-based only.";

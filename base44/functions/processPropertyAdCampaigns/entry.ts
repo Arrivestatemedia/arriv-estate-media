@@ -11,11 +11,13 @@ import {
   markPaymentFailed,
   pauseCampaign,
   launchCampaign,
+  recordPaymentCaptured,
   remainingBudget,
   syncCampaign,
 } from '../../shared/propertyAdEngine.ts';
 import { buildCampaignReport, campaignAttribution, notifyAdmins, notify } from '../../shared/propertyAdReporting.ts';
 import { money } from '../../shared/propertyAdPackages.ts';
+import { ensureCampaignCaptured } from '../../shared/propertyAdPaymentCapture.ts';
 
 // Advertising sweep and payment entry points.
 //
@@ -55,11 +57,49 @@ Deno.serve(async (req) => {
     }
 
     // ── Payment events (from the Stripe webhook) ─────────────────────────────────────────
-    if (action === 'payment_succeeded') {
+    // The card is authorized when the campaign is bought…
+    if (action === 'payment_authorized') {
       const result = await confirmPayment(base44, {
         campaignId: String(body.campaign_id || ''),
         paymentIntentId: String(body.payment_intent_id || ''),
         amountCents: Number(body.amount_cents || 0),
+        now,
+      });
+      if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
+      if (!result.duplicate && result.campaign?.client_email) {
+        const switches = await readAdSwitches(base44);
+        if (switches.customer_notifications) {
+          await notify(
+            base44,
+            'Your advertising campaign is reserved',
+            `Your ${result.campaign.package_name} is reserved for this property. Your card has not been charged: it is only charged once your property page is approved and the campaign starts running.\n\nAdvertising budget: ${money(result.campaign.ad_budget_cents)}\nManagement fee: ${money(result.campaign.management_fee_cents)}\nDuration: ${result.campaign.duration_days} days\n\nYour campaign then goes through our final review before launch. Nothing is published until that review passes.\n\n— Arriv Estate Media`,
+            { to: result.campaign.client_email },
+          );
+        }
+      }
+      return Response.json({ ok: true, duplicate: result.duplicate === true, status: result.campaign?.status || '' });
+    }
+
+    // …and captured only when it is about to start running.
+    if (action === 'payment_succeeded') {
+      const found = rows(await base44.asServiceRole.entities.PropertyAdCampaign.filter({
+        stripe_payment_intent_id: String(body.payment_intent_id || ''),
+      }));
+      const secured = found[0];
+      if (secured && ['authorized', 'capture_failed'].includes(String(secured.payment_state || ''))) {
+        const captured = await recordPaymentCaptured(base44, secured, {
+          amountCents: Number(body.amount_cents || 0),
+          actor: 'stripe',
+          reference: String(body.payment_intent_id || ''),
+          now,
+        });
+        return Response.json({ ok: true, captured: true, status: captured.campaign?.status || '' });
+      }
+      const result = await confirmPayment(base44, {
+        campaignId: String(body.campaign_id || ''),
+        paymentIntentId: String(body.payment_intent_id || ''),
+        amountCents: Number(body.amount_cents || 0),
+        captured: true,
         now,
       });
       if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
@@ -150,7 +190,19 @@ Deno.serve(async (req) => {
         }
 
         if (campaign.status === 'READY_TO_LAUNCH') {
-          const result = await launchCampaign(base44, campaign, {
+          // The charge only happens here: the page is approved and live, and the campaign is about
+          // to run. Until the capture succeeds nothing launches.
+          const captured = await ensureCampaignCaptured(base44, campaign, { actor: 'sweep', now });
+          if (!captured.ok) {
+            summary.blocked += 1;
+            await notifyAdmins(
+              base44,
+              'Advertising campaign not charged, not launched',
+              `Campaign ${campaign.campaign_id} (${campaign.package_name}) was due to start but the card could not be charged.\n\nReason: ${captured.reason || captured.code}\n\nThe campaign has not been launched and needs attention.`,
+            );
+            continue;
+          }
+          const result = await launchCampaign(base44, captured.campaign || campaign, {
             actor: 'sweep',
             listing,
             account,

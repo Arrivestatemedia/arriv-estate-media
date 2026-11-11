@@ -110,7 +110,7 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
       setNotice(
         data?.ok === false
           ? data.message || "The payment could not be confirmed yet. It will confirm automatically."
-          : "Payment received. Your campaign goes to Arriv for review before it runs.",
+          : "Card saved. Nothing is charged until your property page is approved and the campaign starts.",
       );
       await load();
     } catch (err) {
@@ -159,6 +159,7 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
   // A page still in draft can carry a paid campaign that starts later; what the banner says has to
   // match what is actually possible.
   const startsLater = purchasable && overview.listing?.live_now !== true;
+  const paidDays = overview.packages?.[0]?.durationDays || overview.campaign?.duration_days || 7;
   const state = {
     activeTier: overview.campaign?.status === "ACTIVE" ? overview.campaign.package_tier : "",
     canPurchase: overview.checkout_enabled === true && purchasable,
@@ -206,8 +207,9 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
 
       {startsLater && (
         <div className="rounded-xl border border-[#B8956A]/35 bg-[#FFFBF5] px-4 py-3 text-sm leading-relaxed text-[#1A1A1A]/75">
-          You can choose and pay for a campaign now. It starts running once your property page is approved and live, and the
-          property is still shown as available — the {`paid`} days begin on the day it launches, not on the day you buy it.
+          You can choose and reserve a campaign now. Nothing is charged today: your card is held and charged only once your
+          property page is approved and the campaign starts running. The {paidDays} days begin on the day it launches, not on
+          the day you reserve it.
           {(overview.listing?.blockers || []).length > 0 && (
             <span className="mt-1 block text-xs text-[#1A1A1A]/55">Still needed: {(overview.listing?.blockers || []).join(" ")}</span>
           )}

@@ -68,6 +68,35 @@
       "type": "integer",
       "description": "Amount Stripe actually confirmed, recorded separately so a mismatch stays visible"
     },
+    "payment_state": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "authorized",
+        "captured",
+        "voided",
+        "capture_failed"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "gray",
+        "red"
+      ],
+      "default": "pending",
+      "description": "Where the money is. 'authorized' means the customer's card is held but nothing has been charged: the charge happens only once the property page is approved and the campaign actually starts running. 'voided' means the hold was released and nothing was charged."
+    },
+    "payment_authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer's card was authorized (held, not charged) for this campaign"
+    },
+    "payment_captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the held payment was actually taken, at the moment the campaign started running"
+    },
     "processing_fee_cents": {
       "type": "integer",
       "description": "Payment processing cost recorded for profitability, never charged to the customer"

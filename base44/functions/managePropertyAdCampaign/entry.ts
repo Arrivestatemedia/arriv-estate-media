@@ -33,6 +33,7 @@ import {
 } from '../../shared/propertyAdEngine.ts';
 import { readAdSwitches } from '../../shared/propertyAdSwitches.ts';
 import { createAdPaymentIntent, verifyAdPayment } from '../../shared/stripeAdPayments.ts';
+import { releaseCampaignAuthorization } from '../../shared/propertyAdPaymentCapture.ts';
 import { buildCampaignReport, campaignAttribution, budgetPosition } from '../../shared/propertyAdReporting.ts';
 import { metaProvider } from '../../shared/propertyAdProviders.ts';
 import { MANUAL_STATUS_HELP, isManual, manualReportingNote } from '../../shared/propertyAdManualFulfillment.ts';
@@ -42,6 +43,15 @@ import { MANUAL_STATUS_HELP, isManual, manualReportingNote } from '../../shared/
 
 function rows(result: any): any[] {
   return Array.isArray(result) ? result : (result?.items || []);
+}
+
+function paymentNote(campaign: any) {
+  const state = String(campaign?.payment_state || '');
+  if (state === 'captured') return 'Your card has been charged for this campaign.';
+  if (state === 'authorized') return 'Your card is held, not charged. It is charged only once your property page is approved and the campaign starts running.';
+  if (state === 'voided') return 'The card hold for this campaign was released. Nothing was charged.';
+  if (state === 'capture_failed') return 'The card could not be charged when the campaign was due to start. Nothing is running, and our team is looking at it.';
+  return '';
 }
 
 function customerView(campaign: any) {
@@ -82,6 +92,8 @@ function customerView(campaign: any) {
     rejection_reason: campaign.rejection_reason || "",
     refund_status: campaign.refund_status || "none",
     refunded_cents: Number(campaign.refunded_cents || 0),
+    payment_state: campaign.payment_state || "pending",
+    payment_note: paymentNote(campaign),
     metrics: campaign.metrics || null,
     stripe_client_secret: campaign.stripe_client_secret || "",
   };
@@ -292,6 +304,8 @@ Deno.serve(async (req) => {
         campaignId: campaign.campaign_id,
         paymentIntentId,
         amountCents: payment.amountCents,
+        // A hold on the card reserves the campaign; the charge itself follows at launch.
+        captured: payment.captured === true,
         now,
       });
       if (!result.ok) return Response.json({ ok: false, error: result.code }, { status: 400 });
@@ -309,7 +323,16 @@ Deno.serve(async (req) => {
       }
       const cancelled = await cancelCampaign(base44, campaign, { actor: actor.email || 'customer', reason: 'Cancelled by the customer before launch', now });
       if (!cancelled.ok) return Response.json({ ok: false, error: cancelled.code }, { status: 400 });
-      if (Number(campaign.paid_amount_cents || 0) > 0) {
+      // Nothing was charged for a campaign that never started, so the card hold is simply released.
+      const released = await releaseCampaignAuthorization(base44, cancelled.campaign, {
+        actor: actor.email || 'customer',
+        note: 'Campaign cancelled before launch',
+        now,
+      });
+      if (!released.ok) {
+        await requestRefundReview(base44, cancelled.campaign, { actor: actor.email || 'customer', reason: 'Card hold could not be released automatically', now });
+      }
+      if (campaign.payment_state === 'captured' && Number(campaign.paid_amount_cents || 0) > 0) {
         await requestRefundReview(base44, cancelled.campaign, { actor: actor.email || 'customer', reason: 'Customer cancelled before launch', now });
       }
       return Response.json({ ok: true, campaign: customerView(await loadCampaign(base44, campaignId)) });

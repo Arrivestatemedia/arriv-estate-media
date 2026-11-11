@@ -28,6 +28,8 @@ import {
   authorizationIsCurrent,
   approveByCustomer,
   confirmPayment,
+  recordPaymentCaptured,
+  recordPaymentVoided,
   markPaymentFailed,
   adminApprove,
   adminReject,
@@ -353,6 +355,16 @@ Deno.serve(async (req) => {
     check('A verified payment moves the campaign to review, not to launch', paid.ok && paid.campaign.status === 'READY_FOR_REVIEW', paid.ok ? paid.campaign.status : paid.code);
     check('The paid amount is recorded separately from the quote', paid.campaign.paid_amount_cents === 29900);
     check('A processing fee is recorded for profitability', Number(paid.campaign.processing_fee_cents) > 0);
+    check('A confirmed purchase holds the card, it does not charge it', paid.campaign.payment_state === 'authorized' && !paid.campaign.payment_captured_at, paid.campaign.payment_state);
+
+    const captured = await recordPaymentCaptured(store.client, paid.campaign, { amountCents: 29900, actor: 'sweep' });
+    check('The charge is recorded only when the campaign starts', captured.campaign.payment_state === 'captured' && !!captured.campaign.payment_captured_at);
+    check('A released hold can never launch', launchBlockers({ ...paid.campaign, payment_state: 'voided' }, { listing, account: ACCOUNT, switches: SWITCHES_ON, manual: true }).length > 0);
+    check('A failed capture can never launch', launchBlockers({ ...paid.campaign, payment_state: 'capture_failed' }, { listing, account: ACCOUNT, switches: SWITCHES_ON, manual: true }).length > 0);
+    const voidStore = makeStore();
+    const voidDraft = await createDraftCampaign(voidStore.client, { listing, tier: 'starter', actor: { email: 'owner@example.com' }, publicUrl: listing.public_url });
+    const voided = await recordPaymentVoided(voidStore.client, voidDraft.campaign, { actor: 'customer' });
+    check('A campaign cancelled before launch releases the hold', voided.campaign?.payment_state === 'voided');
 
     const repeat = await confirmPayment(store.client, { campaignId: campaign.campaign_id, paymentIntentId: 'pi_shared', amountCents: 29900 });
     check('A duplicate payment event creates no second campaign state', repeat.ok && repeat.duplicate === true);

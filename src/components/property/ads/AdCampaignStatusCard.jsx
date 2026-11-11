@@ -34,6 +34,12 @@ export default function AdCampaignStatusCard({ campaign, busy, onCancel, onRefre
         </div>
       )}
 
+      {campaign.payment_note && (
+        <p className="mt-3 rounded-xl border border-[#B8956A]/25 bg-[#FFFBF5] px-3 py-2 text-[11px] leading-relaxed text-[#1A1A1A]/70">
+          {campaign.payment_note}
+        </p>
+      )}
+
       {campaign.fulfillment_mode === "manual" && campaign.delivery_method && (
         <p className="mt-3 text-[11px] leading-relaxed text-[#1A1A1A]/50">{campaign.delivery_method}</p>
       )}
