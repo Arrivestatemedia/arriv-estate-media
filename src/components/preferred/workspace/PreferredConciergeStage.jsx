@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Coffee, Crown, Loader2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Check, Coffee, Crown, Loader2, Maximize2 } from "lucide-react";
 import { endConciergeVideo, startConciergeVideo } from "@/lib/conciergeClient";
+import { applyConciergeDirective } from "@/lib/conciergeUi";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
 import PreferredConciergePresence from "@/components/preferred/PreferredConciergePresence";
 import PreferredConciergeChat from "./PreferredConciergeChat";
 
@@ -26,6 +29,30 @@ function clock(seconds) {
 export default function PreferredConciergeStage({ customer, conciergeName }) {
   const firstName = String(customer?.first_name || customer?.full_name || "").split(" ")[0];
   const chatRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { active: activeSurface, open: openSurface, close: closeSurface } = usePreferredSurface();
+  // A workspace is open beside her: she steps back into a small panel so the member can work.
+  const docked = !!activeSurface;
+
+  // What the member is looking at, sent with every spoken instruction so "these photos" or
+  // "my listing" means the screen in front of them.
+  const pageContext = {
+    page: location.pathname,
+    listing_id: new URLSearchParams(location.search).get("jobId")
+      || new URLSearchParams(location.search).get("listing")
+      || "",
+    surface: activeSurface?.key || "",
+  };
+
+  const handleDirective = useCallback((ui) => {
+    applyConciergeDirective(ui, { open: openSurface, navigate });
+  }, [navigate, openSurface]);
+
+  useEffect(() => {
+    document.body.classList.toggle("preferred-pip-visible", docked);
+    return () => document.body.classList.remove("preferred-pip-visible");
+  }, [docked]);
 
   const [url, setUrl] = useState("");
   const [phase, setPhase] = useState("idle");
@@ -97,20 +124,34 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   const breakLine = `${firstName ? `${firstName}, I am` : "I am"} taking a break — just click Concierge to come back and I'll be right here, or you also have the option to just chat with me.`;
 
   return (
-    <section className="preferred-glass p-3 sm:p-4">
-      <div className="mb-3 flex items-center justify-between gap-2 px-1">
-        <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.26em] text-[#c8a87c]">
+    <section className={docked ? "preferred-pip" : "preferred-glass p-3 sm:p-4"}>
+      <div className={`flex items-center justify-between gap-2 ${docked ? "mb-2 px-0.5" : "mb-3 px-1"}`}>
+        <p className={`flex items-center gap-1.5 uppercase tracking-[0.26em] text-[#d9bd95] ${docked ? "text-[9px]" : "text-[10px]"}`}>
           <Crown className="h-3.5 w-3.5" /> Arriv Concierge
         </p>
-        {phase === "live" && (
-          <p className="flex items-center gap-1.5 text-[11px] text-[#f6f1e8]/45">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#c8a87c]" />
+        {docked ? (
+          <button
+            type="button"
+            onClick={closeSurface}
+            className="preferred-focus flex items-center gap-1 rounded-full border border-[#c8a87c]/45 px-2 py-1 text-[10px] text-[#f6f1e8] hover:bg-[#c8a87c]/15"
+            aria-label="Close the workspace and bring the concierge back to full size"
+          >
+            <Maximize2 className="h-3 w-3" /> Expand
+          </button>
+        ) : phase === "live" && (
+          <p className="flex items-center gap-1.5 text-[11px] text-[#f6f1e8]/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d9bd95]" />
             {clock(remaining)} left in this session
           </p>
         )}
       </div>
 
-      <div className="preferred-stage" style={{ aspectRatio: "16 / 10", minHeight: "300px" }}>
+      <div
+        className="preferred-stage"
+        style={docked
+          ? { aspectRatio: "4 / 3", minHeight: "0", height: "auto" }
+          : { aspectRatio: "16 / 10", minHeight: "300px" }}
+      >
         {phase === "live" && url && (
           fallback ? (
             <iframe
@@ -126,12 +167,15 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
               conciergeName={conciergeName}
               onStepAway={stepAway}
               onFail={() => setFallback(true)}
+              compact={docked}
+              context={pageContext}
+              onDirective={handleDirective}
             />
           )
         )}
 
         {phase === "connecting" && (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-[#f6f1e8]/60">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-[#f6f1e8]/78">
             <Loader2 className="h-6 w-6 animate-spin text-[#d9bd95]" />
             <p className="text-[12.5px]">{firstName ? `${firstName}, your` : "Your"} concierge is joining…</p>
           </div>
@@ -176,7 +220,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
             {checklist.length > 0 && (
               <ul className="mt-1 max-w-md space-y-1 text-left">
                 {checklist.map((step) => (
-                  <li key={step} className="flex gap-1.5 text-[11px] leading-relaxed text-[#f6f1e8]/45">
+                  <li key={step} className="flex gap-1.5 text-[11px] leading-relaxed text-[#f6f1e8]/70">
                     <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#c8a87c]" />
                     {step}
                   </li>
@@ -195,7 +239,15 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
 
       </div>
 
-      <PreferredConciergeChat ref={chatRef} firstName={firstName} />
+      {/* Hidden, never unmounted: the thread survives every panel the member opens. */}
+      <div className={docked ? "hidden" : ""}>
+        <PreferredConciergeChat ref={chatRef} firstName={firstName} />
+      </div>
+      {docked && (
+        <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-[#f6f1e8]/75">
+          Still here while you work. Expand me to type.
+        </p>
+      )}
     </section>
   );
 }

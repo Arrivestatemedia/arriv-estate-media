@@ -129,6 +129,7 @@ export default async function (req) {
       page: String(body?.context?.page || '').slice(0, 120),
       listing_id: String(body?.context?.listing_id || '').slice(0, 120),
       job_id: String(body?.context?.job_id || '').slice(0, 120),
+      surface: String(body?.context?.surface || '').slice(0, 60),
     };
 
     const ctx = {
@@ -139,6 +140,9 @@ export default async function (req) {
       entitlement,
       sessionId: session.session_id,
       channel,
+      // The same live screen context the video representative gets, so "this listing" or
+      // "these photos" resolves against what the member has open.
+      pageContext,
     };
 
     // Real account context for the planner. Read-only; nothing is written by this call.

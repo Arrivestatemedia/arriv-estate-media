@@ -3,6 +3,7 @@ import { resolvePreferredEntitlement } from '../../shared/preferredEntitlement.t
 import { verifyConciergeToolToken, readConciergeToken } from '../../shared/conciergeSessionToken.ts';
 import { requireCustomer } from '../../shared/customerSession.ts';
 import { runConciergeAction, isKnownAction } from '../../shared/conciergeActions.ts';
+import { CONCIERGE_ROLE_PREFERRED } from '../../shared/conciergePal.ts';
 
 /**
  * Tool callback for the Tavus video concierge.
@@ -74,6 +75,16 @@ export default async function (req) {
     }
 
     const email = String(session.customer_email).toLowerCase();
+    // A conversation carries its own role. A recruiting conversation can never reach the
+    // customer account engine, and a Preferred conversation can never act on hiring data.
+    const sessionRole = String(session?.context?.role || '').trim();
+    if (sessionRole && sessionRole !== CONCIERGE_ROLE_PREFERRED) {
+      return Response.json({
+        ok: false,
+        reply: 'That is not something I can do in this conversation.',
+        reason: 'ROLE_MISMATCH',
+      }, { status: 403 });
+    }
     const entitlement = await resolvePreferredEntitlement(base44, { email });
     if (!entitlement.active) {
       await base44.asServiceRole.entities.ConciergeSession.update(session.id, {
@@ -94,6 +105,14 @@ export default async function (req) {
     }
 
     const input = normaliseToolInput(body?.arguments ?? body?.input ?? body?.parameters);
+    // The live portal context, sent by the browser with every tool call, so "these photos"
+    // or "my listing" resolve against what the member is actually looking at.
+    const pageContext = {
+      page: String(body?.context?.page || session?.context?.page || '').slice(0, 120),
+      listing_id: String(body?.context?.listing_id || session?.context?.listing_id || '').slice(0, 120),
+      job_id: String(body?.context?.job_id || '').slice(0, 120),
+      surface: String(body?.context?.surface || '').slice(0, 60),
+    };
     const ctx = {
       base44,
       email,
@@ -102,6 +121,7 @@ export default async function (req) {
       entitlement,
       sessionId: session.session_id,
       channel: 'video' as const,
+      pageContext,
     };
 
     const outcome = await runConciergeAction(ctx, name, input, { confirmed: false });
@@ -131,6 +151,10 @@ export default async function (req) {
       pending_confirmation: outcome.pending === true,
       confirmation_summary: outcome.confirmation_summary || '',
       data: outcome.data || null,
+      // The browser applies this against the live portal (open the bookings workspace, show
+      // the gallery larger). Voice and text share the same directive protocol.
+      ui: outcome.ui || null,
+      action: name,
       // The portal polls its pending actions, so a video request the customer confirms
       // there is the same audited action.
       portal_confirmation_required: outcome.pending === true,

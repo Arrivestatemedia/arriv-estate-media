@@ -6,11 +6,22 @@ import useConciergeCall from "./useConciergeCall";
  * The concierge, standing in the room. No join prompt, no participant count, no self view:
  * her video is painted straight into the frame and the only controls are hers and yours.
  */
-export default function PreferredConciergePresence({ url, displayName, conciergeName, onStepAway, onFail, compact = false }) {
+export default function PreferredConciergePresence({
+  url,
+  displayName,
+  conciergeName,
+  onStepAway,
+  onFail,
+  compact = false,
+  context,
+  onDirective,
+}) {
   const { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute } = useConciergeCall({
     url,
     displayName,
     onFail,
+    context,
+    onDirective,
   });
 
   return (
@@ -31,7 +42,7 @@ export default function PreferredConciergePresence({ url, displayName, concierge
       <div className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-[#c8a87c]/25" />
 
       {status !== "live" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#f6f1e8]/60">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#f6f1e8]/78">
           <Loader2 className="h-6 w-6 animate-spin text-[#d9bd95]" />
           <p className="text-[12.5px]">
             {conciergeName ? `${conciergeName} is stepping in…` : "Your concierge is stepping in…"}
@@ -45,7 +56,7 @@ export default function PreferredConciergePresence({ url, displayName, concierge
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#d9bd95]/70" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#e6cda6]" />
         </span>
-        <p className="text-[11px] uppercase tracking-[0.28em] text-[#f6f1e8]/80">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-[#f6f1e8]/90">
           {conciergeName || "Your concierge"}
         </p>
       </div>
@@ -65,7 +76,7 @@ export default function PreferredConciergePresence({ url, displayName, concierge
           type="button"
           onClick={toggleMute}
           aria-label={muted ? "Unmute your microphone" : "Mute your microphone"}
-          className="preferred-focus flex h-9 w-9 items-center justify-center rounded-full border border-[#c8a87c]/35 bg-black/45 text-[#f6f1e8]/80 hover:bg-black/65"
+          className="preferred-focus flex h-9 w-9 items-center justify-center rounded-full border border-[#c8a87c]/35 bg-black/45 text-[#f6f1e8]/90 hover:bg-black/65"
         >
           {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </button>
@@ -73,7 +84,7 @@ export default function PreferredConciergePresence({ url, displayName, concierge
           <button
             type="button"
             onClick={onStepAway}
-            className="preferred-focus rounded-full border border-[#c8a87c]/35 bg-black/45 px-3.5 py-1.5 text-[11px] text-[#f6f1e8]/80 hover:bg-black/65"
+            className="preferred-focus rounded-full border border-[#c8a87c]/35 bg-black/45 px-3.5 py-1.5 text-[11px] text-[#f6f1e8]/90 hover:bg-black/65"
           >
             Step away
           </button>

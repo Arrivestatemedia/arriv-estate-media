@@ -145,9 +145,11 @@ export default function MobileBottomTabs({ user }) {
 
   if (!user || tabs.length === 0 || isSalesTeam) return null;
 
+  // Preferred members keep the premium left navigation on desktop: no second, fixed
+  // navigation bar competing with it.
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-40"
+      className={`fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-40 ${preferred ? "md:hidden" : ""}`}
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}

@@ -13,6 +13,7 @@ import MlsStatusCard from "@/components/mls/MlsStatusCard";
 import GalleryMediaCard from "@/components/gallery/GalleryMediaCard";
 import GalleryToolbar from "@/components/gallery/GalleryToolbar";
 import { saveSelection, reconcileSelection } from "@/lib/gallerySelection";
+import { CONCIERGE_DISPLAY_EVENT } from "@/lib/conciergeUi";
 
 export default function ClientJobGallery() {
   const [searchParams] = useSearchParams();
@@ -33,6 +34,32 @@ export default function ClientJobGallery() {
   const [mlsOpen, setMlsOpen] = useState(false);
   const [downloadStep, setDownloadStep] = useState(null);
   const [copiedVideo, setCopiedVideo] = useState(null);
+  // "Make these photos bigger" arrives from the concierge (voice or typed) and changes the
+  // layout immediately. A display change only: nothing is saved or re-ordered.
+  const [photoSize, setPhotoSize] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("arriv_gallery_size");
+      return ["small", "medium", "large"].includes(saved || "") ? saved : "medium";
+    } catch {
+      return "medium";
+    }
+  });
+
+  useEffect(() => {
+    const onDisplay = (event) => {
+      if (event?.detail?.target !== "gallery") return;
+      const size = String(event.detail.size || "");
+      if (!["small", "medium", "large"].includes(size)) return;
+      setPhotoSize(size);
+      try {
+        window.localStorage.setItem("arriv_gallery_size", size);
+      } catch {
+        /* storage unavailable: the size still applies right now */
+      }
+    };
+    window.addEventListener(CONCIERGE_DISPLAY_EVENT, onDisplay);
+    return () => window.removeEventListener(CONCIERGE_DISPLAY_EVENT, onDisplay);
+  }, []);
 
   useEffect(() => {
     if (isDemo) {
@@ -307,6 +334,12 @@ export default function ClientJobGallery() {
   const videoFiles = files.filter((f) => f.isVideo);
   const docFiles = files.filter((f) => !f.isImage && !f.isVideo);
 
+  const photoColumns = photoSize === "large"
+    ? "columns-1 sm:columns-2 md:columns-3 lg:columns-3"
+    : photoSize === "small"
+      ? "columns-3 sm:columns-4 md:columns-6 lg:columns-8"
+      : "columns-2 sm:columns-3 md:columns-4 lg:columns-5";
+
   const renderSection = (title, Icon, sectionFiles) => {
     if (sectionFiles.length === 0) return null;
     return (
@@ -321,7 +354,7 @@ export default function ClientJobGallery() {
           </span>
           <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-2" />
         </div>
-        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 space-y-3">
+        <div className={`${photoColumns} gap-3 space-y-3`}>
           {sectionFiles.map((file, i) => (
             <GalleryMediaCard
               key={file.id}

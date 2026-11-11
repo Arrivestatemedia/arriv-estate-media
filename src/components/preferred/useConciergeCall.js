@@ -33,14 +33,19 @@ function paintTrack(videoEl, audioEl, track, type, playAudio) {
   return false;
 }
 
-export default function useConciergeCall({ url, displayName, onFail }) {
+export default function useConciergeCall({ url, displayName, onFail, context, onDirective }) {
   const callRef = useRef(null);
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   const failedRef = useRef(false);
-  // Held in a ref so a re-render never re-runs the join.
+  // Held in refs so a re-render (or the member moving to another screen) never re-runs the
+  // join, while every tool call still carries the live portal context.
   const onFailRef = useRef(onFail);
   onFailRef.current = onFail;
+  const contextRef = useRef(context);
+  contextRef.current = context;
+  const onDirectiveRef = useRef(onDirective);
+  onDirectiveRef.current = onDirective;
   const [status, setStatus] = useState("joining");
   const [muted, setMuted] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
@@ -115,12 +120,23 @@ export default function useConciergeCall({ url, displayName, onFail }) {
         toolName: props.name,
         args: args || {},
         conversationId: payload.conversation_id,
+        context: contextRef.current || {},
       });
       if (result?.ok) {
         output = String(result.reply || "Done.").slice(0, 1500);
         status = "success";
       } else if (result?.reply) {
         output = String(result.reply).slice(0, 1500);
+      }
+
+      // The spoken instruction and a typed one drive the very same interface change: the
+      // workspace opens beside her while she is still talking about it.
+      if (result?.ui) {
+        try {
+          onDirectiveRef.current?.(result.ui);
+        } catch {
+          /* the interface change is cosmetic; the tool result still goes back to her */
+        }
       }
 
       try {

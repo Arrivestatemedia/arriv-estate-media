@@ -30,6 +30,8 @@ export type ConciergeContext = {
   entitlement: any;
   sessionId: string;
   channel: 'text' | 'video';
+  /** What the member is looking at right now, sent by the portal with the instruction. */
+  pageContext?: { page?: string; listing_id?: string; job_id?: string; surface?: string };
 };
 
 export type ActionOutcome = {
@@ -91,9 +93,11 @@ export const NAV_PAGES: Record<string, { path: string; params: string[]; label: 
   my_portal: { path: '/ClientBookings', params: [], label: 'your portal' },
   book_shoot: { path: '/BookingPage', params: ['package', 'date', 'address'], label: 'the booking form' },
   my_properties: { path: '/PropertyLeads', params: [], label: 'My Properties' },
-  property_page_builder: { path: '/PropertyPageBuilder', params: ['jobId'], label: 'the property page builder' },
+  property_page_builder: { path: '/PropertyPageBuilder', params: ['jobId', 'intent'], label: 'the property page builder' },
   billing_visibility: { path: '/VisibilityDashboard', params: ['section'], label: 'Billing & Visibility' },
   marketing: { path: '/VisibilityDashboard', params: ['section'], label: 'your marketing dashboard' },
+  analytics: { path: '/VisibilityDashboard', params: ['section'], label: 'your analytics' },
+  company: { path: '/VisibilityDashboard', params: ['section'], label: 'your company account' },
   prepaid: { path: '/PrepaidPurchase', params: [], label: 'prepaid credit' },
   autofund: { path: '/AutoFund', params: [], label: 'Auto-Fund' },
   gallery: { path: '/ClientJobGallery', params: ['jobId'], label: 'your gallery' },
@@ -252,6 +256,13 @@ async function resolveListing(ctx: ConciergeContext, input: any) {
   if (address) {
     return listings.find((record: any) => addressOf(record).toLowerCase().includes(address)
       || String(record.property_address || '').toLowerCase().includes(address)) || null;
+  }
+  // "This listing" means the one the member has open, never a guess.
+  const contextId = String(ctx?.pageContext?.listing_id || ctx?.pageContext?.job_id || '').trim();
+  if (contextId) {
+    const fromContext = listings.find((record: any) => record.listing_id === contextId
+      || record.id === contextId || record.job_id === contextId);
+    if (fromContext) return fromContext;
   }
   return listings.length === 1 ? listings[0] : null;
 }
@@ -521,7 +532,7 @@ define({
         ? `${invoices.length} ${invoices.length === 1 ? 'invoice' : 'invoices'}. ${unpaid.length ? `${unpaid.length} unpaid totalling ${dollars(unpaidTotal)}.` : 'All are paid.'}`
         : 'No invoices on your account.',
       data: { invoices, unpaid_total: unpaidTotal },
-      ui: invoices.length ? navDirective('billing_visibility') : null,
+      ui: invoices.length ? navDirective('billing_visibility', { section: 'invoices' }) : null,
     };
   },
 });
@@ -1031,6 +1042,148 @@ define({
       speech: 'Noted. I’ll use that in this conversation and on your next visit.',
       data: { saved: patch },
       preference_patch: patch,
+    };
+  },
+});
+
+define({
+  name: 'show_analytics',
+  description: 'Open the real performance dashboard: property page views, inquiries and publication state, over a number of days.',
+  schema: {
+    type: 'object',
+    properties: { days: { type: 'number' }, listing_id: { type: 'string' }, address: { type: 'string' } },
+  },
+  async run(ctx, input) {
+    // The numbers are the same real recorded figures; only the workspace changes.
+    const performance = await ACTIONS.get_property_performance.run(ctx, input);
+    if (!performance.ok) return performance;
+    return {
+      ...performance,
+      speech: `${performance.speech} Your analytics are open beside me.`,
+      ui: navDirective('analytics', { section: 'visibility' }),
+    };
+  },
+});
+
+define({
+  name: 'set_gallery_layout',
+  description: 'Change how large the photographs are shown in the gallery the member is looking at (small, medium, large). An immediate, reversible display change.',
+  schema: {
+    type: 'object',
+    properties: { size: { type: 'string', enum: ['small', 'medium', 'large'] } },
+    required: ['size'],
+  },
+  async run(ctx, input) {
+    const size = ['small', 'medium', 'large'].includes(String(input?.size)) ? String(input.size) : 'large';
+    const sizeWords = size === 'large' ? 'larger' : size === 'small' ? 'smaller' : 'medium size';
+    // Already in a delivered gallery? Change it in place. Otherwise open the latest gallery
+    // at that size, so the instruction always has a visible effect.
+    const inGallery = String(ctx?.pageContext?.surface || '') === 'jobGallery';
+    if (!inGallery) {
+      const jobs = (await customerJobs(ctx)).filter(jobDelivered);
+      const latest = jobs[0] || null;
+      if (!latest) {
+        return { ok: false, speech: 'You do not have a delivered gallery yet, so there is nothing to resize.', error: 'NO_GALLERY' };
+      }
+      return {
+        ok: true,
+        speech: `Opening your latest gallery with the photographs ${sizeWords}.`,
+        data: { gallery_size: size, job_id: latest.id, address: addressOf(latest) },
+        ui: { type: 'display', target: 'gallery', size, open_job_id: latest.id },
+      };
+    }
+    return {
+      ok: true,
+      speech: `Making the photographs ${sizeWords}.`,
+      data: { gallery_size: size },
+      ui: { type: 'display', target: 'gallery', size },
+    };
+  },
+});
+
+define({
+  name: 'create_property_page',
+  description: 'Start the authorized property page workflow for a listing the member has media for, or open a new page when they have none. Never publishes anything.',
+  schema: {
+    type: 'object',
+    properties: { listing_id: { type: 'string' }, address: { type: 'string' }, job_id: { type: 'string' } },
+  },
+  async run(ctx, input) {
+    const explicitJob = String(input?.job_id || '').trim();
+    const listing = await resolveListing(ctx, input);
+    const jobId = explicitJob || String(listing?.job_id || '').trim();
+    const ui = jobId
+      ? navDirective('property_page_builder', { jobId })
+      : navDirective('property_page_builder', { intent: 'free-page' });
+    return {
+      ok: true,
+      speech: jobId
+        ? `Opening the page builder for ${addressOf(listing)} with the details and media already on file. Nothing is published until you approve it.`
+        : 'Opening a new property page so you can add the address and photographs. Nothing is published until you approve it.',
+      data: {
+        job_id: jobId,
+        listing_id: listing?.listing_id || '',
+        address: listing ? addressOf(listing) : '',
+        publication_state: listing?.publication_state || 'DRAFT',
+      },
+      ui,
+    };
+  },
+});
+
+define({
+  name: 'promote_listing',
+  description: 'Show the marketing options for one of the member’s listings: page packages, promotion and advertising. Any purchase stays in the existing secure checkout.',
+  schema: {
+    type: 'object',
+    properties: { listing_id: { type: 'string' }, address: { type: 'string' } },
+  },
+  async run(ctx, input) {
+    const listing = await resolveListing(ctx, input);
+    if (!listing) {
+      return { ok: false, speech: 'I could not match that to one of your property pages.', error: 'NOT_FOUND' };
+    }
+    return {
+      ok: true,
+      speech: `Opening ${addressOf(listing)} with its marketing options: page packages, promotion and advertising. Anything you buy stays in the existing secure checkout.`,
+      data: {
+        listing_id: listing.listing_id,
+        address: addressOf(listing),
+        publication_state: listing.publication_state || 'DRAFT',
+      },
+      ui: listing.job_id
+        ? navDirective('property_page_builder', { jobId: listing.job_id })
+        : navDirective('my_properties'),
+    };
+  },
+});
+
+define({
+  name: 'list_company_accounts',
+  description: 'Show the companies this member is authorized to order through and open the company account area. The member switches context themselves, under the portal’s server-side permission checks.',
+  schema: { type: 'object', properties: {} },
+  async run(ctx) {
+    const memberships = rowsOf(await ctx.base44.asServiceRole.entities.B2BOrganizationMember
+      .filter(customerEmailQuery('user_email', ctx.email), { limit: 10 }).catch(() => []));
+    const active = memberships.filter((record: any) => String(record.status || '') === 'active');
+    const companies: any[] = [];
+    for (const membership of active.slice(0, 5)) {
+      const org: any = await ctx.base44.asServiceRole.entities.B2BOrganization
+        .get(membership.organization_id).catch(() => null);
+      if (!org) continue;
+      companies.push({
+        organization_id: membership.organization_id,
+        organization_name: org.name || org.organization_name || 'Your company',
+        role: membership.role || '',
+      });
+    }
+    return {
+      ok: true,
+      speech: companies.length
+        ? `You are authorized on ${companies.map((item: any) => item.organization_name).join(' and ')}. I've opened your company area: choose the context there and Arriv verifies your permission before anything is ordered.`
+        : 'Your account is personal only, so there is no company context to switch to.',
+      data: { personal: true, companies },
+      ui: companies.length ? navDirective('company', { section: 'company' }) : null,
     };
   },
 });

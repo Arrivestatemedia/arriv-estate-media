@@ -3,6 +3,12 @@ import { requireCustomer } from '../../shared/customerSession.ts';
 import { resolvePreferredEntitlement } from '../../shared/preferredEntitlement.ts';
 import { mintConciergeToolToken } from '../../shared/conciergeSessionToken.ts';
 import { endTavusConversation, getTavusConversation } from '../../shared/tavusInterview.ts';
+import {
+  ensureConciergePal,
+  isRecruitingPal,
+  preferredConversationContext,
+  CONCIERGE_ROLE_PREFERRED,
+} from '../../shared/conciergePal.ts';
 
 /**
  * On-demand Tavus video concierge session for a Preferred member.
@@ -36,11 +42,9 @@ function timeOfDay(): string {
 
 function checklist(missing: string[]) {
   return [
-    'Create the Arriv Concierge replica in Tavus (professional on-brand appearance and voice).',
-    'Create a PAL for the concierge with the Arriv Concierge system prompt, and set its replica.',
-    'Add the concierge tools in the Tavus PAL dashboard, each pointing at /functions/conciergeTavusTool with the tool name matching a registered action (for example list_bookings, open_gallery, prepare_booking).',
-    'Add TAVUS_CONCIERGE_PAL_ID (and optionally TAVUS_CONCIERGE_REPLICA_ID) to the app secrets.',
     missing.includes('TAVUS_API_KEY') ? 'Add TAVUS_API_KEY to the app secrets.' : null,
+    'Run the configureConciergePal function as an administrator: it creates the Arriv Preferred Concierge PAL (same face and voice as the recruiting representative) and attaches the account tools.',
+    'Never store the recruiting/interview PAL id in TAVUS_CONCIERGE_PAL_ID: customer conversations refuse to run on that persona.',
     'Keep the preferred_concierge AppSetting video_enabled true to allow video sessions.',
   ].filter(Boolean);
 }
@@ -78,8 +82,11 @@ export default async function (req) {
       session = await base44.asServiceRole.entities.ConciergeSession.create({
         session_id: `cses_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
         customer_email: email,
+        customer_name: String(auth.actor.full_name || ''),
+        account_id: String(auth.actor.account_id || ''),
         conversation_id: `conv_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
         status: 'active',
+        context: { role: CONCIERGE_ROLE_PREFERRED },
         mode: 'video',
         transcript: [],
         preferences: {},
@@ -117,22 +124,48 @@ export default async function (req) {
     }
 
     const apiKey = Deno.env.get('TAVUS_API_KEY');
-    const palId = Deno.env.get('TAVUS_CONCIERGE_PAL_ID');
-    const replicaId = Deno.env.get('TAVUS_CONCIERGE_REPLICA_ID');
-    const missing: string[] = [];
-    if (!apiKey) missing.push('TAVUS_API_KEY');
-    if (!palId) missing.push('TAVUS_CONCIERGE_PAL_ID');
-    if (!palId && !replicaId) missing.push('TAVUS_CONCIERGE_REPLICA_ID');
-
-    if (missing.length) {
+    if (!apiKey) {
       return Response.json({
         ok: false,
         configured: false,
-        missing,
+        missing: ['TAVUS_API_KEY'],
         message: 'The Arriv Concierge video representative is not configured yet. The text concierge is fully available.',
-        checklist: checklist(missing),
+        checklist: checklist(['TAVUS_API_KEY']),
       });
     }
+
+    // ONE appearance, TWO business contexts. The customer meets the concierge PAL — never the
+    // recruiting/interview PAL, which is what made her ask about interviews in the portal.
+    const pal = await ensureConciergePal(base44);
+    if (!pal.ok || !pal.pal_id) {
+      return Response.json({
+        ok: false,
+        configured: false,
+        missing: pal.missing || [],
+        notes: pal.notes || [],
+        reason: 'CONCIERGE_PAL_UNAVAILABLE',
+        message: 'The Arriv Concierge video representative is not configured yet. The text concierge is fully available.',
+        checklist: checklist(pal.missing || []),
+      });
+    }
+    if (isRecruitingPal(pal.pal_id)) {
+      return Response.json({
+        ok: false,
+        configured: false,
+        reason: 'ROLE_MISMATCH',
+        message: 'The concierge is not available right now. Nothing was started.',
+      }, { status: 503 });
+    }
+
+    const portalContext = {
+      page: String(body?.context?.page || '').slice(0, 120),
+      listing_id: String(body?.context?.listing_id || '').slice(0, 120),
+    };
+    // The conversation's own role, remembered on the session so a tool call can never leave
+    // the Preferred context.
+    await base44.asServiceRole.entities.ConciergeSession.update(session.id, {
+      context: { role: CONCIERGE_ROLE_PREFERRED, ...portalContext },
+    }).catch(() => null);
 
     // Reuse a live conversation instead of starting (and billing) a new one.
     if (session.tavus_conversation_id && session.tavus_conversation_url) {
@@ -168,9 +201,16 @@ export default async function (req) {
 
     const firstName = String(auth.actor.full_name || '').split(' ')[0] || 'there';
     const payload: Record<string, any> = {
+      pal_id: pal.pal_id,
       conversation_name: `Arriv Preferred Concierge — ${new Date().toISOString().slice(0, 10)}`,
-      custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? How can I help you?`,
-      conversational_context: `You are the Arriv Preferred Concierge speaking with ${firstName}, an Arriv Preferred member using the Arriv Estate Media customer portal. Use the concierge tools for every account question or action. Never state a price, balance, booking or payment that a tool did not return. Paid bookings, publishing and payments are completed by the customer in the portal itself.`,
+      custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? I'm your Arriv concierge. What can I take care of for you?`,
+      // Explicit, trusted context: the role is stated, not guessed from the conversation.
+      conversational_context: preferredConversationContext({
+        firstName,
+        page: portalContext.page,
+        listingId: portalContext.listing_id,
+        plan: entitlement.plan || 'Preferred',
+      }),
       // Tavus rejects these at the top level: they belong to the conversation's properties.
       properties: {
         max_call_duration: 300,
@@ -178,8 +218,8 @@ export default async function (req) {
         participant_absent_timeout: 120,
       },
     };
-    if (palId) payload.pal_id = palId;
-    if (replicaId) payload.replica_id = replicaId;
+    // The face lives on the PAL itself; sending it again at conversation level is not needed
+    // and an unsupported field would fail the start.
 
     const response = await fetch('https://tavusapi.com/v2/conversations', {
       method: 'POST',
@@ -220,6 +260,13 @@ export default async function (req) {
       conversation_id: data.conversation_id || '',
       concierge_token: token,
       max_call_duration: payload.properties.max_call_duration,
+      // Proof of which persona actually opened, so "she is in the concierge role" is
+      // verifiable from the portal and not assumed.
+      pal_id: pal.pal_id,
+      pal_name: pal.pal_name,
+      role: CONCIERGE_ROLE_PREFERRED,
+      tools_attached: pal.tools?.attached || 0,
+      role_notes: pal.notes || [],
     });
   } catch (error: any) {
     console.error('conciergeTavusSession error:', error);

@@ -9,7 +9,8 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Loader2, Mic, Send } from "lucide-react";
 import { askConcierge, confirmConciergeAction } from "@/lib/conciergeClient";
-import { applyConciergeUi } from "@/lib/conciergeUi";
+import { applyConciergeDirective } from "@/lib/conciergeUi";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
 import ConciergeResultCard from "@/components/preferred/ConciergeResultCard";
 
 const SESSION_KEY = "arriv_concierge_session_id";
@@ -46,6 +47,7 @@ function write(key, value) {
 const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName }, ref) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { active: activeSurface, open: openSurface } = usePreferredSurface();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -104,6 +106,8 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         context: {
           page: location.pathname,
           listing_id: new URLSearchParams(location.search).get("jobId") || "",
+          // Which panel is open right now, so "these photos" means the gallery in front of them.
+          surface: activeSurface?.key || "",
         },
       });
       if (result?.session_id) {
@@ -120,7 +124,9 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         actions: Array.isArray(result?.actions) ? result.actions : [],
       }]);
       if (result?.pending_action) setPending(result.pending_action);
-      if (result?.ui) applyConciergeUi(result.ui, navigate);
+      // The panel opens beside her: the workspace never unmounts, so this thread and the
+      // live video carry straight on.
+      if (result?.ui) applyConciergeDirective(result.ui, { open: openSurface, navigate });
     } catch (error) {
       const status = Number(error?.status || error?.response?.status);
       setMessages((current) => [...current, {
@@ -132,7 +138,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
     } finally {
       setBusy(false);
     }
-  }, [busy, conversationId, location.pathname, location.search, navigate, sessionId]);
+  }, [activeSurface?.key, busy, conversationId, location.pathname, location.search, navigate, openSurface, sessionId]);
 
   const decide = useCallback(async (decision) => {
     if (!pending?.action_record_id) return;
@@ -145,7 +151,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         role: "concierge",
         text: result?.reply || (decision === "decline" ? "No changes were made." : "Done."),
       }]);
-      if (result?.ok && result?.ui) applyConciergeUi(result.ui, navigate);
+      if (result?.ok && result?.ui) applyConciergeDirective(result.ui, { open: openSurface, navigate });
     } catch {
       setMessages((list) => [...list, {
         role: "system",
@@ -154,7 +160,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
     } finally {
       setBusy(false);
     }
-  }, [navigate, pending]);
+  }, [navigate, openSurface, pending]);
 
   const thread = messages.slice(-6);
 
@@ -173,7 +179,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
           }
           if (message.role === "system") {
             return (
-              <p key={index} className="rounded-xl border border-[#c8a87c]/20 bg-black/25 px-3 py-1.5 text-[11.5px] text-[#f6f1e8]/55">
+              <p key={index} className="rounded-xl border border-[#c8a87c]/20 bg-black/25 px-3 py-1.5 text-[11.5px] text-[#f6f1e8]/72">
                 {message.text}
               </p>
             );
@@ -216,7 +222,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         )}
 
         {busy && (
-          <p className="flex items-center gap-2 text-[11px] text-[#f6f1e8]/45">
+          <p className="flex items-center gap-2 text-[11px] text-[#f6f1e8]/70">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-[#c8a87c]" /> Working on it…
           </p>
         )}
@@ -231,7 +237,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
           onClick={startListening}
           aria-label="Speak to the concierge"
           className={`preferred-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-            listening ? "bg-[#c8a87c]/25 text-[#f0dcb9]" : "text-[#f6f1e8]/55 hover:bg-[#c8a87c]/12 hover:text-[#f6f1e8]"
+            listening ? "bg-[#c8a87c]/25 text-[#f0dcb9]" : "text-[#f6f1e8]/72 hover:bg-[#c8a87c]/12 hover:text-[#f6f1e8]"
           }`}
         >
           <Mic className="h-4 w-4" />
@@ -243,7 +249,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Tell me what you need, and I'll handle it."
-          className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] text-[#f6f1e8] placeholder:text-[#f6f1e8]/35 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] text-[#f6f1e8] placeholder:text-[#f6f1e8]/62 focus:outline-none"
         />
         <button
           type="submit"
@@ -254,7 +260,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
         </button>
       </form>
-      <p className="mt-1.5 flex items-center gap-1 px-1 text-[10px] text-[#f6f1e8]/30">
+      <p className="mt-1.5 flex items-center gap-1 px-1 text-[10px] text-[#f6f1e8]/58">
         <Send className="h-2.5 w-2.5" /> Payments, bookings and publishing are always confirmed by you.
       </p>
     </div>

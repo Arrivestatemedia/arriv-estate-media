@@ -13,6 +13,15 @@ export default function PreferredSurfaceHost() {
   const { active, close } = usePreferredSurface();
   const location = useLocation();
   const openedOn = useRef(null);
+  const surface = active ? SURFACES[active.key] : null;
+
+  // Billing, membership, analytics and company all live on one hosted screen: the surface
+  // lands on its own section instead of the top of that page.
+  useEffect(() => {
+    if (!surface?.hash) return;
+    const target = document.querySelector(surface.hash);
+    if (target) target.scrollIntoView({ block: "start" });
+  }, [active, surface]);
 
   useEffect(() => {
     if (active) openedOn.current = `${window.location.pathname}${window.location.search}`;
@@ -39,9 +48,7 @@ export default function PreferredSurfaceHost() {
     };
   }, [active, close]);
 
-  if (!active) return null;
-  const surface = SURFACES[active.key];
-  if (!surface) return null;
+  if (!active || !surface) return null;
   const Component = surface.Component;
 
   return createPortal(

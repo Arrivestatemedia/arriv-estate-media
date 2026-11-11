@@ -57,6 +57,12 @@ export const SURFACES = {
     Component: VisibilityDashboard,
     hash: "#membership",
   },
+  company: {
+    title: "Company Account",
+    caption: "The organizations you are authorized to order through",
+    Component: VisibilityDashboard,
+    hash: "#company",
+  },
   jobGallery: {
     title: "Your Gallery",
     caption: "The full set from your shoot",

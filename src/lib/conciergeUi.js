@@ -5,13 +5,19 @@
  * ask for one of the directives below, and the browser validates it against this
  * whitelist before doing anything. Anything unknown, absolute, or off the portal is
  * discarded silently.
+ *
+ * Two directive kinds:
+ *   navigate  open a workspace (rendered as a Preferred surface beside the concierge)
+ *   display   change how the current screen is presented (gallery size)
+ *
+ * Voice and text both arrive here, so one engine drives the interface for both channels.
  */
 
 const ALLOWED_ROUTES = {
   '/ClientBookings': [],
   '/BookingPage': ['package', 'date', 'address'],
   '/PropertyLeads': [],
-  '/PropertyPageBuilder': ['jobId'],
+  '/PropertyPageBuilder': ['jobId', 'intent'],
   '/VisibilityDashboard': ['section'],
   '/PrepaidPurchase': [],
   '/AutoFund': [],
@@ -19,7 +25,25 @@ const ALLOWED_ROUTES = {
   '/PublicAccountSettings': [],
 };
 
+/** Which registered action opens which floating surface. */
+const SURFACE_FOR_PAGE = {
+  my_portal: 'dashboard',
+  book_shoot: 'booking',
+  my_properties: 'properties',
+  property_page_builder: 'marketing',
+  marketing: 'marketing',
+  billing_visibility: 'billing',
+  analytics: 'analytics',
+  company: 'company',
+  gallery: 'jobGallery',
+  account_settings: 'account',
+};
+
+/** The workspace is the base of the Preferred experience; panels float on top of it. */
+const SHELL_PATH = '/PreferredWorkspace';
+
 const ALLOWED_PARAM_PATTERN = /^[A-Za-z0-9:_@.\- ]{1,80}$/;
+const GALLERY_SIZES = ['small', 'medium', 'large'];
 
 export function sanitizeConciergeUi(ui) {
   if (!ui || ui.type !== 'navigate' || typeof ui.path !== 'string') return null;
@@ -43,10 +67,69 @@ export function sanitizeConciergeUi(ui) {
     page: ui.page || '',
     label: typeof ui.label === 'string' ? ui.label.slice(0, 60) : '',
     path: queryString ? `${pathname}?${queryString}` : pathname,
+    query: queryString,
   };
 }
 
-/** Apply one validated directive. Returns the path it navigated to, or null. */
+export function sanitizeConciergeDisplay(ui) {
+  if (!ui || ui.type !== 'display') return null;
+  const target = String(ui.target || '');
+  const size = String(ui.size || '');
+  if (target !== 'gallery' || !GALLERY_SIZES.includes(size)) return null;
+  const jobId = String(ui.open_job_id || '');
+  return {
+    target,
+    size,
+    open_job_id: ALLOWED_PARAM_PATTERN.test(jobId) ? jobId : "",
+  };
+}
+
+/**
+ * Apply one validated directive. Surfaces open in place so the workspace, the conversation
+ * and the representative all stay alive; anything without a surface falls back to the router.
+ */
+export function applyConciergeDirective(ui, { open, navigate } = {}) {
+  const display = sanitizeConciergeDisplay(ui);
+  if (display) {
+    // Remembered so the gallery opens at the size she was asked for, even when it is being
+    // opened by this same instruction.
+    try {
+      window.localStorage.setItem("arriv_gallery_size", display.size);
+    } catch {
+      /* storage unavailable: the change still applies to an open gallery */
+    }
+    dispatchConciergeDisplay(display);
+
+    if (display.open_job_id && typeof open === "function") {
+      if (typeof navigate === "function") {
+        const alreadyHere = window.location.pathname === SHELL_PATH;
+        navigate(`${SHELL_PATH}?jobId=${encodeURIComponent(display.open_job_id)}`, { replace: alreadyHere });
+      }
+      open("jobGallery");
+    }
+    return `display:${display.target}:${display.size}`;
+  }
+
+  const directive = sanitizeConciergeUi(ui);
+  if (!directive) return null;
+
+  const surfaceKey = SURFACE_FOR_PAGE[directive.page];
+  if (!surfaceKey || typeof open !== 'function') {
+    if (typeof navigate === 'function') navigate(directive.path);
+    return directive.path;
+  }
+
+  // Same route element, new search: the workspace never unmounts, so the chat history and
+  // the live video survive the member opening a panel.
+  if (typeof navigate === 'function') {
+    const alreadyHere = typeof window !== 'undefined' && window.location.pathname === SHELL_PATH;
+    navigate(`${SHELL_PATH}${directive.query ? `?${directive.query}` : ''}`, { replace: alreadyHere });
+  }
+  open(surfaceKey);
+  return surfaceKey;
+}
+
+/** Backwards-compatible single-directive helper. */
 export function applyConciergeUi(ui, navigate) {
   const directive = sanitizeConciergeUi(ui);
   if (!directive || typeof navigate !== 'function') return null;
@@ -54,7 +137,7 @@ export function applyConciergeUi(ui, navigate) {
   return directive.path;
 }
 
-/** Optional display-only channel pages can subscribe to (filters, gallery layout). */
+/** Display-only channel screens subscribe to this (gallery layout, filters). */
 export const CONCIERGE_DISPLAY_EVENT = 'arriv:concierge-display';
 
 export function dispatchConciergeDisplay(detail) {

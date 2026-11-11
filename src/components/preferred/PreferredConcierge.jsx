@@ -20,7 +20,8 @@ import {
   markConciergeNotice,
   startConciergeVideo,
 } from "@/lib/conciergeClient";
-import { applyConciergeUi } from "@/lib/conciergeUi";
+import { applyConciergeDirective } from "@/lib/conciergeUi";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
 import ConciergeResultCard from "@/components/preferred/ConciergeResultCard";
 import ConciergeVideoPanel from "@/components/preferred/ConciergeVideoPanel";
 
@@ -47,6 +48,7 @@ function write(key, value) {
 export default function PreferredConcierge({ customer, entitlement }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { open: openSurface } = usePreferredSurface();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -132,7 +134,7 @@ export default function PreferredConcierge({ customer, entitlement }) {
       }]);
 
       if (result?.pending_action) setPending(result.pending_action);
-      if (result?.ui) applyConciergeUi(result.ui, navigate);
+      if (result?.ui) applyConciergeDirective(result.ui, { open: openSurface, navigate });
     } catch (error) {
       const status = Number(error?.status || error?.response?.status);
       setMessages((current) => [...current, {
@@ -144,7 +146,7 @@ export default function PreferredConcierge({ customer, entitlement }) {
     } finally {
       setBusy(false);
     }
-  }, [busy, conversationId, location.pathname, location.search, navigate, sessionId, videoUrl]);
+  }, [busy, conversationId, location.pathname, location.search, navigate, openSurface, sessionId, videoUrl]);
 
   const decide = useCallback(async (decision) => {
     if (!pending?.action_record_id) return;
@@ -160,7 +162,7 @@ export default function PreferredConcierge({ customer, entitlement }) {
         role: "concierge",
         text: result?.reply || (decision === "decline" ? "No changes were made." : "Done."),
       }]);
-      if (result?.ok && result?.ui) applyConciergeUi(result.ui, navigate);
+      if (result?.ok && result?.ui) applyConciergeDirective(result.ui, { open: openSurface, navigate });
       if (decision === "confirm") loadNotices(true);
     } catch {
       setMessages((list) => [...list, {
@@ -170,7 +172,7 @@ export default function PreferredConcierge({ customer, entitlement }) {
     } finally {
       setBusy(false);
     }
-  }, [loadNotices, navigate, pending]);
+  }, [loadNotices, navigate, openSurface, pending]);
 
   const startVideo = useCallback(async () => {
     if (videoBusy || videoUrl) return;
