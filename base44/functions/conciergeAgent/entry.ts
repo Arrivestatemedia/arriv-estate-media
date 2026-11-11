@@ -62,8 +62,32 @@ async function loadSession(base44: any, email: string, body: any) {
   return created;
 }
 
-function buildPrompt(ctx: any, entitlement: any, snapshot: any, pageContext: any) {
-  const catalog = conciergeCatalog();
+/**
+ * The whole action list. It used to be cut off at 6,000 characters, which hid most of what she
+ * can actually do — including cancelling a membership, opening a property page and analytics —
+ * so she answered real requests with whatever the visible few actions could produce.
+ */
+function catalogText() {
+  const compact = conciergeCatalog().map((action: any) => ({
+    name: action.name,
+    description: action.description,
+    ...(action.input_schema && Object.keys(action.input_schema.properties || {}).length
+      ? { input_schema: action.input_schema }
+      : {}),
+    ...(action.mutating ? { mutating: true } : {}),
+    ...(action.confirmation_required ? { confirmation_required: true } : {}),
+  }));
+  return JSON.stringify(compact);
+}
+
+function recentTurns(history: any[]) {
+  const turns = (Array.isArray(history) ? history : []).slice(-6)
+    .map((entry: any) => `${String(entry?.role || '') === 'customer' ? 'Customer' : 'Concierge'}: ${String(entry?.text || '').slice(0, 240)}`)
+    .filter((line: string) => line.trim().length > 10);
+  return turns.length ? turns.join('\n') : 'This is the start of the conversation.';
+}
+
+function buildPrompt(ctx: any, entitlement: any, snapshot: any, pageContext: any, history: any[]) {
   return `You are the Arriv Concierge, the private assistant of an Arriv Estate Media Preferred member.
 
 CUSTOMER
@@ -72,11 +96,14 @@ Membership: ${entitlement.plan || 'Preferred'} (${entitlement.status || 'active'
 Current portal page: ${pageContext?.page || 'unknown'}
 Selected property: ${pageContext?.listing_id || 'none'}
 
+RECENT CONVERSATION (oldest first)
+${recentTurns(history)}
+
 ACCOUNT SNAPSHOT (real data, already authorized for this customer)
 ${JSON.stringify(snapshot).slice(0, 3000)}
 
-AVAILABLE ACTIONS
-${JSON.stringify(catalog).slice(0, 6000)}
+AVAILABLE ACTIONS (the complete list — read all of it)
+${catalogText().slice(0, 30000)}
 
 HOW TO ANSWER
 - Choose 0 to ${MAX_ACTIONS} actions that actually answer the request. Prefer the smallest set.
@@ -87,6 +114,7 @@ HOW TO ANSWER
 - If a request is unclear or you need one detail (which property, which date), choose no action and ask one short question.
 - Never claim a payment, booking, publication or subscription change has happened. Those need the customer's confirmation or the secure form.
 - If the customer asks to cancel or stop their Preferred membership, use request_membership_cancellation. It alerts their advisor and files the request; it never cancels anything, so say the team will process it and reach out. Never say the membership is cancelled.
+- Reply to the request that was actually made, in your own words. Use the recent conversation: a short follow-up ("cancel it", "that one", "yes") refers to what was just discussed.
 - Reply in at most 45 words, warm and precise, no emoji, no markdown.
 
 THE COMPANY NAME
@@ -120,6 +148,9 @@ const VIEW_INTENTS: Array<[string, RegExp]> = [
 
 /** An instruction to change something is never turned into a "just show me" window. */
 const ACTION_VERB = /\b(cancel|reschedul(e|ing)|book|rebook|add|create|delete|remove|update|change|pause|resume|publish|unpublish|promote|pay|send|request|switch|turn)\b/i;
+
+/** A plain instruction to end the membership. Resolved here so it can never become a summary. */
+const MEMBERSHIP_CANCELLATION = /\b(cancel|cancelling|canceling|end|stop|quit|terminate|close)\b\s+(?:my\s+|the\s+|our\s+|this\s+|that\s+)?(?:preferred\s+)?(?:membership|member\s?ship|subscription|plan)\b|\b(?:my\s+|the\s+|our\s+)?(?:preferred\s+)?(?:membership|subscription)\b[\s\S]{0,40}\b(cancel|cancelled|canceling|cancelling|ended|terminated|closed)\b/i;
 
 function resolveViewIntent(utterance: string) {
   const text = String(utterance || '');
@@ -211,8 +242,9 @@ export default async function (req) {
     const overview = await runConciergeAction(ctx, 'get_account_overview', {});
     const snapshot = overview.ok ? overview.data : { note: 'Account summary unavailable.' };
 
+    const priorTranscript = Array.isArray(session.transcript) ? session.transcript : [];
     const llm = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: buildPrompt(ctx, entitlement, snapshot, pageContext),
+      prompt: buildPrompt(ctx, entitlement, snapshot, pageContext, priorTranscript),
       response_json_schema: {
         type: 'object',
         properties: {
@@ -243,9 +275,20 @@ export default async function (req) {
       && !plannedNames.includes(viewIntent)
       && !plannedNames.some((name: string) => actionIsMutating(name))
       && plannedNames.every((name: string) => SUMMARY_ONLY.has(name));
-    const requested: any[] = mustOpen
-      ? [{ name: viewIntent, input: inputForView(viewIntent, pageContext) }]
-      : planned;
+
+    // Ending the membership is always the cancellation request, never a summary of the account.
+    // A plain instruction resolves here so the member is never answered with their invoice count.
+    // "Don't cancel my membership" is not a request to cancel it.
+    const declinedCancellation = /\b(don'?t|do not|not|never)\b[^.!?]{0,25}\b(cancel|cancelling|canceling|end|quit|terminate|close)\b/i.test(utterance);
+    const wantsCancellation = !declinedCancellation
+      && MEMBERSHIP_CANCELLATION.test(utterance)
+      && !plannedNames.includes('request_membership_cancellation');
+
+    const requested: any[] = wantsCancellation
+      ? [{ name: 'request_membership_cancellation', input: { reason: utterance.slice(0, 300) } }]
+      : mustOpen
+        ? [{ name: viewIntent, input: inputForView(viewIntent, pageContext) }]
+        : planned;
 
     // She asked for the address and the member gave it. The form opens with it, even when the
     // planner answered in words only, so nobody has to say "nothing happened" to be served.
@@ -375,10 +418,16 @@ export default async function (req) {
     }
 
     const actionSpeech = summarize(outcomes);
-    const reply = actionSpeech
-      || (typeof llm?.reply === 'string' && llm.reply.trim() ? llm.reply.trim() : 'I can help with bookings, galleries, property pages, billing and marketing. What would you like to do?');
+    const spokenReply = typeof llm?.reply === 'string' ? llm.reply.trim() : '';
+    // Her own words answer the request; a generic action line is only the fallback. When a plain
+    // instruction had to be corrected, the action's own line is what the member must hear.
+    const reply = wantsCancellation && actionSpeech
+      ? actionSpeech
+      : spokenReply
+        || actionSpeech
+        || 'I can help with bookings, galleries, property pages, billing and marketing. What would you like to do?';
 
-    const history = Array.isArray(session.transcript) ? session.transcript.slice(-TRANSCRIPT_LIMIT) : [];
+    const history = priorTranscript.slice(-TRANSCRIPT_LIMIT);
     history.push({ role: 'customer', text: utterance, at: new Date().toISOString() });
     history.push({ role: 'concierge', text: reply, at: new Date().toISOString() });
 
