@@ -146,8 +146,10 @@ export function campaignPurchaseGate(listing: any, now = new Date()): AdPurchase
   const blockers: string[] = [];
   if (!listing) return { ok: false, blockers: ["The property could not be found."], live_now: false };
   if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
-  if (!["active", "pending"].includes(String(listing.listing_status || ""))) {
-    blockers.push("The property is not currently shown as available. Sold, withdrawn and expired properties cannot be advertised.");
+  // Only a property that can no longer be advertised at all is refused. A new page still marked
+  // draft is not sold or withdrawn: it can carry a campaign that starts once the page goes live.
+  if (["sold", "withdrawn", "expired"].includes(String(listing.listing_status || ""))) {
+    blockers.push("This property is marked sold, withdrawn or expired, so it cannot be advertised.");
   }
   if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
   return { ok: blockers.length === 0, blockers, live_now: campaignEligibility(listing, now).eligible };

@@ -201,7 +201,7 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
 
       {!purchasable && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {[...(overview.listing?.purchase_blockers || []), ...(overview.listing?.blockers || [])].join(" ")}
+          {(overview.listing?.purchase_blockers || []).join(" ")}
         </div>
       )}
 
