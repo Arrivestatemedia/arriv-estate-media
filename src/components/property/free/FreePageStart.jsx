@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { propertyAction } from "@/lib/propertyVisibility";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,38 @@ export default function FreePageStart({ onCreated }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [known, setKnown] = useState(null);
 
   const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
+
+  // Everything we already hold about the customer is filled in for them: their market from their
+  // account, their contact details, and the property details of a page they already started.
+  // Only values that are on file are used; a field we do not know stays empty for them to supply.
+  useEffect(() => {
+    let cancelled = false;
+    propertyAction("get_free_page_prefill")
+      .then((data) => {
+        if (cancelled || !data?.ok) return;
+        const facts = data.prefill || {};
+        const property = facts.property || {};
+        setKnown(facts);
+        setForm((prev) => ({
+          ...prev,
+          propertyAddress: property.propertyAddress || prev.propertyAddress,
+          city: property.city || facts.city || "",
+          state: property.state || facts.state || "",
+          zip: property.zip || facts.zip || "",
+          listingPrice: property.listingPrice ?? "",
+          bedrooms: property.bedrooms ?? "",
+          bathrooms: property.bathrooms ?? "",
+          propertyDescription: property.propertyDescription || "",
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
@@ -72,10 +102,32 @@ export default function FreePageStart({ onCreated }) {
           <div>
             <h1 className="font-serif text-3xl text-[#1A1A1A]">Your free property page</h1>
             <p className="text-sm text-[#1A1A1A]/50">
-              Start with the address. You can add photographs and the rest of the details next.
+              Everything we already know about you and your listing is filled in below. Check it, then add your photographs.
             </p>
           </div>
         </div>
+
+        {known && (
+          <div className="mt-6 rounded-2xl border border-[#B8956A]/25 bg-[#B8956A]/5 p-4">
+            <p className="text-sm font-medium text-[#1A1A1A]">
+              {known.property ? "We picked up where you left off." : "Filled in from what we already had on you."}
+            </p>
+            <p className="mt-1 text-xs text-[#1A1A1A]/60">
+              {[
+                known.full_name && `Name: ${known.full_name}`,
+                known.agent_email && `Email: ${known.agent_email}`,
+                known.phone && `Phone: ${known.phone}`,
+                known.brokerage_name && `Brokerage: ${known.brokerage_name}`,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Your market and contact details come from your account."}
+            </p>
+            <p className="mt-1 text-xs text-[#1A1A1A]/45">
+              Change anything that is not right. These details are used on the page and for your inquiries, and nothing is
+              published until you approve it.
+            </p>
+          </div>
+        )}
 
         <form
           onSubmit={submit}

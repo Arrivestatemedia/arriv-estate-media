@@ -152,6 +152,89 @@ async function buildFactsFromBooking(base44: any, job: any) {
   }
 }
 
+// Everything we already hold about the signed-in customer, so a page starts filled in instead of
+// blank. Only values that are actually on file are returned: nothing is inferred, and an absent
+// value stays empty so the customer supplies it.
+async function knownCustomerFacts(base44: any, auth: any) {
+  const record = auth.record || {};
+  const email = String(auth.actor.email || "").toLowerCase();
+  const facts: any = {
+    full_name: record.full_name || auth.actor.full_name || "",
+    email,
+    agent_email: email,
+    phone: record.phone_number || "",
+    city: record.city || "",
+    state: record.state || "",
+    zip: record.zip || "",
+    brokerage_name: "",
+    license_number: "",
+    photo_url: "",
+    property: null,
+  };
+
+  // A professional profile the customer has already completed is the authoritative source for the
+  // contact details the public page shows.
+  try {
+    const profiles = (await base44.asServiceRole.entities.ProfessionalProfile.filter({ owner_email: email })) || [];
+    const profile = profiles.find((p: any) => p.profile_type === "agent") || profiles[0];
+    if (profile) {
+      facts.full_name = profile.display_name || facts.full_name;
+      facts.agent_email = profile.contact_email || facts.agent_email;
+      facts.phone = facts.phone || profile.contact_phone || "";
+      facts.city = facts.city || profile.city || "";
+      facts.state = facts.state || profile.state || "";
+      facts.zip = facts.zip || profile.zip || "";
+      facts.brokerage_name = profile.brokerage_name || "";
+      facts.license_number = profile.license_number || "";
+      facts.photo_url = profile.photo_url || "";
+    }
+  } catch {
+    // A profile is optional; without one the account itself is the source.
+  }
+
+  // An unfinished page of their own: reopening it is what the customer expects, and the property
+  // details they already entered are the only property facts that can be filled in for them.
+  try {
+    const mine = (await base44.asServiceRole.entities.PropertyListing.filter({ client_email: email })) || [];
+    const open = mine.find((l: any) => !l.job_id && ["DRAFT", "UNPUBLISHED"].includes(l.publication_state));
+    if (open) {
+      facts.property = {
+        listing_id: open.listing_id,
+        propertyAddress: open.property_address || "",
+        city: open.city || "",
+        state: open.state || "",
+        zip: open.zip || "",
+        listingPrice: open.listing_price ?? "",
+        bedrooms: open.bedrooms ?? "",
+        bathrooms: open.bathrooms ?? "",
+        propertyDescription: open.property_description || "",
+      };
+    }
+  } catch {
+    // No draft is not an error.
+  }
+
+  // Their market, when the account itself has no address on file: taken from the property they
+  // most recently booked, which is where they work.
+  if (!facts.city || !facts.state) {
+    try {
+      const rows = await base44.asServiceRole.entities.Booking.filter(
+        { client_email: email },
+        { sort: "-created_date", limit: 1 },
+      );
+      const booking = (Array.isArray(rows) ? rows : rows?.items || [])[0];
+      if (booking) {
+        facts.city = facts.city || booking.city || "";
+        facts.state = facts.state || booking.state || "";
+      }
+    } catch {
+      // Bookings are optional.
+    }
+  }
+
+  return facts;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -170,9 +253,16 @@ Deno.serve(async (req) => {
     // from the signed session alone, the address is the duplicate key, and the record is created
     // as a DRAFT: publication still requires the normal review and approval steps, so nothing is
     // published here and the publication switch is not touched.
+    if (action === "get_free_page_prefill") {
+      const prefillAuth = await requireCustomer(base44, req, body);
+      if (!prefillAuth.ok) return Response.json({ error: prefillAuth.error }, { status: prefillAuth.status });
+      return Response.json({ ok: true, prefill: await knownCustomerFacts(base44, prefillAuth) });
+    }
+
     if (action === "create_seo_draft") {
       const seoAuth = await requireCustomer(base44, req, body);
       if (!seoAuth.ok) return Response.json({ error: seoAuth.error }, { status: seoAuth.status });
+      const known = await knownCustomerFacts(base44, seoAuth);
 
       const seoAddress = normalizeAddress(sanitizeText(body.propertyAddress, 300));
       if (!seoAddress) {
@@ -206,9 +296,9 @@ Deno.serve(async (req) => {
         client_name: seoAuth.actor.full_name || "",
         property_address: seoAddress,
         normalized_address: seoAddress,
-        city: seoCity,
-        state: seoState,
-        zip: sanitizeText(body.zip, 12),
+        city: seoCity || known.city,
+        state: seoState || known.state,
+        zip: sanitizeText(body.zip, 12) || known.zip,
         square_footage: num(body.squareFootage),
         square_footage_source: body.squareFootage ? "customer" : "",
         listing_price: num(body.listingPrice),
@@ -218,7 +308,17 @@ Deno.serve(async (req) => {
         property_description: sanitizeText(body.propertyDescription, 2000),
         amenities: [],
         listing_status: "draft",
-        agent_email: "",
+        // The listing contact is filled in from what we already hold, so the customer confirms it
+        // rather than retyping it. Nothing here is published as confirmed: the authorizations and
+        // the publication consent are still theirs to give.
+        agent_name: known.full_name,
+        agent_email: known.agent_email,
+        agent_phone: known.phone,
+        approved_contact_email: known.agent_email,
+        approved_contact_phone: known.phone,
+        brokerage_name: known.brokerage_name,
+        agent_license_number: known.license_number,
+        agent_photo_url: known.photo_url,
         selected_media: [],
         cover_file_id: "",
         include_video: false,
