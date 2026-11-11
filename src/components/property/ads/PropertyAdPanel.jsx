@@ -155,9 +155,13 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
 
   if (!overview) return null;
 
+  const purchasable = overview.listing?.purchasable !== false;
+  // A page still in draft can carry a paid campaign that starts later; what the banner says has to
+  // match what is actually possible.
+  const startsLater = purchasable && overview.listing?.live_now !== true;
   const state = {
     activeTier: overview.campaign?.status === "ACTIVE" ? overview.campaign.package_tier : "",
-    canPurchase: overview.checkout_enabled === true && overview.listing?.eligible === true,
+    canPurchase: overview.checkout_enabled === true && purchasable,
     busy: !!busyTier,
     busyTier,
   };
@@ -194,10 +198,19 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
         </div>
       )}
 
-      {!overview.listing?.eligible && (
+      {!purchasable && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {(overview.listing?.blockers || []).join(" ")} A campaign can only run for a property page that is published and shown as
-          available.
+          {[...(overview.listing?.purchase_blockers || []), ...(overview.listing?.blockers || [])].join(" ")}
+        </div>
+      )}
+
+      {startsLater && (
+        <div className="rounded-xl border border-[#B8956A]/35 bg-[#FFFBF5] px-4 py-3 text-sm leading-relaxed text-[#1A1A1A]/75">
+          You can choose and pay for a campaign now. It starts running once your property page is approved and live, and the
+          property is still shown as available — the {`paid`} days begin on the day it launches, not on the day you buy it.
+          {(overview.listing?.blockers || []).length > 0 && (
+            <span className="mt-1 block text-xs text-[#1A1A1A]/55">Still needed: {(overview.listing?.blockers || []).join(" ")}</span>
+          )}
         </div>
       )}
 
@@ -206,7 +219,7 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
           {overview.provider_readiness?.connected
             ? "Advertising delivery is not switched on for this account yet."
             : "Our advertising account is not connected yet, so live delivery is not available at this moment."}{" "}
-          Nothing is charged until a campaign can actually run.
+          Your campaign waits for a launch window, and the refund policy below applies if it cannot run.
         </div>
       )}
 

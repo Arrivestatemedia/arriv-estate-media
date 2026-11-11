@@ -22,6 +22,7 @@ import { AD_SWITCH_OFF } from '../../shared/propertyAdSwitches.ts';
 import { metaProvider, googleAdsProvider } from '../../shared/propertyAdProviders.ts';
 import {
   campaignEligibility,
+  campaignPurchaseGate,
   createDraftCampaign,
   recordAuthorization,
   authorizationIsCurrent,
@@ -294,6 +295,11 @@ Deno.serve(async (req) => {
     check('Missing authority blocks advertising', campaignEligibility(listingFixture({ authority_confirmed: false })).eligible === false);
     check('A certification listing never advertises', campaignEligibility(listingFixture({ certification_mode: true })).eligible === false);
     check('An overdue status confirmation blocks advertising', campaignEligibility(listingFixture({ status_confirmation_due_at: '2020-01-01T00:00:00Z' })).eligible === false);
+    const draftGate = campaignPurchaseGate(listingFixture({ publication_state: 'DRAFT', authority_confirmed: false }));
+    check('A page still in draft can reserve a campaign that starts later', draftGate.ok === true && draftGate.live_now === false, draftGate);
+    check('An unpublished page still cannot advertise', campaignEligibility(listingFixture({ publication_state: 'DRAFT' })).eligible === false);
+    check('A sold property cannot even reserve a campaign', campaignPurchaseGate(listingFixture({ listing_status: 'sold' })).ok === false);
+    check('A withdrawn property cannot even reserve a campaign', campaignPurchaseGate(listingFixture({ listing_status: 'withdrawn' })).ok === false);
 
     // ── 4. Creative assembly ────────────────────────────────────────────────────────────
     const creative = buildAdCreative({ listing: listingFixture(), tier: 'growth', publicUrl: listingFixture().public_url, campaignId: 'adc_test' });

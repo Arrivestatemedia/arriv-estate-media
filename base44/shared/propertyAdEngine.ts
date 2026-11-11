@@ -128,6 +128,31 @@ export function campaignEligibility(listing: any, now = new Date()): AdEligibili
   return { eligible: blockers.length === 0, blockers };
 }
 
+// Two separate questions, deliberately answered apart.
+//
+// A customer may choose, approve and pay for a campaign while the property page is still being
+// prepared: the campaign simply does not start until the page is approved and live, and its paid
+// term begins when it actually launches. What can never happen is paying for a campaign on a
+// property that cannot be advertised at all (sold, withdrawn, archived, or a certification fixture).
+// `live_now` still comes from campaignEligibility, so the launch gate below keeps every publication,
+// availability and authority requirement intact.
+export interface AdPurchaseGate {
+  ok: boolean;
+  blockers: string[];
+  live_now: boolean;
+}
+
+export function campaignPurchaseGate(listing: any, now = new Date()): AdPurchaseGate {
+  const blockers: string[] = [];
+  if (!listing) return { ok: false, blockers: ["The property could not be found."], live_now: false };
+  if (listing.certification_mode) blockers.push("Certification listings cannot be advertised.");
+  if (!["active", "pending"].includes(String(listing.listing_status || ""))) {
+    blockers.push("The property is not currently available for sale.");
+  }
+  if (!listing.public_url && !listing.public_slug) blockers.push("The property has no public page to send advertising traffic to.");
+  return { ok: blockers.length === 0, blockers, live_now: campaignEligibility(listing, now).eligible };
+}
+
 // ── Creative and draft ────────────────────────────────────────────────────────────────────────
 
 export function publicUrlFor(listing: any, origin: string) {
@@ -151,8 +176,8 @@ export async function createDraftCampaign(client: any, input: {
   const pkg = adPackage(input.tier);
   if (!pkg) throw new Error("Unknown advertising package");
 
-  const eligibility = campaignEligibility(input.listing, now);
-  if (!eligibility.eligible) {
+  const eligibility = campaignPurchaseGate(input.listing, now);
+  if (!eligibility.ok) {
     return { ok: false as const, code: "LISTING_NOT_ELIGIBLE", blockers: eligibility.blockers };
   }
 
@@ -274,8 +299,8 @@ export async function approveByCustomer(client: any, campaign: any, input: { act
   if (!authorizationIsCurrent(campaign)) {
     return { ok: false as const, code: "AUTHORIZATION_REQUIRED" };
   }
-  const eligibility = campaignEligibility(input.listing, now);
-  if (!eligibility.eligible) {
+  const eligibility = campaignPurchaseGate(input.listing, now);
+  if (!eligibility.ok) {
     return { ok: false as const, code: "LISTING_NOT_ELIGIBLE", blockers: eligibility.blockers };
   }
   const issues = creativeComplianceIssues(campaign.creative);

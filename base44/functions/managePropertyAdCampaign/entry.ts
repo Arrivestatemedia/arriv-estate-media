@@ -17,6 +17,7 @@ import {
 } from '../../shared/propertyAdStateMachine.ts';
 import {
   campaignEligibility,
+  campaignPurchaseGate,
   createDraftCampaign,
   recordAuthorization,
   approveByCustomer,
@@ -111,6 +112,7 @@ Deno.serve(async (req) => {
       }
 
       const eligibility = campaignEligibility(listing, now);
+      const purchaseGate = campaignPurchaseGate(listing, now);
       const current = await currentCampaignForListing(base44, listing.listing_id);
       const history = (await campaignsForListing(base44, listing.listing_id)).filter((c: any) => c.certification_mode !== true);
       const origin = String((globalThis as any)?.process?.env?.PROPERTY_PUBLIC_ORIGIN || '');
@@ -143,6 +145,9 @@ Deno.serve(async (req) => {
           listing_status: listing.listing_status,
           eligible: eligibility.eligible,
           blockers: eligibility.blockers,
+          purchasable: purchaseGate.ok,
+          purchase_blockers: purchaseGate.blockers,
+          live_now: purchaseGate.live_now,
         },
         packages: AD_PACKAGES.map((pkg) => adQuote(pkg.tier)),
         campaign: customerView(current),
@@ -206,8 +211,8 @@ Deno.serve(async (req) => {
       if (body.confirmed !== true) {
         return Response.json({ ok: false, error: 'AUTHORIZATION_NOT_CONFIRMED' }, { status: 400 });
       }
-      const eligibility = campaignEligibility(listing, now);
-      if (!eligibility.eligible) {
+      const eligibility = campaignPurchaseGate(listing, now);
+      if (!eligibility.ok) {
         return Response.json({ ok: false, error: 'LISTING_NOT_ELIGIBLE', blockers: eligibility.blockers }, { status: 400 });
       }
       await recordAuthorization(base44, campaign, { actor: { email: actor.email || listing.client_email }, now });
@@ -242,8 +247,10 @@ Deno.serve(async (req) => {
       if (campaign.authorization?.confirmed !== true) {
         return Response.json({ ok: false, error: 'AUTHORIZATION_REQUIRED' }, { status: 400 });
       }
-      const eligibility = campaignEligibility(listing, now);
-      if (!eligibility.eligible) {
+      // Paid now, launched once the page is approved and live: the launch gate still enforces
+      // publication, availability and authority, so the money buys a campaign, never a running ad.
+      const eligibility = campaignPurchaseGate(listing, now);
+      if (!eligibility.ok) {
         return Response.json({ ok: false, error: 'LISTING_NOT_ELIGIBLE', blockers: eligibility.blockers }, { status: 400 });
       }
       const intent = await createAdPaymentIntent({
