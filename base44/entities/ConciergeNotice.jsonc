@@ -1,0 +1,105 @@
+{
+  "name": "ConciergeNotice",
+  "type": "object",
+  "properties": {
+    "notice_id": {
+      "type": "string",
+      "description": "Stable notice id (cntc_...)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Verified customer this notice belongs to"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "media_ready",
+        "appointment_attention",
+        "invoice_outstanding",
+        "benefit_available",
+        "performance_report"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow",
+        "red",
+        "green",
+        "purple"
+      ],
+      "description": "Which real system event produced this notice."
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "attention"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow"
+      ],
+      "default": "info"
+    },
+    "source_type": {
+      "type": "string",
+      "description": "Entity the event came from (Job, Invoice, Booking, PropertyListing, ...)"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "dedupe_key": {
+      "type": "string",
+      "description": "customer_email + kind + source id. The same real event is never queued twice."
+    },
+    "action_hint": {
+      "type": "string",
+      "description": "Plain instruction the customer can hand to the concierge (for example open_gallery)"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dismissed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "notice_id",
+    "customer_email",
+    "kind",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

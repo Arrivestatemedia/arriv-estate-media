@@ -175,6 +175,7 @@ export default function BookingPage() {
   const [lockedInvite, setLockedInvite] = useState(null);
   const [salesReps, setSalesReps] = useState([]);
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [prefillDate, setPrefillDate] = useState("");
   const [propertySqft, setPropertySqft] = useState(null);
   const [sqftSource, setSqftSource] = useState(null);
   const [sqftLookingUp, setSqftLookingUp] = useState(false);
@@ -338,6 +339,20 @@ export default function BookingPage() {
         }
       }).catch(err => console.error('Failed to load invite:', err));
     }
+
+    // Arriv Concierge handoff: carry the package, date and property the customer named so
+    // the existing secure booking engine opens with that context. Availability, the final
+    // total and payment still happen here — the concierge never books or charges.
+    const prefillPackage = urlParams.get('package');
+    const prefillDateParam = urlParams.get('date');
+    const prefillAddress = urlParams.get('address');
+    const matchedPackage = prefillPackage ? packages.find(p => p.id === prefillPackage) : null;
+    if (prefillAddress) setPropertyAddress(prefillAddress);
+    if (prefillDateParam && /^\d{4}-\d{2}-\d{2}$/.test(prefillDateParam)) setPrefillDate(prefillDateParam);
+    if (matchedPackage) {
+      setSelectedPackage(matchedPackage);
+      if (prefillDateParam || prefillAddress) setShowBookingForm(true);
+    }
   }, []);
 
   const [customer, setCustomer] = useState(null);
@@ -489,6 +504,7 @@ export default function BookingPage() {
       propertySqft={propertySqft}
       pricingTier={pricingTier}
       propertyAddress={propertyAddress}
+      prefillDate={prefillDate}
       adjustedPackagePrice={selectedPackage ? getAdjustedPackagePriceDollars(selectedPackage.id) : null}
       lifecycleAdjustmentDollars={lifecycleAdjustmentDollars}
       onSubmit={editingBooking ? async (formData) => {

@@ -1,0 +1,181 @@
+/* Arriv Preferred Concierge — premium portal skin.
+   Scoped to body.preferred-portal, which is only applied for a signed-in customer
+   whose Preferred entitlement resolved server-side. Every rule is additive: the
+   standard portal is untouched for everyone else. */
+
+body.preferred-portal {
+  --bg-primary: #0e1112;
+  --bg-secondary: #171b1d;
+  --card-bg: #171b1d;
+  --text-primary: #f6f1e8;
+  --text-secondary: rgba(246, 241, 232, 0.62);
+  --accent-color: #c8a87c;
+  --accent-hover: #d9bd95;
+  --border-color: rgba(200, 168, 124, 0.22);
+  background: #0e1112;
+  color: var(--text-primary);
+}
+
+body.preferred-portal header {
+  background: linear-gradient(180deg, #12161700 0%, #14181a 100%), #121617 !important;
+  border-bottom-color: rgba(200, 168, 124, 0.26) !important;
+  backdrop-filter: blur(14px);
+}
+
+body.preferred-portal main {
+  background-image:
+    radial-gradient(1100px 520px at 12% -8%, rgba(200, 168, 124, 0.10), transparent 62%),
+    radial-gradient(900px 460px at 92% 4%, rgba(200, 168, 124, 0.06), transparent 60%);
+  min-height: calc(100vh - 4rem);
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────────── */
+body.preferred-portal main .bg-white {
+  background: linear-gradient(168deg, #1c2123 0%, #15191b 100%) !important;
+  border-color: rgba(200, 168, 124, 0.18) !important;
+  box-shadow: 0 22px 48px -28px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(246, 241, 232, 0.05);
+  border-radius: 20px;
+}
+
+body.preferred-portal main .bg-\[\#FFFBF5\],
+body.preferred-portal main .bg-\[\#f3efe9\],
+body.preferred-portal main .bg-\[\#faf7f2\] {
+  background-color: transparent !important;
+}
+
+body.preferred-portal main .bg-\[\#1A1A1A\] {
+  background: #14181a !important;
+  border-color: rgba(200, 168, 124, 0.2) !important;
+}
+
+body.preferred-portal main .bg-\[\#B8956A\],
+body.preferred-portal main .bg-\[\#B8956A\]\/10,
+body.preferred-portal main .bg-\[\#B8956A\]\/15 {
+  background-color: rgba(200, 168, 124, 0.14) !important;
+}
+
+body.preferred-portal main button.bg-\[\#B8956A\],
+body.preferred-portal main a.bg-\[\#B8956A\],
+body.preferred-portal main .bg-\[\#B8956A\].rounded-lg,
+body.preferred-portal main .bg-\[\#B8956A\].rounded-full {
+  background: linear-gradient(180deg, #d3b389, #c19f72) !important;
+  color: #14181a !important;
+  border: 1px solid rgba(246, 241, 232, 0.18);
+}
+
+/* ── Type ─────────────────────────────────────────────────────────────────── */
+body.preferred-portal main .text-\[\#1A1A1A\] {
+  color: var(--text-primary) !important;
+}
+
+body.preferred-portal main .text-\[\#1A1A1A\]\/80,
+body.preferred-portal main .text-\[\#1A1A1A\]\/70,
+body.preferred-portal main .text-\[\#1A1A1A\]\/60 {
+  color: rgba(246, 241, 232, 0.76) !important;
+}
+
+body.preferred-portal main .text-\[\#1A1A1A\]\/55,
+body.preferred-portal main .text-\[\#1A1A1A\]\/50,
+body.preferred-portal main .text-\[\#1A1A1A\]\/40,
+body.preferred-portal main .text-\[\#1A1A1A\]\/30 {
+  color: rgba(246, 241, 232, 0.52) !important;
+}
+
+body.preferred-portal main h1,
+body.preferred-portal main h2,
+body.preferred-portal main h3 {
+  letter-spacing: -0.01em;
+}
+
+body.preferred-portal main h1 {
+  background: linear-gradient(104deg, #f8f3ea 12%, #d8bd97 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Lines and form fields ────────────────────────────────────────────────── */
+body.preferred-portal main .border,
+body.preferred-portal main .border-b,
+body.preferred-portal main .border-t,
+body.preferred-portal main .border-l,
+body.preferred-portal main .border-r {
+  border-color: rgba(200, 168, 124, 0.18) !important;
+}
+
+body.preferred-portal main input,
+body.preferred-portal main textarea,
+body.preferred-portal main select {
+  background-color: rgba(10, 13, 14, 0.62) !important;
+  border-color: rgba(200, 168, 124, 0.26) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px;
+}
+
+body.preferred-portal main input::placeholder,
+body.preferred-portal main textarea::placeholder {
+  color: rgba(246, 241, 232, 0.38) !important;
+}
+
+/* ── Floating premium motion ──────────────────────────────────────────────── */
+@keyframes preferredRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body.preferred-portal main > * {
+  animation: preferredRise 420ms ease-out both;
+}
+
+body.preferred-portal main .bg-white {
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+}
+
+body.preferred-portal main .bg-white:hover {
+  border-color: rgba(200, 168, 124, 0.34) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.preferred-portal main > *,
+  body.preferred-portal main .bg-white {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Concierge dock ───────────────────────────────────────────────────────── */
+.preferred-dock {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  z-index: 60;
+  font-family: inherit;
+}
+
+@media (min-width: 768px) {
+  .preferred-dock { bottom: 1.5rem; right: 1.5rem; }
+}
+
+.preferred-dock-surface {
+  background: linear-gradient(170deg, #1b2022 0%, #121617 100%);
+  border: 1px solid rgba(200, 168, 124, 0.28);
+  box-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(246, 241, 232, 0.06);
+  border-radius: 22px;
+}
+
+.preferred-gold-text {
+  background: linear-gradient(100deg, #f4ead9 8%, #cbaa7f 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.preferred-hairline {
+  border-color: rgba(200, 168, 124, 0.2);
+}
+
+.preferred-focus:focus-visible {
+  outline: 2px solid rgba(200, 168, 124, 0.7);
+  outline-offset: 2px;
+}

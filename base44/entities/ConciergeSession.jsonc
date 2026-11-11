@@ -1,0 +1,157 @@
+{
+  "name": "ConciergeSession",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Stable concierge session id (cses_...). One row per customer conversation thread."
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Verified customer this session belongs to. Always taken from the customer session, never from the model."
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Conversation thread id shared by the text interface and the Tavus video representative, so both use one history and one action engine."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "idle",
+        "closed"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "gray"
+      ],
+      "default": "active"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "text",
+        "video"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "text",
+      "description": "Channel last used in this conversation."
+    },
+    "context": {
+      "type": "object",
+      "description": "Last known page context (route, selected property) so a follow-up instruction resolves without repeating it.",
+      "properties": {
+        "page": {
+          "type": "string"
+        },
+        "listing_id": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "string"
+        }
+      }
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Bounded conversation history shown in the panel. Truncated to the most recent entries; the durable record of what was done lives in ConciergeAction.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Non-sensitive preferences the customer explicitly approved. Never payment data or private details.",
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "preferred_package": {
+          "type": "string"
+        },
+        "greeting_style": {
+          "type": "string"
+        },
+        "keep_history": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "tavus_conversation_id": {
+      "type": "string"
+    },
+    "tavus_conversation_url": {
+      "type": "string",
+      "description": "Tavus conversation URL returned when a video session was created on demand. Cleared when the session ends."
+    },
+    "tavus_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tavus_ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "video_seconds_used": {
+      "type": "number",
+      "default": 0,
+      "description": "Observed video usage recorded for cost monitoring."
+    },
+    "last_active_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "session_id",
+    "customer_email",
+    "conversation_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

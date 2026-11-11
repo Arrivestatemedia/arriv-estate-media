@@ -1,0 +1,133 @@
+{
+  "name": "ConciergeAction",
+  "type": "object",
+  "properties": {
+    "action_id": {
+      "type": "string",
+      "description": "Stable action id (cact_...). The audit record of one concierge-requested action."
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Verified customer the action ran for. Never supplied by the conversational model."
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "text",
+        "video"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Which interface requested the action. Both channels run the same action engine."
+    },
+    "action_name": {
+      "type": "string",
+      "description": "Registered action name that ran (or is awaiting confirmation)."
+    },
+    "utterance": {
+      "type": "string",
+      "description": "The customer instruction that produced this action."
+    },
+    "mutating": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "awaiting_confirmation",
+        "executed",
+        "declined",
+        "failed",
+        "expired",
+        "duplicate_suppressed"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "gray",
+        "red",
+        "gray",
+        "purple"
+      ],
+      "default": "proposed"
+    },
+    "input": {
+      "type": "object",
+      "description": "Validated action input."
+    },
+    "result": {
+      "type": "object",
+      "description": "Structured result returned by the real backend operation."
+    },
+    "ui": {
+      "type": "object",
+      "description": "Validated frontend directive the portal may act on (navigation, display). Never arbitrary code."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Deterministic key for this customer, action and input. A repeat request matches it instead of running twice."
+    },
+    "confirmation_summary": {
+      "type": "string",
+      "description": "Plain-language details shown to the customer before a consequential action."
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "action_id",
+    "customer_email",
+    "action_name",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

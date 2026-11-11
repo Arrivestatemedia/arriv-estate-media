@@ -1,0 +1,57 @@
+import { base44 } from '@/api/base44Client';
+import { withCustomerSession } from '@/lib/customerSession';
+
+/**
+ * Browser client for the Arriv Preferred Concierge.
+ * Every call carries the existing verified customer session; the server re-derives
+ * identity, entitlement and ownership from it.
+ */
+
+async function invoke(name, payload = {}) {
+  const response = await base44.functions.invoke(name, withCustomerSession(payload));
+  return response?.data ?? response;
+}
+
+export async function fetchConciergeEntitlement() {
+  try {
+    return await invoke('getConciergeEntitlement');
+  } catch (error) {
+    // A missing/expired customer session simply means "not a Preferred member" here;
+    // the portal's own session handling deals with expiry.
+    if (Number(error?.status || error?.response?.status) === 401) return null;
+    throw error;
+  }
+}
+
+export function askConcierge({ utterance, sessionId, conversationId, context, channel = 'text' }) {
+  return invoke('conciergeAgent', {
+    utterance,
+    session_id: sessionId || undefined,
+    conversation_id: conversationId || undefined,
+    context: context || {},
+    channel,
+  });
+}
+
+export function confirmConciergeAction({ actionRecordId, decision }) {
+  return invoke('conciergeConfirmAction', {
+    action_record_id: actionRecordId,
+    decision: decision || 'confirm',
+  });
+}
+
+export function startConciergeVideo(sessionId) {
+  return invoke('conciergeTavusSession', { action: 'start', session_id: sessionId || undefined });
+}
+
+export function endConciergeVideo(sessionId) {
+  return invoke('conciergeTavusSession', { action: 'end', session_id: sessionId || undefined });
+}
+
+export function fetchConciergeNotices(action = 'refresh') {
+  return invoke('conciergeNotices', { action });
+}
+
+export function markConciergeNotice(noticeId, action) {
+  return invoke('conciergeNotices', { action, notice_id: noticeId });
+}

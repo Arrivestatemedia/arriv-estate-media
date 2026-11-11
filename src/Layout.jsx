@@ -21,6 +21,8 @@ import SupportBubble from "@/components/support/SupportBubble";
 import SupportPanel from "@/components/support/SupportPanel";
 import { FinalEditsUploadProvider } from "@/components/editing/FinalEditsUploadContext";
 import FinalEditsUploadStatusBanner from "@/components/editing/FinalEditsUploadStatusBanner";
+import PreferredProvider from "@/components/preferred/PreferredProvider";
+import PreferredHeaderChip from "@/components/preferred/PreferredHeaderChip";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
@@ -266,6 +268,7 @@ function LayoutContent({ children, currentPageName }) {
   const showBackButton = user && !isPrimaryRoute && !effectiveIsSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
   return (
+    <PreferredProvider user={user}>
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user ? '4.5rem' : '0' }}>
       {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && currentPageName !== "SalesLogin" && <GoogleMapsLoader />}
       <TwilioSdkLoader />
@@ -423,6 +426,7 @@ function LayoutContent({ children, currentPageName }) {
                       {adminMode === 'sales' ? 'Sales' : 'Editing'} Mode
                     </button>
                   )}
+                  <PreferredHeaderChip />
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
@@ -478,6 +482,9 @@ function LayoutContent({ children, currentPageName }) {
                 Switch to {adminMode === 'sales' ? 'Editing' : 'Sales'}
               </button>
             )}
+            <div className="px-3 pb-1">
+              <PreferredHeaderChip />
+            </div>
             {navItems.length > 0 && navItems.map((item) => {
                 const Icon = item.icon;
                 const active = currentPageName === item.page;
@@ -608,6 +615,7 @@ function LayoutContent({ children, currentPageName }) {
         <div className="fixed bottom-0 right-0 w-1/2 h-1/2 bg-transparent pointer-events-auto z-[9998]" />
       )}
     </div>
+    </PreferredProvider>
   );
 }
 
