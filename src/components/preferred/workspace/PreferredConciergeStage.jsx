@@ -4,8 +4,12 @@ import { endConciergeVideo, startConciergeVideo } from "@/lib/conciergeClient";
 import PreferredConciergePresence from "@/components/preferred/PreferredConciergePresence";
 import PreferredConciergeChat from "./PreferredConciergeChat";
 
-const STARTED_KEY = "arriv_concierge_stage_started";
 const SESSION_SECONDS = 180;
+
+// She greets the member once per visit to the portal. Held in memory only, so a reload
+// brings her back (she is there when you arrive) while moving around the portal lets
+// her rest instead of minting a new video session on every page.
+let greetedThisVisit = false;
 
 function clock(seconds) {
   const safe = Math.max(0, Number(seconds) || 0);
@@ -38,15 +42,14 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
     setFallback(false);
     setRemaining(SESSION_SECONDS);
     try {
-      const result = await startConciergeVideo(null);
+      // A fresh conversation every time she is asked for: a conversation left behind by
+      // an earlier visit is still "open" at the provider but her video is gone from it,
+      // which is what produced an empty frame.
+      const result = await startConciergeVideo(null, { fresh: true });
       if (result?.ok && result?.conversation_url) {
         setUrl(result.conversation_url);
         setPhase("live");
-        try {
-          sessionStorage.setItem(STARTED_KEY, "1");
-        } catch {
-          /* storage unavailable: the representative simply appears again next visit */
-        }
+        greetedThisVisit = true;
       } else {
         setUrl("");
         setPhase("unavailable");
@@ -74,13 +77,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   // Appear immediately on arrival, once per browser session. After that the break note
   // stays up and the customer brings the representative back with one click.
   useEffect(() => {
-    let alreadyStarted = false;
-    try {
-      alreadyStarted = sessionStorage.getItem(STARTED_KEY) === "1";
-    } catch {
-      alreadyStarted = false;
-    }
-    if (alreadyStarted) {
+    if (greetedThisVisit) {
       setPhase("break");
       return;
     }

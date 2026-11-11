@@ -101,6 +101,21 @@ export default async function (req) {
       return Response.json({ ok: true, ended: true });
     }
 
+    // Starting on request always starts a conversation that really has her in it. A
+    // conversation left behind by an earlier visit stays "active" at the provider after
+    // the customer leaves, but her video is no longer in the room, so joining it shows
+    // an empty frame. Ending it first means the frame that opens has a concierge in it.
+    if (body?.fresh === true && session.tavus_conversation_id) {
+      await endTavusConversation(session.tavus_conversation_id).catch(() => null);
+      await base44.asServiceRole.entities.ConciergeSession.update(session.id, {
+        tavus_conversation_id: '',
+        tavus_conversation_url: '',
+        tavus_ended_at: new Date().toISOString(),
+      });
+      session.tavus_conversation_id = '';
+      session.tavus_conversation_url = '';
+    }
+
     const apiKey = Deno.env.get('TAVUS_API_KEY');
     const palId = Deno.env.get('TAVUS_CONCIERGE_PAL_ID');
     const replicaId = Deno.env.get('TAVUS_CONCIERGE_REPLICA_ID');

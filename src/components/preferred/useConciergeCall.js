@@ -7,8 +7,31 @@ import Daily from "@daily-co/daily-js";
  * prompt, pre-join lobby, participant counter and picture-in-picture self view).
  *
  * The customer's camera is never opened: only audio goes out, so there is no self view
- * to speak of. If the room refuses a direct join, `onFail` lets the caller fall back.
+ * to speak of. If the room refuses a direct join, or she never appears, `onFail` lets
+ * the caller fall back.
  */
+
+/** Daily reports a track started with a MediaStreamTrack plus its type. */
+function paintTrack(videoEl, audioEl, track, type, playAudio) {
+  const raw = track?.persistentTrack || track;
+  if (!raw) return false;
+  const kind = type || raw.kind;
+  const stream = new MediaStream([raw]);
+  if (kind === "video" || kind === "screenVideo") {
+    if (!videoEl) return false;
+    videoEl.srcObject = stream;
+    videoEl.play?.().catch(() => null);
+    return true;
+  }
+  if (kind === "audio") {
+    if (audioEl) {
+      audioEl.srcObject = stream;
+      playAudio();
+    }
+  }
+  return false;
+}
+
 export default function useConciergeCall({ url, displayName, onFail }) {
   const callRef = useRef(null);
   const videoRef = useRef(null);
@@ -30,7 +53,7 @@ export default function useConciergeCall({ url, displayName, onFail }) {
   useEffect(() => {
     if (!url) return undefined;
     let cancelled = false;
-    let call = null;
+    let sawVideo = false;
 
     const fail = () => {
       if (cancelled || failedRef.current) return;
@@ -39,40 +62,34 @@ export default function useConciergeCall({ url, displayName, onFail }) {
       onFailRef.current?.();
     };
 
-    const attach = (track) => {
-      if (!track?.persistentTrack) return;
-      const stream = new MediaStream([track.persistentTrack]);
-      if (track.type === "video" || track.type === "screenVideo") {
-        const el = videoRef.current;
-        if (el) el.srcObject = stream;
-      } else if (track.type === "audio") {
-        const el = audioRef.current;
-        if (el) {
-          el.srcObject = stream;
-          playAudio();
-        }
-      }
+    const attach = (track, type) => {
+      const painted = paintTrack(videoRef.current, audioRef.current, track, type, playAudio);
+      if (painted) sawVideo = true;
     };
 
-    try {
-      call = Daily.createCallObject({
-        audioSource: true,
-        videoSource: false,
-        subscribeToTracksAutomatically: true,
-      });
-    } catch {
-      fail();
-      return undefined;
-    }
+    const call = Daily.createCallObject({
+      audioSource: true,
+      videoSource: false,
+      subscribeToTracksAutomatically: true,
+    });
     callRef.current = call;
 
     call.on("track-started", (event) => {
-      if (!event?.participant?.local) attach(event?.track);
+      // Her tracks only: the customer's own microphone is never painted anywhere.
+      if (event?.participant?.local) return;
+      attach(event?.track, event?.type);
     });
+
     call.on("track-stopped", (event) => {
       if (event?.participant?.local) return;
-      if (event?.track?.type === "video" && videoRef.current) videoRef.current.srcObject = null;
+      const kind = event?.type || event?.track?.kind;
+      if (kind === "video" || kind === "screenVideo") {
+        if (videoRef.current) videoRef.current.srcObject = null;
+        // She has left the room: show the waiting state rather than a black frame.
+        if (!cancelled) setStatus("waiting");
+      }
     });
+
     call.on("error", fail);
 
     call
@@ -83,25 +100,38 @@ export default function useConciergeCall({ url, displayName, onFail }) {
         startAudioOff: false,
       })
       .then(() => {
-        if (!cancelled) setStatus("live");
+        if (cancelled) return;
+        // Anything already playable when we arrive is painted now, so a track that
+        // started during the join is never missed.
+        const participants = call.participants?.() || {};
+        Object.values(participants).forEach((participant) => {
+          if (participant?.local) return;
+          Object.values(participant?.tracks || {}).forEach((entry) => {
+            if (entry?.state !== "playable" || !entry?.track) return;
+            attach(entry.track, entry.track.kind === "video" ? "video" : "audio");
+          });
+        });
+        setStatus("live");
       })
       .catch(fail);
 
-    // A room that never lets us in must hand over to the caller's fallback.
+    // A room that never lets us in, or lets us in without her, must hand over to the
+    // caller's fallback instead of leaving an empty frame on screen.
     const guard = setTimeout(() => {
-      if (!cancelled && callRef.current?.meetingState?.() !== "joined-meeting") fail();
+      if (cancelled || failedRef.current) return;
+      if (call.meetingState?.() !== "joined-meeting" || !sawVideo) fail();
     }, 20000);
 
     return () => {
       cancelled = true;
       clearTimeout(guard);
       try {
-        call?.leave();
+        call.leave();
       } catch {
         /* the frame is being torn down anyway */
       }
       try {
-        call?.destroy();
+        call.destroy();
       } catch {
         /* nothing else to release */
       }

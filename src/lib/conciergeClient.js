@@ -40,9 +40,13 @@ export function confirmConciergeAction({ actionRecordId, decision }) {
   });
 }
 
-export async function startConciergeVideo(sessionId) {
+export async function startConciergeVideo(sessionId, { fresh = false } = {}) {
   try {
-    return await invoke('conciergeTavusSession', { action: 'start', session_id: sessionId || undefined });
+    return await invoke('conciergeTavusSession', {
+      action: 'start',
+      session_id: sessionId || undefined,
+      fresh,
+    });
   } catch (error) {
     // A failed start comes back as a non-2xx response; surface the server's own reason
     // instead of a generic message, so a real configuration problem stays visible.
