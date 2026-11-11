@@ -69,6 +69,7 @@
       "type": "string",
       "enum": [
         "pending_payment",
+        "authorized",
         "active",
         "paused",
         "expired",
@@ -78,6 +79,7 @@
       ],
       "enumColors": [
         "yellow",
+        "blue",
         "green",
         "yellow",
         "gray",
@@ -86,7 +88,12 @@
         "red"
       ],
       "default": "pending_payment",
-      "description": "Lifecycle state. Benefits are granted only by a verified payment flipping this to active."
+      "description": "Lifecycle state. 'authorized' means the customer's card is held but nothing has been charged: the charge happens only once the property page is approved and live."
+    },
+    "authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer's card was authorized (held, not charged) for this package."
     },
     "activated_at": {
       "type": "string",
@@ -117,7 +124,7 @@
     },
     "ended_reason": {
       "type": "string",
-      "description": "expired | listing_archived | listing_sold | listing_withdrawn | authorization_revoked | replaced_by_upgrade | voluntary_cancellation | refunded | ineligible_too_long"
+      "description": "expired | listing_archived | listing_sold | listing_withdrawn | authorization_revoked | replaced_by_upgrade | voluntary_cancellation | refunded | ineligible_too_long | authorization_expired"
     },
     "supersedes_promotion_id": {
       "type": "string",
@@ -129,7 +136,7 @@
     },
     "stripe_payment_intent_id": {
       "type": "string",
-      "description": "The payment that funded this promotion. Unique across promotions: one payment can never grant two entitlements."
+      "description": "The payment that funds this promotion. Unique across promotions: one payment can never grant two entitlements."
     },
     "stripe_client_secret": {
       "type": "string",

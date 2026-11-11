@@ -10,15 +10,19 @@ import {
 } from '../../shared/propertyPackages.ts';
 import {
   attachPaymentIntent,
+  authorizedPromotionForListing,
+  capturePromotionPayment,
   createPendingPurchase,
   endPromotion,
   getPromotion,
   livePromotionForListing,
   loadListing,
+  markPaymentAuthorized,
   pendingPromotionForListing,
   promotionEntitlement,
   promotionPerformance,
   purchasable,
+  releasePaymentAuthorization,
   quotePurchase,
   verifyPaymentWithStripe,
   activatePromotion,
@@ -55,13 +59,17 @@ async function createStripePaymentIntent(opts: {
   const form = new URLSearchParams({
     amount: String(opts.amountCents),
     currency: "usd",
-    "automatic_payment_methods[enabled]": "true",
+    // Card only: deferred capture is guaranteed for cards, and the money is only taken once the
+    // page is approved and live.
+    "payment_method_types[0]": "card",
+    capture_method: "manual",
     description: `Arriv Estate Media — property marketing package (${opts.tier})`,
     "metadata[purpose]": "property_package_purchase",
     "metadata[promotion_id]": opts.promotionId,
     "metadata[listing_id]": opts.listingId,
     "metadata[tier]": opts.tier,
     "metadata[client_email]": opts.clientEmail,
+    "metadata[capture_at_approval]": "true",
   });
   if (String(opts.clientEmail || "").includes("@")) form.set("receipt_email", opts.clientEmail);
 
@@ -104,6 +112,7 @@ Deno.serve(async (req) => {
 
       const current = await livePromotionForListing(base44, listing.listing_id);
       const pending = await pendingPromotionForListing(base44, listing.listing_id);
+      const reserved = await authorizedPromotionForListing(base44, listing.listing_id);
       const entitlement = promotionEntitlement(current, now);
       const saleCheck = purchasable(listing, now);
       const history = rows(
@@ -119,7 +128,7 @@ Deno.serve(async (req) => {
         ok: true,
         checkout_enabled: checkoutEnabled,
         checkout_note: checkoutEnabled
-          ? "Paid packages can be purchased now."
+          ? "Choose a package now and your card is only charged once your page is approved."
           : "Paid checkout is not open yet. You can review the packages; nothing will be charged.",
         listing: {
           listing_id: listing.listing_id,
@@ -131,6 +140,7 @@ Deno.serve(async (req) => {
           publication_state: listing.publication_state,
           listing_status: listing.listing_status,
           purchasable: saleCheck.ok,
+          live_now: saleCheck.live_now === true,
           not_purchasable_reason: saleCheck.reason,
         },
         packages: PACKAGES,
@@ -152,13 +162,24 @@ Deno.serve(async (req) => {
             }
           : null,
         pending_payment: pending ? { promotion_id: pending.promotion_id, package_tier: pending.package_tier, amount_cents: pending.amount_cents } : null,
+        // A package the customer reserved: the card is held, nothing charged, waiting for approval.
+        pending_authorization: reserved
+          ? {
+              promotion_id: reserved.promotion_id,
+              package_tier: reserved.package_tier,
+              package_name: reserved.package_tier === "pro" ? "Visibility Pro" : "Visibility Plus",
+              amount_cents: reserved.amount_cents,
+              price_label: priceLabelFromCents(Number(reserved.amount_cents || 0)),
+              authorized_at: reserved.authorized_at || "",
+            }
+          : null,
         quotes: {
           plus: { amount_cents: plusQuote.amount_cents, price_label: plusQuote.price_label, purchase_type: plusQuote.purchase_type },
           pro: { amount_cents: proQuote.amount_cents, price_label: proQuote.price_label, purchase_type: proQuote.purchase_type },
         },
-        can_purchase: checkoutEnabled && saleCheck.ok && !entitlement.active && !entitlement.paused,
-        can_upgrade: checkoutEnabled && entitlement.active && entitlement.tier === "plus",
-        can_renew: checkoutEnabled && saleCheck.ok && !entitlement.active && !entitlement.paused && history.length > 0,
+        can_purchase: checkoutEnabled && saleCheck.ok && !reserved && !entitlement.active && !entitlement.paused,
+        can_upgrade: checkoutEnabled && entitlement.active && entitlement.tier === "plus" && !reserved,
+        can_renew: checkoutEnabled && saleCheck.ok && !reserved && !entitlement.active && !entitlement.paused && history.length > 0,
         history: history.map((p: any) => ({
           promotion_id: p.promotion_id,
           package_tier: p.package_tier,
@@ -209,6 +230,15 @@ Deno.serve(async (req) => {
         return Response.json({ ok: false, error: "ALREADY_HIGHER", message: "Visibility Pro already includes everything in Plus." });
       }
 
+      const reserved = await authorizedPromotionForListing(base44, listing.listing_id);
+      if (reserved) {
+        return Response.json({
+          ok: false,
+          error: "ALREADY_RESERVED",
+          message: `You already have ${reserved.package_tier === "pro" ? "Visibility Pro" : "Visibility Plus"} reserved for this page. It is charged only when the page is approved and goes live.`,
+        });
+      }
+
       const promotion = await createPendingPurchase(base44, {
         listing,
         tier,
@@ -254,6 +284,34 @@ Deno.serve(async (req) => {
       if (!intentId) return Response.json({ ok: false, error: "NO_PAYMENT" }, { status: 400 });
 
       const intent = await verifyPaymentWithStripe(intentId);
+
+      // The card was authorized (held), not charged. A page that is already live is charged and
+      // activated at once; a page still awaiting approval keeps the hold until it is approved.
+      if (intent?.status === "requires_capture") {
+        await markPaymentAuthorized(base44, promotion.id, { paymentIntentId: intentId, actor: actor.clientEmail });
+        const liveNow = purchasable(listing, now).live_now === true;
+        if (!liveNow) {
+          return Response.json({
+            ok: true,
+            authorized: true,
+            charged: false,
+            activated: false,
+            message: "Your card is authorized but not charged. We charge it only when your property page is approved and live.",
+          });
+        }
+        const captured = await capturePromotionPayment(base44, promotion.id, { actor: actor.clientEmail, source: "customer_confirmation" });
+        return Response.json({
+          ok: captured.activated === true,
+          charged: captured.activated === true,
+          activated: captured.activated === true,
+          duplicate: captured.duplicate === true,
+          reason: captured.reason || "",
+          message: captured.activated
+            ? "Payment complete. Your placement is live and your marketing materials are ready."
+            : "Your card is authorized, but the charge has not completed yet. Nothing further is owed from you; this confirms automatically.",
+        });
+      }
+
       if (intent?.status !== "succeeded") {
         return Response.json({ ok: false, pending: true, status: intent?.status || "unknown", message: "The payment has not completed yet." });
       }
@@ -283,12 +341,18 @@ Deno.serve(async (req) => {
       if (!promotion || promotion.listing_id !== listing.listing_id) {
         return Response.json({ ok: false, error: "PROMOTION_NOT_FOUND" }, { status: 404 });
       }
-      if (!["active", "paused", "pending_payment"].includes(promotion.status)) {
+      if (!["active", "paused", "pending_payment", "authorized"].includes(promotion.status)) {
         return Response.json({ ok: false, error: "NOT_ACTIVE" });
       }
+      // A reservation that was never charged is simply released: no money is taken for it.
+      if (promotion.status === "authorized") await releasePaymentAuthorization(promotion);
       await endPromotion(base44, promotion, {
         status: "ended",
-        reason: promotion.status === "pending_payment" ? "checkout_abandoned" : "voluntary_cancellation",
+        reason: promotion.status === "pending_payment"
+          ? "checkout_abandoned"
+          : promotion.status === "authorized"
+            ? "reservation_cancelled"
+            : "voluntary_cancellation",
         actor: actor.clientEmail,
       });
       return Response.json({

@@ -86,12 +86,25 @@ export function listingEligibility(listing: any, now = new Date()): ListingEligi
   return { ok: true, code: "ELIGIBLE", terminal: false, note: "" };
 }
 
-// May this listing be sold a package at all? (Publication approval is never bypassed: the page
-// must already be published and shown as available by the customer's own approval.)
+// May this listing be sold a package at all?
+//
+// A package can be reserved on a page that is still being prepared: the customer's card is
+// authorized then, and the charge is only taken once the page is approved and live. So only a
+// page that can never carry a placement (archived, sold, withdrawn, expired, synthetic) is refused.
+// `live_now` says whether the placement can also start immediately.
 export function purchasable(listing: any, now = new Date()) {
+  if (!listing) return { ok: false, reason: "The property page no longer exists.", code: "LISTING_MISSING", live_now: false };
+  if (listing.certification_mode === true) {
+    return { ok: false, reason: "Synthetic records never carry a paid placement.", code: "SYNTHETIC", live_now: false };
+  }
+  if (listing.publication_state === "ARCHIVED") {
+    return { ok: false, reason: "This property page was archived.", code: "ARCHIVED", live_now: false };
+  }
+  if (["sold", "withdrawn", "expired"].includes(String(listing.listing_status))) {
+    return { ok: false, reason: `This listing is ${listing.listing_status}, so it cannot carry a placement.`, code: "NOT_AVAILABLE", live_now: false };
+  }
   const eligibility = listingEligibility(listing, now);
-  if (eligibility.ok) return { ok: true, reason: "" };
-  return { ok: false, reason: eligibility.note, code: eligibility.code };
+  return { ok: true, reason: "", code: eligibility.code, live_now: eligibility.ok };
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +154,15 @@ export async function livePromotionForListing(client: any, listingId: string) {
 export async function pendingPromotionForListing(client: any, listingId: string) {
   const found = await client.asServiceRole.entities.PropertyPromotion.filter(
     { listing_id: listingId, status: "pending_payment" },
+    { sort: "-created_at", limit: 5 },
+  );
+  return rows(found)[0] || null;
+}
+
+// A package whose card is authorized but not yet charged, waiting for the page to be approved.
+export async function authorizedPromotionForListing(client: any, listingId: string) {
+  const found = await client.asServiceRole.entities.PropertyPromotion.filter(
+    { listing_id: listingId, status: "authorized" },
     { sort: "-created_at", limit: 5 },
   );
   return rows(found)[0] || null;
@@ -229,6 +251,154 @@ export async function verifyPaymentWithStripe(paymentIntentId: string) {
   return body;
 }
 
+// ---------------------------------------------------------------------------
+// Authorize now, charge when the page is approved
+// ---------------------------------------------------------------------------
+// The card is authorized (held) when the customer reserves a package. Nothing is charged then:
+// the capture — and with it the placement — happens only once the property page is approved and
+// live, which is the moment the deliverable actually exists. A hold that lapses before approval
+// is released without any charge.
+
+function stripeKey() {
+  return String((globalThis as any)?.process?.env?.STRIPE_SECRET_KEY || "");
+}
+
+async function captureStripeIntent(paymentIntentId: string) {
+  const key = stripeKey();
+  if (!key) throw new Error("STRIPE_NOT_CONFIGURED");
+  const res = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}/capture`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(),
+    signal: AbortSignal.timeout(20000),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Stripe could not capture the payment (${res.status}): ${body?.error?.message || ""}`);
+  return body;
+}
+
+// Releases a hold that will never be captured, so no money is ever taken for it.
+export async function releasePaymentAuthorization(promotion: any) {
+  const intentId = String(promotion?.stripe_payment_intent_id || "");
+  const key = stripeKey();
+  if (!intentId || !key) return { released: false };
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(intentId)}/cancel`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(),
+      signal: AbortSignal.timeout(15000),
+    });
+    return { released: res.ok };
+  } catch {
+    return { released: false };
+  }
+}
+
+// The customer's card is held; the package is reserved and grants nothing yet.
+export async function markPaymentAuthorized(
+  client: any,
+  promotionRecordId: string,
+  input: { paymentIntentId: string; actor?: string },
+) {
+  const now = new Date();
+  const promotion = await getPromotionByRecordId(client, promotionRecordId);
+  if (!promotion) throw new Error("PROMOTION_NOT_FOUND");
+  if (promotion.status === "authorized") return { promotion, duplicate: true };
+  if (promotion.status !== "pending_payment") return { promotion, duplicate: true };
+
+  const updated = await client.asServiceRole.entities.PropertyPromotion.update(promotion.id, {
+    status: "authorized",
+    stripe_payment_intent_id: input.paymentIntentId,
+    authorized_at: now.toISOString(),
+    updated_at: now.toISOString(),
+    events: appendEvent(promotion, {
+      type: "payment_authorized",
+      actor: input.actor || "customer",
+      note: `${promotion.package_tier} reserved · card held, charged only when the page is approved`,
+    }, now),
+  });
+  await notify(client, updated, "authorized");
+  return { promotion: updated, duplicate: false };
+}
+
+// Takes the money that was already authorized, then activates. Returns without charging when the
+// page is not eligible yet, so the hold simply waits for approval.
+export async function capturePromotionPayment(
+  client: any,
+  promotionRecordId: string,
+  input: { actor?: string; source?: string } = {},
+) {
+  const promotion = await getPromotionByRecordId(client, promotionRecordId);
+  if (!promotion) throw new Error("PROMOTION_NOT_FOUND");
+  if (promotion.status === "active") return { promotion, activated: true, duplicate: true, reason: "" };
+  if (promotion.status !== "authorized") {
+    return { promotion, activated: false, duplicate: false, reason: "NOT_AWAITING_CAPTURE" };
+  }
+
+  const intentId = String(promotion.stripe_payment_intent_id || "");
+  if (!intentId) return { promotion, activated: false, duplicate: false, reason: "NO_PAYMENT" };
+
+  const listing = await loadListing(client, promotion.listing_id);
+  const eligibility = listingEligibility(listing);
+  if (!eligibility.ok) return { promotion, activated: false, duplicate: false, reason: eligibility.code };
+
+  const intent = await verifyPaymentWithStripe(intentId);
+  let captured: any = intent;
+
+  if (intent?.status === "requires_capture") {
+    captured = await captureStripeIntent(intentId);
+  } else if (["canceled", "requires_payment_method", "requires_confirmation"].includes(String(intent?.status))) {
+    // The authorization lapsed before the page was approved. Nothing was charged.
+    const now = new Date();
+    const released = await client.asServiceRole.entities.PropertyPromotion.update(promotion.id, {
+      status: "ended",
+      ended_at: now.toISOString(),
+      ended_reason: "authorization_expired",
+      review_required: true,
+      review_reason: "CARD_AUTHORIZATION_EXPIRED before the page was approved",
+      updated_at: now.toISOString(),
+      events: appendEvent(promotion, { type: "authorization_expired", actor: "system", note: "Nothing was charged" }, now),
+    });
+    await notify(client, released, "authorization_expired", { listing });
+    return { promotion: released, activated: false, duplicate: false, reason: "AUTHORIZATION_EXPIRED" };
+  }
+
+  if (captured?.status !== "succeeded") {
+    return { promotion, activated: false, duplicate: false, reason: `STRIPE_${captured?.status || "unknown"}` };
+  }
+
+  const result = await activatePromotion(client, promotion.id, {
+    paymentIntentId: intentId,
+    amountCents: Number(captured.amount_received ?? captured.amount ?? promotion.amount_cents ?? 0),
+    actor: input.actor || "page_approval",
+    source: input.source || "approval_capture",
+  });
+  return {
+    promotion: result.promotion,
+    activated: result.promotion?.status === "active",
+    duplicate: result.duplicate,
+    reason: result.review ? "AMOUNT_MISMATCH" : "",
+  };
+}
+
+// Called when a property page becomes live: every package reserved for it is charged and starts.
+// A failure here never blocks the publication itself.
+export async function captureReservedPromotionsForListing(client: any, listingId: string) {
+  const reserved = rows(
+    await client.asServiceRole.entities.PropertyPromotion.filter({ listing_id: listingId, status: "authorized" }, { limit: 5 }),
+  );
+  const results: any[] = [];
+  for (const promotion of reserved) {
+    try {
+      results.push(await capturePromotionPayment(client, promotion.id, { actor: "page_approval", source: "approval_capture" }));
+    } catch (error: any) {
+      results.push({ promotion, activated: false, reason: String(error?.message || error) });
+    }
+  }
+  return results;
+}
+
 // Idempotent activation. Safe to call from the webhook and from the customer's own confirmation
 // poll at the same time: the second call reports duplicate and changes nothing.
 export async function activatePromotion(
@@ -242,7 +412,7 @@ export async function activatePromotion(
 
   const samePayment = String(promotion.stripe_payment_intent_id || "") === String(input.paymentIntentId || "");
   if (promotion.status === "active" && samePayment) return { promotion, duplicate: true, review: false };
-  if (promotion.status !== "pending_payment") return { promotion, duplicate: true, review: false };
+  if (!["pending_payment", "authorized"].includes(promotion.status)) return { promotion, duplicate: true, review: false };
 
   // One payment funds one promotion, ever.
   const others = rows(await client.asServiceRole.entities.PropertyPromotion.filter({ stripe_payment_intent_id: input.paymentIntentId }));
@@ -546,6 +716,24 @@ export async function promotionPerformance(client: any, listing: any, window: { 
 // Customer notices
 // ---------------------------------------------------------------------------
 const KIND_COPY: Record<string, { subject: (l: any, p: any) => string; lines: (l: any, p: any) => string[] }> = {
+  authorized: {
+    subject: (l, p) => `Package reserved — nothing charged yet — ${l?.property_address || "your property"}`,
+    lines: (l, p) => [
+      `Your ${packageFor(p.package_tier).name} package is reserved for this property page.`,
+      `Your card is authorized for ${priceLabelFromCents(Number(p.amount_cents || 0))} but has not been charged.`,
+      "The charge is taken automatically, and your promotional days begin, the moment your property page is approved and live.",
+      "If the page is not approved before the card authorization lapses, the hold is released and nothing is charged.",
+      `Your property page: ${propertyPageUrl(l?.public_slug || "")}`,
+    ],
+  },
+  authorization_expired: {
+    subject: (l) => `Your package reservation expired — nothing was charged — ${l?.property_address || "your property"}`,
+    lines: (l, p) => [
+      "The card authorization placed when you reserved your package expired before the property page was approved.",
+      "Nothing was charged.",
+      "You can reserve the package again from your property page builder once the page is ready to approve.",
+    ],
+  },
   activated: {
     subject: (l, p) => `${placementLabelFor(p.package_tier)} placement is live — ${l?.property_address || "your property"}`,
     lines: (l, p) => [

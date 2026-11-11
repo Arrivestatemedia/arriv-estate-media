@@ -64,6 +64,7 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
         priceLabel: data.price_label,
         promotionId: data.promotion_id,
         tierName: tier === "pro" ? "Visibility Pro" : "Visibility Plus",
+        chargeAtApproval: overview?.listing?.live_now === false,
       });
     } catch (err) {
       setNotice(err.message || "That purchase could not be started.");
@@ -87,7 +88,9 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
       setNotice(
         data?.activated
           ? "Payment confirmed. Your placement is live and your marketing materials are ready below."
-          : data?.message || "Payment received. It is being confirmed — this page will show the placement as soon as it clears.",
+          : data?.authorized
+            ? "Package reserved. Your card is authorized but not charged — we charge it once your page is approved and live."
+            : data?.message || "Payment received. It is being confirmed — this page will show the placement as soon as it clears.",
       );
       await load();
       setMarketingKey((key) => key + 1);
@@ -147,6 +150,7 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
     canUpgrade: overview.can_upgrade === true,
     canRenew: overview.can_renew === true,
     checkoutEnabled: overview.checkout_enabled === true,
+    pendingApproval: overview.listing?.live_now === false,
     busy: !!busy,
   };
 
@@ -165,6 +169,19 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
         <div className="rounded-xl border border-[#B8956A]/35 bg-[#FFFBF5] px-4 py-3 text-sm text-[#1A1A1A]/75">{notice}</div>
       )}
 
+      {overview.pending_authorization && (
+        <div className="rounded-xl border border-[#B8956A]/45 bg-[#FFFBF5] px-4 py-3 text-sm text-[#1A1A1A]/75">
+          <p className="font-medium text-[#1A1A1A]">
+            {overview.pending_authorization.package_name} reserved — {overview.pending_authorization.price_label}
+          </p>
+          <p className="mt-1">
+            Your card is authorized but not charged. We charge it only when this page is approved and live, and your 30
+            promotional days start then. If the page is not approved before the authorization lapses, the hold is
+            released and nothing is charged.
+          </p>
+        </div>
+      )}
+
       {overview.promotion && (
         <PromotionStatusCard
           promotion={overview.promotion}
@@ -176,8 +193,7 @@ export default function PropertyPackagePanel({ listing, clientEmail }) {
 
       {!overview.listing.purchasable && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {overview.listing.not_purchasable_reason} A package can only be added to a property page that is published and shown as
-          available.
+          {overview.listing.not_purchasable_reason}
         </div>
       )}
 

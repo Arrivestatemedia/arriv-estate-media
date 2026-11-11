@@ -13,14 +13,19 @@ export default function PackageTierCard({ pkg, quote, state, onSelect }) {
     if (isFree) return isCurrent ? "Your current page" : "Included";
     if (isCurrent) return "Active";
     if (!state.checkoutEnabled) return "Checkout not open";
-    if (pkg.tier === "pro" && state.canUpgrade) return `Upgrade — ${quote?.price_label || pkg.price_label}`;
-    if (state.canRenew) return `Renew 30 days — ${quote?.price_label || pkg.price_label}`;
-    if (state.canPurchase) return `Buy 30 days — ${quote?.price_label || pkg.price_label}`;
+    const price = quote?.price_label || pkg.price_label;
+    if (pkg.tier === "pro" && state.canUpgrade) return `Upgrade — ${price}`;
+    if (state.canRenew) return `Renew 30 days — ${price}`;
+    if (state.canPurchase) return state.pendingApproval ? `Reserve — ${price}` : `Buy 30 days — ${price}`;
     return "Unavailable";
   })();
 
   const disabled = isFree || isCurrent || !state.checkoutEnabled || state.busy
     || (!state.canPurchase && !state.canUpgrade);
+
+  const chargeNote = !isFree && !isCurrent && !disabled && state.pendingApproval
+    ? "Your card is authorized today, charged only once your page is approved and live."
+    : "";
 
   return (
     <div
@@ -65,6 +70,7 @@ export default function PackageTierCard({ pkg, quote, state, onSelect }) {
       >
         {label}
       </Button>
+      {chargeNote && <p className="mt-2 text-[11px] leading-relaxed text-[#1A1A1A]/45">{chargeNote}</p>}
     </div>
   );
 }

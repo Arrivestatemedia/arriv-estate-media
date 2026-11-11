@@ -28,6 +28,7 @@ import {
 } from "../../shared/propertyVisibility.ts";
 import { requireCustomer } from "../../shared/customerSession.ts";
 import { guardListingAdvertising } from "../../shared/propertyAdListingGuard.ts";
+import { captureReservedPromotionsForListing } from "../../shared/propertyPromotionEngine.ts";
 import { listJobFiles } from "../../shared/jobMedia.ts";
 import { purgeListingFromEdge } from "../../shared/edgeCache.ts";
 
@@ -950,6 +951,15 @@ Deno.serve(async (req) => {
         listing_status: AVAILABLE_LISTING_STATUSES.includes(listing.listing_status) ? listing.listing_status : "active",
         sitemap_included: true,
       }, "published", { url: listing.public_url }, { previous_state: listing.publication_state, new_state: "PUBLISHED" });
+
+      // The page is approved and live: any package reserved before approval is charged now and
+      // starts. A payment problem never blocks the publication itself.
+      try {
+        await captureReservedPromotionsForListing(base44, listing.listing_id);
+      } catch (captureError: any) {
+        console.warn("reserved package capture:", captureError?.message || captureError);
+      }
+
       return Response.json({ ok: true, listing });
     }
 

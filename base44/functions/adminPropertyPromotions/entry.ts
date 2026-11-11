@@ -14,6 +14,7 @@ import {
   promotionEntitlement,
   promotionPerformance,
   recordRefund,
+  releasePaymentAuthorization,
 } from '../../shared/propertyPromotionEngine.ts';
 
 // Administrative control over package purchases. Every action re-checks the caller server-side;
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
         active: rowsOut.filter((r: any) => r.status === "active").length,
         paused: rowsOut.filter((r: any) => r.status === "paused").length,
         pending_payment: rowsOut.filter((r: any) => r.status === "pending_payment").length,
+        authorized: rowsOut.filter((r: any) => r.status === "authorized").length,
         failed_payments: rowsOut.filter((r: any) => r.status === "payment_failed").length,
         refunds: rowsOut.filter((r: any) => ["full", "partial"].includes(r.refund_status)).length,
         review_required: rowsOut.filter((r: any) => r.review_required).length,
@@ -208,9 +210,11 @@ Deno.serve(async (req) => {
     if (action === "force_expire") {
       const promotion = await getPromotion(base44, String(body.promotionId || body.promotion_id || ""));
       if (!promotion) return Response.json({ ok: false, error: "PROMOTION_NOT_FOUND" }, { status: 404 });
-      if (!["active", "paused", "pending_payment"].includes(promotion.status)) {
+      if (!["active", "paused", "pending_payment", "authorized"].includes(promotion.status)) {
         return Response.json({ ok: false, error: "NOT_LIVE", message: "This promotion is not live." });
       }
+      // Ending an uncharged reservation releases the card hold instead of charging for it.
+      if (promotion.status === "authorized") await releasePaymentAuthorization(promotion);
       const updated = await endPromotion(base44, promotion, {
         status: "ended",
         reason: String(body.reason || "administrative_end"),

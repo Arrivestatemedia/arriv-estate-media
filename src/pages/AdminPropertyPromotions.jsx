@@ -31,6 +31,7 @@ const STATUS_COLORS = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
   paused: "bg-amber-50 text-amber-800 border-amber-200",
   pending_payment: "bg-slate-50 text-slate-600 border-slate-200",
+  authorized: "bg-sky-50 text-sky-700 border-sky-200",
   payment_failed: "bg-red-50 text-red-700 border-red-200",
   expired: "bg-slate-50 text-slate-600 border-slate-200",
   ended: "bg-slate-50 text-slate-600 border-slate-200",
@@ -235,6 +236,7 @@ export default function AdminPropertyPromotions() {
             <option value="active">Active</option>
             <option value="paused">Paused</option>
             <option value="pending_payment">Pending payment</option>
+            <option value="authorized">Reserved — card held</option>
             <option value="payment_failed">Payment failed</option>
             <option value="expired">Expired</option>
             <option value="ended">Ended</option>

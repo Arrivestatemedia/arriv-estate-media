@@ -146,12 +146,15 @@ Deno.serve(async (req) => {
     const freshQuote = quotePurchase(null, "plus");
     check("A new Plus purchase quotes the full price", freshQuote.amount_cents === 7900 && freshQuote.purchase_type === "new", freshQuote);
 
-    // ── A package can never bypass publication approval ───────────────────
-    check("A package cannot be bought for a draft page", purchasable(fakeListing({ publication_state: "DRAFT" })).ok === false);
-    check("A package cannot be bought for an approved-but-unpublished page", purchasable(fakeListing({ publication_state: "APPROVED" })).ok === false);
+    // ── A package can be reserved before approval, never charged before it ─
+    const draftCheck = purchasable(fakeListing({ publication_state: "DRAFT" }));
+    check("A package can be reserved on a draft page", draftCheck.ok === true && draftCheck.live_now === false, draftCheck);
+    const approvedCheck = purchasable(fakeListing({ publication_state: "APPROVED" }));
+    check("An approved-but-unpublished page can reserve a package", approvedCheck.ok === true && approvedCheck.live_now === false, approvedCheck);
     check("A package cannot be bought for a sold listing", purchasable(fakeListing({ listing_status: "sold" })).ok === false);
     check("A package cannot be bought for an archived page", purchasable(fakeListing({ publication_state: "ARCHIVED" })).ok === false);
-    check("A published, available, reconfirmed page can carry a package", purchasable(fakeListing()).ok === true);
+    const liveCheck = purchasable(fakeListing());
+    check("A published, available, reconfirmed page can carry a package", liveCheck.ok === true && liveCheck.live_now === true);
 
     // ── Purchase → verified payment → activation ──────────────────────────
     const plusPending = await createPendingPurchase(client, { listing, tier: "plus", clientEmail: "owner@example.com", certificationMode: true });

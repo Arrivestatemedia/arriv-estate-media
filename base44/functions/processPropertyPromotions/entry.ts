@@ -8,7 +8,9 @@ import {
 } from '../../shared/propertyVisibility.ts';
 import { DAY_MS, priceLabelFromCents } from '../../shared/propertyPackages.ts';
 import {
+  capturePromotionPayment,
   endPromotion,
+  listingEligibility,
   livePromotionForListing,
   loadListing,
   markPaymentFailed,
@@ -16,6 +18,7 @@ import {
   promotionEntitlement,
   promotionPerformance,
   reconcilePromotion,
+  releasePaymentAuthorization,
   activatePromotion,
   getPromotion,
 } from '../../shared/propertyPromotionEngine.ts';
@@ -140,6 +143,7 @@ Deno.serve(async (req) => {
       resumed: 0,
       terminated: 0,
       abandoned_payments: 0,
+      captured_reservations: 0,
       expiring_notices: 0,
       unpublish_warnings: 0,
       weekly_reports: 0,
@@ -161,6 +165,34 @@ Deno.serve(async (req) => {
         } catch {
           counts.errors++;
         }
+      }
+    }
+
+    // 1b. A package reserved before approval is charged the moment its page is eligible. A hold
+    // that can no longer lead to a placement is released, so nothing is ever charged for it.
+    const reserved = rows(
+      await base44.asServiceRole.entities.PropertyPromotion.filter({ status: "authorized" }, { limit: 50 }),
+    );
+    for (const promotion of reserved) {
+      try {
+        const listing = await loadListing(base44, promotion.listing_id);
+        const eligibility = listingEligibility(listing, now);
+        if (!eligibility.ok) {
+          if (eligibility.terminal) {
+            await releasePaymentAuthorization(promotion);
+            await endPromotion(base44, promotion, {
+              status: "ended",
+              reason: eligibility.code.toLowerCase(),
+              actor: "system",
+              review: true,
+            });
+          }
+          continue;
+        }
+        const result = await capturePromotionPayment(base44, promotion.id, { actor: "sweep", source: "approval_capture" });
+        if (result.activated) counts.captured_reservations++;
+      } catch {
+        counts.errors++;
       }
     }
 

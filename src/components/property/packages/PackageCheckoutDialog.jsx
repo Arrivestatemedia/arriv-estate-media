@@ -22,7 +22,7 @@ function stripeFor(key) {
   return stripeCache.promise;
 }
 
-function CheckoutForm({ priceLabel, onPaid }) {
+function CheckoutForm({ priceLabel, chargeAtApproval, onPaid }) {
   const stripe = useStripe();
   const elements = useElements();
   const [busy, setBusy] = useState(false);
@@ -36,8 +36,8 @@ function CheckoutForm({ priceLabel, onPaid }) {
     try {
       const result = await stripe.confirmPayment({ elements, redirect: "if_required" });
       if (result.error) {
-        setError(result.error.message || "The card could not be charged.");
-      } else if (result.paymentIntent?.status === "succeeded") {
+        setError(result.error.message || "The card could not be authorized.");
+      } else if (["succeeded", "requires_capture"].includes(result.paymentIntent?.status)) {
         onPaid(result.paymentIntent.id);
       } else {
         setError("The payment has not completed. If money left your account, it will be confirmed automatically.");
@@ -55,10 +55,12 @@ function CheckoutForm({ priceLabel, onPaid }) {
       {error && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{error}</p>}
       <Button type="submit" disabled={!stripe || busy} className="w-full bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]">
         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-        Pay {priceLabel}
+        {chargeAtApproval ? `Authorize ${priceLabel}` : `Pay ${priceLabel}`}
       </Button>
       <p className="text-[11px] leading-relaxed text-[#1A1A1A]/45">
-        One-time payment. Nothing renews automatically. Your free property page stays published whatever happens with this package.
+        {chargeAtApproval
+          ? "Your card is authorized today but not charged. We take the payment only once your property page is approved and live, and the 30 promotional days start then. If the page is not approved before the authorization lapses, the hold is released and nothing is charged."
+          : "One-time payment. Nothing renews automatically. Your free property page stays published whatever happens with this package."}
       </p>
     </form>
   );
@@ -81,6 +83,7 @@ export default function PackageCheckoutDialog({ open, onOpenChange, checkout, on
           <DialogTitle className="font-serif text-xl text-[#1A1A1A]">{checkout?.tierName || "Complete your purchase"}</DialogTitle>
           <DialogDescription className="text-sm text-[#1A1A1A]/55">
             {checkout?.priceLabel} one-time for 30 eligible promotional days.
+            {checkout?.chargeAtApproval ? " Charged when your page is approved." : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -92,7 +95,7 @@ export default function PackageCheckoutDialog({ open, onOpenChange, checkout, on
 
         {ready && stripePromise && checkout?.clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret: checkout.clientSecret }}>
-            <CheckoutForm priceLabel={checkout.priceLabel} onPaid={onPaid} />
+            <CheckoutForm priceLabel={checkout.priceLabel} chargeAtApproval={checkout.chargeAtApproval === true} onPaid={onPaid} />
           </Elements>
         ) : null}
       </DialogContent>
