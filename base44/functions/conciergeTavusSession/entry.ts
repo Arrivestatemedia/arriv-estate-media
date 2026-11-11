@@ -18,6 +18,22 @@ import { endTavusConversation, getTavusConversation } from '../../shared/tavusIn
 
 const DAILY_VIDEO_ACTION_LIMIT = 40;
 
+/** Arriv's business timezone, so the greeting matches the customer's own day. */
+function timeOfDay(): string {
+  try {
+    const hour = Number(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(new Date()));
+    if (hour < 12) return 'this morning';
+    if (hour < 18) return 'this afternoon';
+    return 'this evening';
+  } catch {
+    return 'today';
+  }
+}
+
 function checklist(missing: string[]) {
   return [
     'Create the Arriv Concierge replica in Tavus (professional on-brand appearance and voice).',
@@ -138,7 +154,7 @@ export default async function (req) {
     const firstName = String(auth.actor.full_name || '').split(' ')[0] || 'there';
     const payload: Record<string, any> = {
       conversation_name: `Arriv Preferred Concierge — ${new Date().toISOString().slice(0, 10)}`,
-      custom_greeting: `Good to see you, ${firstName}. I'm your Arriv concierge. What would you like me to handle?`,
+      custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? How can I help you?`,
       conversational_context: `You are the Arriv Preferred Concierge speaking with ${firstName}, an Arriv Preferred member using the Arriv Estate Media customer portal. Use the concierge tools for every account question or action. Never state a price, balance, booking or payment that a tool did not return. Paid bookings, publishing and payments are completed by the customer in the portal itself.`,
       max_call_duration: 900,
       participant_left_timeout: 120,

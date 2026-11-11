@@ -15,6 +15,13 @@ import ConciergeResultCard from "@/components/preferred/ConciergeResultCard";
 const SESSION_KEY = "arriv_concierge_session_id";
 const CONVO_KEY = "arriv_concierge_conversation_id";
 
+function timeOfDay() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "this morning";
+  if (hour < 18) return "this afternoon";
+  return "this evening";
+}
+
 function read(key) {
   try {
     return window.localStorage.getItem(key) || null;
@@ -54,7 +61,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
   useEffect(() => {
     setMessages((current) => (current.length ? current : [{
       role: "concierge",
-      text: `${firstName ? `${firstName}, ` : ""}tell me what you need and I'll handle it — shoots, property pages, galleries, billing or marketing.`,
+      text: `Hi ${firstName || "there"}, how are you ${timeOfDay()}? How can I help you?`,
     }]));
   }, [firstName]);
 
