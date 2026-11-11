@@ -1,12 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Check } from "lucide-react";
+import { Loader2, Sparkles, Check, AlertCircle, Info } from "lucide-react";
+
+// Every refusal the drafting step can come back with, said in words the customer can act on.
+const DRAFT_BLOCKED = {
+  MEDIA_SELECTION_REQUIRED: "Drafting needs at least one photograph from your shoot. Choose your media in the section above, save it, then draft again.",
+  FEATURE_DISABLED: "Page drafting is not switched on for this account yet, so nothing was generated.",
+  FORBIDDEN: "This property page belongs to a different account, so we could not draft content for it.",
+  LISTING_NOT_FOUND: "We could not find this property page. Reload the page and try again.",
+  CONTENT_INCOMPLETE: "A description, page title and meta description are all required before content can be approved.",
+};
+
+const DRAFT_TONES = {
+  blocked: "border-red-200 bg-red-50 text-red-800",
+  note: "border-amber-200 bg-amber-50 text-amber-900",
+  done: "border-[#B8956A]/40 bg-[#B8956A]/10 text-[#1A1A1A]",
+};
 
 // Property details + AI-drafted content. AI may draft; the customer reviews and approves every
 // factual field before anything can be published. Missing values stay empty — never invented.
 export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate, onApprove }) {
   const [details, setDetails] = useState({});
   const [content, setContent] = useState({ property_description: "", seo_title: "", meta_description: "" });
+  // What the drafting step told us, kept right beside the button that started it: a refusal that
+  // only appears at the top of the page reads as a dead button.
+  const [draftResult, setDraftResult] = useState(null);
 
   useEffect(() => {
     setDetails({
@@ -34,6 +52,35 @@ export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate,
     ...details,
     amenities: details.amenities ? details.amenities.split(",").map((a) => a.trim()).filter(Boolean) : [],
   });
+
+  const draftWithAi = async () => {
+    setDraftResult(null);
+    const res = await onGenerate({ force: !!listing?.ai_draft?.generated_at });
+    if (!res) {
+      setDraftResult({ tone: "blocked", text: "We could not reach the drafting service. Nothing was generated — please try again." });
+      return;
+    }
+    const reason = String(res.reason || "");
+    if (res.ok === false) {
+      setDraftResult({
+        tone: "blocked",
+        text: DRAFT_BLOCKED[reason] || res.message || "The draft could not be generated. Please try again.",
+      });
+      return;
+    }
+    if (res.cached) {
+      setDraftResult({
+        tone: "note",
+        text: "Nothing has changed since your last draft, so it was reused instead of regenerated. Change a property detail to get fresh wording.",
+      });
+      return;
+    }
+    if (!res.listing?.ai_draft?.property_description || !res.listing?.ai_draft?.seo_title) {
+      setDraftResult({ tone: "blocked", text: "The drafting service came back with no text, so nothing was saved. Please try again." });
+      return;
+    }
+    setDraftResult({ tone: "done", text: "Draft added below. Read it, change anything you like, then approve it." });
+  };
 
   return (
     <section className="rounded-2xl border border-[#B8956A]/25 bg-white p-6">
@@ -95,11 +142,22 @@ export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate,
             <h3 className="text-base font-medium text-[#1A1A1A]">Page content and search metadata</h3>
             <p className="text-sm text-[#1A1A1A]/50">AI can draft this once from your details. You review and approve every word before publication.</p>
           </div>
-          <Button onClick={() => onGenerate({ force: !!listing?.ai_draft?.generated_at })} disabled={busy === "generate_seo"} variant="outline" className="border-[#B8956A]/40 text-[#1A1A1A] shrink-0">
+          <Button onClick={draftWithAi} disabled={busy === "generate_seo"} variant="outline" className="border-[#B8956A]/40 text-[#1A1A1A] shrink-0">
             {busy === "generate_seo" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
             {listing?.ai_draft?.generated_at ? "Re-draft with AI" : "Draft with AI"}
           </Button>
         </div>
+
+        {draftResult && (
+          <div className={`mb-4 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${DRAFT_TONES[draftResult.tone]}`}>
+            {draftResult.tone === "done" ? <Info className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+            <span>{draftResult.text}</span>
+          </div>
+        )}
+
+        {busy === "generate_seo" && (
+          <p className="mb-4 text-sm text-[#1A1A1A]/55">Writing your page content from the photographs and details you supplied. This can take a few seconds.</p>
+        )}
 
         <div className="space-y-4">
           <label className="text-sm text-[#1A1A1A]/70 block">Property description

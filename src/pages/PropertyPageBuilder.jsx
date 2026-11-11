@@ -79,11 +79,20 @@ export default function PropertyPageBuilder() {
     try {
       const res = await propertyAction(action, { listingId: listing?.listing_id, clientEmail, ...payload });
       if (res?.listing) setListing(res.listing);
-      if (res && res.ok === false) setNotice(res.message || res.reason || "That action could not be completed.");
+      if (res && res.ok === false) {
+        const message = res.message || "That action could not be completed.";
+        setNotice(message);
+        return { ...res, message };
+      }
       return res;
     } catch (err) {
-      setNotice(err.message || "That action could not be completed.");
-      return null;
+      // The server explains a refusal in its response body; the SDK error itself only carries a
+      // status, so read the body rather than showing the customer a status code.
+      const data = err?.response?.data || err?.data || {};
+      const message = data.message || data.error || err?.message || "That action could not be completed.";
+      const failure = { ok: false, reason: data.reason || data.error || "", message };
+      setNotice(message);
+      return failure;
     } finally {
       setBusy("");
     }
