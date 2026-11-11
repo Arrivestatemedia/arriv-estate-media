@@ -83,6 +83,7 @@ HOW TO ANSWER
 - Only use action names from the list. Only pass inputs the action's schema allows.
 - Never invent a record id, address, price, invoice or membership fact. Use values from the snapshot or the customer's own words.
 - If the customer wants to see or change something, choose the action; the system renders the real result on screen, so you do not need to describe the data yourself.
+- A question about what is on a screen (bookings, property pages, galleries, invoices, wallet, analytics) counts as asking to see it: choose that screen's action and answer briefly.
 - If a request is unclear or you need one detail (which property, which date), choose no action and ask one short question.
 - Never claim a payment, booking, publication or subscription change has happened. Those need the customer's confirmation or the secure form.
 - If the customer asks to cancel or stop their Preferred membership, use request_membership_cancellation. It alerts their advisor and files the request; it never cancels anything, so say the team will process it and reach out. Never say the membership is cancelled.
@@ -97,13 +98,15 @@ Return JSON: { "reply": string, "actions": [ { "name": string, "input": object }
  * with a general summary instead of the screen that was asked for, so the intent is resolved
  * here and the matching action runs.
  */
+// Any mention of what a screen holds is enough — a question ("what's on?") and a request
+// ("show me") resolve the same way, because both are answered by opening that screen.
 const VIEW_INTENTS: Array<[string, RegExp]> = [
-  ['show_analytics', /\b(analytics?|performance|performing|traffic|insights?|stats?|statistics|page\s?views?|dashboard)\b/i],
-  ['list_invoices', /\b(invoices?|billing|receipts?|what do i owe|amount due|balance due|outstanding)\b/i],
-  ['get_payment_summary', /\b(wallet|auto-?fund|prepaid|credit balance|payment summary)\b/i],
-  ['list_galleries', /\b(galleries|gallery|photos?|images?|pictures?|footage|downloads?)\b/i],
-  ['list_properties', /\b(my propert(y|ies)|propert(y|ies) pages?|my listings?|my leads)\b/i],
-  ['list_bookings', /\b(my bookings?|upcoming bookings?|appointments?|my shoots?|my portal)\b/i],
+  ['show_analytics', /\b(analytics?|performance|performing|traffic|insights?|stats?|statistics|views?|reports?|dashboard|leads? (this|last)\b)\b/i],
+  ['list_invoices', /\b(invoices?|billing|bills?|receipts?|owe|due|outstanding|charged?)\b/i],
+  ['get_payment_summary', /\b(wallet|auto-?fund|prepaid|credits?|payment summary|balance)\b/i],
+  ['list_galleries', /\b(galleries|gallery|photos?|images?|pictures?|footage|downloads?|media|shots?)\b/i],
+  ['list_properties', /\b(propert(y|ies)|listings?|listing pages?|mvp pages?)\b/i],
+  ['list_bookings', /\b(bookings?|appointments?|shoots?|calendar|scheduled|upcoming)\b/i],
 ];
 
 /** An instruction to change something is never turned into a "just show me" window. */
@@ -314,6 +317,15 @@ export default async function (req) {
       if (outcome.preference_patch) preferencePatch = { ...(preferencePatch || {}), ...outcome.preference_patch };
       if (outcome.ui && !uiDirective) uiDirective = outcome.ui;
       outcomes.push({ name, outcome });
+    }
+
+    // A question about a screen is answered by that screen. If the planner answered in words
+    // only, the matching window still opens; the spoken reply it wrote is left as it is.
+    if (viewIntent && !uiDirective && !pendingAction
+      && !outcomes.some((item: any) => actionIsMutating(item.name))
+      && !outcomes.some((item: any) => item.name === viewIntent)) {
+      const opener = await runConciergeAction(ctx, viewIntent, inputForView(viewIntent, pageContext), { confirmed: true });
+      if (opener?.ui) uiDirective = opener.ui;
     }
 
     const actionSpeech = summarize(outcomes);
