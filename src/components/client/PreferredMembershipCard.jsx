@@ -60,6 +60,10 @@ export default function PreferredMembershipCard({ email }) {
         window.location.href = data.checkout_url;
         return;
       }
+      if (data?.comped) {
+        setState({ loading: false, active: true, membership: data.membership || null });
+        return;
+      }
       setError(data?.error || "Membership checkout could not be started.");
     } catch (err) {
       setError(err?.message || "Membership checkout could not be started.");
@@ -113,9 +117,18 @@ export default function PreferredMembershipCard({ email }) {
         </div>
       ) : state.active ? (
         <p className="mt-4 text-sm text-[var(--text-secondary)]">
-          Your membership is active
-          {periodEnd ? ` — renews ${new Date(periodEnd).toLocaleDateString()}` : ""}.
-          {state.membership?.cancel_at_period_end ? " It will end at the close of the current period." : ""}
+          {state.membership?.billing_source === "comp" ? (
+            <>
+              Complimentary membership — active
+              {periodEnd ? ` through ${new Date(periodEnd).toLocaleDateString()}` : ""}. Nothing is billed.
+            </>
+          ) : (
+            <>
+              Your membership is active
+              {periodEnd ? ` — renews ${new Date(periodEnd).toLocaleDateString()}` : ""}.
+              {state.membership?.cancel_at_period_end ? " It will end at the close of the current period." : ""}
+            </>
+          )}
         </p>
       ) : (
         <div className="mt-4">

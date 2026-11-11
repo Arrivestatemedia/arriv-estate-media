@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.48";
 import Stripe from "npm:stripe@17.5.0";
 import { requireCustomer } from "../../shared/customerSession.ts";
+import { isCompedEmail, compPeriod } from "../../shared/preferredComp.ts";
 
 // Create a Preferred membership subscription via Stripe Checkout.
 // $29.99/month, tracks the sales originator for the $10 monthly residual.
@@ -25,6 +26,45 @@ export default async function (req) {
     const client_name = String(body?.client_name || auth.record.full_name || "");
     const sales_originator_id = String(body?.sales_originator_id || auth.record.sales_originator_id || "");
     const sales_originator_name = String(body?.sales_originator_name || "");
+
+    // Complimentary membership: a verified address on the server-side comp list activates
+    // without any payment. No Stripe customer, checkout or subscription is created, and the
+    // record is written with a price of 0 and billing_source "comp" so it is never counted as
+    // revenue or used to pay a sales residual.
+    if (await isCompedEmail(base44, client_email)) {
+      const existing = await base44.asServiceRole.entities.PreferredMembership
+        .filter({ client_id })
+        .catch(() => []);
+      const now = Date.now();
+      const live = (Array.isArray(existing) ? existing : []).find((membership) => {
+        const status = String(membership?.status || "").toLowerCase();
+        const end = membership?.current_period_end ? new Date(membership.current_period_end).getTime() : 0;
+        return status === "active" && end > now;
+      });
+      if (live) {
+        return Response.json({ success: true, comped: true, already_active: true, membership: live });
+      }
+
+      const period = compPeriod(now);
+      const membership = await base44.asServiceRole.entities.PreferredMembership.create({
+        client_id,
+        client_email,
+        client_name,
+        plan: "preferred_monthly",
+        status: "active",
+        monthly_price: 0,
+        billing_source: "comp",
+        comp_reason: "Complimentary Preferred membership — no charge",
+        sales_originator_id,
+        sales_originator_name,
+        started_at: period.start,
+        current_period_start: period.start,
+        current_period_end: period.end,
+        cancel_at_period_end: false,
+      });
+
+      return Response.json({ success: true, comped: true, membership });
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"));
     const appDomain = Deno.env.get("BASE44_APP_DOMAIN") || "https://arrivestatemedia.base44.app";

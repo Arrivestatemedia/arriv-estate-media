@@ -41,6 +41,23 @@
       "default": 29.99,
       "description": "Monthly membership price in dollars"
     },
+    "billing_source": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "comp"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "stripe",
+      "description": "How this membership is funded. 'stripe' is a real paid subscription. 'comp' is a complimentary membership granted without payment; it collects nothing and never produces a sales residual."
+    },
+    "comp_reason": {
+      "type": "string",
+      "description": "Why a complimentary membership was granted. Empty for paid memberships."
+    },
     "sales_originator_id": {
       "type": "string",
       "description": "SalesTeamMember ID of the rep who originated this membership (for $10/month residual)"
