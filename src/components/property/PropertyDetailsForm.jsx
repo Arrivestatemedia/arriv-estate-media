@@ -4,7 +4,7 @@ import { Loader2, Sparkles, Check } from "lucide-react";
 
 // Property details + AI-drafted content. AI may draft; the customer reviews and approves every
 // factual field before anything can be published. Missing values stay empty — never invented.
-export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate, onApprove }) {
+export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate, onApprove, seoNotice }) {
   const [details, setDetails] = useState({});
   const [content, setContent] = useState({ property_description: "", seo_title: "", meta_description: "" });
 
@@ -100,6 +100,10 @@ export default function PropertyDetailsForm({ listing, busy, onSave, onGenerate,
             {listing?.ai_draft?.generated_at ? "Re-draft with AI" : "Draft with AI"}
           </Button>
         </div>
+
+        {seoNotice && (
+          <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">{seoNotice}</p>
+        )}
 
         <div className="space-y-4">
           <label className="text-sm text-[#1A1A1A]/70 block">Property description

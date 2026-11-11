@@ -32,6 +32,7 @@ export default function PropertyPageBuilder() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [seoNotice, setSeoNotice] = useState(null);
 
   // Opening an existing page fills in whatever it is still missing from the records we already
   // hold (the city, state and ZIP inside its address, and the contact on file). Only empty fields
@@ -82,8 +83,11 @@ export default function PropertyPageBuilder() {
       if (res && res.ok === false) setNotice(res.message || res.reason || "That action could not be completed.");
       return res;
     } catch (err) {
-      setNotice(err.message || "That action could not be completed.");
-      return null;
+      // The server states the actual reason in its error body; show that instead of a bare status.
+      const body = err?.response?.data || {};
+      const message = body.message || body.error || err?.message || "That action could not be completed.";
+      setNotice(message);
+      return { ok: false, message };
     } finally {
       setBusy("");
     }
@@ -186,7 +190,13 @@ export default function PropertyPageBuilder() {
             listing={listing}
             busy={busy}
             onSave={(details) => run("update_details", { details })}
-            onGenerate={(options) => run("generate_seo", options || {})}
+            onGenerate={async (options) => {
+              setSeoNotice(null);
+              const res = await run("generate_seo", options || {});
+              if (res && res.ok === false) setSeoNotice(res.message || res.reason || "The draft could not be written.");
+              return res;
+            }}
+            seoNotice={seoNotice}
             onApprove={(content) => run("approve_content", { content })}
           />
           <PropertyAuthorizationsForm listing={listing} busy={busy} onSave={(payload) => run("record_authorizations", payload)} />
