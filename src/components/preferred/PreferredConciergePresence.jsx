@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Loader2, Mic, MicOff, Volume2 } from "lucide-react";
 import useConciergeCall from "./useConciergeCall";
 
@@ -10,6 +10,8 @@ export default function PreferredConciergePresence({
   url,
   displayName,
   conciergeName,
+  conversationId,
+  speechRef,
   onStepAway,
   onFail,
   compact = false,
@@ -17,14 +19,25 @@ export default function PreferredConciergePresence({
   onDirective,
   onActivity,
 }) {
-  const { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute } = useConciergeCall({
+  const { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute, speak } = useConciergeCall({
     url,
     displayName,
+    conversationId,
     onFail,
     context,
     onDirective,
     onActivity,
   });
+
+  // While she is in the room, anything the member types in the chat is said by her, out
+  // loud, in her own voice — one conversation, not two channels.
+  useEffect(() => {
+    if (!speechRef) return undefined;
+    speechRef.current = status === "live" ? speak : null;
+    return () => {
+      speechRef.current = null;
+    };
+  }, [speak, speechRef, status]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">

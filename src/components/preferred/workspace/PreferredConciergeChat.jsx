@@ -44,7 +44,7 @@ function write(key, value) {
  * The concierge conversation under the video stage: same session, same history and same
  * server-side action engine as the floating dock, so switching channels keeps context.
  */
-const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName, onActivity }, ref) {
+const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName, onActivity, speechRef }, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { active: activeSurface, open: openSurface, resumed } = usePreferredSurface();
@@ -100,6 +100,18 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
 
   useImperativeHandle(ref, () => ({ startListening, focus: () => inputRef.current?.focus() }), [startListening]);
 
+  // When she is on video her answer is said out loud as well as written here, so a typed
+  // instruction is answered in the same voice a spoken one is.
+  const speakAloud = useCallback((text) => {
+    const say = speechRef?.current;
+    if (!say || !String(text || "").trim()) return;
+    try {
+      say(text);
+    } catch {
+      /* a video that has already ended simply does not speak */
+    }
+  }, [speechRef]);
+
   const send = useCallback(async (text) => {
     const utterance = String(text || "").trim();
     if (!utterance || busy) return;
@@ -130,11 +142,13 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         setConversationId(result.conversation_id);
         write(CONVO_KEY, result.conversation_id);
       }
+      const reply = result?.reply || "I'm here. What would you like to do next?";
       setMessages((current) => [...current, {
         role: "concierge",
-        text: result?.reply || "I'm here. What would you like to do next?",
+        text: reply,
         actions: Array.isArray(result?.actions) ? result.actions : [],
       }]);
+      speakAloud(reply);
       if (result?.pending_action) setPending(result.pending_action);
       // The panel opens beside her: the workspace never unmounts, so this thread and the
       // live video carry straight on.
@@ -151,7 +165,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
       onActivity?.();
       setBusy(false);
     }
-  }, [activeSurface?.key, busy, conversationId, location.pathname, location.search, navigate, onActivity, openSurface, sessionId]);
+  }, [activeSurface?.key, busy, conversationId, location.pathname, location.search, navigate, onActivity, openSurface, sessionId, speakAloud]);
 
   const decide = useCallback(async (decision) => {
     if (!pending?.action_record_id) return;
@@ -160,10 +174,9 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
     setBusy(true);
     try {
       const result = await confirmConciergeAction({ actionRecordId: current.action_record_id, decision });
-      setMessages((list) => [...list, {
-        role: "concierge",
-        text: result?.reply || (decision === "decline" ? "No changes were made." : "Done."),
-      }]);
+      const reply = result?.reply || (decision === "decline" ? "No changes were made." : "Done.");
+      setMessages((list) => [...list, { role: "concierge", text: reply }]);
+      speakAloud(reply);
       if (result?.ok && result?.ui) applyConciergeDirective(result.ui, { open: openSurface, navigate });
     } catch {
       setMessages((list) => [...list, {
@@ -173,7 +186,7 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
     } finally {
       setBusy(false);
     }
-  }, [navigate, openSurface, pending]);
+  }, [navigate, openSurface, pending, speakAloud]);
 
   const thread = messages.slice(-6);
 

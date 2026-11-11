@@ -33,11 +33,15 @@ function paintTrack(videoEl, audioEl, track, type, playAudio) {
   return false;
 }
 
-export default function useConciergeCall({ url, displayName, onFail, context, onDirective, onActivity }) {
+export default function useConciergeCall({ url, displayName, conversationId, onFail, context, onDirective, onActivity }) {
   const callRef = useRef(null);
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   const failedRef = useRef(false);
+  // The Tavus conversation this room belongs to. Every interaction event carries it; it is
+  // known from the session that was just minted, or learned from the first event she sends.
+  const conversationIdRef = useRef(conversationId || "");
+  if (conversationId) conversationIdRef.current = conversationId;
   // Held in refs so a re-render (or the member moving to another screen) never re-runs the
   // join, while every tool call still carries the live portal context.
   const onFailRef = useRef(onFail);
@@ -104,6 +108,7 @@ export default function useConciergeCall({ url, displayName, onFail, context, on
     // audited result rather than from anything the model assumed.
     const runToolCall = async (payload) => {
       if (!payload || payload.message_type !== "conversation" || payload.event_type !== "conversation.tool_call") return;
+      if (payload.conversation_id) conversationIdRef.current = payload.conversation_id;
       const props = payload.properties || {};
       const toolCallId = props.tool_call_id;
       if (!toolCallId) return;
@@ -227,6 +232,40 @@ export default function useConciergeCall({ url, displayName, onFail, context, on
     }
   }, [muted]);
 
+  /**
+   * Her own face and voice say the answer the thread has just written, so a typed
+   * instruction is not a second, silent channel: the room hears what the chat shows.
+   * The interactive-video protocol has the face speak supplied text on `conversation.echo`.
+   */
+  const speak = useCallback(async (text) => {
+    const call = callRef.current;
+    const line = String(text || "").replace(/\s+/g, " ").trim().slice(0, 1200);
+    const conversationId = conversationIdRef.current;
+    if (!call || !line || !conversationId) return false;
+    try {
+      // Whatever she was in the middle of saying gives way to the member's latest instruction.
+      await call.sendAppMessage({
+        message_type: "conversation",
+        event_type: "conversation.interrupt",
+        conversation_id: conversationId,
+      }, "*");
+    } catch {
+      /* she was already quiet */
+    }
+    try {
+      await call.sendAppMessage({
+        message_type: "conversation",
+        event_type: "conversation.echo",
+        conversation_id: conversationId,
+        properties: { modality: "text", text: line, done: true },
+      }, "*");
+      return true;
+    } catch {
+      /* the room ended between the answer and the word */
+      return false;
+    }
+  }, []);
+
   const leave = useCallback(() => {
     const call = callRef.current;
     try {
@@ -237,5 +276,5 @@ export default function useConciergeCall({ url, displayName, onFail, context, on
     setStatus("left");
   }, []);
 
-  return { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute, leave };
+  return { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute, leave, speak };
 }

@@ -29,6 +29,8 @@ function clock(seconds) {
 export default function PreferredConciergeStage({ customer, conciergeName }) {
   const firstName = String(customer?.first_name || customer?.full_name || "").split(" ")[0];
   const chatRef = useRef(null);
+  // Her voice, while she is on video: the chat uses it so a typed instruction is also heard.
+  const speechRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { active: activeSurface, open: openSurface, close: closeSurface } = usePreferredSurface();
@@ -55,6 +57,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   }, [docked]);
 
   const [url, setUrl] = useState("");
+  const [conversationId, setConversationId] = useState("");
   const [phase, setPhase] = useState("idle");
   const [remaining, setRemaining] = useState(SESSION_SECONDS);
   // The three-minute rule is QUIET minutes, not a cap on a working session: every word either
@@ -83,10 +86,12 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
       const result = await startConciergeVideo(null, { fresh: true });
       if (result?.ok && result?.conversation_url) {
         setUrl(result.conversation_url);
+        setConversationId(result.conversation_id || "");
         setPhase("live");
         greetedThisVisit = true;
       } else {
         setUrl("");
+        setConversationId("");
         setPhase("unavailable");
         setIssue(result?.message || "The video concierge is unavailable right now.");
         setChecklist(Array.isArray(result?.checklist) ? result.checklist : []);
@@ -100,6 +105,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
 
   const stepAway = useCallback(async () => {
     setUrl("");
+    setConversationId("");
     setPhase("break");
     setRemaining(0);
     try {
@@ -188,6 +194,8 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
           ) : (
             <PreferredConciergePresence
               url={url}
+              conversationId={conversationId}
+              speechRef={speechRef}
               displayName={customer?.full_name || firstName}
               conciergeName={conciergeName}
               onStepAway={stepAway}
@@ -268,7 +276,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
       {/* Never unmounted: the thread survives every panel the member opens, and stays typeable
           while they work so the next instruction can be written as easily as spoken. */}
       <div className={docked ? "preferred-chat-docked" : ""}>
-        <PreferredConciergeChat ref={chatRef} firstName={firstName} onActivity={touch} />
+        <PreferredConciergeChat ref={chatRef} firstName={firstName} onActivity={touch} speechRef={speechRef} />
       </div>
       {docked && (
         <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-[#f6f1e8]/85">
