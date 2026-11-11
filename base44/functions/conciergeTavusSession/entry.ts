@@ -156,11 +156,9 @@ export default async function (req) {
       conversation_name: `Arriv Preferred Concierge — ${new Date().toISOString().slice(0, 10)}`,
       custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? How can I help you?`,
       conversational_context: `You are the Arriv Preferred Concierge speaking with ${firstName}, an Arriv Preferred member using the Arriv Estate Media customer portal. Use the concierge tools for every account question or action. Never state a price, balance, booking or payment that a tool did not return. Paid bookings, publishing and payments are completed by the customer in the portal itself.`,
-      properties: {
-        max_call_duration: 900,
-        participant_left_timeout: 120,
-        participant_absent_timeout: 120,
-      },
+      max_call_duration: 900,
+      participant_left_timeout: 120,
+      participant_absent_timeout: 120,
     };
     if (palId) payload.pal_id = palId;
     if (replicaId) payload.replica_id = replicaId;
@@ -203,7 +201,7 @@ export default async function (req) {
       conversation_url: data.conversation_url,
       conversation_id: data.conversation_id || '',
       concierge_token: token,
-      max_call_duration: payload.properties.max_call_duration,
+      max_call_duration: payload.max_call_duration,
     });
   } catch (error: any) {
     console.error('conciergeTavusSession error:', error);

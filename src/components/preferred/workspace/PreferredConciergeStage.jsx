@@ -49,14 +49,10 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
         setIssue(result?.message || "The video concierge is unavailable right now.");
         setChecklist(Array.isArray(result?.checklist) ? result.checklist : []);
       }
-    } catch (error) {
-      // The server's own explanation is behind the error response; show it rather than
-      // a blanket message, so a real cause is never hidden from view.
-      const payload = error?.response?.data || error?.data || null;
+    } catch {
       setUrl("");
       setPhase("unavailable");
-      setIssue(payload?.message || "The video concierge is unavailable right now. You can still chat with me below.");
-      setChecklist(Array.isArray(payload?.checklist) ? payload.checklist : []);
+      setIssue("The video concierge is unavailable right now. You can still chat with me below.");
     }
   }, []);
 
