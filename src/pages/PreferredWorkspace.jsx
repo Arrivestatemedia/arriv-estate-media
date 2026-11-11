@@ -10,6 +10,10 @@ import PreferredWorkspaceRail from "@/components/preferred/workspace/PreferredWo
 import PreferredActionBar from "@/components/preferred/workspace/PreferredActionBar";
 import PreferredWelcomeLoading from "@/components/preferred/workspace/PreferredWelcomeLoading";
 
+// One reveal per page load: a login or a refresh replays it, moving around the
+// workspace afterwards does not. A reload resets this module.
+let revealPlayed = false;
+
 /**
  * The Arriv Preferred member workspace: the concierge representative front and centre,
  * the member's own numbers beside it, and the six things they do most underneath.
@@ -22,7 +26,7 @@ export default function PreferredWorkspace() {
   // Every visit — a login or a refresh — starts with the branded loading screen while the
   // membership is confirmed. Arriving straight from checkout keeps it up until activation.
   const fromCheckout = new URLSearchParams(window.location.search).get("preferred") === "success";
-  const [welcoming, setWelcoming] = useState(true);
+  const [welcoming, setWelcoming] = useState(!revealPlayed);
   const showWelcome = welcoming && (fromCheckout || loading || preferred);
 
   useEffect(() => {
@@ -45,6 +49,7 @@ export default function PreferredWorkspace() {
   }, [loading, preferred]);
 
   const finishWelcome = useCallback(() => {
+    revealPlayed = true;
     setWelcoming(false);
     const params = new URLSearchParams(window.location.search);
     params.delete("preferred");

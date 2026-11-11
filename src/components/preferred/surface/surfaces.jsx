@@ -11,6 +11,7 @@ const BookingPage = lazy(() => import("@/pages/BookingPage"));
 const PropertyPageBuilder = lazy(() => import("@/pages/PropertyPageBuilder"));
 const VisibilityDashboard = lazy(() => import("@/pages/VisibilityDashboard"));
 const PublicAccountSettings = lazy(() => import("@/pages/PublicAccountSettings"));
+const ClientJobGallery = lazy(() => import("@/pages/ClientJobGallery"));
 
 export const SURFACES = {
   dashboard: {
@@ -55,6 +56,11 @@ export const SURFACES = {
     caption: "Your Arriv Preferred plan and status",
     Component: VisibilityDashboard,
     hash: "#membership",
+  },
+  jobGallery: {
+    title: "Your Gallery",
+    caption: "The full set from your shoot",
+    Component: ClientJobGallery,
   },
   account: {
     title: "Account Settings",
