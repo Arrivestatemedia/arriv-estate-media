@@ -40,8 +40,16 @@ export function confirmConciergeAction({ actionRecordId, decision }) {
   });
 }
 
-export function startConciergeVideo(sessionId) {
-  return invoke('conciergeTavusSession', { action: 'start', session_id: sessionId || undefined });
+export async function startConciergeVideo(sessionId) {
+  try {
+    return await invoke('conciergeTavusSession', { action: 'start', session_id: sessionId || undefined });
+  } catch (error) {
+    // A failed start comes back as a non-2xx response; surface the server's own reason
+    // instead of a generic message, so a real configuration problem stays visible.
+    const body = error?.response?.data || error?.data;
+    if (body && typeof body === 'object') return body;
+    throw error;
+  }
 }
 
 export function endConciergeVideo(sessionId) {

@@ -23,7 +23,7 @@ import { FinalEditsUploadProvider } from "@/components/editing/FinalEditsUploadC
 import FinalEditsUploadStatusBanner from "@/components/editing/FinalEditsUploadStatusBanner";
 import PreferredProvider from "@/components/preferred/PreferredProvider";
 import PreferredHeaderChip from "@/components/preferred/PreferredHeaderChip";
-import PreferredNavLink from "@/components/preferred/PreferredNavLink";
+import PreferredAwareNav from "@/components/preferred/PreferredAwareNav";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
@@ -375,27 +375,9 @@ function LayoutContent({ children, currentPageName }) {
                 )}
 
             <nav className="hidden md:flex items-center gap-1 overflow-x-auto whitespace-nowrap flex-nowrap flex-1 min-w-0" style={{ scrollbarWidth: 'none' }}>
-              {navItems.length > 0 && navItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = currentPageName === item.page;
-                  return (
-                    <Link
-                      key={item.page}
-                      to={createPageUrl(item.page)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
-                        active
-                          ? "bg-[#B8956A] text-[#1A1A1A]"
-                          : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                      {item.showBadge && <NewJobsBadge />}
-                    </Link>
-                  );
-                  })}
-
-                  <PreferredNavLink />
+              {navItems.length > 0 && (
+                <PreferredAwareNav items={navItems} currentPageName={currentPageName} />
+              )}
 
                   {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
                   <Link
@@ -488,27 +470,14 @@ function LayoutContent({ children, currentPageName }) {
             <div className="px-3 pb-1">
               <PreferredHeaderChip />
             </div>
-            {navItems.length > 0 && navItems.map((item) => {
-                const Icon = item.icon;
-                const active = currentPageName === item.page;
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                      active
-                        ? "bg-[#B8956A] text-[#1A1A1A]"
-                        : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                    {item.showBadge && <NewJobsBadge />}
-                  </Link>
-                );
-              })}
-            <PreferredNavLink mobile onClick={() => setMobileOpen(false)} />
+            {navItems.length > 0 && (
+              <PreferredAwareNav
+                items={navItems}
+                currentPageName={currentPageName}
+                mobile
+                onNavigate={() => setMobileOpen(false)}
+              />
+            )}
             {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}

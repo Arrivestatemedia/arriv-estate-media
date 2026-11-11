@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Crown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -8,15 +8,21 @@ import PreferredWorkspaceSidebar from "@/components/preferred/workspace/Preferre
 import PreferredConciergeStage from "@/components/preferred/workspace/PreferredConciergeStage";
 import PreferredWorkspaceRail from "@/components/preferred/workspace/PreferredWorkspaceRail";
 import PreferredActionBar from "@/components/preferred/workspace/PreferredActionBar";
+import PreferredWelcomeLoading from "@/components/preferred/workspace/PreferredWelcomeLoading";
 
 /**
  * The Arriv Preferred member workspace: the concierge representative front and centre,
  * the member's own numbers beside it, and the six things they do most underneath.
  */
 export default function PreferredWorkspace() {
-  const { preferred, loading, entitlement, customer } = usePreferred();
+  const { preferred, loading, entitlement, customer, refresh } = usePreferred();
   const [data, setData] = useState(null);
   const [failure, setFailure] = useState("");
+  // Arriving straight from checkout: the membership is still being activated, so the
+  // customer gets their welcome instead of a portal that looks unchanged.
+  const [welcoming, setWelcoming] = useState(
+    () => new URLSearchParams(window.location.search).get("preferred") === "success"
+  );
 
   useEffect(() => {
     if (loading || !preferred) return undefined;
@@ -36,6 +42,31 @@ export default function PreferredWorkspace() {
       cancelled = true;
     };
   }, [loading, preferred]);
+
+  const finishWelcome = useCallback(() => {
+    setWelcoming(false);
+    const params = new URLSearchParams(window.location.search);
+    params.delete("preferred");
+    const query = params.toString();
+    window.history.replaceState({}, "", `/PreferredWorkspace${query ? `?${query}` : ""}`);
+  }, []);
+
+  useEffect(() => {
+    if (!welcoming) return undefined;
+    refresh();
+    const timer = setInterval(() => refresh(), 2500);
+    return () => clearInterval(timer);
+  }, [welcoming, refresh]);
+
+  if (welcoming) {
+    return (
+      <PreferredWelcomeLoading
+        firstName={customer?.first_name || String(customer?.full_name || "").split(" ")[0] || ""}
+        ready={preferred}
+        onDone={finishWelcome}
+      />
+    );
+  }
 
   if (loading) {
     return (

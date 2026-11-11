@@ -119,7 +119,7 @@ export default async function (req) {
         sales_originator_name,
         purpose: "preferred_membership",
       },
-      success_url: `${appDomain}/BookingPage?preferred=success`,
+      success_url: `${appDomain}/PreferredWorkspace?preferred=success`,
       cancel_url: `${appDomain}/BookingPage?preferred=cancelled`,
     });
 
