@@ -93,7 +93,7 @@ export const NAV_PAGES: Record<string, { path: string; params: string[]; label: 
   my_portal: { path: '/ClientBookings', params: [], label: 'your portal' },
   book_shoot: { path: '/BookingPage', params: ['package', 'date', 'address'], label: 'the booking form' },
   my_properties: { path: '/PropertyLeads', params: [], label: 'My Properties' },
-  property_page_builder: { path: '/PropertyPageBuilder', params: ['jobId', 'intent'], label: 'the property page builder' },
+  property_page_builder: { path: '/PropertyPageBuilder', params: ['jobId', 'intent', 'address'], label: 'the property page builder' },
   billing_visibility: { path: '/VisibilityDashboard', params: ['section'], label: 'Billing & Visibility' },
   marketing: { path: '/VisibilityDashboard', params: ['section'], label: 'your marketing dashboard' },
   analytics: { path: '/VisibilityDashboard', params: ['section'], label: 'your analytics' },
@@ -787,7 +787,7 @@ define({
     });
     return {
       ok: true,
-      speech: `Opening the booking form${date ? ` for ${date}` : ''}. Availability and the final total are confirmed there before anything is charged.`,
+      speech: `Opening the booking form${ui?.params?.address ? ` with ${ui.params.address} filled in` : ''}${date ? ` for ${date}` : ''}. Availability and the final total are confirmed there before anything is charged.`,
       data: { opened: 'book_shoot', carried: ui?.params || {} },
       ui,
     };
@@ -1113,14 +1113,18 @@ define({
     const explicitJob = String(input?.job_id || '').trim();
     const listing = await resolveListing(ctx, input);
     const jobId = explicitJob || String(listing?.job_id || '').trim();
+    // The address the member named rides along, so the page opens with the property filled in.
+    const namedAddress = String(input?.address || '').trim();
     const ui = jobId
-      ? navDirective('property_page_builder', { jobId })
-      : navDirective('property_page_builder', { intent: 'free-page' });
+      ? navDirective('property_page_builder', { jobId, address: namedAddress })
+      : navDirective('property_page_builder', { intent: 'free-page', address: namedAddress });
     return {
       ok: true,
       speech: jobId
         ? `Opening the page builder for ${addressOf(listing)} with the details and media already on file. Nothing is published until you approve it.`
-        : 'Opening a new property page so you can add the address and photographs. Nothing is published until you approve it.',
+        : namedAddress
+          ? `Opening a new property page with ${namedAddress} filled in — add your photographs and I'll take it from there. Nothing is published until you approve it.`
+          : 'Opening a new property page so you can add the address and photographs. Nothing is published until you approve it.',
       data: {
         job_id: jobId,
         listing_id: listing?.listing_id || '',

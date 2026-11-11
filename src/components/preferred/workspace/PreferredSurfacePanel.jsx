@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Crown, Loader2, X } from "lucide-react";
 import { SURFACES } from "@/components/preferred/surface/surfaces";
 import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
@@ -12,6 +13,7 @@ import { usePreferredSurface } from "@/components/preferred/surface/PreferredSur
  */
 export default function PreferredSurfacePanel() {
   const { active, close } = usePreferredSurface();
+  const location = useLocation();
   const surface = active ? SURFACES[active.key] : null;
   const bodyRef = useRef(null);
 
@@ -25,10 +27,13 @@ export default function PreferredSurfacePanel() {
 
   if (!active || !surface) return null;
   const Component = surface.Component;
+  // The screen re-opens when the details she carries change (an address she just wrote into the
+  // booking form), so the form arrives filled in instead of ignoring the new value.
+  const surfaceKey = `${active.key}:${location.search}`;
 
   return (
     <section
-      key={active.key}
+      key={surfaceKey}
       className="preferred-glass preferred-panel"
       aria-label={surface.title}
     >

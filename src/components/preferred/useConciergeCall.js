@@ -33,7 +33,7 @@ function paintTrack(videoEl, audioEl, track, type, playAudio) {
   return false;
 }
 
-export default function useConciergeCall({ url, displayName, onFail, context, onDirective }) {
+export default function useConciergeCall({ url, displayName, onFail, context, onDirective, onActivity }) {
   const callRef = useRef(null);
   const videoRef = useRef(null);
   const audioRef = useRef(null);
@@ -46,6 +46,9 @@ export default function useConciergeCall({ url, displayName, onFail, context, on
   contextRef.current = context;
   const onDirectiveRef = useRef(onDirective);
   onDirectiveRef.current = onDirective;
+  // Any speech in the room is a working session, so the caller's quiet timer restarts on it.
+  const onActivityRef = useRef(onActivity);
+  onActivityRef.current = onActivity;
   const [status, setStatus] = useState("joining");
   const [muted, setMuted] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
@@ -155,7 +158,13 @@ export default function useConciergeCall({ url, displayName, onFail, context, on
     };
 
     call.on("app-message", (event) => {
+      onActivityRef.current?.();
       runToolCall(event?.data);
+    });
+
+    // Whoever is speaking — her or the member — the conversation is live.
+    call.on("active-speaker-change", () => {
+      onActivityRef.current?.();
     });
 
     call.on("error", fail);

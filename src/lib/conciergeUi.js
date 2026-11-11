@@ -17,7 +17,7 @@ const ALLOWED_ROUTES = {
   '/ClientBookings': [],
   '/BookingPage': ['package', 'date', 'address'],
   '/PropertyLeads': [],
-  '/PropertyPageBuilder': ['jobId', 'intent'],
+  '/PropertyPageBuilder': ['jobId', 'intent', 'address'],
   '/VisibilityDashboard': ['section'],
   '/PrepaidPurchase': [],
   '/AutoFund': [],

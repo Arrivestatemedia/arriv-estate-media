@@ -15,6 +15,7 @@ export default function PreferredConciergePresence({
   compact = false,
   context,
   onDirective,
+  onActivity,
 }) {
   const { videoRef, audioRef, status, muted, needsTap, playAudio, toggleMute } = useConciergeCall({
     url,
@@ -22,6 +23,7 @@ export default function PreferredConciergePresence({
     onFail,
     context,
     onDirective,
+    onActivity,
   });
 
   return (

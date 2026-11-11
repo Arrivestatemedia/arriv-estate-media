@@ -23,6 +23,8 @@ export default function PropertyPageBuilder() {
   // A page started from the free page offer has no shoot behind it, so there is no job to load:
   // the property and the customer's own photographs are the whole source.
   const freeMode = !jobId && searchParams.get("intent") === "free-page";
+  // The concierge can carry the address the member just gave, so the page starts filled in.
+  const carriedAddress = searchParams.get("address") || "";
   const clientEmail = (localStorage.getItem("user_email") || sessionStorage.getItem("user_email") || "").toLowerCase();
 
   const [context, setContext] = useState(null);
@@ -104,6 +106,7 @@ export default function PropertyPageBuilder() {
   if (freeMode && !listing) {
     return (
       <FreePageStart
+        prefillAddress={carriedAddress}
         onCreated={async (created) => {
           setListing(created);
           await refreshListing(created?.listing_id);

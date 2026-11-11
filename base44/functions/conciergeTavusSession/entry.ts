@@ -228,7 +228,8 @@ export default async function (req) {
     const payload: Record<string, any> = {
       pal_id: pal.pal_id,
       conversation_name: `Arriv Preferred Concierge — ${new Date().toISOString().slice(0, 10)}`,
-      custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? I'm your Arriv concierge. What can I take care of for you?`,
+      // Spelled "Arrive" because this line is spoken aloud: the brand is pronounced that way.
+      custom_greeting: `Hi ${firstName}, how are you ${timeOfDay()}? I'm your Arrive concierge. What can I take care of for you?`,
       // Explicit, trusted context: the role is stated, not guessed from the conversation.
       conversational_context: preferredConversationContext({
         firstName,
@@ -238,7 +239,9 @@ export default async function (req) {
       }),
       // Tavus rejects these at the top level: they belong to the conversation's properties.
       properties: {
-        max_call_duration: 300,
+        // A working session is not cut at three minutes: the portal ends it after three minutes
+        // of quiet. This cap only stops an abandoned tab from running up Tavus minutes.
+        max_call_duration: 1800,
         participant_left_timeout: 120,
         participant_absent_timeout: 120,
       },

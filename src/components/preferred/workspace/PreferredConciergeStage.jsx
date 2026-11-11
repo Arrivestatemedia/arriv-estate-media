@@ -57,6 +57,13 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   const [url, setUrl] = useState("");
   const [phase, setPhase] = useState("idle");
   const [remaining, setRemaining] = useState(SESSION_SECONDS);
+  // The three-minute rule is QUIET minutes, not a cap on a working session: every word either
+  // of them says puts the clock back to three minutes.
+  const lastActivityRef = useRef(Date.now());
+  const touch = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setRemaining(SESSION_SECONDS);
+  }, []);
   const [issue, setIssue] = useState("");
   const [checklist, setChecklist] = useState([]);
   // Only if a direct join is refused does the provider's own page step in.
@@ -68,6 +75,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
     setChecklist([]);
     setFallback(false);
     setRemaining(SESSION_SECONDS);
+    lastActivityRef.current = Date.now();
     try {
       // A fresh conversation every time she is asked for: a conversation left behind by
       // an earlier visit is still "open" at the provider but her video is gone from it,
@@ -113,7 +121,10 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
 
   useEffect(() => {
     if (phase !== "live") return undefined;
-    const timer = setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
+    const timer = setInterval(() => {
+      const quiet = Math.floor((Date.now() - lastActivityRef.current) / 1000);
+      setRemaining(Math.max(0, SESSION_SECONDS - quiet));
+    }, 1000);
     return () => clearInterval(timer);
   }, [phase]);
 
@@ -155,7 +166,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
         ) : phase === "live" && (
           <p className="flex items-center gap-1.5 text-[11px] text-[#f6f1e8]/70">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d9bd95]" />
-            {clock(remaining)} left in this session
+            {SESSION_SECONDS - remaining >= 60 ? `Break in ${clock(remaining)}` : "Active session"}
           </p>
         )}
       </div>
@@ -184,6 +195,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
               compact={docked}
               context={pageContext}
               onDirective={handleDirective}
+              onActivity={touch}
             />
           )
         )}
@@ -256,7 +268,7 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
       {/* Never unmounted: the thread survives every panel the member opens, and stays typeable
           while they work so the next instruction can be written as easily as spoken. */}
       <div className={docked ? "preferred-chat-docked" : ""}>
-        <PreferredConciergeChat ref={chatRef} firstName={firstName} />
+        <PreferredConciergeChat ref={chatRef} firstName={firstName} onActivity={touch} />
       </div>
       {docked && (
         <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-[#f6f1e8]/85">

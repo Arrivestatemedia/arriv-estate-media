@@ -44,7 +44,7 @@ function write(key, value) {
  * The concierge conversation under the video stage: same session, same history and same
  * server-side action engine as the floating dock, so switching channels keeps context.
  */
-const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName }, ref) {
+const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName, onActivity }, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { active: activeSurface, open: openSurface } = usePreferredSurface();
@@ -93,6 +93,8 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
   const send = useCallback(async (text) => {
     const utterance = String(text || "").trim();
     if (!utterance || busy) return;
+    // A working conversation never times out: writing to her restarts the quiet clock.
+    onActivity?.();
     setDraft("");
     setMessages((current) => [...current, { role: "customer", text: utterance }]);
     setBusy(true);
@@ -136,9 +138,10 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
           : "I couldn't reach Arriv just now. Nothing was changed on your account — please try again.",
       }]);
     } finally {
+      onActivity?.();
       setBusy(false);
     }
-  }, [activeSurface?.key, busy, conversationId, location.pathname, location.search, navigate, openSurface, sessionId]);
+  }, [activeSurface?.key, busy, conversationId, location.pathname, location.search, navigate, onActivity, openSurface, sessionId]);
 
   const decide = useCallback(async (decision) => {
     if (!pending?.action_record_id) return;

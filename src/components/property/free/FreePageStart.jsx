@@ -22,8 +22,8 @@ const EMPTY = {
   propertyDescription: "",
 };
 
-export default function FreePageStart({ onCreated }) {
-  const [form, setForm] = useState(EMPTY);
+export default function FreePageStart({ onCreated, prefillAddress = "" }) {
+  const [form, setForm] = useState(() => ({ ...EMPTY, propertyAddress: prefillAddress || "" }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [known, setKnown] = useState(null);
@@ -43,7 +43,8 @@ export default function FreePageStart({ onCreated }) {
         setKnown(facts);
         setForm((prev) => ({
           ...prev,
-          propertyAddress: property.propertyAddress || prev.propertyAddress,
+          // The address the member just gave the concierge leads when nothing is on file yet.
+          propertyAddress: property.propertyAddress || prefillAddress || prev.propertyAddress,
           city: property.city || facts.city || "",
           state: property.state || facts.state || "",
           zip: property.zip || facts.zip || "",

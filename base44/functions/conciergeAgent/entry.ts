@@ -89,6 +89,15 @@ HOW TO ANSWER
 - If the customer asks to cancel or stop their Preferred membership, use request_membership_cancellation. It alerts their advisor and files the request; it never cancels anything, so say the team will process it and reach out. Never say the membership is cancelled.
 - Reply in at most 45 words, warm and precise, no emoji, no markdown.
 
+THE COMPANY NAME
+The company is Arriv, pronounced exactly like the English word "Arrive". Say it that way every time.
+
+FORMS AND DETAILS
+- When the customer wants to book a shoot, call open_booking_form immediately. When they want a property page, call create_property_page immediately. Never interview them in chat for details the form itself collects.
+- Carry everything they have already said: the property address goes in "address", a date in "date" (YYYY-MM-DD), a package in "package_id".
+- When they give you the address (or date, or package) after a form is already open, call that same action again with the value so the open form arrives filled in, and say in one line that you put it in the form.
+- Any street address the customer says is the property they mean.
+
 Return JSON: { "reply": string, "actions": [ { "name": string, "input": object } ] }`;
 }
 
@@ -124,6 +133,21 @@ function resolveViewIntent(utterance: string) {
 function inputForView(action: string, pageContext: any) {
   if (action === 'show_analytics' && pageContext?.listing_id) return { listing_id: pageContext.listing_id };
   return {};
+}
+
+/** The street address the customer just said, so a form they are filling can carry it. */
+const STREET_ADDRESS = /\b\d{1,6}[A-Za-z]?\s+[A-Za-z0-9.'’\-]+(?:\s+[A-Za-z0-9.'’\-]+){0,7}?\s(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|lane|ln\.?|court|ct\.?|circle|cir\.?|boulevard|blvd\.?|place|pl\.?|terrace|ter\.?|parkway|pkwy\.?|highway|hwy\.?|trail|trl\.?|way)\b(?:\.|,)?(?:\s*,?\s*[A-Za-z][A-Za-z .'\-]{1,28})?(?:\s*,?\s*[A-Z]{2})?(?:\s+\d{5})?/i;
+
+function extractAddress(text: string): string {
+  const match = String(text || '').match(STREET_ADDRESS);
+  if (!match) return '';
+  return match[0]
+    .replace(/\s+/g, ' ')
+    // Plain speech around the address is not part of it.
+    .replace(/\b(please|thanks|thank you|okay|ok|for me|today)\b\.?\s*$/i, '')
+    .replace(/[\s,]+$/, '')
+    .trim()
+    .slice(0, 120);
 }
 
 function summarize(outcomes: any[]) {
@@ -219,9 +243,25 @@ export default async function (req) {
       && !plannedNames.includes(viewIntent)
       && !plannedNames.some((name: string) => actionIsMutating(name))
       && plannedNames.every((name: string) => SUMMARY_ONLY.has(name));
-    const requested = mustOpen
+    const requested: any[] = mustOpen
       ? [{ name: viewIntent, input: inputForView(viewIntent, pageContext) }]
       : planned;
+
+    // She asked for the address and the member gave it. The form opens with it, even when the
+    // planner answered in words only, so nobody has to say "nothing happened" to be served.
+    const lastConciergeTurn = [...(Array.isArray(session.transcript) ? session.transcript : [])]
+      .reverse()
+      .find((entry: any) => String(entry?.role || '') === 'concierge');
+    const lastConciergeText = String(lastConciergeTurn?.text || '');
+    const saidAddress = extractAddress(utterance);
+    if (!requested.length && saidAddress && /\baddress\b/i.test(lastConciergeText)) {
+      const wantsPage = /property page|listing page|new page|web page/i.test(lastConciergeText);
+      requested.push({
+        name: wantsPage ? 'create_property_page' : 'open_booking_form',
+        input: { address: saidAddress },
+      });
+    }
+
     const outcomes: any[] = [];
     let preferencePatch: any = null;
     let pendingAction: any = null;
@@ -231,6 +271,12 @@ export default async function (req) {
       const name = String(requestedAction?.name || '');
       if (!isKnownAction(name)) continue;
       const input = requestedAction?.input && typeof requestedAction.input === 'object' ? requestedAction.input : {};
+      // The address the member just said belongs in the form they are filling, even when the
+      // planner left it out of the action input.
+      if (['open_booking_form', 'create_property_page'].includes(name) && !String(input?.address || '').trim()) {
+        const told = extractAddress(utterance);
+        if (told) input.address = told;
+      }
       const mutating = actionIsMutating(name);
       const needsConfirmation = actionRequiresConfirmation(name);
 
