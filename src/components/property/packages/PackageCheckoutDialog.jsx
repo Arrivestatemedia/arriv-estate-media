@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -67,9 +68,29 @@ function CheckoutForm({ priceLabel, chargeAtApproval, onPaid }) {
 }
 
 export default function PackageCheckoutDialog({ open, onOpenChange, checkout, onPaid }) {
-  const publishableKey = useMemo(() => String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""), []);
+  const [publishableKey, setPublishableKey] = useState(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""));
+  const [keyChecked, setKeyChecked] = useState(false);
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const [ready, setReady] = useState(false);
+
+  // The publishable key lives on the server, not in the bundle: read it when the card form opens.
+  useEffect(() => {
+    if (!open) return;
+    if (publishableKey) {
+      setKeyChecked(true);
+      return;
+    }
+    let cancelled = false;
+    base44.functions.invoke("getStripePublishableKey", {})
+      .then((res) => {
+        if (cancelled) return;
+        const data = res?.data || res;
+        setPublishableKey(String(data?.publishableKey || ""));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setKeyChecked(true); });
+    return () => { cancelled = true; };
+  }, [open, publishableKey]);
 
   useEffect(() => {
     if (open && checkout?.clientSecret) setReady(true);
@@ -87,7 +108,7 @@ export default function PackageCheckoutDialog({ open, onOpenChange, checkout, on
           </DialogDescription>
         </DialogHeader>
 
-        {!publishableKey && (
+        {keyChecked && !publishableKey && (
           <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
             Card payments are not configured in this environment. Nothing can be charged.
           </p>

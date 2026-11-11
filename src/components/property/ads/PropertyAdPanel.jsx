@@ -162,7 +162,9 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
   const paidDays = overview.packages?.[0]?.durationDays || overview.campaign?.duration_days || 7;
   const state = {
     activeTier: overview.campaign?.status === "ACTIVE" ? overview.campaign.package_tier : "",
-    canPurchase: overview.checkout_enabled === true && purchasable,
+    // Choosing a package is never gated: the card is only held, and the charge happens on the
+    // server once the page is approved and the campaign launches.
+    canPurchase: purchasable,
     busy: !!busyTier,
     busyTier,
   };
@@ -211,7 +213,9 @@ export default function PropertyAdPanel({ listing, clientEmail }) {
           property page is approved and the campaign starts running. The {paidDays} days begin on the day it launches, not on
           the day you reserve it.
           {(overview.listing?.blockers || []).length > 0 && (
-            <span className="mt-1 block text-xs text-[#1A1A1A]/55">Still needed: {(overview.listing?.blockers || []).join(" ")}</span>
+            <span className="mt-1 block text-xs text-[#1A1A1A]/55">
+              Your campaign starts once: {(overview.listing?.blockers || []).join(" ")} You can reserve it now regardless.
+            </span>
           )}
         </div>
       )}
