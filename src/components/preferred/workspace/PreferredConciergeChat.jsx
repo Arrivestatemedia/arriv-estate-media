@@ -197,9 +197,9 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         })}
 
         {pending && (
-          <div className="rounded-xl border border-[#c8a87c]/40 bg-[#c8a87c]/8 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-[#c8a87c]">Please confirm</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-[#f6f1e8]/85">{pending.summary}</p>
+          <div className="rounded-xl border border-[#c8a87c]/55 bg-[#c8a87c]/14 px-3 py-2 shadow-[inset_3px_0_0_#e2c79b]">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#e2c79b]">Please confirm</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#f6f1e8]/95">{pending.summary}</p>
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
@@ -222,8 +222,8 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
         )}
 
         {busy && (
-          <p className="flex items-center gap-2 text-[11px] text-[#f6f1e8]/70">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#c8a87c]" /> Working on it…
+          <p className="flex items-center gap-2 rounded-xl border border-[#c8a87c]/25 bg-[#c8a87c]/8 px-3 py-1.5 text-[11.5px] text-[#f6f1e8]/90">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#e2c79b]" /> Working on it…
           </p>
         )}
       </div>

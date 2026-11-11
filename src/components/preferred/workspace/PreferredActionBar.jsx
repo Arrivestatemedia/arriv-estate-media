@@ -24,9 +24,9 @@ export default function PreferredActionBar() {
             key={action.label}
             type="button"
             onClick={() => open(action.surface, { hash: SURFACES[action.surface]?.hash })}
-            className="preferred-focus flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center text-[11px] leading-tight text-[#f6f1e8]/65 transition-colors hover:bg-[#c8a87c]/10 hover:text-[#f6f1e8]"
+            className="preferred-focus flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center text-[11.5px] font-medium leading-tight text-[#f6f1e8]/90 transition-colors hover:bg-[#c8a87c]/16 hover:text-[#fffdf9]"
           >
-            <Icon className="h-4 w-4 text-[#c8a87c]" />
+            <Icon className="h-4 w-4 text-[#ddc09a]" />
             {action.label}
           </button>
         );

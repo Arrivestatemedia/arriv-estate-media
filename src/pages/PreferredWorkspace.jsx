@@ -8,7 +8,9 @@ import PreferredWorkspaceSidebar from "@/components/preferred/workspace/Preferre
 import PreferredConciergeStage from "@/components/preferred/workspace/PreferredConciergeStage";
 import PreferredWorkspaceRail from "@/components/preferred/workspace/PreferredWorkspaceRail";
 import PreferredActionBar from "@/components/preferred/workspace/PreferredActionBar";
+import PreferredSurfacePanel from "@/components/preferred/workspace/PreferredSurfacePanel";
 import PreferredWelcomeLoading from "@/components/preferred/workspace/PreferredWelcomeLoading";
+import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
 
 // One reveal per page load: a login or a refresh replays it, moving around the
 // workspace afterwards does not. A reload resets this module.
@@ -20,6 +22,8 @@ let revealPlayed = false;
  */
 export default function PreferredWorkspace() {
   const { preferred, loading, entitlement, customer, refresh } = usePreferred();
+  // A workspace the member is working in: she steps back, it opens beside her.
+  const { active: activeSurface } = usePreferredSurface();
   const [data, setData] = useState(null);
   const [failure, setFailure] = useState("");
   const [starting, setStarting] = useState(false);
@@ -47,6 +51,13 @@ export default function PreferredWorkspace() {
       cancelled = true;
     };
   }, [loading, preferred]);
+
+  // On this page the concierge is part of the layout, not a floating pip: it collapses into
+  // the working grid instead of hovering over it.
+  useEffect(() => {
+    document.body.classList.add("preferred-inline-stage");
+    return () => document.body.classList.remove("preferred-inline-stage");
+  }, []);
 
   const finishWelcome = useCallback(() => {
     revealPlayed = true;
@@ -139,31 +150,46 @@ export default function PreferredWorkspace() {
     || String(customer?.full_name || "").split(" ")[0]
     || "";
 
+  const working = Boolean(activeSurface);
+
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-5 lg:grid-cols-[218px_minmax(0,1fr)_296px]">
-        <div className="lg:sticky lg:top-20 lg:self-start">
+      {/* The workspace transforms around the conversation: while she is working on something
+          her panel narrows to one column and the screen she opened takes the rest. Her panel
+          is mounted in the same slot in both states, so the video is never restarted. */}
+      <div
+        className={`grid gap-5 transition-[grid-template-columns] duration-500 ${
+          working
+            ? "lg:grid-cols-[206px_minmax(0,296px)_minmax(0,1fr)]"
+            : "lg:grid-cols-[218px_minmax(0,1fr)_296px]"
+        }`}
+      >
+        <div className={`lg:sticky lg:top-20 lg:self-start ${working ? "hidden lg:block" : ""}`}>
           <PreferredWorkspaceSidebar firstName={firstName} />
         </div>
 
-        <div className="min-w-0">
+        <div className={`min-w-0 ${working ? "lg:sticky lg:top-20 lg:self-start" : ""}`}>
           <PreferredConciergeStage
             customer={{ first_name: firstName }}
             conciergeName={data?.concierge_name || ""}
           />
           {failure && (
-            <p className="mt-3 rounded-xl border border-[#c8a87c]/20 bg-black/25 px-3 py-2 text-[11.5px] text-[#f6f1e8]/50">
+            <p className="mt-3 rounded-xl border border-[#c8a87c]/25 bg-black/30 px-3 py-2 text-[11.5px] text-[#f6f1e8]/70">
               {failure}
             </p>
           )}
         </div>
 
-        <PreferredWorkspaceRail
-          stats={data?.stats}
-          latestMedia={data?.latest_media}
-          plan={data?.plan || entitlement?.plan}
-          periodEnd={data?.period_end || entitlement?.current_period_end}
-        />
+        {working ? (
+          <PreferredSurfacePanel />
+        ) : (
+          <PreferredWorkspaceRail
+            stats={data?.stats}
+            latestMedia={data?.latest_media}
+            plan={data?.plan || entitlement?.plan}
+            periodEnd={data?.period_end || entitlement?.current_period_end}
+          />
+        )}
       </div>
 
       <div className="mt-5">

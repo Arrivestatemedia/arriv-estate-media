@@ -30,32 +30,32 @@ export default function PreferredWorkspaceRail({ stats, latestMedia, plan, perio
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#c8a87c]">White-Glove Service</p>
           </div>
         </div>
-        <p className="mt-3 text-[11px] leading-relaxed text-[#f6f1e8]/50">
+        <p className="mt-3 text-[11.5px] leading-relaxed text-[#f6f1e8]/75">
           {plan ? String(plan).replace(/_/g, " ") : "Membership"}
           {periodEnd ? ` · active through ${shortDate(periodEnd)}` : ""}
         </p>
       </div>
 
       <div className="preferred-glass p-4">
-        <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[#f6f1e8]/40">At a glance</p>
+        <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[#f6f1e8]/65">At a glance</p>
         <ul className="space-y-3">
           <li className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/60">
+            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/82">
               <TrendingUp className="h-3.5 w-3.5 text-[#c8a87c]" /> Your Savings
             </span>
             <span className="text-right">
               <span className="block text-[15px] text-[#f6f1e8]">{money(stats?.savings_cents)}</span>
-              <span className="text-[10px] text-[#f6f1e8]/35">This Year</span>
+              <span className="text-[10px] text-[#f6f1e8]/60">This Year</span>
             </span>
           </li>
           <li className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/60">
+            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/82">
               <Building2 className="h-3.5 w-3.5 text-[#c8a87c]" /> Active Listings
             </span>
             <span className="text-[15px] text-[#f6f1e8]">{Number(stats?.active_listings || 0)}</span>
           </li>
           <li className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/60">
+            <span className="flex items-center gap-2 text-[12px] text-[#f6f1e8]/82">
               <CalendarClock className="h-3.5 w-3.5 text-[#c8a87c]" /> Upcoming Shoots
             </span>
             <span className="text-[15px] text-[#f6f1e8]">{Number(stats?.upcoming_shoots || 0)}</span>
@@ -89,11 +89,11 @@ export default function PreferredWorkspaceRail({ stats, latestMedia, plan, perio
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#c8a87c]">
             {media ? "Latest Media Ready" : "No delivery yet"}
           </p>
-          <p className="mt-1 truncate text-[13px] text-[#f6f1e8]/85">
+          <p className="mt-1 truncate text-[13px] text-[#f6f1e8]/95">
             {media ? media.title : "Your delivered media will appear here."}
           </p>
           {media?.delivered_at && (
-            <p className="mt-0.5 text-[10px] text-[#f6f1e8]/35">{shortDate(media.delivered_at)}</p>
+            <p className="mt-0.5 text-[10px] text-[#f6f1e8]/60">{shortDate(media.delivered_at)}</p>
           )}
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function PreferredWorkspaceRail({ stats, latestMedia, plan, perio
       <button
         type="button"
         onClick={() => open("analytics", { hash: SURFACES.analytics?.hash })}
-        className="preferred-focus flex w-full items-center justify-between rounded-xl border border-[#c8a87c]/20 px-4 py-2.5 text-[12px] text-[#f6f1e8]/70 transition-colors hover:border-[#c8a87c]/45 hover:text-[#f6f1e8]"
+        className="preferred-focus flex w-full items-center justify-between rounded-xl border border-[#c8a87c]/32 px-4 py-2.5 text-[12px] text-[#f6f1e8]/88 transition-colors hover:border-[#c8a87c]/60 hover:bg-[#c8a87c]/10 hover:text-[#fffdf9]"
       >
         View performance
         <BarChart3 className="h-3.5 w-3.5 text-[#c8a87c]" />

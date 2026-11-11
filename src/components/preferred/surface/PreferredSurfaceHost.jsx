@@ -18,10 +18,11 @@ export default function PreferredSurfaceHost() {
   // Billing, membership, analytics and company all live on one hosted screen: the surface
   // lands on its own section instead of the top of that page.
   useEffect(() => {
-    if (!surface?.hash) return;
+    // The inline working panel scrolls to its own section; the page itself stays where it is.
+    if (!surface?.hash || location.pathname === "/PreferredWorkspace") return;
     const target = document.querySelector(surface.hash);
     if (target) target.scrollIntoView({ block: "start" });
-  }, [active, surface]);
+  }, [active, surface, location.pathname]);
 
   useEffect(() => {
     if (active) openedOn.current = `${window.location.pathname}${window.location.search}`;
@@ -34,8 +35,10 @@ export default function PreferredSurfaceHost() {
     if (`${location.pathname}${location.search}` !== openedOn.current) close();
   }, [active, location.pathname, location.search, close]);
 
+  // Only a real dialog locks the page behind it. Inline in the workspace there is nothing to
+  // lock, and locking it would freeze the member's own scrolling.
   useEffect(() => {
-    if (!active) return undefined;
+    if (!active || location.pathname === "/PreferredWorkspace") return undefined;
     const onKey = (event) => {
       if (event.key === "Escape") close();
     };
@@ -46,9 +49,12 @@ export default function PreferredSurfaceHost() {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [active, close]);
+  }, [active, close, location.pathname]);
 
-  if (!active || !surface) return null;
+  // Inside the member's own workspace the surface is not a dialog at all: it opens inline,
+  // beside the concierge, and the workspace itself recolours around it.
+  const onWorkspace = location.pathname === "/PreferredWorkspace";
+  if (!active || !surface || onWorkspace) return null;
   const Component = surface.Component;
 
   return createPortal(

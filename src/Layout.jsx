@@ -272,7 +272,7 @@ function LayoutContent({ children, currentPageName }) {
 
   return (
     <PreferredProvider user={user}>
-    <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user ? '4.5rem' : '0' }}>
+    <div className="arriv-app-shell min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user ? '4.5rem' : '0' }}>
       {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && currentPageName !== "SalesLogin" && <GoogleMapsLoader />}
       <TwilioSdkLoader />
       <style>{`

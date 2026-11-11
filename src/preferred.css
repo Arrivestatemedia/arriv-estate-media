@@ -454,7 +454,23 @@ body.preferred-portal main .bg-white:hover {
 
 /* ── Readability: same palette, clearer ink ───────────────────────────────── */
 .preferred-portal .preferred-nav-item {
-  color: rgba(250, 246, 239, 0.86);
+  color: rgba(250, 246, 239, 0.92);
+  font-weight: 500;
+}
+
+/* The icon carries the same weight as its label, never dimmer than it. */
+.preferred-portal .preferred-nav-item svg {
+  color: rgba(226, 199, 155, 0.9);
+}
+
+.preferred-portal .preferred-nav-item[data-active="true"] {
+  color: #fffdf9;
+  background: linear-gradient(100deg, rgba(200, 168, 124, 0.26), rgba(200, 168, 124, 0.07));
+  box-shadow: inset 3px 0 0 #e2c79b, 0 12px 26px -20px rgba(200, 168, 124, 0.95);
+}
+
+.preferred-portal .preferred-nav-item[data-active="true"] svg {
+  color: #f3e2c6;
 }
 
 .preferred-portal .preferred-nav-item:hover {
@@ -469,7 +485,8 @@ body.preferred-portal main .bg-white:hover {
   box-shadow: inset 0 0 0 1px rgba(214, 183, 138, 0.42);
 }
 
-.preferred-portal .preferred-surface-caption { color: rgba(250, 246, 239, 0.74); }
+.preferred-portal .preferred-surface-caption,
+.preferred-portal .preferred-panel-caption { color: rgba(250, 246, 239, 0.8); }
 .preferred-portal .preferred-surface-eyebrow { color: #dcbf92; }
 .preferred-portal .preferred-surface-close { color: rgba(250, 246, 239, 0.86); }
 .preferred-portal .preferred-surface-close:hover { color: #fffdf9; background: rgba(200, 168, 124, 0.18); }
@@ -483,4 +500,158 @@ body.preferred-portal main .bg-white:hover {
 .preferred-portal [role="button"]:focus-visible {
   outline: 2px solid #e2c79b;
   outline-offset: 2px;
+}
+
+/* ── Adaptive workspace ───────────────────────────────────────────────────────
+   On the member's own workspace she is part of the composition rather than a floating
+   pip: when a screen opens beside her, her panel narrows inside the grid and the screen
+   takes the room. Same video session throughout, never restarted. */
+
+body.preferred-inline-stage .preferred-pip,
+body.preferred-portal.preferred-inline-stage .preferred-pip {
+  position: static;
+  inset: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  top: auto;
+  z-index: auto;
+  width: auto;
+  padding: 0.5rem;
+  border-radius: 18px;
+  border-color: rgba(214, 183, 138, 0.42);
+  box-shadow: 0 26px 60px -34px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(246, 241, 232, 0.06);
+  animation: preferredPanelIn 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (max-width: 1023px) {
+  body.preferred-inline-stage .preferred-pip {
+    width: auto;
+    padding: 0.5rem;
+    border-radius: 18px;
+  }
+  /* The small panel keeps her name visible: it is the thread of continuity while working. */
+  body.preferred-inline-stage .preferred-pip p { display: block; }
+}
+
+/* ── The working panel ────────────────────────────────────────────────────────
+   The screen the member asked for, opened beside her inside the workspace. */
+
+.preferred-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  animation: preferredPanelIn 380ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes preferredPanelIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.994); }
+  to { opacity: 1; transform: none; }
+}
+
+.preferred-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.9rem;
+  border-bottom: 1px solid rgba(200, 168, 124, 0.2);
+  background: linear-gradient(180deg, rgba(200, 168, 124, 0.1) 0%, rgba(200, 168, 124, 0) 100%);
+}
+
+.preferred-panel-title {
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
+  line-height: 1.15;
+  color: #faf6ef;
+}
+
+.preferred-panel-caption {
+  margin-top: 0.2rem;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(250, 246, 239, 0.72);
+}
+
+.preferred-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.1rem 1.6rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 168, 124, 0.35) transparent;
+}
+
+.preferred-panel-body::-webkit-scrollbar { width: 8px; }
+.preferred-panel-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(200, 168, 124, 0.32);
+}
+
+@media (min-width: 1024px) {
+  .preferred-panel-body { max-height: min(74vh, 900px); }
+}
+
+.preferred-panel-loading {
+  position: relative;
+  display: flex;
+  min-height: 46vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  overflow: hidden;
+}
+
+.preferred-panel-loading-text {
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: rgba(250, 246, 239, 0.82);
+}
+
+.preferred-panel-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, rgba(200, 168, 124, 0.1) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: preferredSheen 1.6s ease-in-out infinite;
+}
+
+@keyframes preferredSheen {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preferred-panel,
+  body.preferred-inline-stage .preferred-pip { animation: none !important; }
+  .preferred-panel-sheen { animation: none !important; opacity: 0; }
+}
+
+/* A Preferred member keeps the premium left navigation on desktop: the fixed bottom bar is
+   theirs on mobile only, and the desktop page reclaims the space it used to reserve. */
+@media (min-width: 768px) {
+  .preferred-portal .arriv-app-shell { padding-bottom: 0 !important; }
+}
+
+/* Her thread stays usable in the narrow panel, kept short so the video and the working
+   screen both stay in view. */
+.preferred-chat-docked .preferred-scroll { max-height: 96px; }
+.preferred-chat-docked > div > p:last-child { display: none; }
+
+/* The finished screen arrives rather than swapping in: one quiet reveal as it settles. */
+@keyframes preferredContentIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.preferred-panel-body > * {
+  animation: preferredContentIn 420ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preferred-panel-body > * { animation: none !important; }
 }

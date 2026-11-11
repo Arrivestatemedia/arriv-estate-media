@@ -239,13 +239,14 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
 
       </div>
 
-      {/* Hidden, never unmounted: the thread survives every panel the member opens. */}
-      <div className={docked ? "hidden" : ""}>
+      {/* Never unmounted: the thread survives every panel the member opens, and stays typeable
+          while they work so the next instruction can be written as easily as spoken. */}
+      <div className={docked ? "preferred-chat-docked" : ""}>
         <PreferredConciergeChat ref={chatRef} firstName={firstName} />
       </div>
       {docked && (
-        <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-[#f6f1e8]/75">
-          Still here while you work. Expand me to type.
+        <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-[#f6f1e8]/85">
+          Still here while you work — speak or type your next instruction.
         </p>
       )}
     </section>
