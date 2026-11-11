@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Coffee, Crown, Loader2, Maximize2 } from "lucide-react";
-import { endConciergeVideo, startConciergeVideo } from "@/lib/conciergeClient";
+import { endConciergeVideo, endConciergeVideoOnLeave, startConciergeVideo } from "@/lib/conciergeClient";
 import { applyConciergeDirective } from "@/lib/conciergeUi";
 import { usePreferredSurface } from "@/components/preferred/surface/PreferredSurfaceContext";
 import PreferredConciergePresence from "@/components/preferred/PreferredConciergePresence";
@@ -120,6 +120,20 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   useEffect(() => {
     if (phase === "live" && remaining === 0) stepAway();
   }, [phase, remaining, stepAway]);
+
+  // Every exit ends the conversation at Tavus itself, not just the frame: leaving the
+  // workspace, closing the tab or a reload never leaves a session running behind it.
+  useEffect(() => {
+    if (phase !== "live" || !url) return undefined;
+    const leave = () => {
+      endConciergeVideoOnLeave();
+    };
+    window.addEventListener("pagehide", leave);
+    return () => {
+      window.removeEventListener("pagehide", leave);
+      leave();
+    };
+  }, [phase, url]);
 
   const breakLine = `${firstName ? `${firstName}, I am` : "I am"} taking a break — just click Concierge to come back and I'll be right here, or you also have the option to just chat with me.`;
 

@@ -16,6 +16,7 @@ import {
   askConcierge,
   confirmConciergeAction,
   endConciergeVideo,
+  endConciergeVideoOnLeave,
   fetchConciergeNotices,
   markConciergeNotice,
   startConciergeVideo,
@@ -79,6 +80,20 @@ export default function PreferredConcierge({ customer, entitlement }) {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, pending, videoUrl]);
+
+  // A live video is never left running: closing the page, reloading or the tab going away
+  // all end the Tavus conversation on the server.
+  useEffect(() => {
+    if (!videoUrl) return undefined;
+    const leave = () => {
+      endConciergeVideoOnLeave();
+    };
+    window.addEventListener("pagehide", leave);
+    return () => {
+      window.removeEventListener("pagehide", leave);
+      leave();
+    };
+  }, [videoUrl]);
 
   const loadNotices = useCallback(async (refresh) => {
     setNoticesLoading(true);

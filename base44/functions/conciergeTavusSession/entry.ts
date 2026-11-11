@@ -96,16 +96,22 @@ export default async function (req) {
     }
 
     if (String(body?.action || 'start') === 'end') {
-      if (session.tavus_conversation_id) {
-        await endTavusConversation(session.tavus_conversation_id).catch(() => null);
-      }
-      await base44.asServiceRole.entities.ConciergeSession.update(session.id, {
+      // End means every conversation this customer still has open — not just the newest one —
+      // so nothing is left running at Tavus after the member leaves.
+      const customerRows = [...rows, session].filter((row: any) => row?.id);
+      const openIds: string[] = Array.from(new Set(
+        [...rows, session]
+          .map((row: any) => String(row?.tavus_conversation_id || '').trim())
+          .filter(Boolean),
+      ));
+      await Promise.all(openIds.map((id) => endTavusConversation(id).catch(() => null)));
+      await Promise.all(customerRows.map((row: any) => base44.asServiceRole.entities.ConciergeSession.update(row.id, {
         tavus_conversation_id: '',
         tavus_conversation_url: '',
         tavus_ended_at: new Date().toISOString(),
         mode: 'text',
-      });
-      return Response.json({ ok: true, ended: true });
+      }).catch(() => null)));
+      return Response.json({ ok: true, ended: true, conversations_ended: openIds.length });
     }
 
     // Starting on request always starts a conversation that really has her in it. A
@@ -121,6 +127,25 @@ export default async function (req) {
       });
       session.tavus_conversation_id = '';
       session.tavus_conversation_url = '';
+    }
+
+    // Any conversation left behind by an earlier session is ended here too, so this customer
+    // never has two sessions open at Tavus at once.
+    const staleIds: string[] = Array.from(new Set(
+      rows
+        .filter((row: any) => row?.session_id !== session.session_id && row?.tavus_conversation_id)
+        .map((row: any) => String(row.tavus_conversation_id)),
+    ));
+    for (const staleId of staleIds) {
+      await endTavusConversation(staleId).catch(() => null);
+      const stale = rows.find((row: any) => String(row?.tavus_conversation_id || '') === staleId);
+      if (stale?.id) {
+        await base44.asServiceRole.entities.ConciergeSession.update(stale.id, {
+          tavus_conversation_id: '',
+          tavus_conversation_url: '',
+          tavus_ended_at: new Date().toISOString(),
+        }).catch(() => null);
+      }
     }
 
     const apiKey = Deno.env.get('TAVUS_API_KEY');

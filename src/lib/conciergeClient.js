@@ -80,6 +80,24 @@ export function endConciergeVideo(sessionId) {
   return invoke('conciergeTavusSession', { action: 'end', session_id: sessionId || undefined });
 }
 
+/**
+ * The browser's last word when the page is going away (closed tab, reload, navigation):
+ * a keepalive request so the Tavus conversation is ended server-side instead of being
+ * left open for its provider timeouts to clean up.
+ */
+export function endConciergeVideoOnLeave(sessionId) {
+  try {
+    return fetch('/functions/conciergeTavusSession', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(withCustomerSession({ action: 'end', session_id: sessionId || undefined })),
+      keepalive: true,
+    }).catch(() => null);
+  } catch {
+    return Promise.resolve(null);
+  }
+}
+
 export function fetchConciergeNotices(action = 'refresh') {
   return invoke('conciergeNotices', { action });
 }
