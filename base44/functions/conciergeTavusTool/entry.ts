@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
 import { resolvePreferredEntitlement } from '../../shared/preferredEntitlement.ts';
 import { verifyConciergeToolToken, readConciergeToken } from '../../shared/conciergeSessionToken.ts';
+import { requireCustomer } from '../../shared/customerSession.ts';
 import { runConciergeAction, isKnownAction } from '../../shared/conciergeActions.ts';
 
 /**
@@ -37,14 +38,14 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
 
-    // Tavus is server-to-server: the shared secret header is checked when configured.
+    // Two legitimate callers:
+    //   * Tavus itself, server-to-server, authenticated with the shared tool secret.
+    //   * Our own portal, when the representative's app tool hands the call to the browser
+    //     for the signed-in customer, authenticated with that customer's own session.
+    // Either way the account is re-derived from the conversation, never from the request.
     const sharedSecret = Deno.env.get('TAVUS_TOOL_SECRET');
-    if (sharedSecret) {
-      const provided = req.headers.get('x-arriv-tool-secret') || '';
-      if (provided !== sharedSecret) {
-        return Response.json({ ok: false, error: 'Not authorized.' }, { status: 401 });
-      }
-    }
+    const provided = req.headers.get('x-arriv-tool-secret') || '';
+    const fromTavus = !!sharedSecret && provided === sharedSecret;
 
     const tokenPayload = verifyConciergeToolToken(readConciergeToken(req, body));
     const conversationId = String(body?.conversation_id || tokenPayload?.convo || '').trim();
@@ -59,6 +60,17 @@ export default async function (req) {
     }
     if (tokenPayload && String(tokenPayload.email) !== String(session.customer_email)) {
       return Response.json({ ok: false, error: 'Conversation token does not match the session.' }, { status: 403 });
+    }
+
+    if (!fromTavus) {
+      const auth = await requireCustomer(base44, req, body).catch(() => null);
+      const callerEmail = String((auth as any)?.actor?.email || '').toLowerCase();
+      if (!callerEmail) {
+        return Response.json({ ok: false, error: 'Not authorized.' }, { status: 401 });
+      }
+      if (callerEmail !== String(session.customer_email).toLowerCase()) {
+        return Response.json({ ok: false, error: 'This conversation belongs to another account.' }, { status: 403 });
+      }
     }
 
     const email = String(session.customer_email).toLowerCase();

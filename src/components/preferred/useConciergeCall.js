@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Daily from "@daily-co/daily-js";
+import { runVideoConciergeTool } from "@/lib/conciergeClient";
 
 /**
  * Joins the concierge's conversation room directly, so the concierge appears in our own
@@ -88,6 +89,57 @@ export default function useConciergeCall({ url, displayName, onFail }) {
         // She has left the room: show the waiting state rather than a black frame.
         if (!cancelled) setStatus("waiting");
       }
+    });
+
+    // Her app tools arrive here as conversation events. The portal runs the tool against
+    // the real account and hands the result straight back to her, so she speaks from the
+    // audited result rather than from anything the model assumed.
+    const runToolCall = async (payload) => {
+      if (!payload || payload.message_type !== "conversation" || payload.event_type !== "conversation.tool_call") return;
+      const props = payload.properties || {};
+      const toolCallId = props.tool_call_id;
+      if (!toolCallId) return;
+
+      let args = props.arguments;
+      if (typeof args === "string") {
+        try {
+          args = JSON.parse(args || "{}");
+        } catch {
+          args = {};
+        }
+      }
+
+      let output = "That request could not be completed.";
+      let status = "error";
+      const result = await runVideoConciergeTool({
+        toolName: props.name,
+        args: args || {},
+        conversationId: payload.conversation_id,
+      });
+      if (result?.ok) {
+        output = String(result.reply || "Done.").slice(0, 1500);
+        status = "success";
+      } else if (result?.reply) {
+        output = String(result.reply).slice(0, 1500);
+      }
+
+      try {
+        await call.sendAppMessage(
+          {
+            message_type: "conversation",
+            event_type: "conversation.tool_result",
+            conversation_id: payload.conversation_id,
+            properties: { tool_call_id: toolCallId, output, status },
+          },
+          "*",
+        );
+      } catch {
+        /* the call already ended; nothing left to answer */
+      }
+    };
+
+    call.on("app-message", (event) => {
+      runToolCall(event?.data);
     });
 
     call.on("error", fail);

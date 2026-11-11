@@ -56,6 +56,26 @@ export async function startConciergeVideo(sessionId, { fresh = false } = {}) {
   }
 }
 
+/**
+ * The video representative's app tools are handed to the browser, so the portal runs them
+ * here against the same action engine as the text concierge. Identity and entitlement are
+ * re-derived server-side from the conversation and this customer's session.
+ */
+export async function runVideoConciergeTool({ toolName, args, conversationId }) {
+  try {
+    return await invoke('conciergeTavusTool', {
+      tool_name: toolName,
+      arguments: args || {},
+      conversation_id: conversationId,
+      utterance: String(args?.reason || 'video request').slice(0, 400),
+    });
+  } catch (error) {
+    const body = error?.response?.data || error?.data;
+    if (body && typeof body === 'object') return body;
+    return { ok: false, reply: 'That request could not be completed.' };
+  }
+}
+
 export function endConciergeVideo(sessionId) {
   return invoke('conciergeTavusSession', { action: 'end', session_id: sessionId || undefined });
 }
