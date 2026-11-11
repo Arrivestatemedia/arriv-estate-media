@@ -96,6 +96,20 @@ export default function AdCampaignDetail({ campaignId, onClose, onChanged }) {
               <div><dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Ad budget</dt><dd className="font-medium text-[#1A1A1A]">{money(campaign.budget?.ad_budget_cents)}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Spent</dt><dd className="font-medium text-[#1A1A1A]">{money(campaign.budget?.spent_cents ?? 0)}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Refundable</dt><dd className="font-medium text-[#1A1A1A]">{money(campaign.refundable_cents)}</dd></div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Customer's card</dt>
+                <dd className="font-medium text-[#1A1A1A]">
+                  {campaign.payment_state === "captured"
+                    ? "Charged"
+                    : campaign.payment_state === "authorized"
+                      ? "Held, not charged"
+                      : campaign.payment_state === "voided"
+                        ? "Released, nothing charged"
+                        : campaign.payment_state === "capture_failed"
+                          ? "Charge failed"
+                          : "Not taken"}
+                </dd>
+              </div>
               <div><dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Starts</dt><dd className="font-medium text-[#1A1A1A]">{formatDate(campaign.started_at || campaign.scheduled_start_at)}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-[0.12em] text-[#1A1A1A]/40">Ends</dt><dd className="font-medium text-[#1A1A1A]">{formatDate(campaign.ends_at)}</dd></div>
             </dl>
