@@ -4,6 +4,7 @@ import { getCustomerSessionToken } from "@/lib/customerSession";
 import { fetchConciergeEntitlement } from "@/lib/conciergeClient";
 import PreferredConcierge from "@/components/preferred/PreferredConcierge";
 import PreferredWelcome from "@/components/preferred/PreferredWelcome";
+import PreferredWelcomeLoading from "@/components/preferred/workspace/PreferredWelcomeLoading";
 import { PreferredSurfaceProvider } from "@/components/preferred/surface/PreferredSurfaceContext";
 import PreferredSurfaceHost from "@/components/preferred/surface/PreferredSurfaceHost";
 import "@/preferred.css";
@@ -46,6 +47,9 @@ export default function PreferredProvider({ user, children }) {
   const location = useLocation();
   const isCustomer = user?.user_type === "client";
   const [state, setState] = useState({ ...EMPTY, loading: isCustomer });
+  // Every login and every refresh walks the member back through the branded loading screen.
+  // It lives in memory only, so a new page load always plays it again.
+  const [revealDone, setRevealDone] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!isCustomer || !getCustomerSessionToken()) {
@@ -99,6 +103,13 @@ export default function PreferredProvider({ user, children }) {
         )}
         {state.preferred && <PreferredWelcome customer={state.customer} />}
         {state.preferred && <PreferredSurfaceHost />}
+        {state.preferred && inPortal && !onWorkspace && !revealDone && (
+          <PreferredWelcomeLoading
+            firstName={String(state.customer?.first_name || state.customer?.full_name || "").trim().split(" ")[0]}
+            ready={!state.loading}
+            onDone={() => setRevealDone(true)}
+          />
+        )}
       </PreferredSurfaceProvider>
     </PreferredContext.Provider>
   );

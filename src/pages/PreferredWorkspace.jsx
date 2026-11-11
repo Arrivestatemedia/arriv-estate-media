@@ -19,11 +19,11 @@ export default function PreferredWorkspace() {
   const [data, setData] = useState(null);
   const [failure, setFailure] = useState("");
   const [starting, setStarting] = useState(false);
-  // Arriving straight from checkout: the membership is still being activated, so the
-  // customer gets their welcome instead of a portal that looks unchanged.
-  const [welcoming, setWelcoming] = useState(
-    () => new URLSearchParams(window.location.search).get("preferred") === "success"
-  );
+  // Every visit — a login or a refresh — starts with the branded loading screen while the
+  // membership is confirmed. Arriving straight from checkout keeps it up until activation.
+  const fromCheckout = new URLSearchParams(window.location.search).get("preferred") === "success";
+  const [welcoming, setWelcoming] = useState(true);
+  const showWelcome = welcoming && (fromCheckout || loading || preferred);
 
   useEffect(() => {
     if (loading || !preferred) return undefined;
@@ -53,13 +53,13 @@ export default function PreferredWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (!welcoming) return undefined;
+    if (!showWelcome) return undefined;
     refresh();
     const timer = setInterval(() => refresh(), 2500);
     return () => clearInterval(timer);
-  }, [welcoming, refresh]);
+  }, [showWelcome, refresh]);
 
-  if (welcoming) {
+  if (showWelcome) {
     return (
       <PreferredWelcomeLoading
         firstName={customer?.first_name || String(customer?.full_name || "").split(" ")[0] || ""}
