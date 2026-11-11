@@ -47,7 +47,7 @@ function write(key, value) {
 const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firstName, onActivity }, ref) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { active: activeSurface, open: openSurface } = usePreferredSurface();
+  const { active: activeSurface, open: openSurface, resumed } = usePreferredSurface();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -60,12 +60,22 @@ const PreferredConciergeChat = forwardRef(function PreferredConciergeChat({ firs
   const [conversationId, setConversationId] = useState(() => read(CONVO_KEY));
   const [listening, setListening] = useState(false);
 
+  // Coming back to unfinished work is the only time she says welcome back: a member who
+  // simply arrives is greeted as arriving.
   useEffect(() => {
-    setMessages((current) => (current.length ? current : [{
-      role: "concierge",
-      text: `Hi ${firstName || "there"}, how are you ${timeOfDay()}? How can I help you?`,
-    }]));
-  }, [firstName]);
+    setMessages((current) => {
+      // Once they have said anything, the thread is theirs and is never rewritten.
+      if (current.some((message) => message.role === "customer")) return current;
+      const text = resumed
+        ? `Welcome back${firstName ? `, ${firstName}` : ""} — I kept ${resumed} open for you, so we can carry on right where we left off.`
+        : `Hi ${firstName || "there"}, how are you ${timeOfDay()}? How can I help you?`;
+      if (!current.length) return [{ role: "concierge", text }];
+      if (current.length > 1 || current[0].role !== "concierge") return current;
+      // A welcome back she has already given is never taken away.
+      if (!resumed && current[0].text.startsWith("Welcome back")) return current;
+      return [{ role: "concierge", text }];
+    });
+  }, [firstName, resumed]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

@@ -93,7 +93,7 @@ export default function PreferredProvider({ user, children }) {
 
   return (
     <PreferredContext.Provider value={value}>
-      <PreferredSurfaceProvider>
+      <PreferredSurfaceProvider owner={state.customer?.email || ""}>
         {children}
         {state.preferred && !onWorkspace && state.entitlement?.concierge_enabled !== false && (
           <PreferredConcierge user={user} customer={state.customer} entitlement={state.entitlement} />
