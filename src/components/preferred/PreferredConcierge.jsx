@@ -301,7 +301,12 @@ export default function PreferredConcierge({ customer, entitlement }) {
         </div>
 
         {videoUrl ? (
-          <ConciergeVideoPanel url={videoUrl} busy={videoBusy} onEnd={stopVideo} />
+          <ConciergeVideoPanel
+            url={videoUrl}
+            busy={videoBusy}
+            onEnd={stopVideo}
+            displayName={customer?.first_name || String(customer?.full_name || "").split(" ")[0] || ""}
+          />
         ) : null}
 
         {showNotices ? (

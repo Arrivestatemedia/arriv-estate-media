@@ -8,21 +8,18 @@ import { Crown } from "lucide-react";
 export default function PreferredWelcomeLoading({ firstName, ready, onDone }) {
   const [progress, setProgress] = useState(0);
 
+  // The bar always completes: confirming the membership early only makes it quicker.
+  // A welcome never becomes a dead end, whatever the network is doing.
   useEffect(() => {
-    const ceiling = ready ? 100 : 95;
     const timer = setInterval(() => {
-      setProgress((value) => {
-        if (value >= ceiling) return value;
-        const step = value < 45 ? 4 : value < 80 ? 2 : 1;
-        return Math.min(ceiling, value + step);
-      });
-    }, 130);
+      setProgress((value) => Math.min(100, value + (ready ? 7 : 2)));
+    }, 90);
     return () => clearInterval(timer);
   }, [ready]);
 
   useEffect(() => {
     if (progress < 100) return undefined;
-    const timer = setTimeout(onDone, 650);
+    const timer = setTimeout(onDone, 480);
     return () => clearTimeout(timer);
   }, [progress, onDone]);
 

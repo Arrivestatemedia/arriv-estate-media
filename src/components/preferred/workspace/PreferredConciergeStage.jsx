@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Check, Coffee, Crown, Loader2, Mic, PhoneOff } from "lucide-react";
+import { Check, Coffee, Crown, Loader2 } from "lucide-react";
 import { endConciergeVideo, startConciergeVideo } from "@/lib/conciergeClient";
+import PreferredConciergePresence from "@/components/preferred/PreferredConciergePresence";
 import PreferredConciergeChat from "./PreferredConciergeChat";
 
 const STARTED_KEY = "arriv_concierge_stage_started";
@@ -27,11 +28,14 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
   const [remaining, setRemaining] = useState(SESSION_SECONDS);
   const [issue, setIssue] = useState("");
   const [checklist, setChecklist] = useState([]);
+  // Only if a direct join is refused does the provider's own page step in.
+  const [fallback, setFallback] = useState(false);
 
   const connect = useCallback(async () => {
     setPhase("connecting");
     setIssue("");
     setChecklist([]);
+    setFallback(false);
     setRemaining(SESSION_SECONDS);
     try {
       const result = await startConciergeVideo(null);
@@ -111,21 +115,22 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
 
       <div className="preferred-stage" style={{ aspectRatio: "16 / 10", minHeight: "300px" }}>
         {phase === "live" && url && (
-          <>
+          fallback ? (
             <iframe
               key={url}
               src={url}
               title="Arriv Concierge video representative"
               allow="camera; microphone; autoplay; fullscreen; display-capture; speaker-selection"
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/75 to-transparent pb-4 pt-12">
-              <div className="preferred-wave" aria-hidden="true">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((bar) => (
-                  <span key={bar} style={{ animationDelay: `${bar * 90}ms` }} />
-                ))}
-              </div>
-            </div>
-          </>
+          ) : (
+            <PreferredConciergePresence
+              url={url}
+              displayName={customer?.full_name || firstName}
+              conciergeName={conciergeName}
+              onStepAway={stepAway}
+              onFail={() => setFallback(true)}
+            />
+          )
         )}
 
         {phase === "connecting" && (
@@ -191,34 +196,6 @@ export default function PreferredConciergeStage({ customer, conciergeName }) {
           </div>
         )}
 
-        {phase === "live" && (
-          <div className="absolute inset-x-0 bottom-2 z-10 flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => chatRef.current?.startListening()}
-              aria-label="Speak to the concierge"
-              className="preferred-focus flex h-10 w-10 items-center justify-center rounded-full border border-[#c8a87c]/35 bg-black/55 text-[#f6f1e8]/85 hover:bg-black/70"
-            >
-              <Mic className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={stepAway}
-              aria-label="End the video session"
-              className="preferred-focus flex h-12 w-12 items-center justify-center rounded-full bg-[#c0574a] text-white shadow-[0_10px_30px_-12px_rgba(192,87,74,0.9)] hover:bg-[#cf6456]"
-            >
-              <PhoneOff className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={connect}
-              aria-label="Reconnect the video"
-              className="preferred-focus flex h-10 w-10 items-center justify-center rounded-full border border-[#c8a87c]/35 bg-black/55 text-[#f6f1e8]/85 hover:bg-black/70"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       <PreferredConciergeChat ref={chatRef} firstName={firstName} />

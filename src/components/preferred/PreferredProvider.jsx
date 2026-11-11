@@ -64,8 +64,9 @@ export default function PreferredProvider({ user, children }) {
         unreadNotices: Number(result.unread_notices || 0),
       });
     } catch {
-      // A concierge failure must never block the portal or log anybody out.
-      setState(EMPTY);
+      // A transient failure keeps the last known answer: flipping Preferred off and back on
+      // mid-experience would restart the welcome and tear the portal skin down.
+      setState((previous) => ({ ...previous, loading: false }));
     }
   }, [isCustomer, user?.email]);
 
