@@ -23,6 +23,7 @@ import { FinalEditsUploadProvider } from "@/components/editing/FinalEditsUploadC
 import FinalEditsUploadStatusBanner from "@/components/editing/FinalEditsUploadStatusBanner";
 import PreferredProvider from "@/components/preferred/PreferredProvider";
 import PreferredHeaderChip from "@/components/preferred/PreferredHeaderChip";
+import PreferredNavLink from "@/components/preferred/PreferredNavLink";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
@@ -394,6 +395,8 @@ function LayoutContent({ children, currentPageName }) {
                   );
                   })}
 
+                  <PreferredNavLink />
+
                   {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
                   <Link
                     to={createPageUrl("PublicAccountSettings")}
@@ -505,6 +508,7 @@ function LayoutContent({ children, currentPageName }) {
                   </Link>
                 );
               })}
+            <PreferredNavLink mobile onClick={() => setMobileOpen(false)} />
             {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}

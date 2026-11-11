@@ -179,3 +179,91 @@ body.preferred-portal main .bg-white:hover {
   outline: 2px solid rgba(200, 168, 124, 0.7);
   outline-offset: 2px;
 }
+
+/* ── Preferred workspace ──────────────────────────────────────────────────── */
+.preferred-glass {
+  background: linear-gradient(168deg, rgba(29, 34, 36, 0.92) 0%, rgba(16, 20, 21, 0.92) 100%);
+  border: 1px solid rgba(200, 168, 124, 0.2);
+  border-radius: 22px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(246, 241, 232, 0.05);
+}
+
+.preferred-gold-ring {
+  border-color: rgba(200, 168, 124, 0.46) !important;
+  box-shadow: 0 0 0 1px rgba(200, 168, 124, 0.16), 0 0 46px -16px rgba(200, 168, 124, 0.5),
+    inset 0 1px 0 rgba(246, 241, 232, 0.06);
+}
+
+.preferred-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: radial-gradient(700px 380px at 50% 0%, #1d2325 0%, #0a0d0e 78%);
+  border: 1px solid rgba(200, 168, 124, 0.24);
+}
+
+.preferred-stage iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #06090a;
+}
+
+.preferred-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 12px;
+  padding: 0.6rem 0.7rem;
+  font-size: 13px;
+  color: rgba(246, 241, 232, 0.66);
+  border: 1px solid transparent;
+  transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
+}
+
+.preferred-nav-item:hover {
+  color: #f6f1e8;
+  background: rgba(200, 168, 124, 0.08);
+}
+
+.preferred-nav-item[data-active="true"] {
+  color: #f6f1e8;
+  background: linear-gradient(100deg, rgba(200, 168, 124, 0.22), rgba(200, 168, 124, 0.06));
+  border-color: rgba(200, 168, 124, 0.38);
+  box-shadow: inset 0 1px 0 rgba(246, 241, 232, 0.08), 0 12px 26px -20px rgba(200, 168, 124, 0.9);
+}
+
+@keyframes preferredWave {
+  0%, 100% { transform: scaleY(0.32); opacity: 0.55; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.preferred-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+
+.preferred-wave span {
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f0dcb9, #c8a87c);
+  animation: preferredWave 1.15s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.preferred-scroll {
+  scrollbar-width: none;
+}
+
+.preferred-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preferred-wave span { animation: none !important; }
+}

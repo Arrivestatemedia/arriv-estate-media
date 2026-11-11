@@ -87,6 +87,7 @@ import PropertyDirectory from './pages/PropertyDirectory';
 import FreePropertyPage from './pages/FreePropertyPage';
 import InboundCalls from './pages/InboundCalls';
 import MlsUploadQueue from './pages/MlsUploadQueue';
+import PreferredWorkspace from './pages/PreferredWorkspace';
 import Unsubscribe from './pages/Unsubscribe';
 import NotificationPreferences from './pages/NotificationPreferences';
 
@@ -648,6 +649,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="MlsUploadQueue">
             <MlsUploadQueue />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PreferredWorkspace"
+        element={
+          <LayoutWrapper currentPageName="PreferredWorkspace">
+            <PreferredWorkspace />
           </LayoutWrapper>
         }
       />

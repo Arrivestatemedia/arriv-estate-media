@@ -26,6 +26,7 @@ const PreferredContext = createContext({
 export const usePreferred = () => useContext(PreferredContext);
 
 const PORTAL_ROUTES = [
+  "/PreferredWorkspace",
   "/ClientBookings",
   "/BookingPage",
   "/PropertyLeads",
@@ -83,11 +84,13 @@ export default function PreferredProvider({ user, children }) {
   }, [state.preferred, inPortal]);
 
   const value = useMemo(() => ({ ...state, refresh }), [state, refresh]);
+  // The workspace page runs the concierge on its own stage; the floating dock would be a second session.
+  const onWorkspace = location.pathname === "/PreferredWorkspace";
 
   return (
     <PreferredContext.Provider value={value}>
       {children}
-      {state.preferred && state.entitlement?.concierge_enabled !== false && (
+      {state.preferred && !onWorkspace && state.entitlement?.concierge_enabled !== false && (
         <PreferredConcierge user={user} customer={state.customer} entitlement={state.entitlement} />
       )}
       {state.preferred && <PreferredWelcome customer={state.customer} />}
