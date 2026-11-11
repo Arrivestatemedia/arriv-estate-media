@@ -431,8 +431,8 @@ body.preferred-portal main .bg-white:hover {
 }
 
 @media (min-width: 1024px) {
-  /* The open workspace takes the room, never her frame. */
-  .preferred-pip-visible .preferred-surface-scrim { padding-left: 372px; }
+  /* She keeps her corner; the window opens dead centre of the screen, never pushed aside. */
+  .preferred-pip-visible .preferred-surface-body { padding-bottom: calc(2rem + 176px); }
 }
 
 @media (max-width: 1023px) {
@@ -445,7 +445,7 @@ body.preferred-portal main .bg-white:hover {
     border-radius: 16px;
   }
   .preferred-pip p { display: none; }
-  .preferred-pip-visible .preferred-surface-scrim { padding-bottom: 190px; }
+  .preferred-pip-visible .preferred-surface-body { padding-bottom: calc(1.5rem + 180px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

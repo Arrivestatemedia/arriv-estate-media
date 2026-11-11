@@ -24,6 +24,9 @@ import {
 const MAX_ACTIONS = 3;
 const TRANSCRIPT_LIMIT = 24;
 
+/** Actions that answer with a general summary instead of opening the screen that was asked for. */
+const SUMMARY_ONLY = new Set(['get_account_overview', 'get_preferred_savings', 'get_visibility_summary']);
+
 function id(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -86,6 +89,38 @@ HOW TO ANSWER
 - Reply in at most 45 words, warm and precise, no emoji, no markdown.
 
 Return JSON: { "reply": string, "actions": [ { "name": string, "input": object } ] }`;
+}
+
+/**
+ * A member asking to SEE something must always get that window, whatever the planner picked.
+ * The Tavus representative calls one tool per request; in text the planner sometimes answers
+ * with a general summary instead of the screen that was asked for, so the intent is resolved
+ * here and the matching action runs.
+ */
+const VIEW_INTENTS: Array<[string, RegExp]> = [
+  ['show_analytics', /\b(analytics?|performance|performing|traffic|insights?|stats?|statistics|page\s?views?|dashboard)\b/i],
+  ['list_invoices', /\b(invoices?|billing|receipts?|what do i owe|amount due|balance due|outstanding)\b/i],
+  ['get_payment_summary', /\b(wallet|auto-?fund|prepaid|credit balance|payment summary)\b/i],
+  ['list_galleries', /\b(galleries|gallery|photos?|images?|pictures?|footage|downloads?)\b/i],
+  ['list_properties', /\b(my propert(y|ies)|propert(y|ies) pages?|my listings?|my leads)\b/i],
+  ['list_bookings', /\b(my bookings?|upcoming bookings?|appointments?|my shoots?|my portal)\b/i],
+];
+
+/** An instruction to change something is never turned into a "just show me" window. */
+const ACTION_VERB = /\b(cancel|reschedul(e|ing)|book|rebook|add|create|delete|remove|update|change|pause|resume|publish|unpublish|promote|pay|send|request|switch|turn)\b/i;
+
+function resolveViewIntent(utterance: string) {
+  const text = String(utterance || '');
+  if (ACTION_VERB.test(text)) return '';
+  for (const [action, pattern] of VIEW_INTENTS) {
+    if (pattern.test(text)) return action;
+  }
+  return '';
+}
+
+function inputForView(action: string, pageContext: any) {
+  if (action === 'show_analytics' && pageContext?.listing_id) return { listing_id: pageContext.listing_id };
+  return {};
 }
 
 function summarize(outcomes: any[]) {
@@ -170,7 +205,20 @@ export default async function (req) {
       },
     }).catch(() => null);
 
-    const requested = Array.isArray(llm?.actions) ? llm.actions.slice(0, MAX_ACTIONS) : [];
+    const planned = Array.isArray(llm?.actions) ? llm.actions.slice(0, MAX_ACTIONS) : [];
+    // A plain request to see something always opens that screen: the planner never gets to
+    // answer it with a general account summary, and a request to change something is left alone.
+    const plannedNames = planned.map((item: any) => String(item?.name || ''));
+    const viewIntent = resolveViewIntent(utterance);
+    // Only a summary the planner reached for on its own is replaced: any action it picked on
+    // purpose (a view, a display change, a real change) is left exactly as chosen.
+    const mustOpen = Boolean(viewIntent)
+      && !plannedNames.includes(viewIntent)
+      && !plannedNames.some((name: string) => actionIsMutating(name))
+      && plannedNames.every((name: string) => SUMMARY_ONLY.has(name));
+    const requested = mustOpen
+      ? [{ name: viewIntent, input: inputForView(viewIntent, pageContext) }]
+      : planned;
     const outcomes: any[] = [];
     let preferencePatch: any = null;
     let pendingAction: any = null;

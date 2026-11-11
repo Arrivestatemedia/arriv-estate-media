@@ -1056,7 +1056,8 @@ define({
   async run(ctx, input) {
     // The numbers are the same real recorded figures; only the workspace changes.
     const performance = await ACTIONS.get_property_performance.run(ctx, input);
-    if (!performance.ok) return performance;
+    // The dashboard opens even when there is nothing to report yet, so the member can see for themselves.
+    if (!performance.ok) return { ...performance, ui: navDirective('analytics', { section: 'visibility' }) };
     return {
       ...performance,
       speech: `${performance.speech} Your analytics are open beside me.`,

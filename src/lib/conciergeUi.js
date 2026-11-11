@@ -102,8 +102,9 @@ export function applyConciergeDirective(ui, { open, navigate } = {}) {
 
     if (display.open_job_id && typeof open === "function") {
       if (typeof navigate === "function") {
-        const alreadyHere = window.location.pathname === SHELL_PATH;
-        navigate(`${SHELL_PATH}?jobId=${encodeURIComponent(display.open_job_id)}`, { replace: alreadyHere });
+        // Stay on the member's own page: the gallery floats over it, and the dock survives.
+        const basePath = window.location.pathname === SHELL_PATH ? SHELL_PATH : window.location.pathname;
+        navigate(`${basePath}?jobId=${encodeURIComponent(display.open_job_id)}`, { replace: true });
       }
       open("jobGallery");
     }
@@ -119,11 +120,13 @@ export function applyConciergeDirective(ui, { open, navigate } = {}) {
     return directive.path;
   }
 
-  // Same route element, new search: the workspace never unmounts, so the chat history and
-  // the live video survive the member opening a panel.
-  if (typeof navigate === 'function') {
-    const alreadyHere = typeof window !== 'undefined' && window.location.pathname === SHELL_PATH;
-    navigate(`${SHELL_PATH}${directive.query ? `?${directive.query}` : ''}`, { replace: alreadyHere });
+  // The panel floats on top of wherever the member already is. Only the search changes, and
+  // when they are not on the workspace we stay on their page: navigating to the shell would
+  // unmount the dock, dropping the conversation they are in the middle of.
+  const onShell = typeof window !== 'undefined' && window.location.pathname === SHELL_PATH;
+  const basePath = onShell ? SHELL_PATH : (typeof window !== 'undefined' ? window.location.pathname : SHELL_PATH);
+  if (directive.query && typeof navigate === 'function') {
+    navigate(`${basePath}?${directive.query}`, { replace: true });
   }
   open(surfaceKey);
   return surfaceKey;
