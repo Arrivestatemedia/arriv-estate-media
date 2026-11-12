@@ -87,6 +87,7 @@ import LaunchReadiness from './pages/LaunchReadiness';
 import PropertyDirectory from './pages/PropertyDirectory';
 import FreePropertyPage from './pages/FreePropertyPage';
 import InboundCalls from './pages/InboundCalls';
+import AdminUnknownMessages from './pages/AdminUnknownMessages';
 import MlsUploadQueue from './pages/MlsUploadQueue';
 import PreferredWorkspace from './pages/PreferredWorkspace';
 import Unsubscribe from './pages/Unsubscribe';
@@ -642,6 +643,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="InboundCalls">
             <InboundCalls />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminUnknownMessages"
+        element={
+          <LayoutWrapper currentPageName="AdminUnknownMessages">
+            <AdminUnknownMessages />
           </LayoutWrapper>
         }
       />

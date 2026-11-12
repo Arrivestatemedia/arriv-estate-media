@@ -689,6 +689,21 @@ Deno.serve(async (req) => {
       await recordInboundReply(base44, conversation, { messageId: inboundMessage?.id, sid: twilioSid });
     } catch (e) { console.error('Reply attribution failed:', e.message); }
 
+    // A thread with no rep belongs to nobody: it lands on the admin's Unknown Texts page.
+    // The admin phone is told each time one arrives, so an unknown sender is never silent.
+    // The admin's own messages are handled above and never reach this point.
+    if (!salesMemberId) {
+      const alertPhone = Deno.env.get('ADMIN_PHONE') ? e164(Deno.env.get('ADMIN_PHONE')) : '';
+      if (alertPhone && norm(alertPhone) !== senderNorm) {
+        try {
+          const alert = `[Unknown text to ${e164(to)}] ${e164(from)}: ${String(messageBody || '').slice(0, 280)}`;
+          await sendTwilioSms(alertPhone, alert);
+        } catch (e) {
+          console.error('Unknown-sender admin alert failed:', e.message);
+        }
+      }
+    }
+
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
       headers: { 'Content-Type': 'text/xml' },
     });

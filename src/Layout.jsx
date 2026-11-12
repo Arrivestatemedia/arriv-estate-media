@@ -4,7 +4,7 @@ import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
 import { getCustomerSessionToken, redirectIfSessionExpired } from '@/lib/customerSession';
 import { loadCustomerAccount } from '@/lib/customerAccount';
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail, GraduationCap, Phone, PhoneIncoming, Building2, ImageIcon, Inbox, Megaphone } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail, GraduationCap, Phone, PhoneIncoming, Building2, ImageIcon, Inbox, Megaphone, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -225,6 +225,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Email Settings", page: "AdminEmailSettings", icon: Mail },
             { label: "Phone Numbers", page: "AdminPhoneNumbers", icon: Phone },
             { label: "Inbound Calls", page: "InboundCalls", icon: PhoneIncoming },
+            { label: "Unknown Texts", page: "AdminUnknownMessages", icon: MessageSquare },
             { label: "MLS Upload Queue", page: "MlsUploadQueue", icon: ShieldCheck },
             { label: "Property Leads", page: "PropertyLeads", icon: Inbox },
             { label: "Property Packages", page: "AdminPropertyPromotions", icon: Tag },
