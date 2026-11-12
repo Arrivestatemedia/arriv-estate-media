@@ -80,14 +80,22 @@ function catalogText() {
   return JSON.stringify(compact);
 }
 
+/**
+ * Only what the member said, oldest first. Her own earlier sentences are deliberately left out:
+ * fed back in, she answered a new request by defending something she had said in an old one
+ * (a booking request came back as an apology about a cancellation that was never mentioned).
+ * The member's own words are what a follow-up ("that one", "cancel it") refers to.
+ */
 function recentTurns(history: any[]) {
-  const turns = (Array.isArray(history) ? history : []).slice(-6)
-    .map((entry: any) => `${String(entry?.role || '') === 'customer' ? 'Customer' : 'Concierge'}: ${String(entry?.text || '').slice(0, 240)}`)
-    .filter((line: string) => line.trim().length > 10);
+  const turns = (Array.isArray(history) ? history : [])
+    .filter((entry: any) => String(entry?.role || '') === 'customer')
+    .slice(-4)
+    .map((entry: any) => `- ${String(entry?.text || '').slice(0, 240)}`)
+    .filter((line: string) => line.trim().length > 3);
   return turns.length ? turns.join('\n') : 'This is the start of the conversation.';
 }
 
-function buildPrompt(ctx: any, entitlement: any, snapshot: any, pageContext: any, history: any[]) {
+function buildPrompt(ctx: any, entitlement: any, snapshot: any, pageContext: any, history: any[], utterance: string) {
   return `You are the Arriv Concierge, the private assistant of an Arriv Estate Media Preferred member.
 
 CUSTOMER
@@ -96,7 +104,7 @@ Membership: ${entitlement.plan || 'Preferred'} (${entitlement.status || 'active'
 Current portal page: ${pageContext?.page || 'unknown'}
 Selected property: ${pageContext?.listing_id || 'none'}
 
-RECENT CONVERSATION (oldest first)
+EARLIER REQUESTS FROM THE MEMBER (oldest first — only for what "it" or "that one" refers to)
 ${recentTurns(history)}
 
 ACCOUNT SNAPSHOT (real data, already authorized for this customer)
@@ -106,6 +114,8 @@ AVAILABLE ACTIONS (the complete list — read all of it)
 ${catalogText().slice(0, 30000)}
 
 HOW TO ANSWER
+- Answer THE REQUEST TO ANSWER NOW, and nothing else. The earlier requests are there only to explain a pronoun; never apologise for, retract, defend or continue an earlier exchange.
+- Never mention a cancellation, a misunderstanding, or a request you filed before unless THE REQUEST TO ANSWER NOW is about it.
 - Choose 0 to ${MAX_ACTIONS} actions that actually answer the request. Prefer the smallest set.
 - Only use action names from the list. Only pass inputs the action's schema allows.
 - Never invent a record id, address, price, invoice or membership fact. Use values from the snapshot or the customer's own words.
@@ -125,6 +135,9 @@ FORMS AND DETAILS
 - Carry everything they have already said: the property address goes in "address", a date in "date" (YYYY-MM-DD), a package in "package_id".
 - When they give you the address (or date, or package) after a form is already open, call that same action again with the value so the open form arrives filled in, and say in one line that you put it in the form.
 - Any street address the customer says is the property they mean.
+
+THE REQUEST TO ANSWER NOW
+"${String(utterance || '').slice(0, 600)}"
 
 Return JSON: { "reply": string, "actions": [ { "name": string, "input": object } ] }`;
 }
@@ -244,7 +257,7 @@ export default async function (req) {
 
     const priorTranscript = Array.isArray(session.transcript) ? session.transcript : [];
     const llm = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: buildPrompt(ctx, entitlement, snapshot, pageContext, priorTranscript),
+      prompt: buildPrompt(ctx, entitlement, snapshot, pageContext, priorTranscript, utterance),
       response_json_schema: {
         type: 'object',
         properties: {
@@ -280,15 +293,20 @@ export default async function (req) {
     // A plain instruction resolves here so the member is never answered with their invoice count.
     // "Don't cancel my membership" is not a request to cancel it.
     const declinedCancellation = /\b(don'?t|do not|not|never)\b[^.!?]{0,25}\b(cancel|cancelling|canceling|end|quit|terminate|close)\b/i.test(utterance);
-    const wantsCancellation = !declinedCancellation
-      && MEMBERSHIP_CANCELLATION.test(utterance)
+    const cancellationIntent = !declinedCancellation && MEMBERSHIP_CANCELLATION.test(utterance);
+    const wantsCancellation = cancellationIntent
       && !plannedNames.includes('request_membership_cancellation');
+
+    // She only files a membership cancellation when the member actually asked for one. A planner
+    // that is still thinking about an older topic can never file it out of a request like a booking.
+    const plannedSafe = planned.filter((item: any) =>
+      String(item?.name || '') !== 'request_membership_cancellation' || cancellationIntent);
 
     const requested: any[] = wantsCancellation
       ? [{ name: 'request_membership_cancellation', input: { reason: utterance.slice(0, 300) } }]
       : mustOpen
         ? [{ name: viewIntent, input: inputForView(viewIntent, pageContext) }]
-        : planned;
+        : plannedSafe;
 
     // She asked for the address and the member gave it. The form opens with it, even when the
     // planner answered in words only, so nobody has to say "nothing happened" to be served.
@@ -419,13 +437,12 @@ export default async function (req) {
 
     const actionSpeech = summarize(outcomes);
     const spokenReply = typeof llm?.reply === 'string' ? llm.reply.trim() : '';
-    // Her own words answer the request; a generic action line is only the fallback. When a plain
-    // instruction had to be corrected, the action's own line is what the member must hear.
-    const reply = wantsCancellation && actionSpeech
-      ? actionSpeech
-      : spokenReply
-        || actionSpeech
-        || 'I can help with bookings, galleries, property pages, billing and marketing. What would you like to do?';
+    // What actually ran is what answers the member. Her own sentence is only used when nothing
+    // ran (a question, one clarification), so a reply can never describe a different request —
+    // which is exactly how "I'd like to book" once came back as an apology about a cancellation.
+    const reply = actionSpeech
+      || spokenReply
+      || 'I can help with bookings, galleries, property pages, billing and marketing. What would you like to do?';
 
     const history = priorTranscript.slice(-TRANSCRIPT_LIMIT);
     history.push({ role: 'customer', text: utterance, at: new Date().toISOString() });
