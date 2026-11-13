@@ -5,6 +5,9 @@
  * dial-out menu and the active-job client / Media Specialist menus stay in
  * twilioVoiceHandler and are never bypassed here. Entering this function means
  * those menus did not apply, so nothing protected can be overridden.
+ *
+ * Prospect precedence is decided in shared/ivr.ts (recognizeCaller) so this
+ * router only ever speaks the greeting the recogniser selected.
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
@@ -169,7 +172,8 @@ Deno.serve(async (req) => {
     /* ───────────── recognised Arriv One prospect ───────────── */
     if (stage === 'root' && caller.type === 'prospect') {
       const rep = (caller as any).assigned_rep;
-      const repName = rep ? rep.full_name || rep.preferred_name || '' : '';
+      const repFullName = rep ? rep.full_name || rep.preferred_name || '' : '';
+      const repName = String(repFullName).trim().split(/\s+/)[0] || '';
       const repPhone = rep ? e164(rep.work_phone || rep.phone_number || rep.mobile_phone_number) : '';
       const text = String(settings.greeting_prospect || '')
         .replace(/\{first_name\}/g, caller.first_name || 'there')
@@ -187,7 +191,7 @@ Deno.serve(async (req) => {
         route: 'prospect_direct',
         stage: 'prospect_greeting',
         dialed_numbers: [repPhone],
-        assigned_rep_name: repName,
+        assigned_rep_name: repFullName,
         assigned_rep_email: rep?.email || '',
       });
       return xmlResponse(

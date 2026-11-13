@@ -312,10 +312,12 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
   // CRM contact — a customer profile, or a prospect still in the Arriv One pipeline
   const contact = await matchByPhone(base44.asServiceRole.entities.Contact, from);
   if (contact) {
-    const rep = await assignedRepFor(base44, contact.email, contact.sales_member_id);
+    const rep = await assignedRepFor(base44, contact.email, contact.sales_member_id, contact.owner_id);
+    const isProspect =
+      looksLikeProspect(contact) || (await isAdvisorOwnedProspect(base44, from, contact, rep));
     return {
       ...caller,
-      type: looksLikeProspect(contact) ? 'prospect' : 'client',
+      type: isProspect ? 'prospect' : 'client',
       name: [contact.firstname, contact.lastname].filter(Boolean).join(' '),
       first_name: contact.firstname || firstFrom(contact.full_name || ''),
       email: contact.email || '',
@@ -328,26 +330,81 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
   return caller;
 }
 
-/** The Growth Advisor on file for a client, if one is actually assigned. */
-async function assignedRepFor(base44: any, email: string, memberId?: string) {
+/** One SalesTeamMember by id, or null. */
+async function memberById(base44: any, id?: string) {
+  if (!id) return null;
   try {
-    if (memberId) {
-      const rows = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: memberId });
-      const row = Array.isArray(rows) ? rows[0] : null;
-      if (row) return row;
-    }
+    const rows = await base44.asServiceRole.entities.SalesTeamMember.filter({ id });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * The Growth Advisor on file for a caller, if one is actually assigned.
+ * Resolution order is deterministic: the contact's sales_member_id, then the
+ * contact's owning rep (owner_id holds the local SalesTeamMember id for
+ * prospecting records), then the rep on any contact sharing the email.
+ */
+async function assignedRepFor(base44: any, email: string, memberId?: string, ownerId?: string) {
+  try {
+    const direct = await memberById(base44, memberId);
+    if (direct) return direct;
+
+    const owner = await memberById(base44, ownerId);
+    if (owner) return owner;
+
     if (!email) return null;
     const contacts = await base44.asServiceRole.entities.Contact.filter({ email });
     const contact = Array.isArray(contacts) ? contacts[0] : null;
     if (contact?.sales_member_id) {
-      const rows = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: contact.sales_member_id });
-      const row = Array.isArray(rows) ? rows[0] : null;
+      const row = await memberById(base44, contact.sales_member_id);
       if (row) return row;
     }
   } catch (e) {
     console.error('[ivr] assigned rep lookup failed:', e?.message);
   }
   return null;
+}
+
+/**
+ * Deterministic prospect precedence for a CRM contact that does not carry an
+ * explicit prospect lifecycle stage or lead status.
+ *
+ * A contact qualifies only when ALL of these hold:
+ *  - an active Growth Advisor is assigned to it (sales_member_id or owner_id),
+ *  - it is not marked as a customer (lifecycle_stage 'customer'),
+ *  - the caller has no customer relationship on file (no client account, no
+ *    job, no booking against this number or email).
+ *
+ * Media Specialist and client profiles are matched before this rule, so a
+ * caller with one of those profiles can never be reclassified as a prospect.
+ * Every other caller keeps exactly the client treatment it had before.
+ */
+async function isAdvisorOwnedProspect(base44: any, from: string, contact: any, rep: any) {
+  if (!rep || rep.is_active === false) return false;
+  if (String(contact?.lifecycle_stage || '').trim().toLowerCase() === 'customer') return false;
+  return !(await hasCustomerRelationship(base44, from, contact?.email));
+}
+
+/** True when the caller already has a real customer relationship on file. */
+async function hasCustomerRelationship(base44: any, from: string, email: string) {
+  const queries: Promise<any>[] = [];
+  if (email) queries.push(base44.asServiceRole.entities.PendingSignup.filter({ email }));
+  for (const phone of phoneVariants(from)) {
+    queries.push(base44.asServiceRole.entities.Job.filter({ client_phone: phone }));
+    queries.push(base44.asServiceRole.entities.Booking.filter({ client_phone: phone }));
+  }
+  try {
+    const results = await Promise.allSettled(queries);
+    return results.some(
+      (r) => r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length > 0
+    );
+  } catch (e) {
+    console.error('[ivr] relationship check failed:', e?.message);
+    return false;
+  }
 }
 
 async function hasOrganization(base44: any, email: string) {
