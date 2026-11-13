@@ -202,6 +202,26 @@ function firstFrom(name: string) {
   return String(name || '').trim().split(/\s+/)[0] || '';
 }
 
+/**
+ * True when a stored value is something a person can actually be greeted by.
+ * A phone number, a digits-only string or an empty value is never spoken as a
+ * name — the greeting drops the name instead.
+ */
+export function isSpeakableName(value: string): boolean {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  return /[A-Za-z\u00C0-\u024F]/.test(v);
+}
+
+/** First candidate that is a real spoken name, otherwise ''. */
+function speakableFirst(...candidates: any[]) {
+  for (const candidate of candidates) {
+    const first = firstFrom(candidate);
+    if (isSpeakableName(first)) return first;
+  }
+  return '';
+}
+
 /** Phone spellings a stored record may use for the same number. */
 function phoneVariants(from: string): string[] {
   const d = norm(from);
@@ -228,6 +248,61 @@ async function matchByPhone(entity: any, from: string, extra: Record<string, str
     }
   }
   return null;
+}
+
+/**
+ * Every CRM contact carrying this number, across the spellings a record may
+ * use. A caller can legitimately have more than one record (older dialer
+ * logging created one per call), so recognition has to look at all of them
+ * instead of taking whichever row the database happens to return first.
+ */
+async function contactsForNumber(base44: any, from: string) {
+  const found: any[] = [];
+  const seen = new Set<string>();
+  for (const phone of phoneVariants(from)) {
+    try {
+      const rows = await base44.asServiceRole.entities.Contact.filter({ phone });
+      for (const row of Array.isArray(rows) ? rows : []) {
+        if (row?.id && !seen.has(row.id)) {
+          seen.add(row.id);
+          found.push(row);
+        }
+      }
+    } catch (_) {
+      /* try next spelling */
+    }
+  }
+  return found;
+}
+
+/**
+ * How much a record is worth trusting for recognition. A real name beats a
+ * placeholder record named after the phone number, an explicit Growth Advisor
+ * beats none, and the rep who added the contact (owner) still counts.
+ */
+function contactRank(contact: any): number {
+  const named =
+    isSpeakableName(contact?.firstname) || isSpeakableName(contact?.full_name) ? 10 : 0;
+  const assigned = contact?.sales_member_id ? 4 : 0;
+  const owned = contact?.owner_id ? 2 : 0;
+  const enriched = contact?.email ? 1 : 0;
+  return named + assigned + owned + enriched;
+}
+
+function contactTimestamp(contact: any): number {
+  return Date.parse(contact?.updated_date || contact?.created_date || '') || 0;
+}
+
+/**
+ * The single CRM contact recognition should treat as this caller: the best
+ * ranked record, newest first on a tie. Deterministic for the same data.
+ */
+async function bestContactForNumber(base44: any, from: string) {
+  const rows = await contactsForNumber(base44, from);
+  if (!rows.length) return null;
+  return rows.sort(
+    (a, b) => contactRank(b) - contactRank(a) || contactTimestamp(b) - contactTimestamp(a)
+  )[0];
 }
 
 function authorisedNumbers(): string[] {
@@ -284,8 +359,8 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
     return {
       ...caller,
       type: 'media_specialist',
-      name: specialist.full_name || '',
-      first_name: firstFrom(specialist.full_name),
+      name: isSpeakableName(specialist.full_name) ? specialist.full_name : '',
+      first_name: speakableFirst(specialist.full_name),
       email: specialist.email || '',
       record_id: specialist.id,
       record_source: 'PendingSignup',
@@ -300,8 +375,8 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
     return {
       ...caller,
       type: isB2B ? 'b2b_client' : 'client',
-      name: client.full_name || '',
-      first_name: firstFrom(client.full_name),
+      name: isSpeakableName(client.full_name) ? client.full_name : '',
+      first_name: speakableFirst(client.full_name),
       email: client.email || '',
       record_id: client.id,
       record_source: 'PendingSignup',
@@ -310,16 +385,17 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
   }
 
   // CRM contact — a customer profile, or a prospect still in the Arriv One pipeline
-  const contact = await matchByPhone(base44.asServiceRole.entities.Contact, from);
+  const contact = await bestContactForNumber(base44, from);
   if (contact) {
     const rep = await assignedRepFor(base44, contact.email, contact.sales_member_id, contact.owner_id);
     const isProspect =
       looksLikeProspect(contact) || (await isAdvisorOwnedProspect(base44, from, contact, rep));
+    const displayName = [contact.firstname, contact.lastname].filter(Boolean).join(' ').trim();
     return {
       ...caller,
       type: isProspect ? 'prospect' : 'client',
-      name: [contact.firstname, contact.lastname].filter(Boolean).join(' '),
-      first_name: contact.firstname || firstFrom(contact.full_name || ''),
+      name: isSpeakableName(displayName) ? displayName : '',
+      first_name: speakableFirst(contact.firstname, displayName, contact.full_name),
       email: contact.email || '',
       record_id: contact.id,
       record_source: 'Contact',

@@ -53,6 +53,12 @@ Deno.serve(async (req) => {
         if (existing && existing.length > 0) contact = existing[0];
       }
 
+      // Then by phone, so one number never ends up with a new contact per call
+      if (!contact && toNumber) {
+        const byPhone = await base44.asServiceRole.entities.Contact.filter({ phone: toNumber });
+        if (byPhone && byPhone.length > 0) contact = byPhone[0];
+      }
+
       if (contact) {
         // Update phone/company if we have new info
         const updates = {};
@@ -67,8 +73,10 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Contact.update(contact.id, updates);
         }
       } else {
-        // Create a new contact from the call data
-        const nameParts = (contactName || '').split(' ');
+        // Create a new contact from the call data. A dialer name that is really
+        // just the phone number is never stored as the person's name.
+        const displayName = /[A-Za-z]/.test(String(contactName || '')) ? contactName : '';
+        const nameParts = displayName.split(' ');
         await base44.asServiceRole.entities.Contact.create({
           firstname: nameParts[0] || '',
           lastname: nameParts.slice(1).join(' ') || '',

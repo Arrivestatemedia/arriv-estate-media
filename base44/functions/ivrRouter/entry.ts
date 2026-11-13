@@ -16,6 +16,7 @@ import {
   loadSettings,
   recognizeCaller,
   isProtectedJobCaller,
+  isSpeakableName,
   upsertCall,
   callContext,
   parseCall,
@@ -175,9 +176,23 @@ Deno.serve(async (req) => {
       const repFullName = rep ? rep.full_name || rep.preferred_name || '' : '';
       const repName = String(repFullName).trim().split(/\s+/)[0] || '';
       const repPhone = rep ? e164(rep.work_phone || rep.phone_number || rep.mobile_phone_number) : '';
-      const text = String(settings.greeting_prospect || '')
-        .replace(/\{first_name\}/g, caller.first_name || 'there')
-        .replace(/\{rep_name\}/g, repName || 'our team');
+      // A name we cannot pronounce is never spoken: the greeting simply opens
+      // with "Hi, thank you for calling Arriv Estate Media..."
+      const spokenName = isSpeakableName(caller.first_name)
+        ? String(caller.first_name).trim()
+        : '';
+      let text = String(settings.greeting_prospect || '').replace(
+        /\{rep_name\}/g,
+        repName || 'our team'
+      );
+      text = spokenName
+        ? text.replace(/\{first_name\}/g, spokenName)
+        : text
+            .replace(/Hi\s*\{first_name\}\s*,\s*/i, 'Hi, ')
+            .replace(/\{first_name\}\s*,\s*/g, '')
+            .replace(/\{first_name\}/g, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
 
       // A prospect with no Growth Advisor holding a number still gets the
       // personalised greeting, then the normal sales ring group.
