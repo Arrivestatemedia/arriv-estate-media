@@ -10,6 +10,17 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { analyzeContact, saveScheduledFollowUp, buildLearnedContext } from "./schedulingUtils";
 
+// Sales reps sign in with a sales session, not a platform login, so ActivityLog
+// must be read and written through the service-role function scoped to the rep.
+async function listMyActivities(memberId, memberEmail) {
+  const res = await base44.functions.invoke('manageSalesActivity', {
+    action: 'list_activities',
+    sales_member_id: memberId,
+    sales_member_email: memberEmail || '',
+  });
+  return res?.data?.activities || res?.activities || [];
+}
+
 export default function LogActivityModal({ open, onClose, contact, salesMemberId, salesMemberEmail, onLogged }) {
   const [activityType, setActivityType] = useState("call");
   const [notes, setNotes] = useState("");
@@ -35,7 +46,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     const memberEmail = salesMemberEmail || localStorage.getItem('sales_member_email');
     const normalizedEmail = (memberEmail || '').toLowerCase().trim();
     const normalizedId = (memberId || '').trim();
-    base44.entities.ActivityLog.list('-activity_date', 500)
+    listMyActivities(memberId, memberEmail)
       .then(all => {
         const logs = all.filter(a =>
           (a.sales_member_id || '').trim() === normalizedId ||
@@ -120,25 +131,31 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
       const contactEmail = selectedContactObj?.email || "";
       const contactNameStr = contactName;
 
-      // 1. Save the new activity
-      await base44.entities.ActivityLog.create({
-        activity_type: activityType,
-        contact_email: contactEmail,
-        contact_name: contactNameStr,
-        contact_phone: selectedContactObj?.phone || contact?.phone || "",
-        company_name: selectedContactObj?.company || "",
-        activity_date: new Date(activityDate).toISOString(),
-        notes: notes.trim(),
-        duration_minutes: duration ? Number(duration) : 0,
-        picture_urls: screenshots.map(s => s.url),
-        sales_member_id: sid || "",
-        sales_member_email: sem || "",
-        hubspot_synced: false,
+      // 1. Save the new activity (through the function: reps have no platform token)
+      const created = await base44.functions.invoke('manageSalesActivity', {
+        action: 'create',
+        sales_member_id: sid,
+        data: {
+          activity_type: activityType,
+          contact_email: contactEmail,
+          contact_name: contactNameStr,
+          contact_phone: selectedContactObj?.phone || contact?.phone || "",
+          company_name: selectedContactObj?.company || "",
+          activity_date: new Date(activityDate).toISOString(),
+          notes: notes.trim(),
+          duration_minutes: duration ? Number(duration) : 0,
+          picture_urls: screenshots.map(s => s.url),
+          sales_member_email: sem || "",
+          hubspot_synced: false,
+        },
       });
+      if (created?.data?.error || created?.error) {
+        throw new Error(created.data?.error || created.error);
+      }
 
       // 2. Find existing AI-scheduled record for this contact and retire it to history
       //    Use a date far in the past so the queue no longer sees it as "upcoming"
-      const allLogs = await base44.entities.ActivityLog.list('-activity_date', 500);
+      const allLogs = await listMyActivities(sid, sem);
       const contactLogs = allLogs.filter(a =>
         (contactEmail && a.contact_email === contactEmail) ||
         (contactNameStr && a.contact_name === contactNameStr)
@@ -158,9 +175,14 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
       const retiredDate = new Date();
       retiredDate.setDate(retiredDate.getDate() - 30);
       await Promise.all(existingScheduled.map(s =>
-        base44.entities.ActivityLog.update(s.id, {
-          activity_date: retiredDate.toISOString(),
-          notes: `[Queue Call] Completed via activity log — ${notes.trim()}`,
+        base44.functions.invoke('manageSalesActivity', {
+          action: 'update',
+          sales_member_id: sid,
+          activity_id: s.id,
+          data: {
+            activity_date: retiredDate.toISOString(),
+            notes: `[Queue Call] Completed via activity log — ${notes.trim()}`,
+          },
         }).catch(() => {})
       ));
 

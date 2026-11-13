@@ -143,6 +143,24 @@ export default async function(req) {
         return Response.json({ insight: created });
       }
 
+      case 'list_activities': {
+        // Activity list for the sales workspace (contact picker + retire step).
+        // Read with the service role because sales reps have no platform token,
+        // so a direct ActivityLog read comes back empty. Scoped to this rep only.
+        const limit = Math.min(Number(body.limit) || 500, 500);
+        const queries = [{ sales_member_id }];
+        if (sales_member_email) queries.push({ sales_member_email });
+        const seen = new Map();
+        for (const q of queries) {
+          const rows = (await base44.asServiceRole.entities.ActivityLog.filter(q)) || [];
+          rows.forEach((r) => seen.set(r.id, r));
+        }
+        const activities = [...seen.values()]
+          .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+          .slice(0, limit);
+        return Response.json({ activities });
+      }
+
       case 'get_call_logs': {
         // Recents list in the dialer. Read with the service role because sales
         // reps have no platform token, so a direct ActivityLog read comes back
