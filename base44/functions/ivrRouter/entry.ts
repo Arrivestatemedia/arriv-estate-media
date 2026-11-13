@@ -15,6 +15,7 @@ import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import {
   loadSettings,
   recognizeCaller,
+  recognizeApplicant,
   isProtectedJobCaller,
   isSpeakableName,
   upsertCall,
@@ -29,9 +30,12 @@ import {
   norm,
   receivingLine,
   classifyIntent,
+  hangup,
+  OWNER_FALLBACK,
 } from '../../shared/ivr.ts';
 
 const VOICE_HANDLER = '/functions/twilioVoiceHandler';
+// Build marker: hr-followup-menu (bumped whenever the public menu changes).
 
 function firstNameOrFriend(caller: any) {
   return caller?.first_name || '';
@@ -319,14 +323,98 @@ Deno.serve(async (req) => {
 
     if (stage === 'public_intent') {
       await upsertCall(base44, callSid, {
-        route: digits === '2' ? 'support' : 'sales_ring',
+        route: digits === '2' || digits === '3' ? 'support' : 'sales_ring',
         stage,
         digits,
       });
       if (digits === '2') return routeToSupport('technical_support');
+      if (digits === '3') {
+        return xmlResponse(redirect(url('/functions/ivrRouter', { stage: 'applicant_greeting' })));
+      }
       if (digits === '1') return xmlResponse(redirect(url('/functions/ivrSalesRing')));
       // Unrecognised key → sales, never a silent disconnect
       return xmlResponse(redirect(url('/functions/ivrSalesRing')));
+    }
+
+    /* ───────────── job application follow-up (Khetha IQ) ─────────────
+     * Anyone who presses 3 on the general menu is greeted by name when their
+     * number matches an application on file, then connected to the owner's
+     * number. The owner hears who is calling, and why, before the bridge. */
+    const hrNumber = e164(settings.owner_fallback_number) || e164(OWNER_FALLBACK);
+
+    const applicantPrompt = (firstName: string) =>
+      firstName
+        ? `Hi ${firstName}, thank you for following up on your application. Press one to speak to Human Resources.`
+        : 'Hi, thank you for following up on your application. Press one to speak to Human Resources.';
+
+    if (stage === 'applicant_greeting') {
+      const applicant = await recognizeApplicant(base44, from);
+      const action = url('/functions/ivrRouter', { stage: 'applicant_connect' });
+      await upsertCall(base44, callSid, {
+        route: 'support',
+        stage: 'applicant_greeting',
+        detected_intent: 'job_application_followup',
+        caller_name: applicant.name || caller.name || '',
+        caller_email: applicant.email || '',
+        caller_record_id: applicant.record_id || '',
+        caller_record_source: applicant.record_source || '',
+      });
+      const text = applicantPrompt(applicant.first_name);
+      return xmlResponse(
+        gatherTag({ action, numDigits: 1, timeout: 8, text }) +
+          gatherTag({ action, numDigits: 1, timeout: 8, text }) +
+          redirect(action)
+      );
+    }
+
+    if (stage === 'applicant_connect') {
+      if (digits && digits !== '1') {
+        const action = url('/functions/ivrRouter', { stage: 'applicant_connect' });
+        return xmlResponse(
+          gatherTag({
+            action,
+            numDigits: 1,
+            timeout: 8,
+            text: 'Press one to speak to Human Resources.',
+          }) + redirect(action)
+        );
+      }
+
+      // Their number identifies them so the owner knows who is calling.
+      const applicant = await recognizeApplicant(base44, from);
+      const whisper = url('/functions/ivrHrWhisper', {
+        name: applicant.name || '',
+        number: e164(from),
+      });
+      const action = url('/functions/ivrRouter', { stage: 'applicant_after' });
+      await upsertCall(base44, callSid, {
+        route: 'support',
+        stage: 'applicant_ring',
+        detected_intent: 'job_application_followup',
+        digits: digits || '',
+        dialed_numbers: hrNumber ? [hrNumber] : [],
+      });
+      return xmlResponse(
+        `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="30" action="${action}" method="POST">` +
+          `<Number url="${whisper}">${hrNumber}</Number>` +
+          `</Dial>`
+      );
+    }
+
+    if (stage === 'applicant_after') {
+      const dialStatus = String(params.DialCallStatus || '').toLowerCase();
+      if (dialStatus === 'completed' || dialStatus === 'answered') {
+        await upsertCall(base44, callSid, {
+          outcome: 'answered',
+          route: 'support',
+          stage: 'applicant_connected',
+        });
+        return xmlResponse('');
+      }
+      await upsertCall(base44, callSid, { outcome: 'no_answer', stage: 'applicant_after' });
+      return xmlResponse(
+        say("Sorry, we couldn't reach Human Resources just now. Please try again shortly. Goodbye.") + hangup()
+      );
     }
 
     return xmlResponse(redirect(url('/functions/ivrSalesRing')));

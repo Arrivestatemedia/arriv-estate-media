@@ -160,7 +160,7 @@ export const DEFAULT_SETTINGS = {
   greeting_client: 'Hi {first_name}, thank you for being the best part of Arriv. How can we help you today?',
   greeting_prospect: 'Hi {first_name}, thank you for calling Arriv Estate Media. Please hold for {rep_name}.',
   greeting_public:
-    'Thank you for calling Arriv Estate Media. To book media for your property, press 1. For assistance signing up or booking through our portal, press 2.',
+    'Thank you for calling Arriv Estate Media. To book media for your property, press 1. For assistance signing up or booking through our portal, press 2. To follow up on a job application, press 3.',
   support_overflow_text:
     "Thank you for calling Arriv. Unfortunately, we're experiencing a high call volume. Please press 1 to request a callback or press 2 to leave a voicemail.",
   tech_support_prompt:
@@ -415,6 +415,58 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
   }
 
   return caller;
+}
+
+/**
+ * Identify a job applicant by number from the recruiting records this app
+ * already holds (Khetha IQ). Recognition only selects the greeting and the
+ * whisper the owner hears — it never changes anything on the application.
+ */
+export type Applicant = {
+  name: string;
+  first_name: string;
+  email: string;
+  record_id: string;
+  record_source: string;
+};
+
+export async function recognizeApplicant(base44: any, from: string): Promise<Applicant> {
+  const blank: Applicant = { name: '', first_name: '', email: '', record_id: '', record_source: '' };
+  if (!norm(from)) return blank;
+
+  for (const phone of phoneVariants(from)) {
+    try {
+      const rows = await base44.asServiceRole.entities.JobApplication.filter({ phone });
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (row) {
+        return {
+          name: isSpeakableName(row.full_name) ? row.full_name : '',
+          first_name: speakableFirst(row.full_name),
+          email: row.email || '',
+          record_id: row.id,
+          record_source: 'JobApplication',
+        };
+      }
+    } catch (_) {
+      /* try next spelling */
+    }
+    try {
+      const rows = await base44.asServiceRole.entities.HireCandidate.filter({ phone });
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (row) {
+        return {
+          name: isSpeakableName(row.name) ? row.name : '',
+          first_name: speakableFirst(row.name),
+          email: row.email || '',
+          record_id: row.id,
+          record_source: 'HireCandidate',
+        };
+      }
+    } catch (_) {
+      /* try next spelling */
+    }
+  }
+  return blank;
 }
 
 /** One SalesTeamMember by id, or null. */
