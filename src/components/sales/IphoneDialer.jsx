@@ -371,7 +371,7 @@ export default function IphoneDialer({ salesMemberId }) {
         await base44.functions.invoke('logCallActivity', {
           salesMemberId: id,
           toNumber: phoneNumber,
-          contactName: phoneNumber,
+          contactName: '',
           contactEmail: '',
           companyName: '',
           durationSeconds: duration,

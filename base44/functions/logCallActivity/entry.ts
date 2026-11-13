@@ -22,6 +22,10 @@ Deno.serve(async (req) => {
 
     const durationMinutes = Math.ceil((durationSeconds || 0) / 60);
 
+    // A dialer name that is really just the number is never treated as a name.
+    const savedName = /[A-Za-z]/.test(String(contactName || '')) ? String(contactName).trim() : '';
+    const savedEmail = String(contactEmail || '').trim();
+
     // Look up the sales member to get their email
     let salesMemberEmail = '';
     if (salesMemberId) {
@@ -32,8 +36,8 @@ Deno.serve(async (req) => {
     // Create ActivityLog record (this is the system of record for activities)
     const activity = await base44.asServiceRole.entities.ActivityLog.create({
       activity_type: 'call',
-      contact_name: contactName || '',
-      contact_email: contactEmail || '',
+      contact_name: savedName,
+      contact_email: savedEmail,
       company_name: companyName || '',
       activity_date: new Date().toISOString(),
       notes: notes || `Call to ${toNumber || 'unknown'}${callSid ? ` (SID: ${callSid})` : ''}`,
@@ -43,17 +47,19 @@ Deno.serve(async (req) => {
       sales_member_email: salesMemberEmail
     });
 
-    // Ensure the contact exists in the local Contact database
-    if (contactEmail || contactName) {
+    // Logging a call NEVER creates a contact or prospect. Only the call log is
+    // written. An existing contact is merely tidied up; a new one is created
+    // only when the rep deliberately saves it.
+    if (savedEmail || toNumber) {
       let contact = null;
 
       // Find by email first
-      if (contactEmail) {
-        const existing = await base44.asServiceRole.entities.Contact.filter({ email: contactEmail });
+      if (savedEmail) {
+        const existing = await base44.asServiceRole.entities.Contact.filter({ email: savedEmail });
         if (existing && existing.length > 0) contact = existing[0];
       }
 
-      // Then by phone, so one number never ends up with a new contact per call
+      // Then by phone
       if (!contact && toNumber) {
         const byPhone = await base44.asServiceRole.entities.Contact.filter({ phone: toNumber });
         if (byPhone && byPhone.length > 0) contact = byPhone[0];
@@ -72,20 +78,6 @@ Deno.serve(async (req) => {
         if (Object.keys(updates).length > 0) {
           await base44.asServiceRole.entities.Contact.update(contact.id, updates);
         }
-      } else {
-        // Create a new contact from the call data. A dialer name that is really
-        // just the phone number is never stored as the person's name.
-        const displayName = /[A-Za-z]/.test(String(contactName || '')) ? contactName : '';
-        const nameParts = displayName.split(' ');
-        await base44.asServiceRole.entities.Contact.create({
-          firstname: nameParts[0] || '',
-          lastname: nameParts.slice(1).join(' ') || '',
-          email: contactEmail || '',
-          phone: toNumber || '',
-          company: companyName || '',
-          owner_id: salesMemberId,
-          sales_member_id: salesMemberId || ''
-        });
       }
     }
 
