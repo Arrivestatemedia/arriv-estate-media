@@ -86,6 +86,11 @@
       "type": "string",
       "default": "Hi {first_name}, thank you for being the best part of Arriv. How can we help you today?"
     },
+    "greeting_prospect": {
+      "type": "string",
+      "default": "Hi {first_name}, thank you for calling Arriv Estate Media. Please hold for {rep_name}.",
+      "description": "Spoken to a recognised sales prospect from Arriv One. {first_name} is the prospect's first name, {rep_name} is the Growth Advisor on file. When no advisor has a number, {rep_name} becomes \"our team\" and the sales ring group is used."
+    },
     "greeting_public": {
       "type": "string",
       "default": "Thank you for calling Arriv Estate Media. To book media for your property, press 1. For assistance signing up or booking through our portal, press 2."

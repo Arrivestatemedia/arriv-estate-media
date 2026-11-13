@@ -147,6 +147,7 @@ export const DEFAULT_SETTINGS = {
   callback_assignment: 'owner',
   greeting_specialist: 'Hi {first_name}, thank you for being the best part of Arriv. How can we help you today?',
   greeting_client: 'Hi {first_name}, thank you for being the best part of Arriv. How can we help you today?',
+  greeting_prospect: 'Hi {first_name}, thank you for calling Arriv Estate Media. Please hold for {rep_name}.',
   greeting_public:
     'Thank you for calling Arriv Estate Media. To book media for your property, press 1. For assistance signing up or booking through our portal, press 2.',
   support_overflow_text:
@@ -176,7 +177,7 @@ export async function loadSettings(base44: any) {
 /* ───────────────────────── caller recognition ───────────────────────── */
 
 export type Caller = {
-  type: 'owner_admin' | 'media_specialist' | 'client' | 'b2b_client' | 'public' | 'unknown';
+  type: 'owner_admin' | 'media_specialist' | 'client' | 'b2b_client' | 'prospect' | 'public' | 'unknown';
   name: string;
   first_name: string;
   email: string;
@@ -236,6 +237,30 @@ function authorisedNumbers(): string[] {
     .filter(Boolean);
 }
 
+const PROSPECT_STAGES = ['subscriber', 'lead', 'mql', 'sql', 'opportunity'];
+const PROSPECT_STATUSES = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'OPEN_DEAL',
+  'ATTEMPTED_TO_CONTACT',
+  'CONNECTED',
+  'BAD_TIMING',
+  'UNQUALIFIED',
+];
+
+/**
+ * A CRM contact is a sales prospect only when the record itself says so.
+ * A contact with no lifecycle stage and no lead status keeps the existing
+ * client treatment, so no existing caller's experience changes.
+ */
+function looksLikeProspect(contact: any): boolean {
+  const stage = String(contact?.lifecycle_stage || '').trim().toLowerCase();
+  const status = String(contact?.lead_status || '').trim().toUpperCase();
+  if (stage === 'customer') return false;
+  return PROSPECT_STAGES.includes(stage) || PROSPECT_STATUSES.includes(status);
+}
+
 /**
  * Identify the caller from existing profile records only.
  * Recognition never unlocks account actions — it only selects the greeting.
@@ -284,13 +309,13 @@ export async function recognizeCaller(base44: any, from: string): Promise<Caller
     };
   }
 
-  // Client — CRM contact record
+  // CRM contact — a customer profile, or a prospect still in the Arriv One pipeline
   const contact = await matchByPhone(base44.asServiceRole.entities.Contact, from);
   if (contact) {
     const rep = await assignedRepFor(base44, contact.email, contact.sales_member_id);
     return {
       ...caller,
-      type: 'client',
+      type: looksLikeProspect(contact) ? 'prospect' : 'client',
       name: [contact.firstname, contact.lastname].filter(Boolean).join(' '),
       first_name: contact.firstname || firstFrom(contact.full_name || ''),
       email: contact.email || '',

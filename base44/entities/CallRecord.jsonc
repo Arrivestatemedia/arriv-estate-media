@@ -37,6 +37,7 @@
         "media_specialist",
         "client",
         "b2b_client",
+        "prospect",
         "public",
         "unknown"
       ],
@@ -45,6 +46,7 @@
         "blue",
         "green",
         "green",
+        "yellow",
         "gray",
         "gray"
       ],
@@ -67,7 +69,7 @@
     },
     "assigned_rep_name": {
       "type": "string",
-      "description": "Growth Advisor on file for a recognised client, when known"
+      "description": "Growth Advisor on file for a recognised client or prospect, when known"
     },
     "assigned_rep_email": {
       "type": "string"
@@ -80,6 +82,7 @@
         "active_job_client",
         "specialist_voice",
         "client_voice",
+        "prospect_direct",
         "public_menu",
         "sales_ring",
         "support",
@@ -95,6 +98,7 @@
         "blue",
         "green",
         "green",
+        "purple",
         "gray",
         "yellow",
         "yellow",

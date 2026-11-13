@@ -27,6 +27,7 @@
         "media_specialist",
         "client",
         "b2b_client",
+        "prospect",
         "public",
         "unknown"
       ],
@@ -35,6 +36,7 @@
         "blue",
         "green",
         "green",
+        "yellow",
         "gray",
         "gray"
       ],

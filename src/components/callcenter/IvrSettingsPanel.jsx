@@ -246,6 +246,16 @@ export default function IvrSettingsPanel() {
             />
           </div>
           <div>
+            <Label>
+              Prospect greeting ({"{first_name}"} and {"{rep_name}"} are replaced)
+            </Label>
+            <Textarea
+              value={settings.greeting_prospect || ""}
+              onChange={(e) => set({ greeting_prospect: e.target.value })}
+              className="min-h-[70px]"
+            />
+          </div>
+          <div>
             <Label>Support overflow menu</Label>
             <Textarea
               value={settings.support_overflow_text || ""}

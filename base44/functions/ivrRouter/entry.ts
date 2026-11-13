@@ -113,6 +113,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    /* ───────────── prospect: the advisor leg ended ───────────── */
+    if (stage === 'prospect_after') {
+      const dialStatus = String(params.DialCallStatus || '').toLowerCase();
+      if (dialStatus === 'completed' || dialStatus === 'answered') {
+        await upsertCall(base44, callSid, { outcome: 'answered', route: 'prospect_direct' });
+        return xmlResponse('');
+      }
+      await upsertCall(base44, callSid, {
+        route: 'sales_ring',
+        stage: 'prospect_after',
+        outcome: 'no_answer',
+      });
+      return xmlResponse(redirect(url('/functions/ivrSalesRing')));
+    }
+
     const routeToSupport = (category = 'technical_support') =>
       xmlResponse(
         redirect(url('/functions/ivrSupport', { category, from: 'router' }))
@@ -149,6 +164,37 @@ Deno.serve(async (req) => {
         speech_text: speech,
       });
       return routeToSupport('technical_support');
+    }
+
+    /* ───────────── recognised Arriv One prospect ───────────── */
+    if (stage === 'root' && caller.type === 'prospect') {
+      const rep = (caller as any).assigned_rep;
+      const repName = rep ? rep.full_name || rep.preferred_name || '' : '';
+      const repPhone = rep ? e164(rep.work_phone || rep.phone_number || rep.mobile_phone_number) : '';
+      const text = String(settings.greeting_prospect || '')
+        .replace(/\{first_name\}/g, caller.first_name || 'there')
+        .replace(/\{rep_name\}/g, repName || 'our team');
+
+      // A prospect with no Growth Advisor holding a number still gets the
+      // personalised greeting, then the normal sales ring group.
+      if (!repPhone) {
+        await upsertCall(base44, callSid, { route: 'sales_ring', stage: 'prospect_no_advisor' });
+        return xmlResponse(say(text) + redirect(url('/functions/ivrSalesRing')));
+      }
+
+      const action = url('/functions/ivrRouter', { stage: 'prospect_after' });
+      await upsertCall(base44, callSid, {
+        route: 'prospect_direct',
+        stage: 'prospect_greeting',
+        dialed_numbers: [repPhone],
+        assigned_rep_name: repName,
+        assigned_rep_email: rep?.email || '',
+      });
+      return xmlResponse(
+        say(text) +
+          `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="35" action="${action}" method="POST">` +
+            `<Number>${repPhone}</Number></Dial>`
+      );
     }
 
     /* ───────────── recognised client / B2B client ───────────── */
