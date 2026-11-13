@@ -53,8 +53,17 @@ export function speakable(text: unknown): string {
   return String(text ?? '').replace(/\bArriv\b/gi, 'Arrive');
 }
 
+/**
+ * One spoken line. With an ElevenLabs voice configured the line is served as
+ * audio from ivrVoice; otherwise Twilio's own voice speaks it. Nothing about
+ * the surrounding menu, digits or routing depends on which one is used.
+ */
 export function say(text: unknown, voice = BRAND_VOICE): string {
-  return `<Say voice="${voice}">${escapeXml(speakable(text))}</Say>`;
+  const spoken = speakable(text);
+  if (ivrVoiceReady()) {
+    return `<Play>${escapeXml(ivrVoiceUrl(APP_BASE, spoken))}</Play>`;
+  }
+  return `<Say voice="${voice}">${escapeXml(spoken)}</Say>`;
 }
 
 export function xmlResponse(body: string, status = 200): Response {
