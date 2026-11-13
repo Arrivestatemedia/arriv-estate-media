@@ -3,6 +3,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
 import { say, e164, receivingLine, upsertCall } from '../../shared/ivr.ts';
+import {
+  loadProduction,
+  ownerMenuPlan,
+  ownerPhoneRules,
+  activeJobPlan,
+} from '../../shared/productionIvr.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -180,11 +186,19 @@ Deno.serve(async (req) => {
         return d;
       };
       const callerNormAdmin = normPhone(from);
+      // Owner-line rules configured in Arriv Call Center are read here, so an
+      // administrator can add or retune an authorised caller from the dashboard.
+      const adminConfig = await loadProduction(createClientFromRequest(req));
+      const adminNumberRules = ownerPhoneRules(adminConfig.prod);
+      const adminPlan = ownerMenuPlan(adminConfig.prod, from);
       const authorizedNumbers = [
         Deno.env.get('OWNER_PHONE_NUMBER'),
         Deno.env.get('ADMIN_PHONE'),
         Deno.env.get('BRADLEY_PHONE'),
       ].filter(Boolean).map(n => normPhone(n));
+      adminNumberRules.forEach((rule) => {
+        if (!authorizedNumbers.includes(rule.key)) authorizedNumbers.push(rule.key);
+      });
 
       if (callerNormAdmin && authorizedNumbers.includes(callerNormAdmin) && defaultCallerId) {
         // Record the call so the owner's own calls are visible in the Call Center.
@@ -210,7 +224,7 @@ Deno.serve(async (req) => {
             console.log('Admin dial-out →', dest, 'callerId:', defaultCallerId);
             return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="30">
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="${adminPlan.outboundTimeout}">
     <Number>${dest}</Number>
   </Dial>
 </Response>`);
@@ -218,7 +232,7 @@ Deno.serve(async (req) => {
           console.log('Admin dial-out invalid digits:', digits);
           return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${say('Invalid number entered. Goodbye.')}
+  ${say(adminPlan.invalidText)}
 </Response>`);
         }
 
@@ -228,10 +242,10 @@ Deno.serve(async (req) => {
             console.log('Admin pressed 1 → prompting for destination number');
             return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="10" action="${adminDialActionUrl}" method="POST" timeout="20" finishOnKey="#">
-    ${say('Enter the 10 digit number you want to reach, followed by the pound key.')}
+  <Gather numDigits="10" action="${adminDialActionUrl}" method="POST" timeout="${adminPlan.dialTimeout}" finishOnKey="#">
+    ${say(adminPlan.dialPrompt)}
   </Gather>
-  ${say('No number entered. Goodbye.')}
+  ${say(adminPlan.noEntryText)}
 </Response>`);
           }
           if (digits === '2') {
@@ -247,14 +261,17 @@ Deno.serve(async (req) => {
         console.log('Authorized admin/owner inbound → presenting dial-out IVR');
         return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" action="${adminActionUrl}" method="POST" timeout="8" finishOnKey="">
-    ${say('Welcome. To dial out from the company number, press 1. To reach support, press 2.')}
+  <Gather numDigits="1" action="${adminActionUrl}" method="POST" timeout="${adminPlan.menuTimeout}" finishOnKey="">
+    ${say(adminPlan.menuPrompt)}
   </Gather>
-  ${say('Connecting you to support.')}
+  ${say(adminPlan.supportFallbackText)}
 </Response>`);
       }
 
       const base44 = createClientFromRequest(req);
+      // The active-job menus are configuration too: prompts, timeouts and the
+      // support fallback all come from the published Call Center configuration.
+      const jobPlan = activeJobPlan((await loadProduction(base44)).prod);
 
       // --- Media-partner shortcut ---
       // If the caller is a media partner booked on an active job, auto-bridge them
@@ -306,7 +323,7 @@ Deno.serve(async (req) => {
               console.log('Media partner pressed 1 → bridging to client', clientNumber, 'for job', job.id);
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="${jobPlan.bridgeTimeout}">
     <Number>${clientNumber}</Number>
   </Dial>
 </Response>`);
@@ -328,10 +345,10 @@ Deno.serve(async (req) => {
               console.log('Media partner inbound → presenting IVR menu for job', job.id);
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    ${say('Thank you for calling Arrive Estate Media. To reach your client, press 1. To reach support, press 2.')}
+  <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="${jobPlan.menuTimeout}" finishOnKey="">
+    ${say(jobPlan.specialistPrompt)}
   </Gather>
-  ${say('Connecting you to support.')}
+  ${say(jobPlan.supportFallbackText)}
 </Response>`);
             }
           }
@@ -385,7 +402,7 @@ Deno.serve(async (req) => {
               console.log('Client pressed 1 → bridging to media specialist', partnerNumber, 'for job', clientJob.id);
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="${jobPlan.bridgeTimeout}">
     <Number>${partnerNumber}</Number>
   </Dial>
 </Response>`);
@@ -405,9 +422,9 @@ Deno.serve(async (req) => {
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    ${say('Thank you for calling Arrive Estate Media. To reach your media specialist, press 1. To reach support, press 2.')}
+    ${say(jobPlan.clientPrompt)}
   </Gather>
-  ${say('Connecting you to support.')}
+  ${say(jobPlan.supportFallbackText)}
 </Response>`);
             }
           }

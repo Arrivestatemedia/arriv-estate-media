@@ -1,0 +1,63 @@
+{
+  "name": "ProductionIvrConfig",
+  "type": "object",
+  "properties": {
+    "settings_key": {
+      "type": "string",
+      "default": "default",
+      "description": "Singleton key. One record holds the live IVR configuration."
+    },
+    "draft": {
+      "type": "object",
+      "description": "Working copy being edited in the studio. Never read by a live call."
+    },
+    "published": {
+      "type": "object",
+      "description": "Configuration the production call handlers read. Replaced only by a publish or rollback."
+    },
+    "version": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of the published configuration in force. Increments on every publish."
+    },
+    "draft_saved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "draft_saved_by": {
+      "type": "string"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "settings_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

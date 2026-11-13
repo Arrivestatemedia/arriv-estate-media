@@ -33,6 +33,13 @@ import {
   hangup,
   OWNER_FALLBACK,
 } from '../../shared/ivr.ts';
+import {
+  loadProduction,
+  publicMenuPlan,
+  applicantPlan,
+  specialistPlan,
+  clientPlan,
+} from '../../shared/productionIvr.ts';
 
 const VOICE_HANDLER = '/functions/twilioVoiceHandler';
 // Build marker: hr-followup-menu (bumped whenever the public menu changes).
@@ -75,7 +82,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const settings = await loadSettings(base44);
+    // Settings record plus the published IVR configuration the studio edits.
+    const { settings, prod } = await loadProduction(base44);
     let record = await callContext(base44, callSid);
     let caller = {
       type: record?.caller_type || 'public',
@@ -141,24 +149,38 @@ Deno.serve(async (req) => {
         redirect(url('/functions/ivrSupport', { category, from: 'router' }))
       );
 
+    /** A configured menu destination → the function that serves it. */
+    const menuDestination = (destination: string) => {
+      if (destination === 'support') return routeToSupport('technical_support');
+      if (destination === 'applicant') {
+        return xmlResponse(redirect(url('/functions/ivrRouter', { stage: 'applicant_greeting' })));
+      }
+      if (destination === 'ashley') return xmlResponse(redirect(url('/functions/ivrAshley')));
+      if (destination === 'voicemail') {
+        return xmlResponse(redirect(url('/functions/ivrSupport', { stage: 'voicemail_prompt', category: 'general' })));
+      }
+      return xmlResponse(redirect(url('/functions/ivrSalesRing')));
+    };
+
     /* ───────────── recognised Media Specialist ───────────── */
     if (stage === 'root' && caller.type === 'media_specialist') {
       await upsertCall(base44, callSid, { route: 'specialist_voice', stage: 'specialist_greeting' });
       const action = url('/functions/ivrRouter', { stage: 'specialist_intent' });
+      const sp = specialistPlan(prod, settings);
       return xmlResponse(
         gatherTag({
           action,
           input: 'speech dtmf',
           speechTimeout: 'auto',
-          timeout: 6,
-          hints: 'support, help, callback, call me back, speak to someone',
+          timeout: sp.speechTimeout,
+          hints: sp.hints,
           text: greeting(settings.greeting_specialist, caller),
         }) +
           gatherTag({
             action,
             numDigits: 1,
-            timeout: 6,
-            text: "I'm sorry, I didn't quite catch that. To speak with support, press 1.",
+            timeout: sp.speechTimeout,
+            text: sp.retryPrompt,
           }) +
           redirect(url('/functions/ivrSupport', { category: 'technical_support' }))
       );
@@ -215,7 +237,9 @@ Deno.serve(async (req) => {
       });
       return xmlResponse(
         say(text) +
-          `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="35" action="${action}" method="POST">` +
+          `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="${
+            Number(prod.prospect.dial_timeout) || 35
+          }" action="${action}" method="POST">` +
             `<Number>${repPhone}</Number></Dial>`
       );
     }
@@ -224,6 +248,8 @@ Deno.serve(async (req) => {
     if ((stage === 'root' || stage === 'client_intent') && (caller.type === 'client' || caller.type === 'b2b_client')) {
       const action = url('/functions/ivrRouter', { stage: 'client_intent' });
 
+      const cp = clientPlan(prod, settings);
+
       if (stage === 'root') {
         await upsertCall(base44, callSid, { route: 'client_voice', stage: 'client_greeting' });
         return xmlResponse(
@@ -231,15 +257,15 @@ Deno.serve(async (req) => {
             action,
             input: 'speech dtmf',
             speechTimeout: 'auto',
-            timeout: 6,
-            hints: 'media partner, representative, account contact, technical support, sign in, booking',
+            timeout: cp.speechTimeout,
+            hints: cp.hints,
             text: greeting(settings.greeting_client, caller),
           }) +
             gatherTag({
               action,
               numDigits: 1,
-              timeout: 6,
-              text: "I'm sorry, I didn't quite catch that. To reach your Media Partner, press 1. For technical support, press 2.",
+              timeout: cp.speechTimeout,
+              text: cp.retryPrompt,
             }) +
             redirect(url('/functions/ivrSupport', { category: 'technical_support' }))
         );
@@ -291,10 +317,7 @@ Deno.serve(async (req) => {
       // Booking / account questions — point to the real portal, do not claim any change.
       const menuAction = url('/functions/ivrRouter', { stage: 'client_intent' });
       return xmlResponse(
-        say(
-          'You can review and manage your bookings and account by signing in to your Arriv portal. ' +
-            'For help with a booking, press 1 to reach your Media Partner, or press 2 for technical support.'
-        ) +
+        say(cp.portalMessage) +
           gatherTag({ action: menuAction, numDigits: 1, timeout: 6 }) +
           redirect(url('/functions/ivrSupport', { category: 'technical_support' }))
       );
@@ -304,48 +327,43 @@ Deno.serve(async (req) => {
     if (stage === 'root') {
       await upsertCall(base44, callSid, { route: 'public_menu', stage: 'public_greeting' });
       const action = url('/functions/ivrRouter', { stage: 'public_intent' });
+      const pm = publicMenuPlan(prod, settings);
       return xmlResponse(
         gatherTag({
           action,
           numDigits: 1,
-          timeout: 7,
-          text: settings.greeting_public,
+          timeout: pm.timeout,
+          text: pm.prompt,
         }) +
           gatherTag({
             action,
             numDigits: 1,
-            timeout: 7,
-            text: settings.greeting_public,
+            timeout: pm.timeout,
+            text: pm.prompt,
           }) +
           redirect(url('/functions/ivrSalesRing'))
       );
     }
 
     if (stage === 'public_intent') {
+      const pm = publicMenuPlan(prod, settings);
+      const destination = digits ? pm.destinationFor(digits) : pm.noInputDestination;
       await upsertCall(base44, callSid, {
-        route: digits === '2' || digits === '3' ? 'support' : 'sales_ring',
+        route: destination === 'support' || destination === 'applicant' ? 'support' : 'sales_ring',
         stage,
         digits,
       });
-      if (digits === '2') return routeToSupport('technical_support');
-      if (digits === '3') {
-        return xmlResponse(redirect(url('/functions/ivrRouter', { stage: 'applicant_greeting' })));
-      }
-      if (digits === '1') return xmlResponse(redirect(url('/functions/ivrSalesRing')));
-      // Unrecognised key → sales, never a silent disconnect
-      return xmlResponse(redirect(url('/functions/ivrSalesRing')));
+      // An unrecognised key follows the configured invalid destination, so a
+      // caller is never silently disconnected.
+      return menuDestination(destination);
     }
 
     /* ───────────── job application follow-up (Khetha IQ) ─────────────
      * Anyone who presses 3 on the general menu is greeted by name when their
      * number matches an application on file, then connected to the owner's
      * number. The owner hears who is calling, and why, before the bridge. */
-    const hrNumber = e164(settings.owner_fallback_number) || e164(OWNER_FALLBACK);
-
-    const applicantPrompt = (firstName: string) =>
-      firstName
-        ? `Hi ${firstName}, thank you for following up on your application. Press one to speak to Human Resources.`
-        : 'Hi, thank you for following up on your application. Press one to speak to Human Resources.';
+    const applicantBase = applicantPlan(prod, settings, { number: e164(from) });
+    const hrNumber = e164(applicantBase.hrNumber) || e164(OWNER_FALLBACK);
 
     if (stage === 'applicant_greeting') {
       const applicant = await recognizeApplicant(base44, from);
@@ -359,10 +377,11 @@ Deno.serve(async (req) => {
         caller_record_id: applicant.record_id || '',
         caller_record_source: applicant.record_source || '',
       });
-      const text = applicantPrompt(applicant.first_name);
+      const plan = applicantPlan(prod, settings, { ...applicant, number: e164(from) });
+      const text = plan.prompt;
       return xmlResponse(
-        gatherTag({ action, numDigits: 1, timeout: 8, text }) +
-          gatherTag({ action, numDigits: 1, timeout: 8, text }) +
+        gatherTag({ action, numDigits: 1, timeout: plan.menuTimeout, text }) +
+          gatherTag({ action, numDigits: 1, timeout: plan.menuTimeout, text }) +
           redirect(action)
       );
     }
@@ -374,8 +393,8 @@ Deno.serve(async (req) => {
           gatherTag({
             action,
             numDigits: 1,
-            timeout: 8,
-            text: 'Press one to speak to Human Resources.',
+            timeout: applicantBase.menuTimeout,
+            text: applicantBase.retryPrompt,
           }) + redirect(action)
         );
       }
@@ -395,7 +414,7 @@ Deno.serve(async (req) => {
         dialed_numbers: hrNumber ? [hrNumber] : [],
       });
       return xmlResponse(
-        `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="30" action="${action}" method="POST">` +
+        `<Dial callerId="${e164(settings.public_caller_id)}" answerOnBridge="true" timeout="${applicantBase.dialTimeout}" action="${action}" method="POST">` +
           `<Number url="${whisper}">${hrNumber}</Number>` +
           `</Dial>`
       );
@@ -413,7 +432,7 @@ Deno.serve(async (req) => {
       }
       await upsertCall(base44, callSid, { outcome: 'no_answer', stage: 'applicant_after' });
       return xmlResponse(
-        say("Sorry, we couldn't reach Human Resources just now. Please try again shortly. Goodbye.") + hangup()
+        say(applicantBase.failureText) + hangup()
       );
     }
 

@@ -1,0 +1,54 @@
+{
+  "name": "ProductionIvrVersion",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Version number this snapshot was published as"
+    },
+    "config": {
+      "type": "object",
+      "description": "Exact configuration in force for this version, so a rollback restores it exactly"
+    },
+    "note": {
+      "type": "string"
+    },
+    "published_by": {
+      "type": "string"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "restored_from": {
+      "type": "integer",
+      "description": "Version this publish restored, when it came from a rollback"
+    }
+  },
+  "required": [
+    "version",
+    "config"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

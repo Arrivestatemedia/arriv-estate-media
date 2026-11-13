@@ -3,13 +3,15 @@
  * bridged. Twilio fetches this URL as the <Number> whisper, so the greeting is
  * spoken only to the owner and never to the caller.
  *
- * It says who is calling, and that they are calling about a job interview.
- * A caller with no application on file is announced by number only, so the
- * owner is never told a name the system does not actually have.
+ * The wording lives in the published Call Center configuration, so the studio
+ * can retune what the owner hears without any deployment. The defaults are the
+ * exact sentences that were hardcoded here before.
  */
 
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { escapeXml, e164 } from '../../shared/ivr.ts';
+import { loadProduction, applicantWhisper } from '../../shared/productionIvr.ts';
 
 function spokenNumber(value: string): string {
   const digits = String(value || '').replace(/\D/g, '');
@@ -39,12 +41,12 @@ Deno.serve(async (req) => {
   const number = spokenNumber(e164(query.get('number')) || query.get('number') || '');
   const firstName = name.split(/\s+/)[0] || '';
 
-  const text = name
-    ? `Call from ${name}, ${number}. ${firstName} is calling to follow up on a job application, regarding a job interview. Connecting now.`
-    : `Call from ${number}. This caller is not in the applicant records, and is calling regarding a job interview. Connecting now.`;
+  const { prod } = await loadProduction(createClientFromRequest(req));
+  const text = applicantWhisper(prod, { name, first_name: firstName, number });
+  const voice = String(prod.applicant.whisper_voice || 'Polly.Joanna');
 
   return new Response(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">${escapeXml(text)}</Say></Response>`,
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="${escapeXml(voice)}">${escapeXml(text)}</Say></Response>`,
     { status: 200, headers: { 'Content-Type': 'text/xml; charset=utf-8' } }
   );
 });

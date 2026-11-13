@@ -30,6 +30,7 @@ import {
   LINE_855,
   LINE_706,
 } from '../../shared/ivr.ts';
+import { loadProduction, salesRingPlan } from '../../shared/productionIvr.ts';
 
 // Loop guard: never dial an Arriv Twilio line, and never dial a number twice.
 const SELF_NUMBERS = [norm(LINE_855), norm(LINE_706)];
@@ -78,7 +79,8 @@ Deno.serve(async (req) => {
     const stage = query.get('stage') || 'ring1';
     const digits = (params.Digits || '').trim();
 
-    const settings = await loadSettings(base44);
+    const { settings, prod } = await loadProduction(base44);
+    const ringPlan = salesRingPlan(prod, settings);
     const record = await callContext(base44, callSid);
     const callerId = e164(settings.public_caller_id);
     const already: string[] = Array.isArray(record?.dialed_numbers) ? record!.dialed_numbers : [];
@@ -92,7 +94,7 @@ Deno.serve(async (req) => {
           action: url('/functions/ivrSalesRing', { stage: 'accept' }),
           numDigits: 1,
           timeout: 6,
-          text: 'Press 1 to accept this call.',
+          text: ringPlan.acceptPrompt,
         }) + '<Hangup/>'
       );
     }
@@ -198,7 +200,7 @@ Deno.serve(async (req) => {
       );
     }
     return xmlResponse(
-      say('Thank you for calling Arrive Estate Media. No one is available right now. Please call back shortly. Goodbye.') +
+      say(ringPlan.finalNoAnswerText) +
         '<Hangup/>'
     );
   } catch (error) {

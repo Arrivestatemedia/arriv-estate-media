@@ -19,32 +19,37 @@ import IvrVersions from "./IvrVersions";
 import IvrEmergency from "./IvrEmergency";
 import IvrGlobal from "./IvrGlobal";
 import IvrInventory from "./IvrInventory";
+import IvrProduction from "./IvrProduction";
 import { Card } from "./IvrUi";
 
+// Sections without the "Engine ·" prefix manage the live production IVR.
+// The prefixed ones configure the separate flow engine, which answers no calls
+// until a number is deliberately pointed at it.
 const SECTIONS = [
-  { key: "overview", label: "Overview" },
-  { key: "builder", label: "Visual Flow Builder" },
-  { key: "numbers", label: "Phone Numbers" },
-  { key: "voices", label: "Voice Studio" },
-  { key: "audio", label: "Greetings & Audio" },
-  { key: "rules", label: "Caller Recognition & Rules" },
-  { key: "menus", label: "Menus & Extensions" },
-  { key: "routing", label: "Routing & Ring Groups" },
-  { key: "hours", label: "Business Hours" },
-  { key: "queues", label: "Queues & Hold Music" },
-  { key: "voicemail", label: "Voicemail" },
-  { key: "ashley", label: "AI Concierge" },
+  { key: "live", label: "Live IVR (production)" },
   { key: "analytics", label: "Call History & Analytics" },
-  { key: "testing", label: "Testing & Diagnostics" },
-  { key: "versions", label: "Versions & Publishing" },
   { key: "emergency", label: "Emergency Overrides" },
-  { key: "inventory", label: "Configuration Inventory" },
-  { key: "global", label: "Global Settings" },
+  { key: "overview", label: "Engine · Overview" },
+  { key: "builder", label: "Engine · Flow Builder" },
+  { key: "numbers", label: "Engine · Phone Numbers" },
+  { key: "voices", label: "Engine · Voice Studio" },
+  { key: "audio", label: "Engine · Greetings & Audio" },
+  { key: "rules", label: "Engine · Caller Rules" },
+  { key: "menus", label: "Engine · Menus & Extensions" },
+  { key: "routing", label: "Engine · Routing & Ring Groups" },
+  { key: "hours", label: "Engine · Business Hours" },
+  { key: "queues", label: "Engine · Queues & Hold Music" },
+  { key: "voicemail", label: "Engine · Voicemail" },
+  { key: "ashley", label: "Engine · AI Concierge" },
+  { key: "testing", label: "Engine · Testing & Diagnostics" },
+  { key: "versions", label: "Engine · Versions & Publishing" },
+  { key: "inventory", label: "Engine · Configuration Inventory" },
+  { key: "global", label: "Engine · Global Settings" },
 ];
 
 export default function IvrStudio() {
   const [data, setData] = useState(null);
-  const [section, setSection] = useState("overview");
+  const [section, setSection] = useState("live");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -123,6 +128,19 @@ export default function IvrStudio() {
           </div>
         ) : null}
 
+        {section !== "live" && section !== "analytics" && section !== "emergency" ? (
+          <Card className="mb-4 border-amber-200 bg-amber-50">
+            <p className="text-sm text-amber-900">
+              This section configures the separate flow engine, which answers no calls: both Arriv numbers still post to
+              the production caller handler. Your live greetings, menus, recognition, owner line and routing are under
+              <button className="mx-1 font-medium underline" onClick={() => setSection("live")}>
+                Live IVR (production)
+              </button>
+              .
+            </p>
+          </Card>
+        ) : null}
+
         {!data.seeded ? (
           <Card className="mb-4 border-[#B8956A]/40 bg-[#FFFBF5]">
             <p className="text-sm text-[#1A1A1A]/75">
@@ -142,6 +160,7 @@ export default function IvrStudio() {
           </Card>
         ) : null}
 
+        {section === "live" && <IvrProduction />}
         {section === "overview" && <IvrOverview {...shared} />}
         {section === "builder" && <IvrFlowBuilder {...shared} />}
         {section === "numbers" && <IvrNumbers {...shared} />}

@@ -28,6 +28,7 @@ import {
   saveVoicemail,
   notifyOwner,
 } from '../../shared/ivr.ts';
+import { loadProduction, supportPlan } from '../../shared/productionIvr.ts';
 
 function newId(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -55,7 +56,8 @@ Deno.serve(async (req) => {
 
     if (!from || !to) return xmlResponse(say('We could not complete this call. Please try again.'));
 
-    const settings = await loadSettings(base44);
+    const { settings, prod } = await loadProduction(base44);
+    const supportCfg = supportPlan(prod, settings);
     const record = await callContext(base44, callSid);
 
     let caller: any = record
@@ -97,7 +99,7 @@ Deno.serve(async (req) => {
           timeout: 7,
           text: settings.support_overflow_text,
         }) +
-          (attempt < 1
+          (attempt < Number(supportCfg.attempts)
             ? redirect(url('/functions/ivrSupport', { stage: 'root', category, attempt: attempt + 1 }))
             : redirect(url('/functions/ivrSupport', { stage: 'voicemail_prompt', category })))
       );
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
           input: 'speech',
           speechTimeout: 'auto',
           timeout: 6,
-          text: 'Please briefly tell us what you need help with, and we will call you back.',
+          text: supportCfg.callbackReasonPrompt,
         }) + redirect(url('/functions/ivrSupport', { stage: 'callback_save', category }))
       );
     }
@@ -163,9 +165,7 @@ Deno.serve(async (req) => {
       }
 
       return xmlResponse(
-        say(
-          'Thank you. Your callback request has been received, and a member of our team will call you back as soon as possible. Goodbye.'
-        ) + '<Hangup/>'
+        say(supportCfg.callbackConfirmText) + '<Hangup/>'
       );
     }
 
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
         say(settings.tech_support_prompt) +
           `<Record action="${url('/functions/ivrSupport', { stage: 'voicemail_saved', category })}" method="POST" ` +
           `maxLength="${Number(settings.voicemail_max_seconds) || 180}" timeout="5" playBeep="true" finishOnKey="#" trim="trim-silence"/>` +
-          say('We did not receive a message.') +
+          say(supportCfg.voicemailNote) +
           redirect(url('/functions/ivrSupport', { stage: 'voicemail_prompt', category }))
       );
     }
@@ -296,9 +296,7 @@ Deno.serve(async (req) => {
       });
 
       return xmlResponse(
-        say(
-          'Thank you. Your message has been recorded and our team will get back with you as soon as possible. Goodbye.'
-        ) + '<Hangup/>'
+        say(supportCfg.voicemailThanks) + '<Hangup/>'
       );
     }
 

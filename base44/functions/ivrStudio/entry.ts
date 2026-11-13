@@ -17,8 +17,99 @@ import { secrets } from 'base44:runtime';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
 import { DEFAULT_SETTINGS, loadSettings } from '../../shared/ivr.ts';
 import { simulateFlow, validateFlow, pickRule } from '../../shared/ivrFlowEngine.ts';
+import {
+  MIRRORED_SETTINGS,
+  PRODUCTION_DEFAULTS,
+  mergeProduction,
+  productionInventory,
+  publicMenuPlan,
+  applicantPlan,
+  ownerMenuPlan,
+  ownerPhoneRules,
+  activeJobPlan,
+  specialistPlan,
+  clientPlan,
+  supportPlan,
+  salesRingPlan,
+} from '../../shared/productionIvr.ts';
 
 const APP = 'https://arrivestatemedia.base44.app';
+
+const MENU_DESTINATIONS = ['sales_ring', 'support', 'applicant', 'ashley', 'voicemail'];
+
+/** The settings the studio versions, copied from the record the handlers read. */
+function mirrorSettings(settings: any) {
+  const out: Record<string, any> = {};
+  MIRRORED_SETTINGS.forEach((key) => {
+    if (settings && settings[key] !== undefined) out[key] = settings[key];
+  });
+  return out;
+}
+
+function flatten(value: any, prefix = '', out: Record<string, string> = {}) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    Object.keys(value).forEach((k) => flatten(value[k], prefix ? `${prefix}.${k}` : k, out));
+  } else {
+    out[prefix] = Array.isArray(value) ? JSON.stringify(value) : String(value ?? '');
+  }
+  return out;
+}
+
+/** What publishing the draft would change, field by field. */
+function productionDiff(draft: any, liveSettings: any, publishedRaw: any) {
+  const before = {
+    ...flatten(mirrorSettings(liveSettings), 'settings'),
+    ...flatten(publishedRaw || {}, 'prod'),
+  };
+  const after = {
+    ...flatten(draft?.settings || {}, 'settings'),
+    ...flatten(draft?.prod || {}, 'prod'),
+  };
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+  return keys
+    .filter((key) => (before[key] || '') !== (after[key] || ''))
+    .map((key) => ({ field: key, from: before[key] || '', to: after[key] || '' }));
+}
+
+/** Blocking problems only — a draft that would break a live call. */
+function productionIssues(draft: any) {
+  const issues: { severity: 'error' | 'warning'; message: string }[] = [];
+  const settings = draft?.settings || {};
+  const prod = mergeProduction(draft?.prod || {});
+
+  if (!String(settings.greeting_public || '').trim()) {
+    issues.push({ severity: 'error', message: 'The public menu has no greeting to play.' });
+  }
+  Object.entries(prod.public_menu.options || {}).forEach(([key, dest]) => {
+    if (!MENU_DESTINATIONS.includes(String(dest))) {
+      issues.push({ severity: 'error', message: `Keypad ${key} points at "${dest}", which is not a call path.` });
+    }
+  });
+  if (!String(prod.applicant.greeting_unknown || '').trim()) {
+    issues.push({ severity: 'error', message: 'The applicant greeting has no wording.' });
+  }
+  if (prod.applicant.hr_number && !/^\+?\d{10,15}$/.test(String(prod.applicant.hr_number).replace(/[^\d+]/g, ''))) {
+    issues.push({ severity: 'error', message: `"${prod.applicant.hr_number}" is not a usable Human Resources number.` });
+  }
+  ownerPhoneRules(prod).forEach((rule: any) => {
+    if (rule.key.length < 10) {
+      issues.push({ severity: 'error', message: `${rule.label || 'Owner rule'}: "${rule.number}" is not a full phone number.` });
+    }
+  });
+  if (!String(prod.owner_admin.menu_prompt || '').trim()) {
+    issues.push({ severity: 'error', message: 'The owner dial-out menu has no prompt.' });
+  }
+  if (!/^\+?\d{10,15}$/.test(String(settings.owner_fallback_number || '').replace(/[^\d+]/g, ''))) {
+    issues.push({ severity: 'error', message: 'The owner fallback number is not a usable phone number.' });
+  }
+  if (settings.agent_acceptance_required && !String(prod.sales_ring.accept_prompt || '').trim()) {
+    issues.push({ severity: 'error', message: 'Acceptance is required but there is no acceptance prompt.' });
+  }
+  if (Number(settings.stage1_timeout) <= 0) {
+    issues.push({ severity: 'warning', message: 'Stage 1 ring timeout is zero — the sales ring would be skipped.' });
+  }
+  return issues;
+}
 
 function listOf(result: any): any[] {
   if (Array.isArray(result)) return result;
@@ -207,6 +298,48 @@ Deno.serve(async (req) => {
       } catch (_) {
         /* audit is best-effort but never silent in the returned payload */
       }
+    };
+
+    /**
+     * Put one configuration in force: the settings go back to the record the
+     * handlers have always read, the rest to ProductionIvrConfig.published, and
+     * an immutable version snapshot is written first so it can be restored.
+     */
+    const applyProduction = async (config: any, note: string, restoredFrom: number) => {
+      const now = new Date().toISOString();
+      const settingsRows = listOf(await E.CallCenterSetting.filter({ settings_key: 'default' }).catch(() => []));
+      const settingsPatch = {
+        ...mirrorSettings(config?.settings || {}),
+        settings_key: 'default',
+        updated_by: actor,
+        updated_at: now,
+      };
+      if (settingsRows[0]) await E.CallCenterSetting.update(settingsRows[0].id, settingsPatch);
+      else await E.CallCenterSetting.create(settingsPatch);
+
+      const rows = listOf(await E.ProductionIvrConfig.filter({ settings_key: 'default' }).catch(() => []));
+      const row = rows[0];
+      const version = Number(row?.version || 0) + 1;
+      const snapshot = { settings: mirrorSettings(config?.settings || {}), prod: config?.prod || {} };
+      await E.ProductionIvrVersion.create({
+        version,
+        config: snapshot,
+        note,
+        published_by: actor,
+        published_at: now,
+        restored_from: restoredFrom,
+      });
+      const patch = {
+        settings_key: 'default',
+        published: config?.prod || {},
+        draft: snapshot,
+        version,
+        published_at: now,
+        published_by: actor,
+      };
+      if (row) await E.ProductionIvrConfig.update(row.id, patch);
+      else await E.ProductionIvrConfig.create(patch);
+      return { version, snapshot };
     };
 
     switch (action) {
@@ -946,6 +1079,161 @@ Deno.serve(async (req) => {
         if (body.line) query.receiving_line = body.line;
         const rows = listOf(await E.CallRecord.filter(query, { sort: '-started_at', limit: 60 }).catch(() => []));
         return Response.json({ calls: rows });
+      }
+
+      /* ── the LIVE IVR: one configuration, read by the production handlers ── */
+      case 'productionGet': {
+        const settings = await loadSettings(base44);
+        const rows = listOf(await E.ProductionIvrConfig.filter({ settings_key: 'default' }).catch(() => []));
+        const row = rows[0] || null;
+        const publishedRaw = row?.published || {};
+        const liveProd = mergeProduction(publishedRaw);
+        const draft =
+          row?.draft && Object.keys(row.draft || {}).length
+            ? row.draft
+            : { settings: mirrorSettings(settings), prod: publishedRaw };
+        const versions = listOf(await E.ProductionIvrVersion.list('-version', 30).catch(() => []));
+        return Response.json({
+          version: Number(row?.version || 0),
+          draft,
+          draft_saved_at: row?.draft_saved_at || '',
+          draft_saved_by: row?.draft_saved_by || '',
+          published_at: row?.published_at || '',
+          published_by: row?.published_by || '',
+          live_settings: settings,
+          live_prod: liveProd,
+          mirrored_settings: MIRRORED_SETTINGS,
+          defaults: PRODUCTION_DEFAULTS,
+          inventory: productionInventory(liveProd, settings),
+          diff: productionDiff(draft, settings, publishedRaw),
+          issues: productionIssues(draft),
+          versions: versions.map((v) => ({
+            id: v.id,
+            version: v.version,
+            note: v.note || '',
+            published_by: v.published_by || '',
+            published_at: v.published_at || '',
+            restored_from: v.restored_from || 0,
+          })),
+        });
+      }
+
+      case 'productionSaveDraft': {
+        const draft = body.draft || {};
+        const rows = listOf(await E.ProductionIvrConfig.filter({ settings_key: 'default' }).catch(() => []));
+        const patch = {
+          settings_key: 'default',
+          draft,
+          draft_saved_at: new Date().toISOString(),
+          draft_saved_by: actor,
+        };
+        if (rows[0]) await E.ProductionIvrConfig.update(rows[0].id, patch);
+        else await E.ProductionIvrConfig.create({ ...patch, published: {}, version: 0 });
+        await audit({
+          action: 'production_save_draft',
+          target_type: 'production_ivr',
+          target_key: 'default',
+          summary: 'Saved a draft of the live IVR configuration',
+        });
+        return Response.json({ success: true, saved_at: patch.draft_saved_at, issues: productionIssues(draft) });
+      }
+
+      case 'productionPublish': {
+        const draft = body.draft || {};
+        const issues = productionIssues(draft);
+        const blocking = issues.filter((i) => i.severity === 'error');
+        if (blocking.length) {
+          return Response.json({ error: 'The draft has blocking problems.', issues, published: false }, { status: 400 });
+        }
+        const { version } = await applyProduction(draft, body.note || '', 0);
+        await audit({
+          action: 'production_publish',
+          target_type: 'production_ivr',
+          target_key: 'default',
+          summary: `Published live IVR configuration version ${version}`,
+          after: { version },
+        });
+        return Response.json({ success: true, version, issues, live: true });
+      }
+
+      case 'productionRollback': {
+        const snapshots = listOf(
+          await E.ProductionIvrVersion.filter({ version: Number(body.version) }).catch(() => [])
+        );
+        const snapshot = snapshots[0];
+        if (!snapshot) return Response.json({ error: 'That version does not exist' }, { status: 404 });
+        const { version } = await applyProduction(
+          snapshot.config || {},
+          `Restored from version ${snapshot.version}`,
+          snapshot.version
+        );
+        await audit({
+          action: 'production_rollback',
+          target_type: 'production_ivr',
+          target_key: 'default',
+          summary: `Restored live IVR version ${snapshot.version} as version ${version}`,
+        });
+        return Response.json({ success: true, version, restored_from: snapshot.version });
+      }
+
+      case 'productionDiscardDraft': {
+        const settings = await loadSettings(base44);
+        const rows = listOf(await E.ProductionIvrConfig.filter({ settings_key: 'default' }).catch(() => []));
+        const publishedRaw = rows[0]?.published || {};
+        const draft = { settings: mirrorSettings(settings), prod: publishedRaw };
+        if (rows[0]) await E.ProductionIvrConfig.update(rows[0].id, { draft, draft_saved_at: '' });
+        return Response.json({ success: true, draft });
+      }
+
+      case 'productionTest': {
+        const draft = body.draft || {};
+        const settings = { ...(await loadSettings(base44)), ...(draft.settings || {}) };
+        const prod = mergeProduction(draft.prod || {});
+        const callerNumber = String(body.caller_number || '');
+        const applicant = {
+          name: String(body.name || ''),
+          first_name: String(body.first_name || ''),
+          number: callerNumber,
+        };
+        const path = String(body.path || 'public');
+        const paths: Record<string, () => any> = {
+          public: () => {
+            const p = publicMenuPlan(prod, settings);
+            return {
+              prompt: p.prompt,
+              timeout: p.timeout,
+              keypad: ['1', '2', '3'].map((k) => ({ key: k, destination: p.destinationFor(k) })),
+              other_key: p.invalidDestination,
+              no_input: p.noInputDestination,
+            };
+          },
+          applicant: () => applicantPlan(prod, settings, applicant),
+          owner: () => {
+            const p = ownerMenuPlan(prod, callerNumber);
+            return {
+              matched_rule: p.rule ? p.rule.label : null,
+              prompt: p.menuPrompt,
+              dial_prompt: p.dialPrompt,
+              menu_timeout: p.menuTimeout,
+              dial_timeout: p.dialTimeout,
+              outbound_timeout: p.outboundTimeout,
+              invalid_text: p.invalidText,
+              no_entry_text: p.noEntryText,
+            };
+          },
+          job: () => activeJobPlan(prod),
+          specialist: () => specialistPlan(prod, settings),
+          client: () => clientPlan(prod, settings),
+          support: () => supportPlan(prod, settings),
+          ring: () => salesRingPlan(prod, settings),
+        };
+        if (!paths[path]) return Response.json({ error: 'Unknown test path' }, { status: 400 });
+        return Response.json({
+          path,
+          result: paths[path](),
+          issues: productionIssues(draft),
+          diff: productionDiff(draft, await loadSettings(base44), {}),
+        });
       }
 
       default:
