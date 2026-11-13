@@ -33,7 +33,7 @@ export default function AdminPhoneNumbers() {
     setSaving(true);
     try {
       await base44.functions.invoke("managePhoneNumbers", {
-        action: numbers[editing]?.action || "set_forward",
+        action: "set_forward",
         target_number: editValue,
       });
       setEditing(null);
@@ -76,12 +76,6 @@ export default function AdminPhoneNumbers() {
                 {item.label}
               </CardTitle>
               <p className="text-sm text-[#1A1A1A]/60 mt-1">{item.function}</p>
-              {item.key === "media_partner_line" && (
-                <p className="text-xs text-[#B8956A] mt-2">
-                  Media Partner is the client-facing title for a Growth Advisor. Contractor Media Partners
-                  appear to clients as Media Specialists.
-                </p>
-              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3 bg-[#FFFBF5] rounded-lg p-4">

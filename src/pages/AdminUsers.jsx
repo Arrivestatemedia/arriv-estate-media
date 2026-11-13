@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield, Check, X, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { internalRoleLabel } from "@/lib/displayTitles";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -339,12 +338,12 @@ export default function AdminUsers() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="media_partner">Media Partner — Contractor</SelectItem>
+                              <SelectItem value="media_partner">Media Partner</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
                           <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"}>
-                            {u.user_type === "media_partner" ? internalRoleLabel("media_partner") : "Client"}
+                            {u.user_type === "media_partner" ? "Media Partner" : "Client"}
                           </Badge>
                         )}
                       </td>
@@ -453,7 +452,7 @@ export default function AdminUsers() {
                       <div>
                         <h3 className="font-semibold text-[var(--text-primary)]">{u.full_name}</h3>
                         <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"} className="text-xs mt-1">
-                          {u.user_type === "media_partner" ? internalRoleLabel("media_partner") : "Client"}
+                          {u.user_type === "media_partner" ? "Media Partner" : "Client"}
                         </Badge>
                       </div>
                     </div>
@@ -511,7 +510,7 @@ export default function AdminUsers() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="media_partner">Media Partner — Contractor</SelectItem>
+                              <SelectItem value="media_partner">Media Partner</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

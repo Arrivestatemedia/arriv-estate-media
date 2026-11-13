@@ -384,11 +384,7 @@ Deno.serve(async (req) => {
             const lower = (messageBody || '').toLowerCase().trim();
             const supportParsed = parseSupportPrefix(messageBody);
             const isSupportKeyword = supportParsed.isSupport;
-            // A client knows their production professional as their Media Specialist.
-            // "Media Partner" is still accepted here only as a legacy alias, because
-            // some clients already have that word in their conversation history.
             const isPartnerKeyword =
-              lower === 'media specialist' || lower === 'specialist' ||
               lower === 'media partner' || lower === 'media' || lower === 'partner';
             let preference = conversation.routing_preference || 'unset';
 
@@ -401,8 +397,8 @@ Deno.serve(async (req) => {
               });
               const confirm =
                 preference === 'media_partner'
-                  ? "Got it — you're now texting your media specialist. Text 'Support' anytime to switch."
-                  : "Got it — you're now texting support. Text 'Media Specialist' anytime to switch.";
+                  ? "Got it — you're now texting your media partner. Text 'Support' anytime to switch."
+                  : "Got it — you're now texting support. Text 'Media Partner' anytime to switch.";
               try {
                 const sent = await sendTwilioSms(clientE164, confirm);
                 await recordOutbound(clientE164, confirm, sent?.sid);
@@ -433,7 +429,7 @@ Deno.serve(async (req) => {
 
             if (preference === 'unset') {
               const prompt =
-                "Are you trying to contact your media specialist or support? Reply 'Media Specialist' or 'Support'. You can change your choice anytime by texting 'Media Specialist' or 'Support'.";
+                "Are you trying to contact your media partner or support? Reply 'Media Partner' or 'Support'. You can change your choice anytime by texting 'Media Partner' or 'Support'.";
               try {
                 const sent = await sendTwilioSms(clientE164, prompt);
                 await recordOutbound(clientE164, prompt, sent?.sid);
