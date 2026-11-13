@@ -1186,8 +1186,17 @@ Deno.serve(async (req) => {
       }
 
       case 'productionTest': {
-        const draft = body.draft || {};
-        const settings = { ...(await loadSettings(base44)), ...(draft.settings || {}) };
+        const liveSettings = await loadSettings(base44);
+        const storedRows = listOf(await E.ProductionIvrConfig.filter({ settings_key: 'default' }).catch(() => []));
+        // A test with no draft supplied uses the saved draft, then the live
+        // configuration — never an empty one, which would report false problems.
+        const draft =
+          body.draft && Object.keys(body.draft || {}).length
+            ? body.draft
+            : storedRows[0]?.draft && Object.keys(storedRows[0].draft || {}).length
+              ? storedRows[0].draft
+              : { settings: mirrorSettings(liveSettings), prod: storedRows[0]?.published || {} };
+        const settings = { ...liveSettings, ...(draft.settings || {}) };
         const prod = mergeProduction(draft.prod || {});
         const callerNumber = String(body.caller_number || '');
         const applicant = {
@@ -1232,7 +1241,7 @@ Deno.serve(async (req) => {
           path,
           result: paths[path](),
           issues: productionIssues(draft),
-          diff: productionDiff(draft, await loadSettings(base44), {}),
+          diff: productionDiff(draft, await loadSettings(base44), storedRows[0]?.published || {}),
         });
       }
 
