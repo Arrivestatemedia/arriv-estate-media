@@ -1,0 +1,255 @@
+{
+  "name": "CallRecord",
+  "type": "object",
+  "properties": {
+    "call_sid": {
+      "type": "string",
+      "description": "Twilio CallSid. Unique per call; the idempotency key for webhook re-delivery."
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "inbound"
+    },
+    "from_number": {
+      "type": "string",
+      "description": "Caller number, normalized to E.164"
+    },
+    "to_number": {
+      "type": "string",
+      "description": "The Arriv number that received the call, in E.164"
+    },
+    "receiving_line": {
+      "type": "string",
+      "description": "Which Arriv line was dialed (855 or 706)"
+    },
+    "caller_type": {
+      "type": "string",
+      "enum": [
+        "owner_admin",
+        "media_specialist",
+        "client",
+        "b2b_client",
+        "public",
+        "unknown"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "green",
+        "green",
+        "gray",
+        "gray"
+      ],
+      "default": "unknown",
+      "description": "Who the caller was recognised as at entry. Recognition alone never grants account actions."
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "caller_email": {
+      "type": "string"
+    },
+    "caller_record_id": {
+      "type": "string",
+      "description": "Id of the existing profile record the caller was matched to (PendingSignup, Contact)"
+    },
+    "caller_record_source": {
+      "type": "string",
+      "description": "Which entity the caller was matched against"
+    },
+    "assigned_rep_name": {
+      "type": "string",
+      "description": "Growth Advisor on file for a recognised client, when known"
+    },
+    "assigned_rep_email": {
+      "type": "string"
+    },
+    "route": {
+      "type": "string",
+      "enum": [
+        "admin_menu",
+        "active_job_specialist",
+        "active_job_client",
+        "specialist_voice",
+        "client_voice",
+        "public_menu",
+        "sales_ring",
+        "support",
+        "voicemail",
+        "callback",
+        "ashley",
+        "tech_support",
+        "legacy_forward"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "blue",
+        "green",
+        "green",
+        "gray",
+        "yellow",
+        "yellow",
+        "yellow",
+        "yellow",
+        "purple",
+        "red",
+        "gray"
+      ],
+      "description": "Where the call was actually routed"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "answered",
+        "no_answer",
+        "voicemail",
+        "callback_requested",
+        "abandoned",
+        "failed",
+        "completed"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray",
+        "yellow",
+        "yellow",
+        "red",
+        "red",
+        "blue"
+      ],
+      "default": "in_progress"
+    },
+    "stage": {
+      "type": "string",
+      "description": "Last IVR stage reached, for support diagnostics"
+    },
+    "digits": {
+      "type": "string"
+    },
+    "speech_text": {
+      "type": "string",
+      "description": "Last speech recognised from the caller"
+    },
+    "detected_intent": {
+      "type": "string",
+      "description": "Intent the speech was classified as"
+    },
+    "dialed_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every number already rung for this call, so no number is dialed twice across ring stages"
+    },
+    "answered_by": {
+      "type": "string",
+      "description": "Number that answered, when a ring group connected the caller"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_seconds": {
+      "type": "number"
+    },
+    "callback_id": {
+      "type": "string"
+    },
+    "voicemail_id": {
+      "type": "string"
+    },
+    "tech_issue_id": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking created through the standard booking workflow, when Ashley completed one"
+    },
+    "ashley_turns": {
+      "type": "number",
+      "default": 0
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Bounded Ashley conversation transcript (most recent turns kept)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "call_sid",
+    "outcome"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

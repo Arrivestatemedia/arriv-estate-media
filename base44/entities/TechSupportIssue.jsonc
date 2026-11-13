@@ -1,0 +1,141 @@
+{
+  "name": "TechSupportIssue",
+  "type": "object",
+  "properties": {
+    "issue_id": {
+      "type": "string",
+      "description": "Stable issue id (tsi_...)"
+    },
+    "call_sid": {
+      "type": "string"
+    },
+    "voicemail_id": {
+      "type": "string",
+      "description": "Voicemail carrying the caller's description"
+    },
+    "callback_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "technical_support",
+        "booking",
+        "account",
+        "billing",
+        "sales",
+        "general"
+      ],
+      "enumColors": [
+        "red",
+        "blue",
+        "purple",
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "technical_support"
+    },
+    "summary": {
+      "type": "string",
+      "description": "What the caller was trying to accomplish"
+    },
+    "caller_number": {
+      "type": "string"
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "caller_email": {
+      "type": "string"
+    },
+    "client_record_id": {
+      "type": "string"
+    },
+    "receiving_number": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "ticket_pending",
+        "ticket_created",
+        "resolved"
+      ],
+      "enumColors": [
+        "red",
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "open",
+      "description": "'ticket_created' is only ever set after Arriv Assist confirms the ticket. A failed attempt stays 'ticket_pending' with a retry option."
+    },
+    "assist_available": {
+      "type": "boolean",
+      "default": false
+    },
+    "assist_ticket_id": {
+      "type": "string"
+    },
+    "assist_ticket_number": {
+      "type": "string",
+      "description": "Arriv Assist ticket number (AST-####), as returned by Assist"
+    },
+    "assist_error": {
+      "type": "string",
+      "description": "Plain-language reason a ticket could not be created"
+    },
+    "retry_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_retry_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ticket_notified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "issue_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

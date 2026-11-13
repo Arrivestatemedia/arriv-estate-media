@@ -385,12 +385,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // No active job for this caller → redirect to Studio flow
-      console.log('No job match for caller → redirecting to Studio flow');
+      // No active job for this caller → hand off to the Arriv IVR.
+      // Everything above this line (owner/admin dial-out, active-job Media
+      // Specialist and client menus, their press-1 / press-2 behaviour and
+      // destinations) is unchanged.
+      console.log('No job match for caller → handing off to ivrRouter');
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. Please hold while we connect you.</Say>
-  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+  <Redirect>https://arrivestatemedia.base44.app/functions/ivrRouter</Redirect>
 </Response>`);
     }
 

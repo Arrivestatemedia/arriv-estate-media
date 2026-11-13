@@ -225,6 +225,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Email Settings", page: "AdminEmailSettings", icon: Mail },
             { label: "Phone Numbers", page: "AdminPhoneNumbers", icon: Phone },
             { label: "Inbound Calls", page: "InboundCalls", icon: PhoneIncoming },
+            { label: "Call Center", page: "CallCenter", icon: Phone },
             { label: "Unknown Texts", page: "AdminUnknownMessages", icon: MessageSquare },
             { label: "MLS Upload Queue", page: "MlsUploadQueue", icon: ShieldCheck },
             { label: "Property Leads", page: "PropertyLeads", icon: Inbox },

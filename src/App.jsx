@@ -87,6 +87,7 @@ import LaunchReadiness from './pages/LaunchReadiness';
 import PropertyDirectory from './pages/PropertyDirectory';
 import FreePropertyPage from './pages/FreePropertyPage';
 import InboundCalls from './pages/InboundCalls';
+import CallCenter from './pages/CallCenter';
 import AdminUnknownMessages from './pages/AdminUnknownMessages';
 import MlsUploadQueue from './pages/MlsUploadQueue';
 import PreferredWorkspace from './pages/PreferredWorkspace';
@@ -643,6 +644,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="InboundCalls">
             <InboundCalls />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/CallCenter"
+        element={
+          <LayoutWrapper currentPageName="CallCenter">
+            <CallCenter />
           </LayoutWrapper>
         }
       />

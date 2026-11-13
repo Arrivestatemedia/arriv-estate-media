@@ -1,0 +1,169 @@
+{
+  "name": "CallbackRequest",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Stable request id (cbr_...). One record per request, never reused."
+    },
+    "call_sid": {
+      "type": "string",
+      "description": "Call the request came from. Prevents a redelivered webhook creating a second request."
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "Number to call back, in E.164"
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "caller_email": {
+      "type": "string"
+    },
+    "caller_type": {
+      "type": "string",
+      "enum": [
+        "owner_admin",
+        "media_specialist",
+        "client",
+        "b2b_client",
+        "public",
+        "unknown"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "green",
+        "green",
+        "gray",
+        "gray"
+      ],
+      "default": "unknown"
+    },
+    "client_record_id": {
+      "type": "string",
+      "description": "Existing profile record the caller was recognised as"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "technical_support",
+        "booking",
+        "account",
+        "billing",
+        "sales",
+        "general"
+      ],
+      "enumColors": [
+        "red",
+        "blue",
+        "purple",
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "general"
+    },
+    "reason": {
+      "type": "string",
+      "description": "What the caller said they needed, in their own words where captured"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "gray"
+      ],
+      "default": "pending"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "yellow",
+        "red"
+      ],
+      "default": "normal"
+    },
+    "assigned_to_name": {
+      "type": "string",
+      "description": "Customer-facing title of the assigned person (Media Partner for a Growth Advisor)"
+    },
+    "assigned_to_email": {
+      "type": "string"
+    },
+    "assigned_to_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember id when the callback is assigned to a Growth Advisor"
+    },
+    "assignment_rule": {
+      "type": "string",
+      "description": "Rule that assigned this callback (owner, client_owner, round_robin)"
+    },
+    "receiving_number": {
+      "type": "string",
+      "description": "Arriv number the caller dialed"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "handled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "handled_by": {
+      "type": "string"
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the owner was SMS-notified. Set once so the same request never notifies twice."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "request_id",
+    "caller_number",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

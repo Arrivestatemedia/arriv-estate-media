@@ -1,0 +1,146 @@
+{
+  "name": "CallVoicemail",
+  "type": "object",
+  "properties": {
+    "voicemail_id": {
+      "type": "string",
+      "description": "Stable voicemail id (cvm_...)"
+    },
+    "call_sid": {
+      "type": "string",
+      "description": "Call the voicemail was left on. Prevents a redelivered webhook creating a duplicate."
+    },
+    "recording_sid": {
+      "type": "string"
+    },
+    "recording_duration": {
+      "type": "number"
+    },
+    "recording_file_uri": {
+      "type": "string",
+      "description": "Private storage URI of the downloaded recording. Played only through a short-lived signed URL."
+    },
+    "caller_number": {
+      "type": "string"
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "caller_email": {
+      "type": "string"
+    },
+    "caller_type": {
+      "type": "string",
+      "enum": [
+        "owner_admin",
+        "media_specialist",
+        "client",
+        "b2b_client",
+        "public",
+        "unknown"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "green",
+        "green",
+        "gray",
+        "gray"
+      ],
+      "default": "unknown"
+    },
+    "client_record_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "technical_support",
+        "booking",
+        "account",
+        "billing",
+        "sales",
+        "general"
+      ],
+      "enumColors": [
+        "red",
+        "blue",
+        "purple",
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "general"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why the caller asked to leave a message"
+    },
+    "receiving_number": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unreviewed",
+        "reviewed",
+        "resolved"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green"
+      ],
+      "default": "unreviewed"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "tech_issue_id": {
+      "type": "string",
+      "description": "Technical support record created from this voicemail"
+    },
+    "notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the owner was SMS-notified. Set once per voicemail."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "voicemail_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
