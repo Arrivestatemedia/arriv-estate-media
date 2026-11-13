@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { callCenter } from "./callCenterClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const callCenter = (payload) =>
-  base44.functions.invoke("callCenterAdmin", payload).then((r) => r?.data ?? r);
 
 function tone(outcome) {
   if (outcome === "answered" || outcome === "completed") return "bg-[#B8956A]/15 text-[#8a6b41]";
@@ -17,12 +14,20 @@ export default function CallHistoryPanel() {
   const [calls, setCalls] = useState([]);
   const [line, setLine] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     callCenter({ action: "listCalls", line: line === "all" ? undefined : line })
-      .then((d) => setCalls(d?.calls || []))
-      .catch(() => setCalls([]))
+      .then((d) => {
+        if (d?.error) throw new Error(d.error);
+        setCalls(d?.calls || []);
+      })
+      .catch((e) => {
+        setCalls([]);
+        setError(e?.response?.data?.error || e.message || "Could not load calls");
+      })
       .finally(() => setLoading(false));
   }, [line]);
 
@@ -46,6 +51,8 @@ export default function CallHistoryPanel() {
 
       {loading ? (
         <p className="py-10 text-center text-sm text-[#1A1A1A]/50">Loading calls…</p>
+      ) : error ? (
+        <p className="py-10 text-center text-sm text-red-600">{error}</p>
       ) : calls.length === 0 ? (
         <p className="py-10 text-center text-sm text-[#1A1A1A]/50">No calls recorded yet.</p>
       ) : (

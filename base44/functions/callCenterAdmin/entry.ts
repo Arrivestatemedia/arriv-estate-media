@@ -5,10 +5,11 @@
  * support issues and the IVR settings. Every action requires an administrator.
  */
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
 import { secrets } from 'base44:runtime';
 import { attemptAssistTicket } from '../../shared/ivrAssist.ts';
 import { DEFAULT_SETTINGS, loadSettings } from '../../shared/ivr.ts';
+import { verifyAdmin } from '../../shared/adminAuth.ts';
 
 function listOf(result: any): any[] {
   if (Array.isArray(result)) return result;
@@ -17,11 +18,15 @@ function listOf(result: any): any[] {
   return [];
 }
 
-async function requireAdmin(base44: any) {
-  const user = await base44.auth.me();
-  if (!user) return { ok: false, status: 401, error: 'Authentication required' };
-  if (user.role !== 'admin') return { ok: false, status: 403, error: 'Administrator access required' };
-  return { ok: true, user };
+// Platform admins and SalesTeamMember admins are both accepted, exactly like
+// every other admin surface in this app (the app's own login is not a platform
+// session, so a platform-only check hid the whole dashboard from its users).
+async function requireAdmin(base44: any, body: any, url?: URL) {
+  const auth = await verifyAdmin(base44, body, url);
+  if (!auth.authorized) {
+    return { ok: false, status: 403, error: 'Administrator access required' };
+  }
+  return { ok: true, user: { email: auth.actorEmail || 'admin' } };
 }
 
 Deno.serve(async (req) => {
@@ -30,7 +35,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body?.action || '';
 
-    const auth = await requireAdmin(base44);
+    const auth = await requireAdmin(base44, body, new URL(req.url));
     if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status as number });
 
     const E = base44.asServiceRole.entities;

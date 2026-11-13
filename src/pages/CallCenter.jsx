@@ -19,6 +19,16 @@ export default function CallCenter() {
     const fromUrl = new URLSearchParams(window.location.search).get("tab");
     if (fromUrl) setTab(fromUrl);
 
+    // Admins reach this app through its own sales login, so a sales-team admin
+    // is as valid as a platform admin — the same rule the rest of the admin
+    // screens and the navigation use.
+    const read = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+    const salesAdmin = !!read("sales_member_id") && read("sales_member_role") === "admin";
+    if (salesAdmin) {
+      setAllowed(true);
+      return;
+    }
+
     base44.auth
       .me()
       .then((user) => setAllowed(user?.role === "admin"))

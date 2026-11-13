@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { callCenter } from "./callCenterClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2 } from "lucide-react";
-
-const callCenter = (payload) =>
-  base44.functions.invoke("callCenterAdmin", payload).then((r) => r?.data ?? r);
 
 function tone(status) {
   if (status === "ticket_created") return "bg-[#B8956A]/15 text-[#8a6b41]";

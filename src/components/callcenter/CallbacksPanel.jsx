@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { callCenter } from "./callCenterClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const callCenter = (payload) =>
-  base44.functions.invoke("callCenterAdmin", payload).then((r) => r?.data ?? r);
 
 export default function CallbacksPanel() {
   const [items, setItems] = useState([]);

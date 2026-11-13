@@ -2,7 +2,7 @@ import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
-import { say } from '../../shared/ivr.ts';
+import { say, e164, receivingLine, upsertCall } from '../../shared/ivr.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -33,24 +33,27 @@ Deno.serve(async (req) => {
     console.log('Content-Type:', contentType, 'Body:', body.substring(0, 300));
 
     // Parse body — Twilio sends application/x-www-form-urlencoded
-    let to, from, digits;
+    let to, from, digits, callSid;
     try {
       if (body.trim().startsWith('{')) {
         const json = JSON.parse(body);
         to = json.To;
         from = json.From;
         digits = json.Digits;
+        callSid = json.CallSid;
       } else {
         const params = new URLSearchParams(body);
         to = params.get('To');
         from = params.get('From');
         digits = params.get('Digits');
+        callSid = params.get('CallSid');
       }
     } catch (_) {
       const params = new URLSearchParams(body);
       to = params.get('To');
       from = params.get('From');
       digits = params.get('Digits');
+      callSid = params.get('CallSid');
     }
 
     // "menu" flag: set via query string on the Gather action URL (real Twilio flow),
@@ -184,6 +187,17 @@ Deno.serve(async (req) => {
       ].filter(Boolean).map(n => normPhone(n));
 
       if (callerNormAdmin && authorizedNumbers.includes(callerNormAdmin) && defaultCallerId) {
+        // Record the call so the owner's own calls are visible in the Call Center.
+        // This branch always answers with its own TwiML, so it never reaches the
+        // personalised IVR — creating the record here cannot affect that routing.
+        await upsertCall(createClientFromRequest(req), callSid, {
+          from_number: e164(from),
+          to_number: e164(to),
+          receiving_line: receivingLine(to),
+          caller_type: 'owner_admin',
+          route: 'admin_menu',
+        });
+
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
         const adminActionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=admin` : '';
         const adminDialActionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=admin_dial` : '';
@@ -275,6 +289,14 @@ Deno.serve(async (req) => {
           }
 
           if (job) {
+            await upsertCall(base44, callSid, {
+              from_number: e164(from),
+              to_number: e164(to),
+              receiving_line: receivingLine(to),
+              caller_type: 'media_specialist',
+              route: 'active_job_specialist',
+            });
+
             const clientNumber = job.client_phone.startsWith('+')
               ? job.client_phone
               : '+1' + job.client_phone.replace(/\D/g, '');
@@ -347,6 +369,14 @@ Deno.serve(async (req) => {
           }
 
           if (clientJob && clientJob.booked_by_phone) {
+            await upsertCall(base44, callSid, {
+              from_number: e164(from),
+              to_number: e164(to),
+              receiving_line: receivingLine(to),
+              caller_type: 'client',
+              route: 'active_job_client',
+            });
+
             const partnerNumber = clientJob.booked_by_phone.startsWith('+')
               ? clientJob.booked_by_phone
               : '+1' + clientJob.booked_by_phone.replace(/\D/g, '');

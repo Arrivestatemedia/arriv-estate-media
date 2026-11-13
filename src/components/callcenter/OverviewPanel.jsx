@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { callCenter } from "./callCenterClient";
 import StatCard from "./StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const callCenter = (payload) =>
-  base44.functions.invoke("callCenterAdmin", payload).then((r) => r?.data ?? r);
 
 function outcomeTone(outcome) {
   if (outcome === "answered" || outcome === "completed") return "bg-[#B8956A]/15 text-[#8a6b41]";
@@ -16,16 +13,23 @@ function outcomeTone(outcome) {
 export default function OverviewPanel() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     callCenter({ action: "overview" })
-      .then(setData)
-      .catch(() => setData(null))
+      .then((payload) => {
+        if (payload?.error) throw new Error(payload.error);
+        setData(payload);
+      })
+      .catch((e) => setError(e?.response?.data?.error || e.message || "Could not load call activity"))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return <p className="py-10 text-center text-sm text-[#1A1A1A]/50">Loading call activity…</p>;
+  }
+  if (error) {
+    return <p className="py-10 text-center text-sm text-red-600">{error}</p>;
   }
   if (!data?.overview) {
     return <p className="py-10 text-center text-sm text-[#1A1A1A]/50">No call activity yet.</p>;
