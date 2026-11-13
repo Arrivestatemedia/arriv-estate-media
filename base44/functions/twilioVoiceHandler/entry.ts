@@ -2,6 +2,7 @@ import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
+import { IVR_CLIENT_GREETING, resolveMediaPartnerLine } from '../../shared/roleTitles.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -318,9 +319,10 @@ Deno.serve(async (req) => {
       }
 
       // --- Client IVR ---
-      // If the caller is a client with a confirmed media specialist on an active
-      // job, offer to bridge them to their specialist (press 1) or support (2).
-      // Falls through to the support routing below otherwise.
+      // A caller who is one of our clients hears the client greeting. Pressing 1
+      // connects them to their Growth Advisor — the person a customer knows as
+      // their "Media Partner". It never bridges to a contractor Media Partner:
+      // that is the production crew, whom clients know as their Media Specialist.
       const cnorm = (n) => {
         if (!n) return '';
         let d = String(n).replace(/\D/g, '');
@@ -330,66 +332,90 @@ Deno.serve(async (req) => {
       const clientNorm = cnorm(from);
       if (clientNorm && defaultCallerId) {
         try {
-          const today = new Date().toISOString().slice(0, 10);
           const cBooked = await base44.asServiceRole.entities.Job.filter({ status: 'booked' });
           const cInProg = await base44.asServiceRole.entities.Job.filter({ status: 'in_progress' });
-          const cCandidates = [...(cBooked || []), ...(cInProg || [])];
+          const cCompletedRes = await base44.asServiceRole.entities.Job.filter(
+            { status: 'completed' },
+            { sort: '-date', limit: 200 }
+          );
+          const cCompleted = cCompletedRes?.items || (Array.isArray(cCompletedRes) ? cCompletedRes : []);
+          const cCandidates = [...(cInProg || []), ...(cBooked || []), ...cCompleted];
           const clientJobs = cCandidates.filter(
             (j) => j.client_phone && cnorm(j.client_phone) === clientNorm
           );
-          let clientJob = clientJobs.find((j) => j.status === 'in_progress');
-          if (!clientJob) clientJob = clientJobs.find((j) => (j.date || '').slice(0, 10) === today);
-          if (!clientJob) {
-            clientJob = clientJobs
-              .filter((j) => j.status === 'booked' && (j.date || '').slice(0, 10) >= today)
-              .sort((a, b) => (a.date || '').localeCompare(b.date || ''))[0];
-          }
 
-          if (clientJob && clientJob.booked_by_phone) {
-            const partnerNumber = clientJob.booked_by_phone.startsWith('+')
-              ? clientJob.booked_by_phone
-              : '+1' + clientJob.booked_by_phone.replace(/\D/g, '');
+          if (clientJobs.length > 0) {
+            // The designated Growth Advisor / client-relations line, never a contractor.
+            const mediaPartnerPhone = await resolveMediaPartnerLine(base44);
+            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
+            const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=client` : '';
 
-            if (digits === '1') {
-              console.log('Client pressed 1 → bridging to media specialist', partnerNumber, 'for job', clientJob.id);
+            if (menu === 'client' && digits === '1' && mediaPartnerPhone) {
+              console.log('Client pressed 1 → connecting to Growth Advisor line', mediaPartnerPhone);
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+  <Say voice="Polly.Joanna">Please hold while we connect you with your Media Partner.</Say>
   <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
-    <Number>${partnerNumber}</Number>
+    <Number>${mediaPartnerPhone}</Number>
   </Dial>
 </Response>`);
             }
 
-            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
-            const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=1` : '';
-
-            if (menu === '1') {
+            if (menu === 'client') {
               console.log('Client menu → redirecting to Studio flow (digit:', digits, ')');
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
 </Response>`);
-            } else {
-              console.log('Client inbound → presenting IVR menu for job', clientJob.id);
-              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+            }
+
+            console.log('Client inbound → presenting Media Partner greeting');
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. To reach your media specialist, press 1. To reach support, press 2.</Say>
+    <Say voice="Polly.Joanna">${IVR_CLIENT_GREETING}</Say>
   </Gather>
   <Say voice="Polly.Joanna">Connecting you to support.</Say>
 </Response>`);
-            }
           }
         } catch (e) {
           console.error('Client IVR lookup failed:', e.message);
         }
       }
 
-      // No active job for this caller → redirect to Studio flow
-      console.log('No job match for caller → redirecting to Studio flow');
+      // No job on file for this caller → present the client greeting. "Media Partner"
+      // always means the Growth Advisor here, never a contractor.
+      console.log('No job match for caller → presenting Media Partner greeting');
+      const mediaPartnerPhone = await resolveMediaPartnerLine(base44);
+      const fallbackActionUrl = Deno.env.get('BASE44_APP_DOMAIN')
+        ? `${Deno.env.get('BASE44_APP_DOMAIN')}/functions/twilioVoiceHandler?menu=client`
+        : '';
+
+      if (menu === 'client' && digits === '1' && mediaPartnerPhone && defaultCallerId) {
+        console.log('Caller pressed 1 → connecting to Growth Advisor line', mediaPartnerPhone);
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">Please hold while we connect you with your Media Partner.</Say>
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
+    <Number>${mediaPartnerPhone}</Number>
+  </Dial>
+</Response>`);
+      }
+
+      if (menu === 'client') {
+        console.log('No-job caller menu → redirecting to Studio flow (digit:', digits, ')');
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+</Response>`);
+      }
+
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. Please hold while we connect you.</Say>
+  <Gather numDigits="1" action="${fallbackActionUrl}" method="POST" timeout="8" finishOnKey="">
+    <Say voice="Polly.Joanna">${IVR_CLIENT_GREETING}</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">Connecting you to support.</Say>
   <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
 </Response>`);
     }

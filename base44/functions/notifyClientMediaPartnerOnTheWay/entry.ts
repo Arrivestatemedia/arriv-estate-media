@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     try {
       await sendBrevoEmail({
         to: job.client_email,
-        subject: 'Your Media Partner is On The Way!',
+        subject: 'Your Media Specialist is On The Way!',
         textContent: emailBody,
         senderEmail: BOOKINGS_SENDER_EMAIL,
       });
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         recipient_type: 'client',
         recipient_email: job.client_email,
         message_content: emailBody,
-        subject: 'Your Media Partner is On The Way!',
+        subject: 'Your Media Specialist is On The Way!',
         job_id: jobId,
         status: 'success'
       });
