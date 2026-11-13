@@ -98,17 +98,22 @@ function advance(env: EngineEnv, node: IvrNode, key = 'default') {
 function dialTag(
   env: EngineEnv,
   numbers: { number: string; name?: string }[],
-  opts: { timeout?: number; whisper?: string; actionNode?: string; actionMode?: string }
+  opts: { timeout?: number; whisper?: string; actionNode?: string; actionMode?: string; actionIndex?: number }
 ) {
-  const whisperText = opts.whisper ? encodeURIComponent(opts.whisper) : '';
-  const whisperUrl = whisperText
-    ? url('/functions/ivrEngine', { mode: 'whisper', text: whisperText, voice: env.voiceKey })
+  const spoken = opts.whisper
+    ? String(opts.whisper)
+        .replace(/\{caller\}/gi, env.ctx?.caller_name || env.ctx?.caller_number || 'a caller')
+        .replace(/\{number\}/gi, env.ctx?.caller_number || '')
+    : '';
+  const whisperUrl = spoken
+    ? url('/functions/ivrEngine', { mode: 'whisper', text: spoken, voice: env.voiceKey })
     : '';
   const action = url('/functions/ivrEngine', {
     flow: env.flowKey,
     node: opts.actionNode || '',
     v: env.version,
     mode: opts.actionMode || 'dial_result',
+    rg: opts.actionIndex === undefined ? undefined : opts.actionIndex,
   });
   const inner = numbers
     .map(
@@ -170,7 +175,7 @@ export async function handleIvrRequest(req: Request, base44: any, secretsRef: an
 
     /* ---- private announcement, played to the answering person only ---- */
     if (mode === 'whisper') {
-      const text = decodeURIComponent(query.get('text') || '');
+      const text = query.get('text') || '';
       if (!text) return xmlResponse('');
       const voices = listOf(await E.IvrVoiceProfile.filter({}, { limit: 100 }).catch(() => []));
       const voice = voices.find((v: any) => v.voice_key === query.get('voice')) || voices[0] || null;
@@ -389,6 +394,39 @@ export async function handleIvrRequest(req: Request, base44: any, secretsRef: an
 
     const cfg = node.config || {};
     const next = node.next || {};
+    const targetFor = (key: string) => next?.[key] || cfg[`${key}_target`] || '';
+
+    /* ---- a Dial that has just finished: never ring the same number again ---- */
+    if (mode === 'dial_result') {
+      const status = String(params.DialCallStatus || '').toLowerCase();
+      await logCallEvent(base44, record, 'dial_result', `${node.id}: ${status || 'unknown'}`);
+      if (!status || status === 'completed' || status === 'answered') {
+        return xmlResponse('<Hangup/>');
+      }
+      const key = status === 'busy' ? 'busy' : status === 'failed' || status === 'canceled' ? 'failed' : 'no_answer';
+      const target = targetFor(key) || targetFor('no_answer');
+      return xmlResponse(target ? redirect(nodeUrl(env, target, { failed: node.id })) : '<Hangup/>');
+    }
+
+    /* ---- sequential ring group: next member, or the no-answer path ---- */
+    if (mode === 'rg_next') {
+      const members = (Array.isArray(cfg.members) ? cfg.members : []).filter((m: any) => m?.number);
+      const index = Number(query.get('rg') || 0) + 1;
+      if (index < members.length) {
+        return xmlResponse(
+          dialTag(env, [members[index]], {
+            timeout: Number(cfg.ring_seconds || 18),
+            whisper:
+              cfg.whisper_text || `Incoming Arriv call from ${ctx.caller_name || ctx.caller_number}.`,
+            actionNode: node.id,
+            actionMode: 'rg_next',
+            actionIndex: index,
+          })
+        );
+      }
+      const target = targetFor('no_answer');
+      return xmlResponse(target ? redirect(nodeUrl(env, target, { failed: node.id })) : '<Hangup/>');
+    }
 
     switch (node.type) {
       case 'incoming_call':

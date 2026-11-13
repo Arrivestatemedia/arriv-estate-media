@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PhoneCall } from "lucide-react";
+import { PhoneCall, LayoutPanelLeft } from "lucide-react";
 import OverviewPanel from "@/components/callcenter/OverviewPanel";
 import CallHistoryPanel from "@/components/callcenter/CallHistoryPanel";
 import VoicemailsPanel from "@/components/callcenter/VoicemailsPanel";
 import CallbacksPanel from "@/components/callcenter/CallbacksPanel";
 import SupportIssuesPanel from "@/components/callcenter/SupportIssuesPanel";
 import IvrSettingsPanel from "@/components/callcenter/IvrSettingsPanel";
+import IvrStudio from "@/components/callcenter/ivrstudio/IvrStudio";
 
 export default function CallCenter() {
   const [tab, setTab] = useState("overview");
@@ -47,7 +48,7 @@ export default function CallCenter() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
+    <div className={`mx-auto px-4 py-6 ${tab === "studio" ? "max-w-6xl" : "max-w-4xl"}`}>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl text-[#1A1A1A]">Call Center</h1>
@@ -68,7 +69,11 @@ export default function CallCenter() {
           <TabsTrigger value="voicemails">Voicemails</TabsTrigger>
           <TabsTrigger value="callbacks">Callbacks</TabsTrigger>
           <TabsTrigger value="support">Technical support</TabsTrigger>
-          <TabsTrigger value="settings">IVR settings</TabsTrigger>
+          <TabsTrigger value="studio" className="gap-1">
+            <LayoutPanelLeft className="h-3.5 w-3.5" />
+            IVR Studio
+          </TabsTrigger>
+          <TabsTrigger value="settings">Quick IVR settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -85,6 +90,9 @@ export default function CallCenter() {
         </TabsContent>
         <TabsContent value="support">
           <SupportIssuesPanel />
+        </TabsContent>
+        <TabsContent value="studio">
+          <IvrStudio />
         </TabsContent>
         <TabsContent value="settings">
           <IvrSettingsPanel />

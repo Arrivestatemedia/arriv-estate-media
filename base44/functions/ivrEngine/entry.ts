@@ -6,7 +6,6 @@
  * no Base44 deployment. Numbers with no published flow keep using the existing
  * production routing, which this function redirects to unchanged.
  *
- * Retry note: deployment retried after a bundler transport error.
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
