@@ -19,7 +19,13 @@ Deno.serve(async (req) => {
     if (properties.jobtitle !== undefined) localData.job_title = properties.jobtitle;
     if (properties.hs_lead_status !== undefined) localData.lead_status = properties.hs_lead_status;
     if (properties.lifecyclestage !== undefined) localData.lifecycle_stage = properties.lifecyclestage;
-    if (salesMemberId) localData.owner_id = salesMemberId;
+    // A contact belongs to the rep who created/saved it. Both fields are set so
+    // whichever one a screen reads (sales_member_id for RLS/ownership, owner_id
+    // for the owner label) resolves to the same person instead of "Unassigned".
+    if (salesMemberId) {
+      localData.owner_id = salesMemberId;
+      localData.sales_member_id = salesMemberId;
+    }
 
     let result;
 

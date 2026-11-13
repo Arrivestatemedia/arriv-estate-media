@@ -287,7 +287,7 @@ export default function Customer360({ contact, contactKey, activities, onReload,
                 </div>
                 {contact?.id && (isAdmin || repReassignmentEnabled) && (
                   <div className="mt-3">
-                    <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
+                    <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} ownerId={contact.owner_id} />
                   </div>
                 )}
               </div>

@@ -125,6 +125,7 @@ export default function ContactDetailPage() {
         phone,
         id: contactEntity.id,
         sales_member_id: contactEntity.sales_member_id,
+        owner_id: contactEntity.owner_id,
         lead_status: contactEntity.lead_status,
         lifecycle_stage: contactEntity.lifecycle_stage,
       });
@@ -143,6 +144,7 @@ export default function ContactDetailPage() {
         phone,
         id: contactEntity?.id,
         sales_member_id: contactEntity?.sales_member_id,
+        owner_id: contactEntity?.owner_id,
       });
       setLoading(false);
 
@@ -507,7 +509,7 @@ export default function ContactDetailPage() {
               </p>
               {contact?.id && (isAdmin || repReassignmentEnabled) && (
                 <div className="mt-3">
-                  <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
+                  <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} ownerId={contact.owner_id} />
                 </div>
               )}
             </div>

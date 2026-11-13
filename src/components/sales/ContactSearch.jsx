@@ -143,16 +143,17 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [ownerNameMap, setOwnerNameMap] = useState({});
 
   // Build a tenant-scoped SalesTeamMember ID → full_name map for owner display.
-  // Only Estate Media local SalesTeamMember records are queried — no cross-tenant
-  // sales reps can appear. This consumes the existing sales_member_id/owner_id
-  // relationship; it does not create a competing ownership authority.
+  // Read through the listSalesReps function because a rep's own session is not
+  // allowed to list every SalesTeamMember row — a direct list returns only their
+  // own record (or nothing), which used to render every contact as "Unassigned".
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const members = await base44.entities.SalesTeamMember.list('-created_date', 500);
+        const res = await base44.functions.invoke("listSalesReps", {});
+        const data = res?.data || res;
         const map = {};
-        (members || []).forEach(m => {
+        (data?.reps || []).forEach(m => {
           if (m.id) map[m.id] = m.full_name || m.email || '';
         });
         if (!cancelled) setOwnerNameMap(map);

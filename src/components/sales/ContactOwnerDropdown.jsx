@@ -12,8 +12,10 @@ import { toast } from "sonner";
  * Props:
  *   contactId      — Contact entity ID (required to update)
  *   salesMemberId  — current sales_member_id on the contact
+ *   ownerId        — current owner_id on the contact (contacts saved by the
+ *                    sales system may carry only this field)
  */
-export default function ContactOwnerDropdown({ contactId, salesMemberId }) {
+export default function ContactOwnerDropdown({ contactId, salesMemberId, ownerId }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -39,13 +41,13 @@ export default function ContactOwnerDropdown({ contactId, salesMemberId }) {
 
   if (!contactId) return null;
 
-  const currentName = salesMemberId ? (repById[salesMemberId]?.full_name || "Unknown") : "Unassigned";
+  const currentOwnerId = salesMemberId || ownerId || "";
 
   const handleChange = async (newRepId) => {
-    if (newRepId === salesMemberId) return;
+    if (newRepId === currentOwnerId) return;
     setSaving(true);
     try {
-      await base44.entities.Contact.update(contactId, { sales_member_id: newRepId });
+      await base44.entities.Contact.update(contactId, { sales_member_id: newRepId, owner_id: newRepId });
       toast.success(`Contact reassigned to ${repById[newRepId]?.full_name || 'new owner'}`);
       queryClient.invalidateQueries({ queryKey: ['salesTeamMembers'] });
       queryClient.invalidateQueries();
@@ -62,7 +64,7 @@ export default function ContactOwnerDropdown({ contactId, salesMemberId }) {
       <UserCog className="w-4 h-4 shrink-0" style={{ color: '#B8956A' }} />
       <span className="text-xs whitespace-nowrap" style={{ color: 'rgba(26,26,26,0.5)' }}>Owner:</span>
       <Select
-        value={salesMemberId || "unassigned"}
+        value={currentOwnerId || "unassigned"}
         onValueChange={handleChange}
         disabled={saving}
       >

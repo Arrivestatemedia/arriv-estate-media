@@ -68,6 +68,7 @@ export default function FieldProspectingPage() {
         lastname: prospect.public_agent_name?.split(' ').slice(1).join(' ') || "",
         company: prospect.brokerage || "",
         sales_member_id: member.id,
+        owner_id: member.id,
         lead_status: "NEW",
         lifecycle_stage: "lead",
       });
