@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
   <p style="text-align: center; margin: 30px 0;">
     <a href="${link}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Complete My Signup</a>
   </p>
-  <p style="font-size: 13px; color: #666;">This link is tied to your sales representative so your booking is credited correctly. You can add more services, but to remove anything please contact your rep.</p>
+  <p style="font-size: 13px; color: #666;">This link is tied to your Media Partner so your booking is credited correctly. You can add more services, but to remove anything please contact your Media Partner.</p>
   <p>Best regards,<br><strong>Arriv Estate Media</strong><br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 

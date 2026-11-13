@@ -162,7 +162,7 @@ export default function ClientSignup() {
           {invite && (
             <div className="mb-4 rounded-lg border-2 border-[#B8956A]/40 bg-[#B8956A]/10 p-4 space-y-2">
               <p className="text-sm font-semibold text-[#B8956A]">
-                {invite.sales_member_name ? `${invite.sales_member_name} prepared a package for you` : 'Your sales rep prepared a package for you'}
+                {invite.sales_member_name ? `${invite.sales_member_name} prepared a package for you` : 'Your Media Partner prepared a package for you'}
               </p>
               <div className="text-sm text-[#1A1A1A]/80 space-y-1">
                 <p><span className="font-medium">Package:</span> {invite.package_name || invite.package}</p>
@@ -222,7 +222,7 @@ export default function ClientSignup() {
               </label>
               {invite ? (
                 <div className="flex items-center gap-2 rounded-md border border-[#B8956A]/30 bg-[#B8956A]/5 px-3 py-2.5 text-sm text-[#1A1A1A]/70">
-                  <span className="flex-1">{invite.sales_member_name || 'Your sales rep'}</span>
+                  <span className="flex-1">{invite.sales_member_name || 'Your Media Partner'}</span>
                   <Lock className="w-4 h-4 text-[#B8956A]" />
                 </div>
               ) : (
@@ -231,7 +231,7 @@ export default function ClientSignup() {
                   onValueChange={(v) => setFormData({ ...formData, sales_member_id: v === '__none__' ? '' : v })}
                 >
                   <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
-                    <SelectValue placeholder="Select your sales rep (optional)" />
+                    <SelectValue placeholder="Select your Media Partner (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">No one / I found you myself</SelectItem>
@@ -241,7 +241,7 @@ export default function ClientSignup() {
                   </SelectContent>
                 </Select>
               )}
-              <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your sales rep's commission.</p>
+              <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your Media Partner's commission.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#1A1A1A] mb-2">

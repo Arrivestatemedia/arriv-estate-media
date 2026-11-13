@@ -157,11 +157,11 @@ function AccountHoldScreen({ org, entitlement }) {
         </div>
         <h2 className="text-2xl font-serif text-[#1A1A1A] mb-2">Account On Hold</h2>
         <p className="text-[#1A1A1A]/60 mb-6">
-          Your account is currently on hold. Please contact your sales representative for assistance.
+          Your account is currently on hold. Please contact your Media Partner for assistance.
         </p>
         {org?.assigned_sales_rep_email && (
           <div className="bg-white rounded-xl border border-[#B8956A]/20 p-4 text-left">
-            <p className="text-sm text-[#1A1A1A]/50">Sales Representative</p>
+            <p className="text-sm text-[#1A1A1A]/50">Media Partner</p>
             <p className="font-medium text-[#1A1A1A]">{org.assigned_sales_rep_email}</p>
           </div>
         )}

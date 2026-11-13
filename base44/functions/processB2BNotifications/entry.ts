@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
         try {
           // Send email via Brevo
           const subject = `Renewal Coming Up — ${org.display_name || org.legal_name} (${daysUntil} days)`;
-          const body = `Your contract renewal is coming up in ${daysUntil} days. Please contact your sales representative to discuss renewal options.`;
+          const body = `Your contract renewal is coming up in ${daysUntil} days. Please contact your Media Partner to discuss renewal options.`;
 
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: org.billing_contact_email || org.primary_admin_email,

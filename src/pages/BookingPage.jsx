@@ -146,7 +146,7 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked
 
               {isLocked ? (
                 <div className="w-full mt-4 flex items-center justify-center gap-2 py-2 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/40 text-[#B8956A] text-sm font-medium">
-                  <Lock className="w-4 h-4" /> Selected by your sales rep
+                  <Lock className="w-4 h-4" /> Selected by your Media Partner
                 </div>
               ) : (
                 <Button
@@ -577,10 +577,10 @@ export default function BookingPage() {
         {lockedInvite && (
           <div className="mb-6 rounded-lg border-2 border-[#B8956A]/40 bg-[#B8956A]/10 p-4">
             <p className="text-sm font-semibold text-[#B8956A]">
-              {lockedInvite.sales_member_name ? `${lockedInvite.sales_member_name} selected your package.` : 'Your sales rep selected your package.'}
+              {lockedInvite.sales_member_name ? `${lockedInvite.sales_member_name} selected your package.` : 'Your Media Partner selected your package.'}
             </p>
             <p className="text-xs text-[#1A1A1A]/70 mt-1">
-              You can add more services below, but to remove anything please contact your sales rep.
+              You can add more services below, but to remove anything please contact your Media Partner.
             </p>
           </div>
         )}

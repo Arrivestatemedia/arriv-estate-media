@@ -73,7 +73,7 @@ export default function B2BBookingAdapter({ userEmail, organizationId, packageNa
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
         <AlertCircle className="w-5 h-5 text-red-600" />
-        <p className="text-sm text-red-700">Your account is on hold. Please contact your sales representative.</p>
+        <p className="text-sm text-red-700">Your account is on hold. Please contact your Media Partner.</p>
       </div>
     );
   }

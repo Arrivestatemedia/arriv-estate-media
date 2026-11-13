@@ -393,7 +393,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                 </label>
                 {lockedSalesRepId ? (
                   <div className="flex items-center gap-2 rounded-md border border-[#B8956A]/30 bg-[#B8956A]/5 px-3 py-2.5 text-sm text-[#1A1A1A]/70">
-                    <span className="flex-1">{lockedSalesRepName || 'Your sales rep'}</span>
+                    <span className="flex-1">{lockedSalesRepName || 'Your Media Partner'}</span>
                     <Lock className="w-4 h-4 text-[#B8956A]" />
                   </div>
                 ) : (
@@ -402,7 +402,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                     onValueChange={(v) => setFormData({ ...formData, sales_member_id: v === '__none__' ? '' : v })}
                   >
                     <SelectTrigger className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}>
-                      <SelectValue placeholder="Select your sales rep (optional)" />
+                      <SelectValue placeholder="Select your Media Partner (optional)" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">No one / I found you myself</SelectItem>
@@ -412,7 +412,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                     </SelectContent>
                   </Select>
                 )}
-                <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your sales rep's commission.</p>
+                <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your Media Partner's commission.</p>
               </div>
 
               <div className="space-y-4">

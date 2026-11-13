@@ -191,7 +191,7 @@ export async function resolveB2BEntitlement(client: any, params: {
       account_hold: true,
       hold_reason: holdCheck.reason,
       can_book: false,
-      reason_if_cannot_book: 'ACCOUNT_ON_HOLD: Your account is currently on hold. Please contact your sales representative for assistance.',
+      reason_if_cannot_book: 'ACCOUNT_ON_HOLD: Your account is currently on hold. Please contact your Media Partner for assistance.',
       locked_config_versions: lockedSnapshots ? {
         plan: lockedSnapshots.plan.version,
         media_credit: lockedSnapshots.media_credit.version,

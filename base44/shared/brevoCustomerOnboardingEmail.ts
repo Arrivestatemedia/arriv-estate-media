@@ -47,7 +47,7 @@ export function buildCustomerOnboardingHtml(firstName, customerEmail, loginUrl, 
             </td></tr>
           </table>
 
-          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(26,26,26,0.6);">If you have questions, reply to this email or contact your Arriv Estate Media sales representative.</p>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(26,26,26,0.6);">If you have questions, reply to this email or contact your Media Partner.</p>
         </td></tr>
         <tr><td style="padding:0 44px 36px;">
           <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best regards,</p>

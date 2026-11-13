@@ -91,11 +91,11 @@ export function buildB2BNotification(
     },
     past_due: {
       subject: `Account Past Due — ${orgName}`,
-      body: `Your account is past due. Please contact your sales representative to resolve this issue.`,
+      body: `Your account is past due. Please contact your Media Partner to resolve this issue.`,
     },
     account_hold: {
       subject: `Account On Hold — ${orgName}`,
-      body: `Your account is currently on hold. Please contact your sales representative for assistance.`,
+      body: `Your account is currently on hold. Please contact your Media Partner for assistance.`,
     },
     account_restored: {
       subject: `Account Restored — ${orgName}`,
@@ -131,23 +131,23 @@ export function buildB2BNotification(
     },
     large_property_commercial_requirement: {
       subject: `Commercial Review Required — Large Property`,
-      body: `A property over 25,000 sqft requires a custom commercial quote. Please contact your sales representative.`,
+      body: `A property over 25,000 sqft requires a custom commercial quote. Please contact your Media Partner.`,
     },
     renewal_120_days: {
       subject: `Renewal Coming Up — ${orgName} (120 days)`,
-      body: `Your contract renewal is coming up in 120 days. Please contact your sales representative to discuss renewal options.`,
+      body: `Your contract renewal is coming up in 120 days. Please contact your Media Partner to discuss renewal options.`,
     },
     renewal_90_days: {
       subject: `Renewal Coming Up — ${orgName} (90 days)`,
-      body: `Your contract renewal is coming up in 90 days. Please contact your sales representative to discuss renewal options.`,
+      body: `Your contract renewal is coming up in 90 days. Please contact your Media Partner to discuss renewal options.`,
     },
     renewal_60_days: {
       subject: `Renewal Coming Up — ${orgName} (60 days)`,
-      body: `Your contract renewal is coming up in 60 days. Please contact your sales representative to discuss renewal options.`,
+      body: `Your contract renewal is coming up in 60 days. Please contact your Media Partner to discuss renewal options.`,
     },
     renewal_30_days: {
       subject: `Renewal Coming Up — ${orgName} (30 days)`,
-      body: `Your contract renewal is coming up in 30 days. Please contact your sales representative to discuss renewal options.`,
+      body: `Your contract renewal is coming up in 30 days. Please contact your Media Partner to discuss renewal options.`,
     },
     expansion_completion: {
       subject: `Expansion Complete — ${orgName}`,
