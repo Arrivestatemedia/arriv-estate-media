@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,12 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
   const [creatingNew, setCreatingNew] = useState(false);
   const [createdSuccess, setCreatedSuccess] = useState(false);
+  const [logNewActivity, setLogNewActivity] = useState(false);
+  const [newActivity, setNewActivity] = useState({
+    activity_type: "call",
+    activity_date: new Date().toISOString().slice(0, 16),
+    notes: "",
+  });
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [activities, setActivities] = useState({});
@@ -413,8 +420,33 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         });
       }
 
+      // Optionally log the first activity against the new contact
+      if (logNewActivity) {
+        const contactName = [propertiesToSend.firstname, propertiesToSend.lastname].filter(Boolean).join(' ');
+        await base44.functions.invoke("manageSalesActivity", {
+          action: "create",
+          sales_member_id: salesMemberId,
+          data: {
+            activity_type: newActivity.activity_type,
+            contact_name: contactName,
+            contact_email: propertiesToSend.email || '',
+            contact_phone: propertiesToSend.phone || '',
+            company_name: propertiesToSend.company || '',
+            activity_date: new Date(newActivity.activity_date).toISOString(),
+            notes: newActivity.notes.trim(),
+            sales_member_email: localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email") || '',
+          },
+        });
+      }
+
       setCreatedSuccess(true);
       setNewContact(NEW_CONTACT_DEFAULTS);
+      setLogNewActivity(false);
+      setNewActivity({
+        activity_type: "call",
+        activity_date: new Date().toISOString().slice(0, 16),
+        notes: "",
+      });
       setTimeout(() => {
         setCreatedSuccess(false);
         setShowNewForm(false);
@@ -598,6 +630,58 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                 </div>
               </div>
             )}
+
+            {/* Optional activity saved with the new contact */}
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide cursor-pointer" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                <input
+                  type="checkbox"
+                  checked={logNewActivity}
+                  onChange={(e) => setLogNewActivity(e.target.checked)}
+                  className="h-4 w-4 rounded"
+                  style={{ accentColor: '#B8956A' }}
+                />
+                Log an activity for this contact
+              </label>
+              {logNewActivity && (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Activity Type</label>
+                      <Select
+                        value={newActivity.activity_type}
+                        onValueChange={(value) => setNewActivity(prev => ({ ...prev, activity_type: value }))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="call">Call</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                          <SelectItem value="note">Note</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Date &amp; Time</label>
+                      <Input
+                        type="datetime-local"
+                        value={newActivity.activity_date}
+                        onChange={(e) => setNewActivity(prev => ({ ...prev, activity_date: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Activity Notes</label>
+                    <Textarea
+                      rows={2}
+                      placeholder="What happened on this call, email, or meeting?"
+                      value={newActivity.notes}
+                      onChange={(e) => setNewActivity(prev => ({ ...prev, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Matched HubSpot contact info */}
             {inlineContactInfo && (
