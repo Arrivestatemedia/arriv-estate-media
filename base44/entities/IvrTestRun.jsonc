@@ -1,0 +1,91 @@
+{
+  "name": "IvrTestRun",
+  "type": "object",
+  "properties": {
+    "flow_key": {
+      "type": "string"
+    },
+    "flow_version": {
+      "type": "integer"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "simulation",
+        "rule_test",
+        "diagnostics"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "default": "simulation"
+    },
+    "caller_number": {
+      "type": "string"
+    },
+    "dialed_number": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Keypad or speech inputs supplied to the simulation"
+    },
+    "trace": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Every node traversed, in order, with what happened at each step"
+    },
+    "matched_rule": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "flow_key",
+    "mode"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

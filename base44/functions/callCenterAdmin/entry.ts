@@ -3,6 +3,7 @@
  *
  * Reads and updates call records, voicemails, callback requests, technical
  * support issues and the IVR settings. Every action requires an administrator.
+ * (Studio actions that manage flows live in ivrStudio.)
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';

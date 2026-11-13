@@ -1,0 +1,58 @@
+{
+  "name": "IvrAuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "What happened (publish, rollback, save_rule, emergency_activate, number_switch, ...)"
+    },
+    "actor_email": {
+      "type": "string"
+    },
+    "target_type": {
+      "type": "string"
+    },
+    "target_key": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "before": {
+      "type": "object"
+    },
+    "after": {
+      "type": "object"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "action",
+    "at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "name": "IvrCallerRule",
+  "type": "object",
+  "properties": {
+    "rule_key": {
+      "type": "string",
+      "description": "Stable rule key (rule_...)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "integer",
+      "default": 100,
+      "description": "Lower numbers are evaluated first when several rules match"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "match": {
+      "type": "string",
+      "enum": [
+        "all",
+        "any"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "all",
+      "description": "Whether every condition or any single condition must match"
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Conditions evaluated against the live call",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "description": "Actions executed in order when the rule matches",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "voice_profile_key": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bypass_ivr": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip the standard menu and go straight to this rule's destination"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "match_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_match_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_tested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_by": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "rule_key",
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

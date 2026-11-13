@@ -1,0 +1,88 @@
+{
+  "name": "IvrAudioAsset",
+  "type": "object",
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "description": "Stable asset key (aud_...)"
+    },
+    "label": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "tts",
+        "recording",
+        "hold_music"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "purple"
+      ],
+      "default": "tts",
+      "description": "'tts' is spoken live from text with the chosen voice. 'recording' and 'hold_music' play an uploaded audio file."
+    },
+    "text": {
+      "type": "string",
+      "description": "Spoken text for text-to-speech assets"
+    },
+    "voice_profile_key": {
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "Publicly reachable audio URL Twilio can fetch for uploaded recordings and hold music"
+    },
+    "duration_seconds": {
+      "type": "number"
+    },
+    "consent_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Recordings of real people require the speaker's consent before they are played to callers"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "usage_notes": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "asset_key",
+    "label",
+    "kind"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

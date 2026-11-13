@@ -1,0 +1,98 @@
+{
+  "name": "IvrSchedule",
+  "type": "object",
+  "properties": {
+    "schedule_key": {
+      "type": "string",
+      "description": "Stable schedule key (sch_...)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
+    "weekly": {
+      "type": "array",
+      "description": "Opening hours per weekday (0 = Sunday)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "integer"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "open": {
+            "type": "string"
+          },
+          "close": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "holidays": {
+      "type": "array",
+      "description": "Holiday exceptions (YYYY-MM-DD)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "open": {
+            "type": "string"
+          },
+          "close": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "after_hours_flow_key": {
+      "type": "string",
+      "description": "Flow entered when this schedule is closed"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schedule_key",
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

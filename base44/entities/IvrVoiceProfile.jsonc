@@ -1,0 +1,112 @@
+{
+  "name": "IvrVoiceProfile",
+  "type": "object",
+  "properties": {
+    "voice_key": {
+      "type": "string",
+      "description": "Stable voice key (vox_...) referenced by flows, menus and numbers"
+    },
+    "name": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "polly",
+        "google",
+        "twilio",
+        "elevenlabs"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray",
+        "green"
+      ],
+      "default": "polly"
+    },
+    "voice_id": {
+      "type": "string",
+      "description": "Twilio voice identifier, e.g. Polly.Joanna or Google.en-US-Neural2-F"
+    },
+    "language": {
+      "type": "string",
+      "default": "en-US"
+    },
+    "speech_rate": {
+      "type": "string",
+      "description": "Optional rate percentage (?rate=95%)"
+    },
+    "pitch": {
+      "type": "string"
+    },
+    "pronunciation": {
+      "type": "array",
+      "description": "Word replacements applied to every prompt spoken with this voice",
+      "items": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          },
+          "replacement": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fallback_voice_id": {
+      "type": "string",
+      "description": "Voice used when the primary provider is unavailable"
+    },
+    "additional_cost_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Extra provider cost per minute, shown to the administrator before activation"
+    },
+    "cost_note": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "voice_key",
+    "name",
+    "voice_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

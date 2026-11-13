@@ -1,0 +1,97 @@
+{
+  "name": "IvrEmergencyState",
+  "type": "object",
+  "properties": {
+    "settings_key": {
+      "type": "string",
+      "default": "default",
+      "description": "Singleton key \u2014 one emergency state drives the whole phone system"
+    },
+    "active": {
+      "type": "boolean",
+      "default": false
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "transfer_all",
+        "greeting_only",
+        "voicemail_only",
+        "disable_ai",
+        "close_department"
+      ],
+      "enumColors": [
+        "red",
+        "yellow",
+        "purple",
+        "blue",
+        "gray"
+      ],
+      "description": "What the override does to new calls"
+    },
+    "target_number": {
+      "type": "string",
+      "description": "Number every call is sent to in transfer_all mode"
+    },
+    "greeting_text": {
+      "type": "string"
+    },
+    "greeting_voice_profile_key": {
+      "type": "string"
+    },
+    "scope_phone_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Numbers the override applies to. Empty means every number."
+    },
+    "department": {
+      "type": "string",
+      "description": "Department temporarily closed in close_department mode"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "activated_by": {
+      "type": "string"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "restored_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "previous_state": {
+      "type": "object",
+      "description": "Snapshot of the routing state before the override, so it can be restored exactly"
+    }
+  },
+  "required": [
+    "settings_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

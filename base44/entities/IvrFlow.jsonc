@@ -1,0 +1,118 @@
+{
+  "name": "IvrFlow",
+  "type": "object",
+  "properties": {
+    "flow_key": {
+      "type": "string",
+      "description": "Stable flow key (flow_...). Never reused; phone numbers bind to this key."
+    },
+    "name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "draft",
+      "description": "Only published flows can serve live calls. Saving a draft never changes live behavior."
+    },
+    "start_node_id": {
+      "type": "string",
+      "description": "Node a new call enters first"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Flow nodes. Each node carries its position, configuration and outgoing targets.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "config": {
+            "type": "object"
+          },
+          "next": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "version": {
+      "type": "integer",
+      "default": 0,
+      "description": "Published version number. Increments on every publish."
+    },
+    "phone_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Numbers bound to this flow. Binding is bidirectional with IvrNumberConfig."
+    },
+    "notes": {
+      "type": "string"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_by": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "flow_key",
+    "name",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

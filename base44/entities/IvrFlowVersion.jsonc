@@ -1,0 +1,64 @@
+{
+  "name": "IvrFlowVersion",
+  "type": "object",
+  "properties": {
+    "flow_key": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "description": "Published version number this snapshot belongs to"
+    },
+    "start_node_id": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Exact node set in force for this version. Active calls keep using the version they started on."
+    },
+    "note": {
+      "type": "string"
+    },
+    "published_by": {
+      "type": "string",
+      "description": "Administrator who published this version"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "restored_from": {
+      "type": "integer",
+      "description": "Version number this publish restored, when it came from a rollback"
+    }
+  },
+  "required": [
+    "flow_key",
+    "version"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
