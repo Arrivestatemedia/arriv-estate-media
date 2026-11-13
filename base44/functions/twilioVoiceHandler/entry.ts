@@ -2,6 +2,7 @@ import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
+import { say } from '../../shared/ivr.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
     console.log('to:', to, 'from:', from, 'digits:', digits, 'menu:', menu);
 
     if (!to) {
-      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response>${say('No destination provided.')}</Response>`);
     }
 
     const defaultCallerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
         if (!target) {
           return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>Extension ${extension} not found.</Say>
+  ${say(`Extension ${extension} not found.`)}
 </Response>`);
         }
 
@@ -203,7 +204,7 @@ Deno.serve(async (req) => {
           console.log('Admin dial-out invalid digits:', digits);
           return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Invalid number entered. Goodbye.</Say>
+  ${say('Invalid number entered. Goodbye.')}
 </Response>`);
         }
 
@@ -214,9 +215,9 @@ Deno.serve(async (req) => {
             return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="10" action="${adminDialActionUrl}" method="POST" timeout="20" finishOnKey="#">
-    <Say voice="Polly.Joanna">Enter the 10 digit number you want to reach, followed by the pound key.</Say>
+    ${say('Enter the 10 digit number you want to reach, followed by the pound key.')}
   </Gather>
-  <Say voice="Polly.Joanna">No number entered. Goodbye.</Say>
+  ${say('No number entered. Goodbye.')}
 </Response>`);
           }
           if (digits === '2') {
@@ -233,9 +234,9 @@ Deno.serve(async (req) => {
         return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${adminActionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Welcome. To dial out from the company number, press 1. To reach support, press 2.</Say>
+    ${say('Welcome. To dial out from the company number, press 1. To reach support, press 2.')}
   </Gather>
-  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+  ${say('Connecting you to support.')}
 </Response>`);
       }
 
@@ -306,9 +307,9 @@ Deno.serve(async (req) => {
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. To reach your client, press 1. To reach support, press 2.</Say>
+    ${say('Thank you for calling Arrive Estate Media. To reach your client, press 1. To reach support, press 2.')}
   </Gather>
-  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+  ${say('Connecting you to support.')}
 </Response>`);
             }
           }
@@ -374,9 +375,9 @@ Deno.serve(async (req) => {
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. To reach your media specialist, press 1. To reach support, press 2.</Say>
+    ${say('Thank you for calling Arrive Estate Media. To reach your media specialist, press 1. To reach support, press 2.')}
   </Gather>
-  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+  ${say('Connecting you to support.')}
 </Response>`);
             }
           }
@@ -398,6 +399,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('FATAL:', error.message, error.stack);
-    return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>A system error occurred.</Say></Response>`);
+    return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response>${say('A system error occurred.')}</Response>`);
   }
 });

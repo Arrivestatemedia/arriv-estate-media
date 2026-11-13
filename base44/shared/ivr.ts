@@ -6,6 +6,8 @@
  * lives in twilioVoiceHandler.
  */
 
+import { ivrVoiceReady, ivrVoiceUrl } from './ivrVoice.ts';
+
 export const APP_BASE = 'https://arrivestatemedia.base44.app';
 export const LINE_855 = '+18557654306';
 export const LINE_706 = '+17069128967';
