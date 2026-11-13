@@ -2,10 +2,6 @@ import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
-import { loadCallCenterSettings } from '../../shared/callCenterSettings.ts';
-import { recognizeCaller } from '../../shared/callerRecognition.ts';
-import { handleCallCenterMenu, routeUnmatchedCaller, finalizeVoicemail } from '../../shared/ivrFlows.ts';
-import { trackCall } from '../../shared/callCenterStore.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -72,27 +68,6 @@ Deno.serve(async (req) => {
     if (!to) {
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
     }
-
-    // Additional Twilio inputs used by the call center menus. Read once, with the
-    // same body the protected routes use, so nothing above changes.
-    let speech = '';
-    let dialStatus = '';
-    let recordingSid = '';
-    let recordingUrl = '';
-    let recordingDuration = 0;
-    let callSid = '';
-    let triedList: string[] = [];
-    try {
-      const p = body.trim().startsWith('{') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
-      speech = p.SpeechResult || '';
-      dialStatus = p.DialCallStatus || '';
-      recordingSid = p.RecordingSid || '';
-      recordingUrl = p.RecordingUrl || '';
-      recordingDuration = Number(p.RecordingDuration || 0) || 0;
-      callSid = p.CallSid || '';
-      const triedRaw = urlObj.searchParams.get('tried') || p.tried || '';
-      triedList = String(triedRaw).split(',').map((value) => value.trim()).filter(Boolean);
-    } catch (_) { /* ignore */ }
 
     const defaultCallerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
     console.log('TWILIO_CALLING_PHONE_NUMBER:', defaultCallerId, '| TWILIO_PHONE_NUMBER:', Deno.env.get('TWILIO_PHONE_NUMBER'));
@@ -410,61 +385,13 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ── Call center experiences ──
-      // Reached only when the caller is not on a protected route: not the owner,
-      // and not a client or media specialist with an active job. The routes above
-      // returned already in those cases, so their behaviour is unchanged.
-      try {
-        const settings = await loadCallCenterSettings(base44);
-        const identity = await recognizeCaller(base44, from, settings);
-        const flowCtx = {
-          base44,
-          settings,
-          identity,
-          from,
-          to,
-          callSid,
-          digits: digits || '',
-          speech,
-          dialStatus,
-          menu: menu || '',
-          tried: triedList,
-        };
-
-        // A finished voicemail is stored, the owner is alerted and the support
-        // ticket step runs before the caller is released.
-        if (menu === 'vm_done') {
-          const category = urlObj.searchParams.get('cat') || 'general';
-          console.log('Voicemail recorded →', recordingSid, 'category:', category);
-          return await finalizeVoicemail(flowCtx, {
-            sid: recordingSid,
-            url: recordingUrl,
-            duration: recordingDuration,
-            category,
-          });
-        }
-
-        const handled = await handleCallCenterMenu(flowCtx);
-        if (handled) return handled;
-
-        return await routeUnmatchedCaller(flowCtx);
-      } catch (flowError) {
-        // A failure in the new experience must never leave the caller with silence.
-        console.error('Call center flow error:', flowError.message, flowError.stack);
-        try {
-          await trackCall(
-            base44,
-            callSid,
-            { from, to },
-            { route: 'legacy_fallback', outcome: 'transferred', event: 'flow_error' }
-          );
-        } catch (_) { /* ignore */ }
-        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      // No active job for this caller → redirect to Studio flow
+      console.log('No job match for caller → redirecting to Studio flow');
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. Please hold while we connect you.</Say>
   <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
 </Response>`);
-      }
     }
 
   } catch (error) {
