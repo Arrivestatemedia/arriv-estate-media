@@ -1,0 +1,143 @@
+{
+  "name": "SupportCase",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "Stable id (sc_...)"
+    },
+    "call_sid": {
+      "type": "string"
+    },
+    "voicemail_id": {
+      "type": "string"
+    },
+    "from_number": {
+      "type": "string"
+    },
+    "received_on_number": {
+      "type": "string"
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "caller_type": {
+      "type": "string",
+      "enum": [
+        "media_specialist",
+        "client",
+        "b2b_client",
+        "public",
+        "unknown"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "green",
+        "gray",
+        "gray"
+      ],
+      "default": "unknown"
+    },
+    "issue_category": {
+      "type": "string",
+      "enum": [
+        "sign_in",
+        "booking",
+        "portal",
+        "payment",
+        "other"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "purple",
+        "yellow",
+        "gray"
+      ],
+      "default": "other"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "related_contact_id": {
+      "type": "string"
+    },
+    "related_organization_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_ticket",
+        "ticket_created",
+        "ticket_failed",
+        "resolved"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red",
+        "blue"
+      ],
+      "default": "pending_ticket",
+      "description": "A ticket is only marked created when Arriv Assist actually confirmed it."
+    },
+    "arriv_assist_ticket_id": {
+      "type": "string"
+    },
+    "arriv_assist_ticket_number": {
+      "type": "string"
+    },
+    "arriv_assist_conversation_id": {
+      "type": "string"
+    },
+    "submission_attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_error": {
+      "type": "string",
+      "description": "Plain-language reason the ticket step did not complete"
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "case_id",
+    "from_number",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
