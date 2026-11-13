@@ -12,4 +12,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
 import { secrets } from 'base44:runtime';
 import { handleIvrRequest } from '../../shared/ivrRuntime.ts';
 
+// Signature-checked webhook: the shared runtime owns every flow decision.
+
 Deno.serve((req) => handleIvrRequest(req, createClientFromRequest(req), secrets));
