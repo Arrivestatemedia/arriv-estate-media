@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
             console.log('Admin pressed 2 → support');
             return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+  <Redirect>${appDomain}/functions/ivrSupport</Redirect>
 </Response>`);
           }
         }
@@ -295,10 +295,10 @@ Deno.serve(async (req) => {
             // If this is a Gather result that wasn't "1" (pressed 2 or timed out),
             // fall through to the support / sales-rep routing below.
             if (menu === '1') {
-              console.log('Media partner menu → redirecting to Studio flow (digit:', digits, ')');
+              console.log('Media partner menu → redirecting to support (digit:', digits, ')');
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+  <Redirect>${appDomain}/functions/ivrSupport</Redirect>
 </Response>`);
             } else {
               // First contact — present the IVR menu
@@ -364,10 +364,10 @@ Deno.serve(async (req) => {
             const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=1` : '';
 
             if (menu === '1') {
-              console.log('Client menu → redirecting to Studio flow (digit:', digits, ')');
+              console.log('Client menu → redirecting to support (digit:', digits, ')');
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
+  <Redirect>${appDomain}/functions/ivrSupport</Redirect>
 </Response>`);
             } else {
               console.log('Client inbound → presenting IVR menu for job', clientJob.id);
