@@ -58,6 +58,11 @@ Deno.serve(async (req) => {
         const updates = {};
         if (toNumber && !contact.phone) updates.phone = toNumber;
         if (companyName && !contact.company) updates.company = companyName;
+        // Attribute an unattributed contact to the rep who called them, so it
+        // shows up in that rep's contact list.
+        if (salesMemberId && !contact.sales_member_id && (!contact.owner_id || contact.owner_id === salesMemberId)) {
+          updates.sales_member_id = salesMemberId;
+        }
         if (Object.keys(updates).length > 0) {
           await base44.asServiceRole.entities.Contact.update(contact.id, updates);
         }
@@ -70,7 +75,8 @@ Deno.serve(async (req) => {
           email: contactEmail || '',
           phone: toNumber || '',
           company: companyName || '',
-          owner_id: salesMemberId
+          owner_id: salesMemberId,
+          sales_member_id: salesMemberId || ''
         });
       }
     }

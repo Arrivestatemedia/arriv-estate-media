@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
         }, { status: 409 });
       }
       // Unowned → take ownership; or already mine → fill in missing fields
-      const updates = { owner_id: salesMemberId };
+      const updates = { owner_id: salesMemberId, sales_member_id: salesMemberId };
       if (!contact.firstname && firstname) updates.firstname = firstname;
       if (!contact.lastname && lastname) updates.lastname = lastname;
       if (!contact.email && !isNotFound(realtor.email)) updates.email = realtor.email.trim();
@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
       lead_status: 'NEW',
       lifecycle_stage: 'lead',
       social_media: Array.isArray(realtor.social_media) ? realtor.social_media : [],
-      owner_id: salesMemberId
+      owner_id: salesMemberId,
+      sales_member_id: salesMemberId
     });
 
     return Response.json({

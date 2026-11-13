@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Mail, Calendar, Building2, User, UserPlus, Plus, Tag, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
+import { Phone, Mail, Calendar, Building2, User, UserPlus, Plus, Tag, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home, Search } from "lucide-react";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import InAppBrowser from "@/components/sales/InAppBrowser";
 import ConvertToCustomerModal from "./ConvertToCustomerModal";
@@ -22,6 +22,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   const [loading, setLoading] = useState(true);
   const [expandedContact, setExpandedContact] = useState(null);
   const [contactsPage, setContactsPage] = useState(0);
+  const [contactSearch, setContactSearch] = useState("");
   const [visibleContactsOnPage, setVisibleContactsOnPage] = useState(5);
   const [showFollowUpForm, setShowFollowUpForm] = useState(null); // contactKey being followed up
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
@@ -112,6 +113,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
         name: a.contact_name || '',
         email: a.contact_email || '',
         company: a.company_name || '',
+        phone: a.contact_phone || '',
         activities: [],
         upcoming: [],
         past: [],
@@ -133,6 +135,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
     // Merge best known name/company
     if (!contactMap[key].name && a.contact_name) contactMap[key].name = a.contact_name;
     if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
+    if (!contactMap[key].phone && a.contact_phone) contactMap[key].phone = a.contact_phone;
   });
 
   // Merge in Contact records from the Contact entity (e.g., migrated booking
@@ -148,6 +151,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
         name: fullName,
         email: c.email || '',
         company: c.company || '',
+        phone: c.phone || '',
         activities: [],
         upcoming: [],
         past: [],
@@ -156,6 +160,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
       // Fill in missing name/company from the Contact record
       if (!contactMap[key].name && fullName) contactMap[key].name = fullName;
       if (!contactMap[key].company && c.company) contactMap[key].company = c.company;
+      if (!contactMap[key].phone && c.phone) contactMap[key].phone = c.phone;
     }
   });
 
@@ -174,6 +179,13 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   });
 
   const upcomingTotal = contacts.reduce((sum, c) => sum + c.upcoming.length, 0);
+
+  const searchTerm = contactSearch.trim().toLowerCase();
+  const filteredContacts = searchTerm
+    ? contacts.filter(c => [c.name, c.email, c.company, c.phone]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(searchTerm)))
+    : contacts;
 
   const activityIcons = {
     call: <Phone className="w-3 h-3" />,
@@ -240,14 +252,35 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
         <div>
           <h2 className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>My Contacts</h2>
           <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
-            {contacts.length} contact{contacts.length !== 1 ? 's' : ''} you've worked with
+            {searchTerm
+              ? `${filteredContacts.length} of ${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`
+              : `${contacts.length} contact${contacts.length !== 1 ? 's' : ''} you've worked with`}
             {upcomingTotal > 0 && <span className="ml-2 font-medium text-[#B8956A]">· {upcomingTotal} upcoming task{upcomingTotal !== 1 ? 's' : ''}</span>}
           </p>
         </div>
       </div>
 
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(26,26,26,0.4)' }} />
+        <Input
+          value={contactSearch}
+          onChange={(e) => { setContactSearch(e.target.value); setContactsPage(0); }}
+          placeholder="Search contacts by name, email, company, or phone"
+          className="pl-9 h-10"
+          style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(184,149,106,0.35)' }}
+        />
+      </div>
+
       <div className="space-y-3">
-        {contacts.slice(contactsPage * 5, contactsPage * 5 + visibleContactsOnPage).map((contact) => {
+        {filteredContacts.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+              <Search className="w-6 h-6 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No contacts match “{contactSearch.trim()}”</p>
+            </CardContent>
+          </Card>
+        )}
+        {filteredContacts.slice(contactsPage * 5, contactsPage * 5 + visibleContactsOnPage).map((contact) => {
           const isExpanded = expandedContact === contact.key;
           const lastActivity = contact.past[0];
           const nextActivity = contact.upcoming[0];
@@ -529,12 +562,12 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
           );
         })}
       </div>
-      {contacts.length > 5 && (() => {
-        const totalPages = Math.ceil(contacts.length / 5);
+      {filteredContacts.length > 5 && (() => {
+        const totalPages = Math.ceil(filteredContacts.length / 5);
         const endIdx = contactsPage * 5 + visibleContactsOnPage;
         return (
           <div className="flex justify-center gap-2 pt-4 flex-wrap">
-            {visibleContactsOnPage < 5 && endIdx < contacts.length && (
+            {visibleContactsOnPage < 5 && endIdx < filteredContacts.length && (
               <Button variant="outline" onClick={() => setVisibleContactsOnPage(v => Math.min(5, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
             )}
             {totalPages > 1 && (

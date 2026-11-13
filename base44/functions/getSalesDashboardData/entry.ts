@@ -18,7 +18,7 @@ export default async function(req) {
     // Run ALL queries in parallel for speed
     const [
       profileRes, activitiesRes, missedCallsRes, smsRes, notifRes,
-      contactsRes, secondaryRes, trainingModulesRes, certRes,
+      contactsRes, ownerContactsRes, secondaryRes, trainingModulesRes, certRes,
       watchProgressRes, attemptsRes, queueInsightsRes, allMembersRes,
     ] = await Promise.allSettled([
       // 1. Profile (non-sensitive fields only — NEVER return password_hash)
@@ -37,6 +37,9 @@ export default async function(req) {
       }),
       // 6. Contacts (for MyContacts, ContactSearch, EmailComposer)
       base44.asServiceRole.entities.Contact.filter({ sales_member_id }, '-updated_date', 500),
+      // 6b. Contacts owned by this rep but missing sales_member_id (older
+      // call-logged contacts only set owner_id, so they never appeared)
+      base44.asServiceRole.entities.Contact.filter({ owner_id: sales_member_id }, '-updated_date', 500),
       // 7. Secondary contact info (for MyContacts)
       base44.asServiceRole.entities.SecondaryContactInfo.list(),
       // 8. Training modules (for TrainingTab) — all active canonical E0–E19 modules
@@ -75,13 +78,22 @@ export default async function(req) {
       };
     }
 
+    // Merge the two contact sets, de-duplicating by record id so a contact that
+    // matches both queries is only listed once.
+    const contactMerge = new Map();
+    [contactsRes, ownerContactsRes].forEach((res) => {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        res.value.forEach((c) => contactMerge.set(c.id, c));
+      }
+    });
+
     return Response.json({
       profile,
       activities: activitiesRes.status === 'fulfilled' ? (activitiesRes.value || []) : [],
       missed_calls: missedCallsRes.status === 'fulfilled' ? (missedCallsRes.value || []) : [],
       sms_conversations: smsRes.status === 'fulfilled' ? (smsRes.value || []) : [],
       pending_notifications: notifRes.status === 'fulfilled' ? (notifRes.value || []) : [],
-      contacts: contactsRes.status === 'fulfilled' ? (contactsRes.value || []) : [],
+      contacts: Array.from(contactMerge.values()),
       secondary_contact_info: secondaryRes.status === 'fulfilled' ? (secondaryRes.value || []) : [],
       training_modules: trainingModulesRes.status === 'fulfilled' ? (trainingModulesRes.value || []) : [],
       sales_certification: certRes.status === 'fulfilled' ? (certRes.value?.[0] || null) : null,
