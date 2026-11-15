@@ -89,4 +89,54 @@ export function fileToAttachment(file, maxBytes = 5 * 1024 * 1024) {
   });
 }
 
+/**
+ * Prepares a draft's attachments for saving.
+ *
+ * The bytes go to private storage and only the reference is kept on the draft
+ * record — a record is never used to hold file content. An attachment that has
+ * already been uploaded keeps its reference, so re-saving a draft never uploads
+ * the same file twice.
+ */
+export async function uploadDraftAttachments(attachments = []) {
+  const out = [];
+  for (const item of attachments) {
+    if (item?.file_uri) {
+      out.push({
+        filename: item.filename,
+        mime_type: item.mime_type,
+        size: item.size || 0,
+        file_uri: item.file_uri,
+      });
+      continue;
+    }
+    if (!item?.sourceFile) continue;
+    const uploaded = await base44.integrations.Core.UploadPrivateFile({ file: item.sourceFile });
+    out.push({
+      filename: item.filename,
+      mime_type: item.mime_type || item.sourceFile.type || 'application/octet-stream',
+      size: item.sourceFile.size || 0,
+      file_uri: uploaded?.file_uri || '',
+    });
+  }
+  return out;
+}
+
+/** Reads a saved draft's attachments back out of private storage. */
+export async function loadDraftAttachments(stored = []) {
+  const out = [];
+  for (const item of stored) {
+    if (!item?.file_uri) continue;
+    const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: item.file_uri });
+    const response = await fetch(signed_url);
+    if (!response.ok) throw new Error(`Could not reopen ${item.filename || 'an attachment'}.`);
+    const blob = await response.blob();
+    const sourceFile = new File([blob], item.filename || 'attachment', {
+      type: item.mime_type || blob.type || 'application/octet-stream',
+    });
+    const attachment = await fileToAttachment(sourceFile);
+    out.push({ ...attachment, file_uri: item.file_uri, sourceFile });
+  }
+  return out;
+}
+
 export default empComm;

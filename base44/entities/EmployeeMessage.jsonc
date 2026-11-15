@@ -103,6 +103,10 @@
           },
           "size": {
             "type": "number"
+          },
+          "file_uri": {
+            "type": "string",
+            "description": "Private storage reference for a draft attachment. The bytes are never stored in this record; the file is re-read from private storage when the draft is opened."
           }
         }
       }

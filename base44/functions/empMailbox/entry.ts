@@ -101,7 +101,9 @@ export default async function (req) {
             snippet: row.snippet,
             occurred_at: row.occurred_at,
             is_read: true,
-            has_attachments: false,
+            has_attachments: !!row.has_attachments,
+            // Carried on the draft itself so reopening one restores its files.
+            attachments: row.attachments || [],
             folder: row.folder,
           })),
         });
@@ -289,6 +291,17 @@ export default async function (req) {
 
     if (action === 'draft') {
       const draftId = String(body.draftId || '');
+      // Attachments are part of the draft. The bytes live in private storage and
+      // only the reference is kept here, so a draft can never bloat the record.
+      const draftAttachments = (Array.isArray(body.attachments) ? body.attachments : [])
+        .filter((file: any) => file?.filename && file?.file_uri)
+        .slice(0, 10)
+        .map((file: any) => ({
+          filename: String(file.filename),
+          mime_type: String(file.mime_type || 'application/octet-stream'),
+          size: Number(file.size || 0),
+          file_uri: String(file.file_uri),
+        }));
       const payload = {
         tenant_id: tenant,
         account_id: account.id,
@@ -305,6 +318,8 @@ export default async function (req) {
         body_html: String(body.html || ''),
         body_text: String(body.html || '').replace(/<[^>]+>/g, ' ').trim(),
         snippet: String(body.html || '').replace(/<[^>]+>/g, ' ').slice(0, 180),
+        has_attachments: draftAttachments.length > 0,
+        attachments: draftAttachments,
         occurred_at: new Date().toISOString(),
       };
       const existing = draftId

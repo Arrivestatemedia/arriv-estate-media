@@ -13,11 +13,21 @@
  *  - Destinations are US/Canada only, NANP-valid, premium-rate blocked.
  */
 
-import { say as sharedSay } from './ivr.ts';
+import { say as sharedSay, speakable } from './ivr.ts';
+import { ivrVoiceReady, ivrVoiceUrl } from './ivrVoice.ts';
 
 export const DIAL_OUT_DEFAULTS = {
   menu_timeout: 8,
-  entry_timeout: 12,
+  /**
+   * Inter-digit timeout for the extension + destination entry.
+   *
+   * This is Twilio's pause after the LAST key pressed, not the whole entry
+   * window: a partner types 13 digits and then waits this long before the
+   * digits are submitted. At 12s that read as a dead line, so it is short
+   * enough to feel immediate while still allowing a deliberate, unhurried
+   * entry. Pressing pound submits instantly at any point.
+   */
+  entry_timeout: 4,
   retry_limit: 2,
   gather_finish_on_key: '#',
   max_attempts_per_session: 25,
@@ -59,6 +69,28 @@ export function hangup() {
   return '<Hangup/>';
 }
 
+/**
+ * Generate the next prompt's audio BEFORE it is needed.
+ *
+ * ivrVoice only caches a line the first time Twilio fetches it, so the first
+ * caller after a cold start pays for the ElevenLabs round trip while hearing
+ * silence. Warming the line the caller is about to need — while the current
+ * menu is still playing — moves that work into time nobody is waiting on.
+ * The voice, text and signature are unchanged; this only fills the cache.
+ */
+export function warmVoice(base: string, texts: any[]) {
+  if (!ivrVoiceReady()) return;
+  const run = async () => {
+    for (const text of texts) {
+      if (!text) continue;
+      await fetch(ivrVoiceUrl(base, speakable(text))).catch(() => {});
+    }
+  };
+  const runtime = (globalThis as any).EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(run());
+  else run().catch(() => {});
+}
+
 export function gather(action: string, text: string, options: any = {}) {
   const timeout = options.timeout || DIAL_OUT_DEFAULTS.menu_timeout;
   const finishOnKey = options.finishOnKey || DIAL_OUT_DEFAULTS.gather_finish_on_key;
@@ -67,12 +99,26 @@ export function gather(action: string, text: string, options: any = {}) {
 }
 
 /**
- * Split "2043015550142" into extension + destination. Extensions are 2-4
- * digits, so the remainder is tried longest-first and must be a valid 10 or 11
- * digit US number.
+ * Accepted keypad entry, in order:
+ *
+ *   1. extension then number as ONE continuous string  →  1015551234567
+ *      (13 digits: 3-digit extension + 10-digit number), or press # to submit
+ *      immediately instead of waiting out the inter-digit pause.
+ *   2. the destination alone                           →  5551234567
+ *      (10 digits, or 11 with a leading 1). The extension is implied because
+ *      the caller has already been identified by their own registered
+ *      cellphone on their own assigned line.
+ *
+ * Extensions are 2-4 digits, so a combined entry is tried longest-first and
+ * the remainder must be a valid 10 or 11 digit US/Canada number.
  */
 export function parseExtensionAndNumber(raw: any) {
   const all = digits(raw);
+  // Destination only — the caller is already authenticated by caller ID.
+  const alone = normalizePhone(all);
+  if (all.length === 10 || (all.length === 11 && all.startsWith('1'))) {
+    if (alone) return { extension: '', destination: alone, error: '' };
+  }
   if (all.length < 12) return { extension: '', destination: '', error: 'short' };
   for (const extLen of [4, 3, 2]) {
     if (all.length - extLen !== 10 && all.length - extLen !== 11) continue;

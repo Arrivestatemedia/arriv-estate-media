@@ -33,7 +33,8 @@ export const VOICE_SETTINGS_DEFAULTS = {
   voice_command_enabled: true,
   dial_out_menu_text:
     'Arriv sales dial out. To place a call from your sales number, press 1. To check your voicemail, press 2.',
-  dial_out_prompt: 'Please enter your extension, followed by the ten digit phone number you wish to call.',
+  dial_out_prompt:
+    'Please enter your extension, followed by the ten digit phone number you wish to call, then press pound.',
   dial_out_after_text:
     'Your call has ended. To dial another number, press 1. To end your session, press 2.',
   dial_out_bad_entry_text: "I'm sorry, I didn't get a valid extension and number. Please try again.",

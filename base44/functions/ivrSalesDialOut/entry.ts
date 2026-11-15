@@ -36,6 +36,7 @@ import {
   attemptIdFor,
   sessionIdFor,
   withActionUrl,
+  warmVoice,
   DIAL_OUT_DEFAULTS,
 } from '../../shared/salesDialOut.ts';
 
@@ -381,6 +382,9 @@ Deno.serve(async (req) => {
           say("Sorry, that wasn't a valid choice.", voice) + gather(menuAction, settings.dial_out_menu_text, { voice })
         );
       }
+      // The caller's next action is pressing 1, which plays the entry prompt.
+      // Generate that audio now, behind the menu they are already hearing.
+      warmVoice(appDomain, [settings.dial_out_prompt]);
       return twiml(
         `${gather(menuAction, settings.dial_out_menu_text, { voice })}${say(
           'We did not receive any input. Goodbye.',
@@ -393,6 +397,9 @@ Deno.serve(async (req) => {
     if (stage === 'choice') {
       const choice = String(params.Digits || '');
       if (choice === '1') {
+        // The entry prompt has to start the instant 1 is pressed, so its audio
+        // is warmed behind the menu above rather than generated on this request.
+        warmVoice(appDomain, [settings.dial_out_after_text, settings.dial_out_menu_text]);
         return twiml(gather(entryAction, settings.dial_out_prompt, { voice, timeout: DIAL_OUT_DEFAULTS.entry_timeout }));
       }
       await patchSession({
@@ -408,7 +415,12 @@ Deno.serve(async (req) => {
       const entered = String(params.Digits || '');
       const parsed = parseExtensionAndNumber(entered);
 
-      if (parsed.error || parsed.extension !== String(identity.extension)) {
+      // A combined entry must carry this partner's own extension. A destination
+      // entered alone is accepted because the caller has already been proven by
+      // their registered cellphone on their own assigned line — the extension is
+      // an identifier that routes the session, not the credential itself.
+      const extensionOk = !parsed.extension || parsed.extension === String(identity.extension);
+      if (parsed.error || !parsed.destination || !extensionOk) {
         await base44.asServiceRole.entities.IvrAuditLog.create({
           action: 'sales_dial_out_bad_extension',
           target_type: 'sales_phone_identity',
@@ -483,7 +495,16 @@ Deno.serve(async (req) => {
         attempt: attemptId,
       });
 
-      return twiml(
+      // The post-call menu is heard the moment the prospect hangs up, so warm it
+      // while the Dial below is ringing and connected.
+      warmVoice(appDomain, [settings.dial_out_menu_text, settings.dial_out_after_text]);
+
+      // dialTwiml already returns a complete XML document, so it is sent as-is.
+      // Wrapping it again put a second <?xml?> declaration inside the body, which
+      // Twilio rejects with error 12100 ("Document parse failure") and plays as
+      // "an application error" — the outbound leg was never created because the
+      // response was discarded before any Dial was read.
+      return new Response(
         dialTwiml({
           destination: finalDestination,
           callerId: identity.caller_id_number,
@@ -493,7 +514,8 @@ Deno.serve(async (req) => {
           // monthly usage caps, never by the per-call setting.
           timeoutSeconds: 35,
           record: '',
-        })
+        }),
+        { headers: { 'Content-Type': 'text/xml; charset=utf-8' } }
       );
     }
 

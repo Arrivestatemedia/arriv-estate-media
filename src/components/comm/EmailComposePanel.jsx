@@ -4,7 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Paperclip, Send, Loader2, Clock, X, FileText } from 'lucide-react';
-import { empComm, fileToAttachment } from '@/lib/empCommClient';
+import {
+  empComm,
+  fileToAttachment,
+  uploadDraftAttachments,
+  loadDraftAttachments,
+} from '@/lib/empCommClient';
 
 const gold = '#B8956A';
 
@@ -39,6 +44,7 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
       : { ...blank }
   );
   const [attachments, setAttachments] = useState([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -56,6 +62,30 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
     setError('');
   }, [draft?.provider_message_id]);
 
+  // A saved draft brings its files back with it, so nothing has to be re-attached.
+  useEffect(() => {
+    const stored = draft?.attachments || [];
+    if (!stored.length) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingAttachments(true);
+    loadDraftAttachments(stored)
+      .then((loaded) => {
+        if (!cancelled) setAttachments(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Some attachments could not be reopened.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAttachments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft?.provider_message_id]);
+
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const addFiles = async (fileList) => {
@@ -64,7 +94,8 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
     const added = [];
     for (const file of files) {
       try {
-        added.push(await fileToAttachment(file));
+        // The browser file is kept so a draft can persist it to private storage.
+        added.push({ ...(await fileToAttachment(file)), sourceFile: file });
       } catch (err) {
         setError(err.message);
       }
@@ -162,6 +193,11 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
     setError('');
     setStatus('');
     try {
+      // Attachments are part of the draft, not a separate afterthought.
+      const savedAttachments = await uploadDraftAttachments(attachments);
+      setAttachments((prev) =>
+        prev.map((item, index) => ({ ...item, file_uri: savedAttachments[index]?.file_uri || item.file_uri }))
+      );
       const data = await empComm.saveDraft({
         memberId,
         draftId,
@@ -169,6 +205,7 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
         cc: form.cc,
         subject: form.subject,
         html: form.html,
+        attachments: savedAttachments,
         threadId: replyTo?.thread_id || '',
       });
       setDraftId(data?.draft?.provider_message_id || draftId);
@@ -250,6 +287,12 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
           className="mt-1 text-sm"
         />
       </div>
+
+      {loadingAttachments && (
+        <p className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reopening saved attachments…
+        </p>
+      )}
 
       {attachments.length > 0 && (
         <div className="space-y-1">
