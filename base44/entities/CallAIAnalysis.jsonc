@@ -1,0 +1,167 @@
+{
+  "name": "CallAIAnalysis",
+  "type": "object",
+  "properties": {
+    "attempt_id": {
+      "type": "string",
+      "description": "SalesCallAttempt this analysis belongs to"
+    },
+    "call_sid": {
+      "type": "string"
+    },
+    "activity_id": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "prospect_name": {
+      "type": "string"
+    },
+    "rep_id": {
+      "type": "string"
+    },
+    "rep_name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "recording",
+        "rep_dictation",
+        "manual_note"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "gray"
+      ],
+      "default": "manual_note",
+      "description": "Only a consented recording may be transcribed. Dictation and manual notes are the rep's own words."
+    },
+    "transcript": {
+      "type": "string"
+    },
+    "transcript_confidence": {
+      "type": "number"
+    },
+    "speaker_labels_reliable": {
+      "type": "boolean",
+      "default": false
+    },
+    "summary": {
+      "type": "string"
+    },
+    "objections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "services_discussed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "package_interest": {
+      "type": "string"
+    },
+    "requested_info": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "follow_up_commitments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suggested_outcome": {
+      "type": "string"
+    },
+    "suggested_next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suggested_lead_status": {
+      "type": "string"
+    },
+    "coaching": {
+      "type": "object",
+      "description": "Supportive, transcript-grounded notes for the rep"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "ready",
+        "failed",
+        "skipped"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "pending"
+    },
+    "error": {
+      "type": "string"
+    },
+    "reviewed": {
+      "type": "boolean",
+      "default": false
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "corrections": {
+      "type": "array",
+      "description": "Audit trail of rep corrections to the generated summary",
+      "items": {
+        "type": "object"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "name": "SalesCallAttempt",
+  "type": "object",
+  "properties": {
+    "attempt_id": {
+      "type": "string",
+      "description": "Stable attempt id (sat_...). One row per destination number dialed."
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "rep_id": {
+      "type": "string"
+    },
+    "rep_name": {
+      "type": "string"
+    },
+    "rep_email": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "prospect_name": {
+      "type": "string"
+    },
+    "destination": {
+      "type": "string",
+      "description": "Number dialed, normalised to E.164"
+    },
+    "from_number": {
+      "type": "string",
+      "description": "Arriv caller ID the prospect saw"
+    },
+    "call_sid": {
+      "type": "string"
+    },
+    "call_method": {
+      "type": "string",
+      "enum": [
+        "cell_ivr",
+        "in_app"
+      ],
+      "enumColors": [
+        "purple",
+        "blue"
+      ],
+      "default": "cell_ivr"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ringing",
+        "in_progress",
+        "answered",
+        "no_answer",
+        "busy",
+        "failed",
+        "completed"
+      ],
+      "enumColors": [
+        "blue",
+        "blue",
+        "green",
+        "yellow",
+        "yellow",
+        "red",
+        "gray"
+      ],
+      "default": "ringing"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "dial_call_status": {
+      "type": "string",
+      "description": "Twilio's own DialCallStatus (completed, no-answer, busy, failed, canceled)"
+    },
+    "disconnect_reason": {
+      "type": "string",
+      "description": "Which leg ended the prospect conversation, when Twilio reports it"
+    },
+    "recording_consent": {
+      "type": "string",
+      "enum": [
+        "not_asked",
+        "consented",
+        "declined"
+      ],
+      "enumColors": [
+        "gray",
+        "green",
+        "red"
+      ],
+      "default": "not_asked"
+    },
+    "consent_method": {
+      "type": "string",
+      "description": "How consent was obtained: verbal_affirmative, keypress, rep_attested"
+    },
+    "consent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recording_sid": {
+      "type": "string"
+    },
+    "recording_uri": {
+      "type": "string",
+      "description": "Private storage uri. Never a public URL."
+    },
+    "recording_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "requested",
+        "stored",
+        "failed",
+        "deleted"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "none"
+    },
+    "transcript_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "ready",
+        "failed"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "red"
+      ],
+      "default": "none"
+    },
+    "summary_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "ready",
+        "failed"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green",
+        "red"
+      ],
+      "default": "none"
+    },
+    "activity_id": {
+      "type": "string",
+      "description": "ActivityLog row this attempt wrote into the rep's activity history"
+    },
+    "call_record_sid": {
+      "type": "string",
+      "description": "CallRecord.call_sid when the shared call pipeline already logged it"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "rep_id",
+    "destination",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

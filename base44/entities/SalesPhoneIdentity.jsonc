@@ -1,0 +1,114 @@
+{
+  "name": "SalesPhoneIdentity",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "Existing SalesTeamMember id. One telephony identity per rep."
+    },
+    "sales_member_name": {
+      "type": "string"
+    },
+    "sales_member_email": {
+      "type": "string"
+    },
+    "cellphone": {
+      "type": "string",
+      "description": "Registered personal cellphone in E.164. The only number allowed to use cellphone dial-out."
+    },
+    "extension": {
+      "type": "string",
+      "description": "Unique internal extension entered before the destination number"
+    },
+    "caller_id_number": {
+      "type": "string",
+      "description": "Arriv business number the prospect sees. Must be a company number, never the rep's cellphone."
+    },
+    "telephony_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended",
+        "revoked",
+        "pending"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "gray",
+        "blue"
+      ],
+      "default": "pending",
+      "description": "Only 'active' identities can dial out. Deactivating a rep sets this to 'revoked'."
+    },
+    "voicemail_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "pin_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Optional stronger check. Off by default so the first rep experience stays one-step."
+    },
+    "pin_hash": {
+      "type": "string",
+      "description": "PBKDF2 hash of the optional dial-out PIN. Never the PIN itself."
+    },
+    "monthly_minutes_cap": {
+      "type": "number",
+      "default": 600,
+      "description": "Outbound minutes this rep may place through cellphone dial-out each month"
+    },
+    "minutes_used_this_period": {
+      "type": "number",
+      "default": 0
+    },
+    "period_key": {
+      "type": "string",
+      "description": "YYYY-MM the minutes counter belongs to"
+    },
+    "last_session_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "sales_member_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

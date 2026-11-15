@@ -1,0 +1,86 @@
+{
+  "name": "ProspectContactSource",
+  "type": "object",
+  "properties": {
+    "contact_id": {
+      "type": "string",
+      "description": "Contact the evidence belongs to"
+    },
+    "field": {
+      "type": "string",
+      "description": "Field this evidence supports: phone, email, website, brokerage, location, profile"
+    },
+    "value": {
+      "type": "string",
+      "description": "The value found, exactly as published"
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "source_title": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "description": "Where the result came from: web_search, brokerage_site, directory, manual"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "unverified",
+        "ambiguous"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "red"
+      ],
+      "default": "unverified"
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "sales_member_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "contact_id",
+    "field",
+    "verification_status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "name": "ProspectLookupCache",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Normalised name + location + request type, so the same lookup is never paid for twice"
+    },
+    "query": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "identity",
+        "email"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "identity"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "result_count": {
+      "type": "number",
+      "default": 0
+    },
+    "fetched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hit_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "cache_key",
+    "kind"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

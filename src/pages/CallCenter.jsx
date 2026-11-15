@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ArrivOneVoiceAdmin from "@/components/arrivone/ArrivOneVoiceAdmin";
+import ArrivOnePerformancePanel from "@/components/arrivone/ArrivOnePerformancePanel";
 import { Button } from "@/components/ui/button";
 import { PhoneCall, LayoutPanelLeft } from "lucide-react";
 import OverviewPanel from "@/components/callcenter/OverviewPanel";
@@ -74,6 +76,8 @@ export default function CallCenter() {
             IVR Studio
           </TabsTrigger>
           <TabsTrigger value="settings">Quick IVR settings</TabsTrigger>
+          <TabsTrigger value="dialout">Sales dial-out</TabsTrigger>
+          <TabsTrigger value="quality">Sales quality</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -96,6 +100,12 @@ export default function CallCenter() {
         </TabsContent>
         <TabsContent value="settings">
           <IvrSettingsPanel />
+        </TabsContent>
+        <TabsContent value="dialout">
+          <ArrivOneVoiceAdmin />
+        </TabsContent>
+        <TabsContent value="quality">
+          <ArrivOnePerformancePanel />
         </TabsContent>
       </Tabs>
     </div>

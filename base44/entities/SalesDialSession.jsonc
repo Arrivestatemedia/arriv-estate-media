@@ -1,0 +1,105 @@
+{
+  "name": "SalesDialSession",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Stable session id (sds_...). One session per call the rep places into Arriv."
+    },
+    "rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember id resolved from the registered cellphone"
+    },
+    "rep_name": {
+      "type": "string"
+    },
+    "rep_email": {
+      "type": "string"
+    },
+    "parent_call_sid": {
+      "type": "string",
+      "description": "Twilio CallSid of the rep's inbound leg to the access number"
+    },
+    "access_number": {
+      "type": "string",
+      "description": "Arriv number the rep dialed"
+    },
+    "cellphone": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "ended",
+        "expired",
+        "rejected"
+      ],
+      "enumColors": [
+        "blue",
+        "gray",
+        "yellow",
+        "red"
+      ],
+      "default": "active"
+    },
+    "termination_reason": {
+      "type": "string",
+      "description": "rep_hangup, rep_ended, menu_timeout, invalid_identity, cap_reached, error"
+    },
+    "attempt_count": {
+      "type": "number",
+      "default": 0
+    },
+    "call_sids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every prospect leg placed in this session, in order"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "minutes_used": {
+      "type": "number",
+      "default": 0
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "session_id",
+    "rep_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

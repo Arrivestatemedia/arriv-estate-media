@@ -12,6 +12,7 @@ import NewJobsBadge from "@/components/layout/NewJobsBadge";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
 import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
+import ArrivOneCommandDock from "@/components/arrivone/ArrivOneCommandDock";
 import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 import NotificationPanel from "@/components/sales/NotificationPanel";
@@ -583,6 +584,9 @@ function LayoutContent({ children, currentPageName }) {
       </main>
       
 
+
+      {/* AI command, reachable from every Arriv One surface */}
+      {user && (hasSalesSession || isAdmin) && <ArrivOneCommandDock />}
 
       {/* Mobile Bottom Tabs */}
       <MobileBottomTabs user={user} />

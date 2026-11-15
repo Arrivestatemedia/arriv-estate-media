@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Phone, Mail, Calendar, DollarSign, Wallet, Users, Target, Award, TrendingUp, Flame, Plus, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import HealthScoreGauge from "@/components/performance/HealthScoreGauge";
+import SalesPhoneIdentityCard from "@/components/arrivone/SalesPhoneIdentityCard";
 
 export default function EmployeeProfile() {
   const [repId, setRepId] = useState(null);
@@ -141,10 +142,13 @@ Generate JSON with:
   const yr = rep.metrics.yearly;
   const recognitions = notes.filter(n => n.is_recognition || n.note_type === 'recognition');
   const coachingNotes = notes.filter(n => n.note_type === 'coaching' || n.note_type === 'review');
+  // Own profile (no rep_id in the URL) is where a rep manages their dial-out number.
+  const isSelf = !new URLSearchParams(window.location.search).get('rep_id');
 
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
+        {isSelf && <div className="mb-6"><SalesPhoneIdentityCard /></div>}
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>

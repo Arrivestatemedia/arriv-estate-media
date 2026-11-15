@@ -8,6 +8,8 @@ import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronD
 import InAppBrowser from "@/components/sales/InAppBrowser";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import ProspectBriefPanel from "@/components/sales/ProspectBriefPanel";
+import ArrivOneCommandBar from "@/components/arrivone/ArrivOneCommandBar";
+import ProspectLiveSearch from "@/components/arrivone/ProspectLiveSearch";
 import { createVoiceDevice } from "@/lib/twilioVoiceDevice";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
@@ -321,6 +323,13 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
 
   return (
     <div className="space-y-4">
+      <ArrivOneCommandBar
+        contextLabel="Prospecting"
+        placeholder="Find Jennifer Williams, a realtor in Rockville Maryland, and get her business email"
+      />
+
+      <ProspectLiveSearch />
+
       {/* Header / controls */}
       <Card style={{ backgroundColor: '#FFFFFF' }}>
         <CardContent className="pt-5 space-y-3">

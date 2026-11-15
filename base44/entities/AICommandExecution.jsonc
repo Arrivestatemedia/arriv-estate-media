@@ -1,0 +1,129 @@
+{
+  "name": "AICommandExecution",
+  "type": "object",
+  "properties": {
+    "command_text": {
+      "type": "string",
+      "description": "What the user typed or said, verbatim"
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Speech-to-text result when the command came in by voice"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "text",
+        "voice"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "text"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember who issued the command"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "intent": {
+      "type": "string",
+      "description": "Recognised action: create_prospect, update_prospect, log_call, create_task, update_status, find_prospect, lookup_email, unknown"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Model confidence in the recognised intent, 0-1"
+    },
+    "proposed_actions": {
+      "type": "array",
+      "description": "Concrete CRM changes prepared for review, never applied until confirmed",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extracted": {
+      "type": "object",
+      "description": "Normalised fields the command produced (name, phone, email, brokerage, city, state, note, follow-up date, package interest)"
+    },
+    "candidates": {
+      "type": "array",
+      "description": "Existing CRM contacts that may be the person the command refers to",
+      "items": {
+        "type": "object"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "applied",
+        "cancelled",
+        "failed"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray",
+        "red"
+      ],
+      "default": "draft"
+    },
+    "result": {
+      "type": "object",
+      "description": "What was written: contact, activity, task and source ids"
+    },
+    "error": {
+      "type": "string"
+    },
+    "applied_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "applied_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "command_text",
+    "intent",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
