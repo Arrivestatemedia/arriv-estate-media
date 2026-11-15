@@ -14,6 +14,21 @@ import { tenantFor } from '../../shared/empComm/tenant.ts';
 
 const asList = (v: any) => (Array.isArray(v) ? v : v?.items || []);
 
+/**
+ * Exact-match read without paging options: this entity layer silently returns
+ * an empty set when a read is given paging options, so ordering and slicing
+ * happen here instead.
+ */
+async function rowsFor(base44: any, query: any) {
+  const rows = asList(await base44.asServiceRole.entities.EmployeeMessage.filter(query));
+  return rows;
+}
+
+const newestFirst = (rows: any[], take = 25) =>
+  [...rows]
+    .sort((a, b) => String(b.occurred_at || '').localeCompare(String(a.occurred_at || '')))
+    .slice(0, take);
+
 function normaliseAddresses(value: any) {
   const list = Array.isArray(value) ? value : String(value || '').split(',');
   return list.map((entry) => String(entry || '').trim().toLowerCase()).filter((entry) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(entry));
@@ -58,6 +73,40 @@ export default async function (req) {
     if (action === 'inbox' || action === 'search') {
       if (capability('mail')) return Response.json({ error: capability('mail') }, { status: 400 });
       const folder = action === 'search' ? String(body.folder || 'inbox') : String(body.folder || 'inbox');
+
+      // Drafts live in this app's own store. They are never pushed into the
+      // provider's draft folder, so listing provider drafts would show an empty
+      // folder while saved drafts existed.
+      if (folder === 'drafts') {
+        const rows = newestFirst(await rowsFor(base44, { account_id: account.id, folder: 'drafts' }));
+        const needle = action === 'search' ? String(body.query || '').trim().toLowerCase() : '';
+        const matched = needle
+          ? rows.filter((row: any) =>
+              `${row.subject || ''} ${row.snippet || ''} ${(row.to_emails || []).join(' ')}`.toLowerCase().includes(needle)
+            )
+          : rows;
+        return Response.json({
+          provider: account.provider,
+          email_address: account.email_address,
+          folder,
+          messages: matched.map((row: any) => ({
+            id: row.id,
+            provider_message_id: row.provider_message_id,
+            thread_id: row.thread_id,
+            subject: row.subject,
+            from_email: row.from_email,
+            to_emails: row.to_emails || [],
+            cc_emails: row.cc_emails || [],
+            body_html: row.body_html || '',
+            snippet: row.snippet,
+            occurred_at: row.occurred_at,
+            is_read: true,
+            has_attachments: false,
+            folder: row.folder,
+          })),
+        });
+      }
+
       const messages = await adapter.listMessages(token, {
         folder,
         query: action === 'search' ? String(body.query || '') : '',
@@ -213,7 +262,29 @@ export default async function (req) {
         result: 'success',
       });
 
+      // A draft that has just been sent must not stay sitting in Drafts.
+      if (body.draftId) {
+        const sentDraft = (
+          await rowsFor(base44, {
+            account_id: account.id,
+            provider_message_id: String(body.draftId),
+            folder: 'drafts',
+          })
+        )[0];
+        if (sentDraft) await base44.asServiceRole.entities.EmployeeMessage.delete(sentDraft.id);
+      }
+
       return Response.json({ success: true, message: messageRow });
+    }
+
+    if (action === 'discardDraft') {
+      const draftId = String(body.draftId || '');
+      if (!draftId) return Response.json({ error: 'draftId is required' }, { status: 400 });
+      const row = (
+        await rowsFor(base44, { account_id: account.id, provider_message_id: draftId, folder: 'drafts' })
+      )[0];
+      if (row) await base44.asServiceRole.entities.EmployeeMessage.delete(row.id);
+      return Response.json({ success: true });
     }
 
     if (action === 'draft') {

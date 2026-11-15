@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,14 +10,25 @@ const gold = '#B8956A';
 
 const blank = { to: '', cc: '', bcc: '', subject: '', html: '' };
 
+const fromDraft = (draft) => ({
+  to: (draft?.to_emails || []).join(', '),
+  cc: (draft?.cc_emails || []).join(', '),
+  bcc: '',
+  subject: draft?.subject === '(no subject)' ? '' : draft?.subject || '',
+  html: draft?.body_html || '',
+});
+
 /**
  * Compose, reply or forward through the employee's own authorized mailbox.
  * Sending and scheduling are separate, explicit actions — a scheduled message is
  * never quietly downgraded to an immediate send, and vice versa.
  */
-export default function EmailComposePanel({ memberId, templates = [], replyTo = null, onSent }) {
+export default function EmailComposePanel({ memberId, templates = [], replyTo = null, draft = null, onSent, onDraftChanged }) {
+  const [draftId, setDraftId] = useState(draft?.provider_message_id || '');
   const [form, setForm] = useState(() =>
-    replyTo
+    draft
+      ? fromDraft(draft)
+      : replyTo
       ? {
           to: replyTo.mode === 'forward' ? '' : replyTo.from_email || '',
           cc: '',
@@ -34,6 +45,16 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [sendAt, setSendAt] = useState('');
   const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [draftBusy, setDraftBusy] = useState(false);
+
+  // Opening a different draft refills the form instead of showing the old text.
+  useEffect(() => {
+    if (!draft?.provider_message_id) return;
+    setDraftId(draft.provider_message_id);
+    setForm(fromDraft(draft));
+    setStatus('');
+    setError('');
+  }, [draft?.provider_message_id]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -72,6 +93,7 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
         subject: form.subject,
         html: form.html,
         attachments,
+        draftId,
       };
       if (replyTo?.mode === 'reply') {
         await empComm.reply({
@@ -90,7 +112,9 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
       setStatus('Sent from your own mailbox.');
       setForm({ ...blank });
       setAttachments([]);
+      setDraftId('');
       onSent?.();
+      onDraftChanged?.();
     } catch (err) {
       setError(err.message || 'The email could not be sent.');
     } finally {
@@ -126,6 +150,53 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
       setError(err.message || 'The email could not be scheduled.');
     } finally {
       setScheduleBusy(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!form.subject.trim() && !form.html.trim() && !form.to.trim()) {
+      setError('Write something before saving a draft.');
+      return;
+    }
+    setDraftBusy(true);
+    setError('');
+    setStatus('');
+    try {
+      const data = await empComm.saveDraft({
+        memberId,
+        draftId,
+        to: form.to,
+        cc: form.cc,
+        subject: form.subject,
+        html: form.html,
+        threadId: replyTo?.thread_id || '',
+      });
+      setDraftId(data?.draft?.provider_message_id || draftId);
+      setStatus('Saved to Drafts.');
+      onDraftChanged?.();
+    } catch (err) {
+      setError(err.message || 'The draft could not be saved.');
+    } finally {
+      setDraftBusy(false);
+    }
+  };
+
+  const discardDraft = async () => {
+    if (!draftId) return;
+    if (!window.confirm('Discard this draft?')) return;
+    setDraftBusy(true);
+    setError('');
+    try {
+      await empComm.discardDraft({ memberId, draftId });
+      setDraftId('');
+      setForm({ ...blank });
+      setAttachments([]);
+      setStatus('Draft discarded.');
+      onDraftChanged?.();
+    } catch (err) {
+      setError(err.message || 'The draft could not be discarded.');
+    } finally {
+      setDraftBusy(false);
     }
   };
 
@@ -213,6 +284,15 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {sending ? 'Sending…' : 'Send now'}
         </Button>
+        <Button variant="outline" onClick={saveDraft} disabled={draftBusy} className="gap-1.5">
+          {draftBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+          Save draft
+        </Button>
+        {draftId && (
+          <Button variant="ghost" onClick={discardDraft} disabled={draftBusy} className="gap-1.5 text-red-600">
+            <X className="h-4 w-4" /> Discard
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setScheduleOpen((prev) => !prev)} className="gap-1.5">
           <Clock className="h-4 w-4" /> Schedule
         </Button>

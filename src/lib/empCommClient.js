@@ -44,6 +44,7 @@ export const empComm = {
   reply: ({ memberId, ...payload }) => call('empMailbox', { action: 'reply', memberId, ...payload }),
   forward: ({ memberId, ...payload }) => call('empMailbox', { action: 'forward', memberId, ...payload }),
   saveDraft: ({ memberId, ...payload }) => call('empMailbox', { action: 'draft', memberId, ...payload }),
+  discardDraft: ({ memberId, draftId }) => call('empMailbox', { action: 'discardDraft', memberId, draftId }),
   archive: ({ memberId, messageId }) => call('empMailbox', { action: 'archive', memberId, messageId }),
   trash: ({ memberId, messageId }) => call('empMailbox', { action: 'trash', memberId, messageId }),
   thread: ({ memberId, threadId }) => call('empMailbox', { action: 'thread', memberId, threadId }),

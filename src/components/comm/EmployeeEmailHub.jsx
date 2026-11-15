@@ -36,6 +36,7 @@ export default function EmployeeEmailHub({ memberId }) {
   const [error, setError] = useState('');
   const [openMessageId, setOpenMessageId] = useState('');
   const [replyTo, setReplyTo] = useState(null);
+  const [draftToEdit, setDraftToEdit] = useState(null);
   const [scheduled, setScheduled] = useState([]);
 
   const connected = connection?.connected === true;
@@ -149,7 +150,12 @@ export default function EmployeeEmailHub({ memberId }) {
           return (
             <button
               key={item.id}
-              onClick={() => { setTab(item.id); setOpenMessageId(''); }}
+              onClick={() => {
+                setTab(item.id);
+                setOpenMessageId('');
+                // A blank Compose tab always starts a new email, never a stale draft.
+                if (item.id === 'compose') { setDraftToEdit(null); setReplyTo(null); }
+              }}
               className="flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition"
               style={{
                 color: tab === item.id ? gold : 'rgba(26,26,26,0.5)',
@@ -202,13 +208,25 @@ export default function EmployeeEmailHub({ memberId }) {
               {messages.map((message) => (
                 <button
                   key={message.id}
-                  onClick={() => setOpenMessageId(message.provider_message_id)}
+                  onClick={() => {
+                    // A saved draft reopens in the composer; there is no provider
+                    // message behind it for the reader to fetch.
+                    if (folder === 'drafts') {
+                      setDraftToEdit(message);
+                      setReplyTo(null);
+                      setTab('compose');
+                      return;
+                    }
+                    setOpenMessageId(message.provider_message_id);
+                  }}
                   className="w-full rounded-lg border p-3 text-left transition hover:opacity-80"
                   style={{ borderColor: 'rgba(184,149,106,0.2)', backgroundColor: message.is_read ? '#fff' : '#FFFBF5' }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 truncate text-sm font-medium" style={{ color: '#1A1A1A' }}>
-                      {folder === 'sent' ? `To: ${(message.to_emails || []).join(', ')}` : message.from_email}
+                      {folder === 'sent' || folder === 'drafts'
+                        ? `To: ${(message.to_emails || []).join(', ') || '—'}`
+                        : message.from_email}
                     </p>
                     <span className="shrink-0 text-[11px]" style={{ color: 'rgba(26,26,26,0.4)' }}>
                       {message.occurred_at ? new Date(message.occurred_at).toLocaleDateString() : ''}
@@ -241,10 +259,13 @@ export default function EmployeeEmailHub({ memberId }) {
 
       {tab === 'compose' && (
         <EmailComposePanel
+          key={draftToEdit?.provider_message_id || (replyTo ? 'reply' : 'new')}
           memberId={memberId}
           templates={templates}
           replyTo={replyTo}
-          onSent={() => { setReplyTo(null); loadMessages('sent'); }}
+          draft={draftToEdit}
+          onSent={() => { setReplyTo(null); setDraftToEdit(null); loadMessages('sent'); }}
+          onDraftChanged={() => loadMessages('drafts')}
         />
       )}
 
