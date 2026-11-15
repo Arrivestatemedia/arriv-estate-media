@@ -17,9 +17,10 @@ export default function ArrivOneCommandDock() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Arriv One AI command"
-        className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#B8956A] text-[#1A1A1A] shadow-lg transition hover:bg-[#A68559] md:bottom-6"
+        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-2 rounded-full bg-[#B8956A] px-4 py-3 text-[#1A1A1A] shadow-lg transition hover:bg-[#A68559] md:bottom-6 md:h-14 md:w-14 md:justify-center md:gap-0 md:px-0 md:py-0"
       >
-        <Mic className="h-6 w-6" />
+        <Mic className="h-6 w-6 shrink-0" />
+        <span className="text-sm font-semibold md:hidden">Ask Arriv</span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

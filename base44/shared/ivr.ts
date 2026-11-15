@@ -36,6 +36,25 @@ export function receivingLine(to: unknown): string {
   return n ? 'other' : '';
 }
 
+/** Arriv-owned lines. Dialing one of these would come straight back into the IVR. */
+const ARRIV_LINE_DIGITS = ['8557654306', '7069128967', '6789408294'];
+
+/**
+ * Where a representative's inbound call should ring: their own cell first.
+ * Their work_phone is often an Arriv Twilio line, and dialing that would loop
+ * the call back into this same IVR, so company lines are skipped.
+ */
+export function repRingDestination(rep: any): string {
+  if (!rep) return '';
+  for (const candidate of [rep.mobile_phone_number, rep.phone_number, rep.work_phone]) {
+    const d = norm(candidate);
+    if (!d) continue;
+    if (ARRIV_LINE_DIGITS.includes(d)) continue;
+    return `+1${d}`;
+  }
+  return '';
+}
+
 /* ───────────────────────── TwiML ───────────────────────── */
 
 export function escapeXml(value: unknown): string {

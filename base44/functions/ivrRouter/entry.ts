@@ -28,6 +28,7 @@ import {
   url,
   e164,
   norm,
+  repRingDestination,
   receivingLine,
   classifyIntent,
   hangup,
@@ -201,7 +202,7 @@ Deno.serve(async (req) => {
       const rep = (caller as any).assigned_rep;
       const repFullName = rep ? rep.full_name || rep.preferred_name || '' : '';
       const repName = String(repFullName).trim().split(/\s+/)[0] || '';
-      const repPhone = rep ? e164(rep.work_phone || rep.phone_number || rep.mobile_phone_number) : '';
+      const repPhone = repRingDestination(rep);
       // A name we cannot pronounce is never spoken: the greeting simply opens
       // with "Hi, thank you for calling Arriv Estate Media..."
       const spokenName = isSpeakableName(caller.first_name)
@@ -300,7 +301,7 @@ Deno.serve(async (req) => {
 
       if (choice === '1') {
         const rep = caller.assigned_rep;
-        const repPhone = rep ? e164(rep.work_phone || rep.phone_number || rep.mobile_phone_number) : '';
+        const repPhone = repRingDestination(rep);
         if (!repPhone) {
           // No Growth Advisor on file — use the configurable sales ring, never invent an assignment.
           return xmlResponse(

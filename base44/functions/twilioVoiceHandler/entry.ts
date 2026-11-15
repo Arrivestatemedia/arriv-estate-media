@@ -433,6 +433,45 @@ Deno.serve(async (req) => {
         }
       }
 
+      // --- Registered sales rep → cellphone dial-out ---
+      // A rep calling from their registered cellphone reaches the sales dial-out
+      // menu on this same number. Placed after owner/admin and active-job routing
+      // so those keep their precedence: only a caller who would otherwise fall
+      // through to the general IVR arrives here. The access number itself is not
+      // changed — the central handler stays the only voice webhook.
+      try {
+        const repCaller = normPhone(from);
+        const identityRows = await base44.asServiceRole.entities.SalesPhoneIdentity.filter({});
+        const identities = Array.isArray(identityRows) ? identityRows : identityRows?.items || [];
+        const repIdentity = repCaller
+          ? identities.find(
+              (i) =>
+                String(i.cellphone || '').replace(/\D/g, '').slice(-10) === repCaller.slice(-10)
+            )
+          : null;
+        if (repIdentity && repIdentity.telephony_status === 'active') {
+          const repMember = await base44.asServiceRole.entities.SalesTeamMember
+            .get(repIdentity.sales_member_id)
+            .catch(() => null);
+          if (repMember && repMember.is_active !== false) {
+            await upsertCall(base44, callSid, {
+              from_number: e164(from),
+              to_number: e164(to),
+              receiving_line: receivingLine(to),
+              caller_name: repMember.full_name || '',
+              route: 'sales_dial_out',
+            });
+            console.log('Registered sales rep inbound → sales dial-out', repMember.full_name);
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect>https://arrivestatemedia.base44.app/functions/ivrSalesDialOut</Redirect>
+</Response>`);
+          }
+        }
+      } catch (e) {
+        console.error('Sales dial-out recognition failed:', e.message);
+      }
+
       // No active job for this caller → hand off to the Arriv IVR.
       // Everything above this line (owner/admin dial-out, active-job Media
       // Specialist and client menus, their press-1 / press-2 behaviour and
