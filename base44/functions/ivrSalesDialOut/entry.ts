@@ -57,6 +57,19 @@ async function readWithRetry(read: () => Promise<any>, attempts = 4, delay = 400
   return null;
 }
 
+/**
+ * Exact-match read that never passes paging options to the entity layer.
+ *
+ * A `{ limit }` options object makes these reads come back empty inside a
+ * backend function, which is what made a live dial-out session look lost on the
+ * second webhook: the session existed, the read just could not see it. Plain
+ * queries are returned whole and narrowed here instead.
+ */
+async function findOne(read: () => Promise<any>) {
+  const rows = listOf(await read().catch(() => []));
+  return rows[0] || null;
+}
+
 /** Recording is never attached to a cellphone sales call, so no disclosure is played. */
 const RECORDING_OFF = true;
 
@@ -68,9 +81,9 @@ async function readBody(req: Request) {
 }
 
 async function persistAttempt(base44: any, payload: any, attemptId: string) {
-  const existing = listOf(
-    await base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId }, { limit: 1 }).catch(() => [])
-  )[0];
+  const existing = await findOne(() =>
+    base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId })
+  );
   if (existing) return existing;
   return await base44.asServiceRole.entities.SalesCallAttempt.create({
     attempt_id: attemptId,
@@ -81,12 +94,9 @@ async function persistAttempt(base44: any, payload: any, attemptId: string) {
 /** Write the attempt into the rep's existing CRM activity history. */
 async function logAttemptActivity(base44: any, attempt: any, outcomeLabel: string) {
   if (!attempt?.attempt_id) return '';
-  const stored = listOf(
-    await base44.asServiceRole.entities.SalesCallAttempt.filter(
-      { attempt_id: attempt.attempt_id },
-      { limit: 1 }
-    ).catch(() => [])
-  )[0];
+  const stored = await findOne(() =>
+    base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attempt.attempt_id })
+  );
   // Idempotent: one activity row per attempt, even if Twilio re-delivers.
   if (attempt.activity_id || stored?.activity_id) return attempt.activity_id || stored.activity_id;
   const destination = attempt.destination || stored?.destination || '';
@@ -94,7 +104,7 @@ async function logAttemptActivity(base44: any, attempt: any, outcomeLabel: strin
   // Exact-match lookup so a lookup never scans the whole contact table.
   const byNormalized = last10
     ? listOf(
-        await base44.asServiceRole.entities.Contact.filter({ phone_normalized: `+1${last10}` }, { limit: 1 }).catch(() => [])
+        await base44.asServiceRole.entities.Contact.filter({ phone_normalized: `+1${last10}` }).catch(() => [])
       )
     : [];
   const contact = byNormalized[0] || null;
@@ -199,7 +209,7 @@ Deno.serve(async (req) => {
       const attemptId = url.searchParams.get('attempt') || '';
       if (attemptId) {
         const attempt = listOf(
-          await base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId }, { limit: 1 }).catch(() => [])
+          await base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId }).catch(() => [])
         )[0];
         const statusMap: Record<string, string> = {
           initiated: 'ringing',
@@ -281,9 +291,17 @@ Deno.serve(async (req) => {
     const deterministicSessionId = requestedSession || sessionIdFor(callSid);
     let session = await readWithRetry(() =>
       requestedSession
-        ? base44.asServiceRole.entities.SalesDialSession.filter({ session_id: requestedSession }, { limit: 1 })
-        : base44.asServiceRole.entities.SalesDialSession.filter({ parent_call_sid: callSid }, { limit: 1 })
+        ? base44.asServiceRole.entities.SalesDialSession.filter({ session_id: requestedSession })
+        : base44.asServiceRole.entities.SalesDialSession.filter({ parent_call_sid: callSid })
     );
+    // A continuation may arrive before the session row is readable by id. Retry
+    // once on the call it belongs to, so a bookkeeping read never drops the rep
+    // back to a dead line mid-session.
+    if (!session && requestedSession && callSid) {
+      session = await readWithRetry(() =>
+        base44.asServiceRole.entities.SalesDialSession.filter({ parent_call_sid: callSid })
+      );
+    }
     if (!session && callSid && !requestedSession) {
       session = await base44.asServiceRole.entities.SalesDialSession.create({
         session_id: sessionIdFor(callSid),
@@ -303,8 +321,28 @@ Deno.serve(async (req) => {
         last_session_at: new Date().toISOString(),
       }).catch(() => {});
     }
-    // A continuation must match a real, active session for this same call and
-    // partner. Never fabricate a session to paper over a failed read.
+    // The caller has already been authorised above (registered cellphone, active
+    // identity, own line, active telephony status). If the session row still
+    // cannot be read, rebuild it for this same call rather than stranding the
+    // rep in silence — the session is bookkeeping for caps and attempt
+    // accounting, never the authorisation itself.
+    if (!session && callSid) {
+      console.warn('[ivrSalesDialOut] session row unreadable — rebuilding for', callSid);
+      session = await base44.asServiceRole.entities.SalesDialSession.create({
+        session_id: sessionIdFor(callSid),
+        rep_id: member.id,
+        rep_name: member.full_name || '',
+        rep_email: member.email || '',
+        parent_call_sid: callSid,
+        access_number: to,
+        cellphone: identity.cellphone,
+        status: 'active',
+        attempt_count: 0,
+        call_sids: [],
+        started_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString(),
+      }).catch(() => null);
+    }
     if (!session) {
       return twiml(say('This dial session is no longer available. Please call your line again.') + hangup());
     }
@@ -465,15 +503,14 @@ Deno.serve(async (req) => {
       const dialStatus = params.DialCallStatus || 'completed';
       const duration = Number(params.DialCallDuration || 0);
       let attempts = listOf(
-        await base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId }, { limit: 1 }).catch(() => [])
+        await base44.asServiceRole.entities.SalesCallAttempt.filter({ attempt_id: attemptId }).catch(() => [])
       );
       if (!attempts[0]) {
         // Fall back to this session's most recent open attempt rather than
         // silently losing the call outcome.
         const sessionAttempts = listOf(
           await base44.asServiceRole.entities.SalesCallAttempt.filter(
-            { session_id: session.session_id },
-            { sort: '-started_at', limit: 10 }
+            { session_id: session.session_id }
           ).catch(() => [])
         );
         attempts = sessionAttempts.filter((a: any) => ['ringing', 'in_progress'].includes(a.status)).slice(0, 1);

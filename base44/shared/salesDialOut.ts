@@ -13,6 +13,8 @@
  *  - Destinations are US/Canada only, NANP-valid, premium-rate blocked.
  */
 
+import { say as sharedSay } from './ivr.ts';
+
 export const DIAL_OUT_DEFAULTS = {
   menu_timeout: 8,
   entry_timeout: 12,
@@ -41,8 +43,16 @@ const esc = (v: any) =>
 
 export const xml = (inner: string) => `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`;
 
+/**
+ * Spoken output for the Media Partner dial-out IVR.
+ *
+ * Every prompt goes through the same Arriv ElevenLabs voice the main business
+ * line uses, so a partner never hears a different voice on their own line. The
+ * shared helper falls back to Twilio speech when no generated audio is
+ * available, so a voice failure is never silence.
+ */
 export function say(text: string, voice = 'Polly.Joanna') {
-  return `<Say voice="${esc(voice)}">${esc(text)}</Say>`;
+  return sharedSay(text, voice);
 }
 
 export function hangup() {
