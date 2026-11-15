@@ -1,0 +1,110 @@
+{
+  "name": "EmployeeCalendarEvent",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "sales_member_id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "microsoft"
+      ]
+    },
+    "provider_event_id": {
+      "type": "string",
+      "description": "Deduplication key with account_id"
+    },
+    "calendar_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "start_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
+    "attendees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "response_status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "confirmed, tentative, cancelled"
+    },
+    "html_link": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "organizer_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "account_id",
+    "sales_member_id",
+    "provider",
+    "provider_event_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

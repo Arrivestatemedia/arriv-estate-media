@@ -26,6 +26,7 @@ import {
   normalizePhone,
   parseExtensionAndNumber,
   checkDestination,
+  checkDialOutLine,
   resolveIdentity,
   say,
   gather,
@@ -56,8 +57,8 @@ async function readWithRetry(read: () => Promise<any>, attempts = 4, delay = 400
   return null;
 }
 
-const DISCLOSURE =
-  'This call is being recorded for quality and training. If you would prefer not to be recorded, please tell the Arriv representative now.';
+/** Recording is never attached to a cellphone sales call, so no disclosure is played. */
+const RECORDING_OFF = true;
 
 async function readBody(req: Request) {
   const raw = await req.text();
@@ -89,11 +90,14 @@ async function logAttemptActivity(base44: any, attempt: any, outcomeLabel: strin
   // Idempotent: one activity row per attempt, even if Twilio re-delivers.
   if (attempt.activity_id || stored?.activity_id) return attempt.activity_id || stored.activity_id;
   const destination = attempt.destination || stored?.destination || '';
-  const contacts = listOf(
-    await base44.asServiceRole.entities.Contact.filter({}, { limit: 500 }).catch(() => [])
-  );
   const last10 = String(destination || '').replace(/\D/g, '').slice(-10);
-  const contact = contacts.find((c: any) => String(c.phone || '').replace(/\D/g, '').slice(-10) === last10) || null;
+  // Exact-match lookup so a lookup never scans the whole contact table.
+  const byNormalized = last10
+    ? listOf(
+        await base44.asServiceRole.entities.Contact.filter({ phone_normalized: `+1${last10}` }, { limit: 1 }).catch(() => [])
+      )
+    : [];
+  const contact = byNormalized[0] || null;
   const minutes = Math.max(0, Math.round((Number(attempt.duration_seconds || 0) / 60) * 10) / 10);
   const log = await base44.asServiceRole.entities.ActivityLog.create({
     activity_type: 'call',
@@ -215,9 +219,9 @@ Deno.serve(async (req) => {
       return new Response('', { status: 204 });
     }
 
-    // --- whisper played to the prospect when recording is enabled -----------
+    // These calls are never recorded, so no disclosure is played.
     if (stage === 'disclosure') {
-      return twiml(say(DISCLOSURE, voice));
+      return twiml(say('', voice));
     }
 
     // --- resolve who is calling ---------------------------------------------
@@ -238,6 +242,21 @@ Deno.serve(async (req) => {
     const { identity, member } = resolved;
     if (!member || member.is_active === false) {
       return twiml(say('This sales account is not active. Please contact your administrator.') + hangup());
+    }
+
+    // The session belongs to one individual Media Partner line. The number that
+    // was dialed must be that partner's own assigned number on both the employee
+    // account and the telephony identity — a redirect alone proves nothing.
+    const lineError = checkDialOutLine(url.searchParams.get('line') || to, member, identity);
+    if (lineError) {
+      await base44.asServiceRole.entities.IvrAuditLog.create({
+        action: 'sales_dial_out_wrong_line',
+        target_type: 'sales_phone_identity',
+        target_key: identity.id,
+        summary: `${lineError} (dialed ${to || 'unknown'})`,
+        at: new Date().toISOString(),
+      }).catch(() => {});
+      return twiml(say(lineError) + hangup());
     }
     if (identity.telephony_status !== 'active') {
       await base44.asServiceRole.entities.IvrAuditLog.create({
@@ -284,20 +303,16 @@ Deno.serve(async (req) => {
         last_session_at: new Date().toISOString(),
       }).catch(() => {});
     }
-    if (!session && requestedSession) {
-      // The session row is durable; this read simply has not caught up. Carry on
-      // with the stable id so the rep is never dropped mid-call.
-      session = {
-        session_id: deterministicSessionId,
-        rep_id: member.id,
-        attempt_count: 0,
-        call_sids: [],
-        minutes_used: 0,
-        status: 'active',
-      };
-    }
+    // A continuation must match a real, active session for this same call and
+    // partner. Never fabricate a session to paper over a failed read.
     if (!session) {
-      return twiml(say('This session could not be started. Please call again.') + hangup());
+      return twiml(say('This dial session is no longer available. Please call your line again.') + hangup());
+    }
+    if (session.rep_id && session.rep_id !== member.id) {
+      return twiml(say('This dial session does not belong to your account.') + hangup());
+    }
+    if (callSid && session.parent_call_sid && session.parent_call_sid !== callSid) {
+      return twiml(say('This dial session has ended. Please call your line again.') + hangup());
     }
     if (session.status !== 'active') {
       return twiml(say('This dial session has ended. Please call the access number again.') + hangup());
@@ -392,33 +407,10 @@ Deno.serve(async (req) => {
         return twiml(say(capError, voice) + hangup());
       }
 
-      // Consent gate: when recording is switched on, the rep must attest before
-      // the call is placed. Declining simply dials without recording.
-      let consent = String(url.searchParams.get('consent') || '');
-      if (settings.recording_enabled === true && !consent) {
-        const consentAction = withActionUrl(base, {
-          stage: 'dial',
-          session: session.session_id,
-          dest: parsed.destination,
-          consent: 'pending',
-        });
-        return twiml(
-          gather(
-            consentAction,
-            'Recording is enabled. If you have this prospect’s consent to record, press 1. To call without recording, press 2.',
-            { voice, timeout: 10 }
-          )
-        );
-      }
-      const digitsNow = String(params.Digits || '');
-      if (consent === 'pending') {
-        consent = digitsNow === '1' ? 'consented' : 'declined';
-        if (digitsNow !== '1' && digitsNow !== '2') {
-          return twiml(say(settings.dial_out_bad_entry_text, voice) + gather(entryAction, settings.dial_out_prompt, { voice }));
-        }
-      }
+      // Recording is off for cellphone sales calling, so there is no consent gate
+      // and no recording instruction is ever attached to the prospect leg.
       const finalDestination = normalizePhone(url.searchParams.get('dest') || '') || parsed.destination;
-      const consentValue = consent === 'consented' ? 'consented' : consent === 'declined' ? 'declined' : 'not_asked';
+      const consentValue = 'not_asked';
 
       const index = Number(session.attempt_count || 0) + 1;
       const attemptId = attemptIdFor(callSid, index);
@@ -433,9 +425,6 @@ Deno.serve(async (req) => {
         status: 'ringing',
         started_at: new Date().toISOString(),
         recording_consent: consentValue,
-        ...(consentValue === 'consented'
-          ? { consent_method: 'rep_attested', consent_at: new Date().toISOString(), recording_status: 'requested' }
-          : {}),
       }, attemptId);
 
       await patchSession({
@@ -456,22 +445,16 @@ Deno.serve(async (req) => {
         attempt: attemptId,
       });
 
-      const recordOn = settings.recording_enabled === true && consentValue === 'consented';
-
       return twiml(
         dialTwiml({
           destination: finalDestination,
           callerId: identity.caller_id_number,
           actionUrl: afterAction,
           statusCallbackUrl: attemptStatusUrl,
-          timeoutSeconds: Math.min(Number(settings.per_call_minutes_cap || 45) * 60, 120),
-          discloseUrl: withActionUrl(base, { stage: 'disclosure', session: session.session_id }),
-          record: recordOn ? 'record-from-answer' : '',
-          recordingCallbackUrl: withActionUrl(base, {
-            stage: 'recordingStatus',
-            session: session.session_id,
-            attempt: attemptId,
-          }),
+          // Ring timeout only. Connected-call length is governed by the daily and
+          // monthly usage caps, never by the per-call setting.
+          timeoutSeconds: 35,
+          record: '',
         })
       );
     }
@@ -530,6 +513,14 @@ Deno.serve(async (req) => {
         await patchSession({
           minutes_used: Math.round((Number(session.minutes_used || 0) + duration / 60) * 10) / 10,
           last_activity_at: new Date().toISOString(),
+        }).catch(() => {});
+        // Usage is accounted to the partner who placed the call, resetting the
+        // monthly counter when the calendar month changes.
+        const key = periodKey();
+        const usedBefore = identity.period_key === key ? Number(identity.minutes_used_this_period || 0) : 0;
+        await base44.asServiceRole.entities.SalesPhoneIdentity.update(identity.id, {
+          minutes_used_this_period: Math.round((usedBefore + duration / 60) * 10) / 10,
+          period_key: key,
         }).catch(() => {});
       }
       return twiml(

@@ -117,7 +117,7 @@ export function dialTwiml(options: any) {
     discloseUrl,
     record,
   } = options;
-  const inner = `<Number url="${esc(discloseUrl)}" statusCallback="${esc(statusCallbackUrl)}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${esc(destination)}</Number>`;
+  const inner = `<Number${discloseUrl ? ` url="${esc(discloseUrl)}"` : ''} statusCallback="${esc(statusCallbackUrl)}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${esc(destination)}</Number>`;
   return xml(
     `<Dial callerId="${esc(callerId)}" answerOnBridge="true" timeout="${Number(timeoutSeconds || 30)}" action="${esc(actionUrl)}" method="POST"${
       record ? ` record="${esc(record)}" recordingStatusCallback="${esc(options.recordingCallbackUrl || '')}" recordingStatusCallbackEvent="completed"` : ''
@@ -132,6 +132,28 @@ export function withActionUrl(base: string, params: Record<string, string>) {
   }
   return url.toString();
 }
+
+/**
+ * The individual Media Partner line a session is being started on.
+ *
+ * A partner may only ever dial out from their OWN assigned business number: the
+ * number dialed, the number stored on the employee account and the caller ID on
+ * their telephony identity must all be the same, and it may never be a shared
+ * company line. Returns a plain reason when the line is not theirs.
+ */
+export function checkDialOutLine(line: any, member: any, identity: any) {
+  const dialed = normalizePhone(line);
+  if (!dialed) return 'This line is not a Media Partner line.';
+  if (dialed === '+18557654306') return 'The 855 number is the main company line, not a Media Partner line.';
+  const owned = normalizePhone(member?.twilio_phone_number);
+  const callerId = normalizePhone(identity?.caller_id_number);
+  if (!owned || owned !== dialed) return 'This number is not assigned to you.';
+  if (!callerId || callerId !== dialed) return 'This line is not linked to your telephony identity.';
+  return null;
+}
+
+/** The company lines that must never expose a personal sales menu. */
+export const COMPANY_LINES = ['+18557654306', '+17069128967'];
 
 export const attemptIdFor = (callSid: string, index: number) =>
   `sat_${String(callSid || '').replace(/[^A-Za-z0-9]/g, '').slice(-18)}_${index}`;

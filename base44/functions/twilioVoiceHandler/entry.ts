@@ -2,7 +2,19 @@ import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
-import { say, e164, receivingLine, upsertCall } from '../../shared/ivr.ts';
+import {
+  say,
+  e164,
+  norm,
+  receivingLine,
+  upsertCall,
+  recognizeCaller,
+  repRingDestination,
+  isSpeakableName,
+} from '../../shared/ivr.ts';
+
+const APP_BASE = 'https://arrivestatemedia.base44.app';
+const listOf = (v: any) => (Array.isArray(v) ? v : v?.items || []);
 import {
   loadProduction,
   ownerMenuPlan,
@@ -181,9 +193,8 @@ Deno.serve(async (req) => {
       // over all other inbound routing for authorized callers only.
       const normPhone = (n) => {
         if (!n) return '';
-        let d = String(n).replace(/\D/g, '');
-        if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
-        return d;
+        const digitsOnly = String(n).replace(/\D/g, '');
+        return digitsOnly.length === 11 && digitsOnly.startsWith('1') ? digitsOnly.slice(1) : digitsOnly;
       };
       const callerNormAdmin = normPhone(from);
       // Owner-line rules configured in Arriv Call Center are read here, so an
@@ -433,43 +444,91 @@ Deno.serve(async (req) => {
         }
       }
 
-      // --- Registered sales rep → cellphone dial-out ---
-      // A rep calling from their registered cellphone reaches the sales dial-out
-      // menu on this same number. Placed after owner/admin and active-job routing
-      // so those keep their precedence: only a caller who would otherwise fall
-      // through to the general IVR arrives here. The access number itself is not
-      // changed — the central handler stays the only voice webhook.
-      try {
-        const repCaller = normPhone(from);
-        const identityRows = await base44.asServiceRole.entities.SalesPhoneIdentity.filter({});
-        const identities = Array.isArray(identityRows) ? identityRows : identityRows?.items || [];
-        const repIdentity = repCaller
-          ? identities.find(
-              (i) =>
-                String(i.cellphone || '').replace(/\D/g, '').slice(-10) === repCaller.slice(-10)
-            )
-          : null;
-        if (repIdentity && repIdentity.telephony_status === 'active') {
-          const repMember = await base44.asServiceRole.entities.SalesTeamMember
-            .get(repIdentity.sales_member_id)
-            .catch(() => null);
-          if (repMember && repMember.is_active !== false) {
-            await upsertCall(base44, callSid, {
-              from_number: e164(from),
-              to_number: e164(to),
-              receiving_line: receivingLine(to),
-              caller_name: repMember.full_name || '',
-              route: 'sales_dial_out',
-            });
-            console.log('Registered sales rep inbound → sales dial-out', repMember.full_name);
-            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      // --- Individual Media Partner line ---
+      // This runs only for a number that is assigned to one Media Partner. The
+      // 855 and 706 company lines never expose a personal sales menu, so a
+      // partner calling the main line gets ordinary company routing. Everything
+      // here is decided from the number that was actually dialed, and the
+      // original dialed number is preserved on the call record.
+      const lineDigits = norm(to);
+      const companyLines = [norm(Deno.env.get('TWILIO_PHONE_NUMBER')), '8557654306', '7069128967'];
+      if (lineDigits && !companyLines.includes(lineDigits)) {
+        try {
+          const allMembers = listOf(await base44.asServiceRole.entities.SalesTeamMember.filter({}));
+          const lineOwner = allMembers.find((m) => norm(m.twilio_phone_number) === lineDigits) || null;
+
+          if (lineOwner) {
+            const ownerIdentities = listOf(
+              await base44.asServiceRole.entities.SalesPhoneIdentity.filter({ sales_member_id: lineOwner.id })
+            );
+            const ownerIdentity =
+              ownerIdentities.find((i) => norm(i.caller_id_number) === lineDigits) || null;
+            const fromRegisteredCell =
+              !!ownerIdentity &&
+              ownerIdentity.telephony_status === 'active' &&
+              lineOwner.is_active !== false &&
+              normPhone(from) === norm(ownerIdentity.cellphone);
+
+            if (fromRegisteredCell) {
+              await upsertCall(base44, callSid, {
+                from_number: e164(from),
+                to_number: e164(to),
+                receiving_line: receivingLine(to),
+                caller_name: lineOwner.full_name || '',
+                route: 'sales_dial_out',
+              });
+              console.log('Media Partner cellphone on own line → dial-out', lineOwner.full_name);
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Redirect>https://arrivestatemedia.base44.app/functions/ivrSalesDialOut</Redirect>
+  <Redirect method="POST">${APP_BASE}/functions/ivrSalesDialOut?line=${encodeURIComponent(e164(to))}</Redirect>
 </Response>`);
+            }
+
+            // Anyone else on this number is calling the partner's business line.
+            // Recognition only selects the greeting; it never unlocks anything.
+            const recognized = await recognizeCaller(base44, from);
+            const isRelationshipCall = ['prospect', 'client', 'b2b_client'].includes(
+              String(recognized.type || '')
+            );
+
+            if (isRelationshipCall) {
+              const rep = (recognized as any).assigned_rep || lineOwner;
+              const repDestination = repRingDestination(rep) || repRingDestination(lineOwner);
+              const repName = String(rep?.full_name || lineOwner.full_name || '').trim();
+              const spoken = isSpeakableName(repName)
+                ? `Please hold while we connect you to your Media Partner, ${repName}.`
+                : 'Please hold while we connect you to your Media Partner.';
+
+              await upsertCall(base44, callSid, {
+                from_number: e164(from),
+                to_number: e164(to),
+                receiving_line: receivingLine(to),
+                caller_name: recognized.name || '',
+                caller_type: recognized.type,
+                assigned_rep_name: repName,
+                route: 'partner_line_callback',
+              });
+
+              if (!repDestination) {
+                return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${say(spoken)}
+  <Redirect method="POST">${APP_BASE}/functions/ivrSalesRing</Redirect>
+</Response>`);
+              }
+
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${say(spoken)}
+  <Dial callerId="${e164(to)}" answerOnBridge="true" timeout="35">
+    <Number>${repDestination}</Number>
+  </Dial>
+</Response>`);
+            }
           }
+        } catch (e) {
+          console.error('Media Partner line routing failed:', e.message);
         }
-      } catch (e) {
-        console.error('Sales dial-out recognition failed:', e.message);
       }
 
       // No active job for this caller → hand off to the Arriv IVR.

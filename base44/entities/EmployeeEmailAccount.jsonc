@@ -1,0 +1,122 @@
+{
+  "name": "EmployeeEmailAccount",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Company this mailbox belongs to",
+      "default": "tnt_estate_media"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Employee (SalesTeamMember id) who owns this mailbox"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "microsoft"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Provider adapter key"
+    },
+    "email_address": {
+      "type": "string",
+      "description": "Mailbox address returned by the provider, never typed in by hand"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "pending",
+        "error",
+        "revoked"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "red",
+        "gray"
+      ],
+      "default": "pending"
+    },
+    "scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Scopes actually granted by the provider"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "Server-only. Never exposed to the browser."
+    },
+    "refresh_token": {
+      "type": "string",
+      "description": "Server-only. Never exposed to the browser."
+    },
+    "token_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mail_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "calendar_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "last_sync_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "connected_by": {
+      "type": "string"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "sales_member_id",
+    "provider"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

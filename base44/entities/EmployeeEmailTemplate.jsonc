@@ -1,0 +1,82 @@
+{
+  "name": "EmployeeEmailTemplate",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "company",
+        "personal"
+      ],
+      "enumColors": [
+        "blue",
+        "gray"
+      ],
+      "default": "personal"
+    },
+    "owner_member_id": {
+      "type": "string",
+      "description": "Empty for company templates"
+    },
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body_html": {
+      "type": "string"
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "scope",
+    "name",
+    "subject"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

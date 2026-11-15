@@ -1,0 +1,133 @@
+{
+  "name": "EmployeeScheduledMessage",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "sales_member_id": {
+      "type": "string"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "microsoft"
+      ]
+    },
+    "to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cc_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "bcc_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body_html": {
+      "type": "string"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "thread_id": {
+      "type": "string"
+    },
+    "in_reply_to": {
+      "type": "string"
+    },
+    "references": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "send_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sending",
+        "sent",
+        "failed",
+        "cancelled"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "pending"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0
+    },
+    "provider_message_id": {
+      "type": "string"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "sales_member_id",
+    "send_at",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "name": "EmployeeCommAudit",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "actor_member_id": {
+      "type": "string"
+    },
+    "actor_email": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "description": "connect, disconnect, refresh_failed, send, reply, forward, schedule, cancel_schedule, event_create, event_update, event_cancel, template_save, template_delete"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "denied",
+        "error"
+      ],
+      "enumColors": [
+        "green",
+        "gray",
+        "red"
+      ]
+    },
+    "detail": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "action",
+    "result"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

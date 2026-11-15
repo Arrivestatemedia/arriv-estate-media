@@ -18,9 +18,9 @@ export default function SalesRepMicrosoftAuthCallback() {
           return;
         }
 
-        await base44.functions.invoke('exchangeSalesRepMicrosoftAuthCode', { code, state });
+        await base44.functions.invoke('empMailOAuth', { action: 'callback', code, state });
         setStatus('success');
-        setTimeout(() => { window.location.href = '/AdminSalesSignup'; }, 2000);
+        setTimeout(() => { window.location.href = '/HubSpotActivityLog?tab=email'; }, 1800);
       } catch (err) {
         setError(err.message);
         setStatus('error');

@@ -22,6 +22,20 @@ Deno.serve(async (req) => {
 
     if (!callSid) return new Response('ok', { status: 200 });
 
+    // A cellphone sales session lives inside this parent call. This number-level
+    // callback is the only place that reliably learns the partner hung up, so any
+    // terminal status closes the whole session and its open attempt.
+    if (['completed', 'busy', 'failed', 'no-answer', 'canceled'].includes(status)) {
+      await base44.asServiceRole.entities.SalesDialSession.updateMany(
+        { parent_call_sid: callSid, status: 'active' },
+        { $set: { status: 'ended', ended_at: new Date().toISOString(), termination_reason: `parent_${status}` } }
+      ).catch(() => {});
+      await base44.asServiceRole.entities.SalesCallAttempt.updateMany(
+        { session_id: { $exists: true }, status: { $in: ['ringing', 'in_progress'] }, call_sid: callSid },
+        { $set: { status: 'failed', ended_at: new Date().toISOString(), disconnect_reason: `parent_${status}` } }
+      ).catch(() => {});
+    }
+
     if (status !== 'completed') {
       return new Response('ok', { status: 200 });
     }

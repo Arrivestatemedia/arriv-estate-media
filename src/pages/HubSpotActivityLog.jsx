@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Eye, EyeOff, Sparkles, Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { format } from "date-fns";
-import EmailComposer from "@/components/sales/EmailComposer";
+import EmployeeEmailHub from "@/components/comm/EmployeeEmailHub";
 import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
@@ -845,7 +845,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
         {activeTab === "email" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
-              <EmailComposer salesMemberId={user?.id} isAdmin={user?.role === 'admin'} />
+              <EmployeeEmailHub memberId={user?.id} />
             </CardContent>
           </Card>
         )}

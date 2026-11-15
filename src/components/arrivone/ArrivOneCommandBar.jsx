@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { arrivOne, uploadVoiceCommand } from '@/lib/arrivOneClient';
+import { empComm } from '@/lib/empCommClient';
 import CommandReviewSheet from '@/components/arrivone/CommandReviewSheet';
 
 /**
@@ -19,6 +20,9 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
   const [execution, setExecution] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState('');
+  const [comm, setComm] = useState(null);
+  const [commBusy, setCommBusy] = useState('');
+  const [commProposal, setCommProposal] = useState(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
@@ -76,11 +80,32 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
     }
   };
 
+  // One panel, two capabilities: CRM writes keep their review sheet, while an
+  // email or calendar request comes back as a proposal that must be confirmed.
+  const COMM_PATTERN = /\b(e-?mail|inbox|meeting|calendar|schedule|invite|availability|reply|forward)\b/i;
+
   const interpret = async () => {
     const command = text.trim();
     if (!command) return;
-    setInterpreting(true);
     setError('');
+    setComm(null);
+    setCommProposal(null);
+
+    if (COMM_PATTERN.test(command)) {
+      setInterpreting(true);
+      try {
+        const data = await empComm.comm(command);
+        setComm(data);
+        if (data.needs_confirmation) setCommProposal({ ...(data.proposal || {}) });
+      } catch (err) {
+        setError(err.message || 'Arriv One could not reach your mailbox.');
+      } finally {
+        setInterpreting(false);
+      }
+      return;
+    }
+
+    setInterpreting(true);
     try {
       const data = await arrivOne.interpret({ text: command, source: 'text' });
       setExecution(data.execution);
@@ -89,6 +114,51 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
       setError(err.message || 'Arriv One could not read that command.');
     } finally {
       setInterpreting(false);
+    }
+  };
+
+  const confirmComm = async () => {
+    if (!commProposal) return;
+    setCommBusy('send');
+    setError('');
+    try {
+      if (commProposal.kind === 'meeting') {
+        await empComm.createEvent({
+          title: commProposal.title,
+          description: '',
+          location: '',
+          start_at: commProposal.start_at,
+          end_at: commProposal.end_at,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+          attendees: commProposal.attendees || [],
+          confirmed: true,
+        });
+        toast.success('Meeting created on your calendar');
+      } else if (comm?.intent === 'email_schedule' && commProposal.send_at) {
+        await empComm.schedule({
+          to: commProposal.to,
+          subject: commProposal.subject,
+          html: commProposal.html,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+          send_at: commProposal.send_at,
+        });
+        toast.success('Email scheduled from your mailbox');
+      } else {
+        await empComm.send({
+          to: commProposal.to,
+          subject: commProposal.subject,
+          html: commProposal.html,
+        });
+        toast.success('Email sent from your mailbox');
+      }
+      setComm(null);
+      setCommProposal(null);
+      setText('');
+      onApplied?.({});
+    } catch (err) {
+      setError(err.message || 'That action could not be completed.');
+    } finally {
+      setCommBusy('');
     }
   };
 
@@ -151,6 +221,80 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
         <p className={`mt-2 text-xs ${error ? 'text-red-600' : 'text-[#1A1A1A]/50'}`}>
           {error || 'Transcribing your command…'}
         </p>
+      )}
+
+      {comm && (
+        <div className="mt-3 space-y-2 rounded-xl border border-[#B8956A]/30 bg-[#FFFBF5] p-3">
+          {comm.read_only && (
+            <>
+              <p className="text-xs font-medium text-[#1A1A1A]">{comm.summary}</p>
+              <div className="max-h-48 space-y-1 overflow-y-auto">
+                {(comm.messages || []).map((row, index) => (
+                  <div key={index} className="rounded border border-[#1A1A1A]/10 bg-white p-2 text-[11px] text-[#1A1A1A]">
+                    <p className="font-medium">{row.subject}</p>
+                    <p className="text-[#1A1A1A]/55">{row.from || row.to} · {row.snippet}</p>
+                  </div>
+                ))}
+                {(comm.events || []).map((row, index) => (
+                  <div key={index} className="rounded border border-[#1A1A1A]/10 bg-white p-2 text-[11px] text-[#1A1A1A]">
+                    <p className="font-medium">{row.title}</p>
+                    <p className="text-[#1A1A1A]/55">{row.start_at ? new Date(row.start_at).toLocaleString() : ''}</p>
+                  </div>
+                ))}
+              </div>
+              <Button size="sm" variant="outline" onClick={() => { setComm(null); setCommProposal(null); }}>Close</Button>
+            </>
+          )}
+
+          {comm.needs_confirmation && commProposal && (
+            <>
+              <p className="text-xs font-medium text-[#1A1A1A]">
+                {commProposal.kind === 'meeting' ? 'Review this invitation' : 'Review this email'}
+              </p>
+              {commProposal.kind === 'meeting' ? (
+                <div className="space-y-2 text-[11px] text-[#1A1A1A]">
+                  <Input value={commProposal.title} onChange={(event) => setCommProposal({ ...commProposal, title: event.target.value })} placeholder="Meeting title" className="h-9 bg-white text-sm" />
+                  <p className="text-[#1A1A1A]/60">
+                    {commProposal.start_at ? new Date(commProposal.start_at).toLocaleString() : 'Time not understood'} ·{' '}
+                    {(commProposal.attendees || []).join(', ') || 'no verified attendee'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input value={commProposal.to} onChange={(event) => setCommProposal({ ...commProposal, to: event.target.value })} placeholder="Recipient" className="h-9 bg-white text-sm" />
+                  <Input value={commProposal.subject} onChange={(event) => setCommProposal({ ...commProposal, subject: event.target.value })} placeholder="Subject" className="h-9 bg-white text-sm" />
+                  <textarea
+                    value={commProposal.html}
+                    onChange={(event) => setCommProposal({ ...commProposal, html: event.target.value })}
+                    rows={5}
+                    className="w-full rounded-md border border-[#1A1A1A]/15 bg-white p-2 text-sm text-[#1A1A1A]"
+                    placeholder="Message"
+                  />
+                </div>
+              )}
+              {(comm.warnings || []).length > 0 && (
+                <ul className="space-y-1">
+                  {comm.warnings.map((warning, index) => (
+                    <li key={index} className="text-[11px] text-amber-800">• {warning}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={confirmComm} disabled={!!commBusy} className="bg-[#B8956A] text-[#1A1A1A]">
+                  {commBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : commProposal.kind === 'meeting' ? 'Confirm & invite' : comm?.intent === 'email_schedule' ? 'Confirm & schedule' : 'Confirm & send'}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setComm(null); setCommProposal(null); }} disabled={!!commBusy}>Cancel</Button>
+              </div>
+            </>
+          )}
+
+          {!comm.read_only && !comm.needs_confirmation && (
+            <>
+              <p className="text-xs text-[#1A1A1A]/70">{comm.summary || 'No email or calendar action was recognised.'}</p>
+              <Button size="sm" variant="outline" onClick={() => setComm(null)}>Close</Button>
+            </>
+          )}
+        </div>
       )}
 
       <CommandReviewSheet

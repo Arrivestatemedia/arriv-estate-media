@@ -1,0 +1,147 @@
+{
+  "name": "EmployeeMessage",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "sales_member_id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "microsoft"
+      ]
+    },
+    "provider_message_id": {
+      "type": "string",
+      "description": "Deduplication key with account_id"
+    },
+    "thread_id": {
+      "type": "string"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "folder": {
+      "type": "string",
+      "description": "inbox, sent, drafts, archive, trash"
+    },
+    "from_email": {
+      "type": "string"
+    },
+    "from_name": {
+      "type": "string"
+    },
+    "to_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cc_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "subject": {
+      "type": "string"
+    },
+    "snippet": {
+      "type": "string"
+    },
+    "body_html": {
+      "type": "string"
+    },
+    "body_text": {
+      "type": "string"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false
+    },
+    "has_attachments": {
+      "type": "boolean",
+      "default": false
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "crm_logged": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "tenant_id",
+    "account_id",
+    "sales_member_id",
+    "provider",
+    "provider_message_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
