@@ -166,19 +166,19 @@ export default function AdminSalesSignup() {
             </CardContent>
           </Card>
         )}
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Team Management</h1>
-        <p className="text-gray-600 mb-8">Add and manage sales team members</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Media Partner Management</h1>
+        <p className="text-gray-600 mb-8">Add and manage Media Partners</p>
         <div className="flex justify-end mb-8">
            <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setFormData({ email: "", full_name: "", phone_number: "", password: "" }); }}>
             <DialogTrigger asChild>
               <Button className="gap-2" onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4" />
-                Add Sales Member
+                Add Media Partner
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Add New Sales Team Member</DialogTitle>
+                <DialogTitle>Add New Media Partner</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -306,7 +306,7 @@ export default function AdminSalesSignup() {
       <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Sales Member</DialogTitle>
+            <DialogTitle>Edit Media Partner</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>

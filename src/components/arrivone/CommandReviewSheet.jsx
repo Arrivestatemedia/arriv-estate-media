@@ -67,7 +67,7 @@ export default function CommandReviewSheet({ open, onClose, execution, onApplied
 
   return (
     <Sheet open={open} onOpenChange={(value) => !value && onClose?.()}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl bg-white">
+      <SheetContent side="bottom" overlayClassName="z-[10030]" className="z-[10031] max-h-[92dvh] overflow-y-auto rounded-t-2xl bg-white">
         <SheetHeader className="text-left">
           <SheetTitle className="font-serif text-xl text-[#1A1A1A]">
             {result ? 'Saved' : 'Review before saving'}

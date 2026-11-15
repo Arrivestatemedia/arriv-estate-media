@@ -2,12 +2,14 @@
  * Presentation-only role titles (server mirror of src/lib/roleTitles.js).
  *
  *   Internal role                     Internal title     Customer-facing title
- *   growth_advisor (SalesTeamMember)  Growth Advisor     Media Partner
- *   media_partner (contractor)        Media Partner      Media Specialist
+ *   growth_advisor (SalesTeamMember)  Media Partner      Media Partner
+ *   media_partner (legacy contractor key) Media Specialist Media Specialist
  *
  * Used only to word automated customer messages. Never used for permissions,
  * ownership, commissions or assignment decisions.
  */
+
+export const AI_ROLE_TERMINOLOGY = `Media Partner, sales rep, sales representative and Growth Advisor all mean the SALES role: prospecting, customer relationships, bookings and sales commissions. Media Specialist means a PHOTOGRAPHY, VIDEO or PRODUCTION contractor, never a sales representative. Use these titles consistently in summaries, responses and generated follow-up tasks. Do not infer an assignment or a person's role without evidence. Legacy stored identifiers are not spoken role labels.`;
 
 export const INTERNAL_ROLES = {
   GROWTH_ADVISOR: 'growth_advisor',
@@ -15,8 +17,8 @@ export const INTERNAL_ROLES = {
 };
 
 export const INTERNAL_TITLES: Record<string, string> = {
-  [INTERNAL_ROLES.GROWTH_ADVISOR]: 'Growth Advisor',
-  [INTERNAL_ROLES.MEDIA_PARTNER]: 'Media Partner',
+  [INTERNAL_ROLES.GROWTH_ADVISOR]: 'Media Partner',
+  [INTERNAL_ROLES.MEDIA_PARTNER]: 'Media Specialist',
 };
 
 export const CUSTOMER_TITLES: Record<string, string> = {

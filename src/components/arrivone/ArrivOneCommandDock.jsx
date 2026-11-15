@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Mic } from 'lucide-react';
 import ArrivOneCommandBar from '@/components/arrivone/ArrivOneCommandBar';
@@ -10,21 +11,26 @@ import ArrivOneCommandBar from '@/components/arrivone/ArrivOneCommandBar';
  */
 export default function ArrivOneCommandDock() {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener('arriv:open-command', show);
+    return () => window.removeEventListener('arriv:open-command', show);
+  }, []);
 
-  return (
+  return createPortal(
     <>
-      <button
+      {!open && <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Arriv One AI command"
-        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-2 rounded-full bg-[#B8956A] px-4 py-3 text-[#1A1A1A] shadow-lg transition hover:bg-[#A68559] md:bottom-6 md:h-14 md:w-14 md:justify-center md:gap-0 md:px-0 md:py-0"
+        className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[10010] flex items-center gap-2 rounded-full bg-[#B8956A] px-4 py-3 text-[#1A1A1A] shadow-lg transition hover:bg-[#A68559] md:bottom-6 md:h-14 md:w-14 md:justify-center md:gap-0 md:px-0 md:py-0"
       >
         <Mic className="h-6 w-6 shrink-0" />
         <span className="text-sm font-semibold md:hidden">Ask Arriv</span>
-      </button>
+      </button>}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg bg-[#FFFBF5] p-4">
+        <DialogContent overlayClassName="z-[10020]" className="z-[10021] max-h-[85dvh] max-w-lg overflow-y-auto bg-[#FFFBF5] p-4">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl text-[#1A1A1A]">Arriv One AI Command</DialogTitle>
           </DialogHeader>
@@ -38,6 +44,6 @@ export default function ArrivOneCommandDock() {
           </p>
         </DialogContent>
       </Dialog>
-    </>
+    </>, document.body
   );
 }

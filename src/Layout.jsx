@@ -4,7 +4,7 @@ import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
 import { getCustomerSessionToken, redirectIfSessionExpired } from '@/lib/customerSession';
 import { loadCustomerAccount } from '@/lib/customerAccount';
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail, GraduationCap, Phone, PhoneIncoming, Building2, ImageIcon, Inbox, Megaphone, MessageSquare } from "lucide-react";
+import { Mic, Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail, GraduationCap, Phone, PhoneIncoming, Building2, ImageIcon, Inbox, Megaphone, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -215,8 +215,8 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Training Admin", page: "SalesTrainingAdmin", icon: Shield },
             { label: "Simulation Lab", page: "TrainingSimulation", icon: GraduationCap },
             { label: "Discount Approvals", page: "DiscountApprovalPage", icon: Tag },
-            { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
-            { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
+            { label: "Media Partners", page: "AdminSalesSignup", icon: FileText },
+            { label: "Media Partner Activity", page: "AdminSalesRepActivity", icon: FileText },
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
             { label: "Commissions", page: "AdminCommissions", icon: Wallet },
             { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
@@ -421,7 +421,7 @@ function LayoutContent({ children, currentPageName }) {
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
-                      {isSalesTeam ? "Sales Team" : isAdmin ? "Admin" : isClient ? "Client" : "Media Partner"}
+                      {isSalesTeam ? "Media Partner" : isAdmin ? "Admin" : isClient ? "Client" : "Media Specialist"}
                     </p>
                   </div>
                   <Button
@@ -476,6 +476,14 @@ function LayoutContent({ children, currentPageName }) {
             <div className="px-3 pb-1">
               <PreferredHeaderChip />
             </div>
+            {user && (hasSalesSession || isAdmin) && (
+              <button type="button" onClick={() => {
+                setMobileOpen(false);
+                window.dispatchEvent(new Event('arriv:open-command'));
+              }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-[#B8956A]">
+                <Mic className="h-4 w-4" /> Ask Arriv · AI Voice Command
+              </button>
+            )}
             {navItems.length > 0 && (
               <PreferredAwareNav
                 items={navItems}

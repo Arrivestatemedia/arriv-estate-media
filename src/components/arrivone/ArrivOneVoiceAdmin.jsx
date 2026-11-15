@@ -58,8 +58,11 @@ export default function ArrivOneVoiceAdmin() {
     );
   };
 
-  const setDraft = (memberId, key, value) =>
-    setDrafts((prev) => ({ ...prev, [memberId]: { ...prev[memberId], [key]: value } }));
+  const setDraft = (memberId, key, value) => {
+    const member = (data?.members || []).find((item) => item.id === memberId);
+    if (!member) return;
+    setDrafts((prev) => ({ ...prev, [memberId]: { ...draftFor(member), ...prev[memberId], [key]: value } }));
+  };
 
   const saveMember = async (member) => {
     const draft = draftFor(member);
@@ -135,7 +138,7 @@ export default function ArrivOneVoiceAdmin() {
       <Card className="border-[#B8956A]/20">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base text-[#1A1A1A]">
-            <PhoneOutgoing className="h-4 w-4 text-[#B8956A]" /> Rep extensions &amp; caller IDs
+            <PhoneOutgoing className="h-4 w-4 text-[#B8956A]" /> Media Partner lines &amp; extensions
           </CardTitle>
           <Button size="sm" variant="outline" onClick={seed} disabled={busy === 'seed'}>
             {busy === 'seed' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Create missing
@@ -170,7 +173,7 @@ export default function ArrivOneVoiceAdmin() {
                     <Label className="text-[11px] text-[#1A1A1A]/55">Extension</Label>
                     <Input
                       value={draft.extension || ''}
-                      onChange={(event) => setDraft(member.id, 'extension', event.target.value)}
+                      readOnly
                       className="mt-1 h-9 text-sm"
                       placeholder="204"
                     />
@@ -185,7 +188,7 @@ export default function ArrivOneVoiceAdmin() {
                         <SelectValue placeholder="Select a company number" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(data?.numbers || []).map((number) => (
+                        {[member.twilio_phone_number].filter(Boolean).map((number) => (
                           <SelectItem key={number} value={number}>
                             {number}
                           </SelectItem>
@@ -243,18 +246,11 @@ export default function ArrivOneVoiceAdmin() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <Label className="text-[11px] text-[#1A1A1A]/55">Arriv access number for cellphone dial-out</Label>
-              <Input
-                value={settings?.access_number || ''}
-                onChange={(event) => updateSetting('access_number', event.target.value)}
-                className="mt-1"
-                placeholder="+1855…"
-              />
-              <p className="mt-1 text-[10px] leading-relaxed text-[#1A1A1A]/45">
-                In Twilio, point that number's voice webhook at
-                {' '}https://arrivestatemedia.base44.app/functions/ivrSalesDialOut and its call status callback at
-                {' '}https://arrivestatemedia.base44.app/functions/ivrSalesDialOut?stage=status — without the status
-                callback a rep hanging up is only closed out when the session next speaks.
+              <Label className="text-[11px] text-[#1A1A1A]/55">Individual Media Partner access</Label>
+              <p className="mt-2 text-xs leading-relaxed text-[#1A1A1A]/60">
+                Each Media Partner calls their own assigned Twilio business number from their registered cellphone.
+                The same individual number receives prospect and client callbacks. The 855 number remains the main company IVR, never a shared sales access line.
+                Live routing and activation require administrator approval; preserve the in-app TwiML application when configuring an individual number.
               </p>
             </div>
             <div>

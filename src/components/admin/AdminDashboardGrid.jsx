@@ -6,8 +6,8 @@ import { Users, FileText, ShieldCheck, Wallet, Landmark, Settings, BarChart3, Us
 import RecruitingDashboardWidget from "@/components/recruiting/RecruitingDashboardWidget";
 
 const ADMIN_SECTIONS = [
-  { label: "Sales Team", page: "AdminSalesSignup", icon: Users, description: "Manage sales reps and onboarding" },
-  { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: BarChart3, description: "Rep call maps and prospecting" },
+  { label: "Media Partners", page: "AdminSalesSignup", icon: Users, description: "Manage Media Partners and onboarding" },
+  { label: "Media Partner Activity", page: "AdminSalesRepActivity", icon: BarChart3, description: "Media Partner call maps and prospecting" },
   { label: "Applications", to: createPageUrl("KhethaIQ") + "?view=applications", page: "KhethaIQ", icon: FileText, description: "Review sales job applications" },
   { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck, description: "Checkr status and results" },
   { label: "Commissions", page: "AdminCommissions", icon: Wallet, description: "Commission plans and adjustments" },

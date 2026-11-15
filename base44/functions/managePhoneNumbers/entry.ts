@@ -11,7 +11,7 @@ const e164 = (n) => {
   return d ? '+' + d : '';
 };
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
         },
         {
           number: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || '',
-          label: 'Outbound Calling Line',
-          function: 'Outbound sales calls via TwiML app',
+          label: 'Company caller ID / owner-admin line',
+          function: 'Company and owner/admin calling; Media Partners use their individual assigned numbers',
           pointing_type: 'twiml_app',
           pointing_to: Deno.env.get('TWILIO_TWIML_APP_SID') || '',
           editable: false,
@@ -61,6 +61,17 @@ Deno.serve(async (req) => {
         },
       ];
 
+      const assigned = await base44.asServiceRole.entities.SalesTeamMember.filter({ twilio_phone_number: { $exists: true, $nin: ['', null] } });
+      for (const member of assigned) {
+        numbers.push({
+          number: e164(member.twilio_phone_number),
+          label: `Media Partner: ${member.full_name}`,
+          function: `Individually assigned business line · extension ${member.extension || 'not assigned'} · not a shared sales number`,
+          pointing_type: 'assignment',
+          pointing_to: 'Existing TwiML application; dedicated inbound routing requires approval',
+          editable: false,
+        });
+      }
       return Response.json({ numbers });
     }
 
@@ -80,4 +91,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

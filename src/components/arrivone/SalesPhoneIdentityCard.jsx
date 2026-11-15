@@ -112,8 +112,8 @@ export default function SalesPhoneIdentityCard() {
 
         <p className="rounded-lg bg-[#FFFBF5] p-3 text-xs leading-relaxed text-[#1A1A1A]/60">
           {status === 'active' && data?.access_number
-            ? `Call ${data.access_number} from this cellphone. You will hear the sales menu, then key in your extension followed by the number to dial.`
-            : 'An administrator must activate dial-out before this number can place calls. The in-app dialer works in the meantime.'}
+            ? `Call your own Media Partner number, ${data.access_number}, from this cellphone. Press 1, then enter your extension followed by the ten-digit destination. Do not call 855 for sales dial-out.`
+            : 'Cellphone dial-out is pending administrator approval of your individual business line. This does not change the existing in-app dialer.'}
         </p>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

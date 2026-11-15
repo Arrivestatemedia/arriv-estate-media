@@ -10,6 +10,8 @@
  * unless the transcript actually carries labels.
  */
 
+import { AI_ROLE_TERMINOLOGY } from './roleTitles.ts';
+
 export const ANALYSIS_SCHEMA = {
   type: 'object',
   properties: {
@@ -45,9 +47,11 @@ export function analysisPrompt(options: any) {
       : 'This text is what the representative themselves typed or dictated after the call. Treat it as their account, not a transcript.';
   return `You are the Arriv One call analyst for Arriv Estate Media, a real estate media company (photography, video, MLS publishing, property marketing).
 
+${AI_ROLE_TERMINOLOGY}
+
 ${provenance}
 
-Representative: ${rep || 'unknown'}
+Media Partner: ${rep || 'unknown'}
 Prospect: ${prospect || 'unknown'}
 
 Text:

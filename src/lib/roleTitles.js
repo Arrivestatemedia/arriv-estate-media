@@ -5,8 +5,8 @@
  * screen change, depending on who is reading:
  *
  *   Internal role                     Internal title     Customer-facing title
- *   growth_advisor (SalesTeamMember)  Growth Advisor     Media Partner
- *   media_partner (contractor)        Media Partner      Media Specialist
+ *   growth_advisor (SalesTeamMember)  Media Partner      Media Partner
+ *   media_partner (legacy contractor key) Media Specialist Media Specialist
  *
  * Permissions, commissions, assignments and business logic must always read the
  * internal role identifier, never one of these titles.
@@ -18,8 +18,8 @@ export const INTERNAL_ROLES = {
 };
 
 export const INTERNAL_TITLES = {
-  [INTERNAL_ROLES.GROWTH_ADVISOR]: 'Growth Advisor',
-  [INTERNAL_ROLES.MEDIA_PARTNER]: 'Media Partner',
+  [INTERNAL_ROLES.GROWTH_ADVISOR]: 'Media Partner',
+  [INTERNAL_ROLES.MEDIA_PARTNER]: 'Media Specialist',
 };
 
 export const CUSTOMER_TITLES = {

@@ -14,6 +14,8 @@
  *    model is not allowed to invent new pipeline names.
  */
 
+import { AI_ROLE_TERMINOLOGY } from './roleTitles.ts';
+
 const MAX_CANDIDATES = 5;
 
 export const ALLOWED_LEAD_STATUSES = ['NEW', 'CONNECTED', 'CONVERTED'];
@@ -213,7 +215,10 @@ export function interpretPrompt(text: string, context: any) {
   const rep = context?.rep_name || 'the representative';
   return `You convert what an Arriv Estate Media sales representative said into structured CRM data.
 
-The representative is ${rep}. Right now it is ${now} in ${tz}.
+${AI_ROLE_TERMINOLOGY}
+A request solely to recruit, assign or update a production Media Specialist is outside this sales CRM command flow: return intent unknown with a clarifying_question, never turn the specialist into a sales representative or sales prospect.
+
+The Media Partner is ${rep}. Right now it is ${now} in ${tz}.
 
 They said:
 """${text}"""

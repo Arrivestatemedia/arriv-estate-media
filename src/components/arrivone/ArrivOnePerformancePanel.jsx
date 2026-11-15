@@ -97,7 +97,7 @@ export default function ArrivOnePerformancePanel() {
       {(metrics?.by_rep || []).length > 0 && (
         <Card className="border-[#B8956A]/20">
           <CardHeader>
-            <CardTitle className="text-base text-[#1A1A1A]">By representative</CardTitle>
+            <CardTitle className="text-base text-[#1A1A1A]">By Media Partner</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">

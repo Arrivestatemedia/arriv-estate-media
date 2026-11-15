@@ -6,8 +6,8 @@
  * because a rep must never be able to point another rep's calls, or the
  * company's caller ID, at themselves.
  *
- * Extensions are unique across active identities and are auto-assigned when a
- * rep has none, so setup never blocks on manual numbering.
+ * Identities reuse the existing account's unique extension and dedicated number.
+ * Creating an identity never allocates an extension or assigns a shared line.
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
@@ -20,36 +20,15 @@ import { periodKey } from '../../shared/arrivOneSettings.ts';
 const listOf = (v: any) => (Array.isArray(v) ? v : v?.items || []);
 
 async function companyNumbers(base44: any) {
-  const numbers = new Set<string>();
-  for (const envKey of ['TWILIO_PHONE_NUMBER', 'TWILIO_CALLING_PHONE_NUMBER', 'OWNER_PHONE_NUMBER']) {
-    const value = Deno.env.get(envKey);
-    if (value) {
-      const n = normalizePhone(value);
-      if (n) numbers.add(n);
-    }
-  }
-  const rows = listOf(await base44.asServiceRole.entities.IvrNumberConfig.filter({}).catch(() => []));
-  for (const row of rows) {
-    const n = normalizePhone(row.phone_number);
-    if (n) numbers.add(n);
-  }
-  numbers.add('+18557654306');
-  return [...numbers];
+  const members = listOf(await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true }));
+  return [...new Set(members.map((m: any) => normalizePhone(m.twilio_phone_number)).filter((n: string) => n && n !== '+18557654306'))];
 }
 
 async function identities(base44: any) {
   return listOf(await base44.asServiceRole.entities.SalesPhoneIdentity.filter({}).catch(() => []));
 }
 
-function nextExtension(taken: Set<string>) {
-  for (let n = 201; n <= 899; n++) {
-    const candidate = String(n);
-    if (!taken.has(candidate)) return candidate;
-  }
-  return '';
-}
-
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
@@ -76,7 +55,7 @@ Deno.serve(async (req) => {
             has_extension: !!mine?.extension,
             has_caller_id: !!mine?.caller_id_number,
           },
-          access_number: settings.access_number || '',
+          access_number: normalizePhone(member.twilio_phone_number) || '',
         });
       }
 
@@ -154,9 +133,10 @@ Deno.serve(async (req) => {
       const created: any[] = [];
       for (const member of members) {
         if (rows.some((r: any) => r.sales_member_id === member.id)) continue;
-        let extension = String(member.extension || '').trim();
-        if (!extension || taken.has(extension)) extension = nextExtension(taken);
-        if (extension) taken.add(extension);
+        const extension = String(member.extension || '').trim();
+        const number = normalizePhone(member.twilio_phone_number);
+        if (!extension || taken.has(extension) || !number || number === '+18557654306') continue;
+        taken.add(extension);
         const payload = {
           sales_member_id: member.id,
           sales_member_name: member.full_name || '',
@@ -179,6 +159,9 @@ Deno.serve(async (req) => {
       if (!memberId) return Response.json({ error: 'sales_member_id is required' }, { status: 400 });
       const all = await identities(base44);
       const existing = all.find((i: any) => i.sales_member_id === memberId) || null;
+      const member = await base44.asServiceRole.entities.SalesTeamMember.get(memberId)
+        .catch((error: any) => error.status === 404 ? null : Promise.reject(error));
+      if (!member) return Response.json({ error: 'Media Partner not found.' }, { status: 404 });
 
       const extension = String(target.extension ?? existing?.extension ?? '').replace(/\D/g, '').slice(0, 4);
       if (extension && all.some((i: any) => i.sales_member_id !== memberId && String(i.extension || '') === extension && i.telephony_status !== 'revoked')) {
@@ -194,6 +177,16 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (callerId && (callerId !== normalizePhone(member.twilio_phone_number) || callerId === '+18557654306')) {
+        return Response.json({ error: 'Use this Media Partner’s own assigned Twilio number, never the 855 main line or another partner’s number.' }, { status: 400 });
+      }
+      if (extension && extension !== String(member.extension || '')) {
+        return Response.json({ error: 'Use the existing extension on this Media Partner account.' }, { status: 400 });
+      }
+      if (callerId && all.some((i: any) => i.sales_member_id !== memberId && normalizePhone(i.caller_id_number) === callerId)) {
+        return Response.json({ error: 'That business number is already linked to another Media Partner.' }, { status: 409 });
+      }
+
       const cellphone = normalizePhone(target.cellphone || existing?.cellphone);
       if (cellphone && all.some((i: any) => i.sales_member_id !== memberId && String(i.cellphone || '').replace(/\D/g, '').slice(-10) === cellphone.slice(-10))) {
         return Response.json({ error: 'That cellphone is already registered to another representative.' }, { status: 409 });
@@ -203,6 +196,9 @@ Deno.serve(async (req) => {
         ? target.telephony_status
         : existing?.telephony_status || 'pending';
 
+      if (status === 'active' && member.is_active === false) {
+        return Response.json({ error: 'This Media Partner account is inactive.' }, { status: 400 });
+      }
       if (status === 'active' && (!cellphone || !extension || !callerId)) {
         return Response.json(
           { error: 'To activate dial-out, the rep needs a cellphone, an extension and an Arriv caller ID.' },
@@ -271,4 +267,4 @@ Deno.serve(async (req) => {
     console.error('salesPhoneIdentity failed:', error);
     return Response.json({ error: error?.message || 'The request could not be completed.' }, { status: 500 });
   }
-});
+}
