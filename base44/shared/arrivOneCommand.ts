@@ -82,6 +82,36 @@ export function prettyPhone(value: any) {
   return n || String(value || '');
 }
 
+/**
+ * Keys stored on the Contact record itself so a lookup is an exact match on a
+ * normalized value instead of a guess across free-text formatting. Written by
+ * every Arriv One write path; backfilled for existing records.
+ */
+export function identityFields(phone: any, email: any) {
+  const fields: any = {};
+  const n = normalizePhone(phone);
+  const e = String(email || '').toLowerCase().trim();
+  if (n) fields.phone_normalized = n;
+  if (e) fields.email_normalized = e;
+  return fields;
+}
+
+/** The common ways a US number is stored, so legacy rows still match. */
+export function phoneVariants(phone: any) {
+  const d = digits(phone).slice(-10);
+  if (d.length !== 10) return [];
+  return [
+    `+1${d}`,
+    d,
+    `1${d}`,
+    `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`,
+    `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`,
+    `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`,
+    `+1 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`,
+    `+1-${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`,
+  ];
+}
+
 export const nameTokens = (name: any) =>
   String(name || '')
     .toLowerCase()
@@ -109,23 +139,19 @@ export async function matchContacts(base44: any, extracted: any) {
   const city = String(extracted?.city || '').toLowerCase().trim();
 
   const pools: any[] = [];
-  if (phone) {
-    const last10 = phone.slice(-10);
-    const rows = listOf(await base44.asServiceRole.entities.Contact.filter({}, { limit: 400 }).catch(() => []));
-    pools.push(...rows.filter((c: any) => digits(c.phone).slice(-10) === last10));
-  }
-  if (email) {
-    const rows = listOf(await base44.asServiceRole.entities.Contact.filter({ email }, { limit: 25 }).catch(() => []));
-    pools.push(...rows);
-  }
+  if (phone || email) pools.push(...(await findContactsByIdentity(base44, { phone, email })));
   if (tokens.length) {
+    // Surname is a supported exact query; first names are verified locally so two
+    // different people who share a surname are never merged.
     const rows = listOf(
-      await base44.asServiceRole.entities.Contact.filter({}, { sort: '-updated_date', limit: 300 }).catch(() => [])
+      await base44.asServiceRole.entities.Contact.filter({
+        lastname: tokens[tokens.length - 1],
+      }).catch(() => [])
     );
     pools.push(
       ...rows.filter((c: any) => {
         const label = `${c.firstname || ''} ${c.lastname || ''}`.toLowerCase();
-        return tokens.every((t: string) => label.includes(t)) || tokens.some((t: string) => label.includes(t));
+        return tokens.every((t: string) => label.includes(t));
       })
     );
   }
@@ -338,41 +364,56 @@ export function phoneRegexSource(phone: any) {
   return `^\\+?1?[^0-9]*${d.slice(0, 3)}[^0-9]*${d.slice(3, 6)}[^0-9]*${d.slice(6)}`;
 }
 
+/**
+ * Exact identity lookup for duplicate prevention.
+ *
+ * Contact reads inside a backend function cannot use paging options (every such
+ * call is rejected by the database), so each lookup is a plain equality query:
+ * first the normalized key stored on the record, then the spellings a legacy
+ * record may still hold. Empty values never match anything.
+ */
+export async function findContactsByIdentity(base44: any, identity: any) {
+  const found: any[] = [];
+  const seen = new Set<string>();
+  const ask = async (query: any) => {
+    try {
+      const rows = listOf(await base44.asServiceRole.entities.Contact.filter(query));
+      for (const row of rows) {
+        if (!row?.id || seen.has(row.id)) continue;
+        seen.add(row.id);
+        found.push(row);
+      }
+    } catch (error: any) {
+      console.warn('[identity lookup]', JSON.stringify(query), error?.message);
+    }
+  };
+
+  const phone = normalizePhone(identity?.phone);
+  if (phone) {
+    await ask({ phone_normalized: phone });
+    for (const variant of phoneVariants(phone)) await ask({ phone: variant });
+  }
+
+  const rawEmail = String(identity?.email || '').trim();
+  const email = rawEmail.toLowerCase();
+  if (email) {
+    await ask({ email_normalized: email });
+    await ask({ email });
+    if (rawEmail !== email) await ask({ email: rawEmail });
+  }
+
+  return found;
+}
+
 export async function findContactsByPhone(base44: any, phone: any) {
-  const d = digits(phone).slice(-10);
-  if (d.length !== 10) return [];
-  // Phone numbers are stored in whatever format they were entered in, so try the
-  // common spellings first, then fall back to a digit-tolerant pattern.
-  const variants = [
-    `+1${d}`,
-    d,
-    `1${d}`,
-    `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`,
-    `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`,
-    `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`,
-  ];
-  try {
-    const rows = listOf(
-      await base44.asServiceRole.entities.Contact.filter({ phone: { $in: variants } }, { limit: 25 })
-    );
-    if (rows.length) return rows;
-  } catch (error: any) {
-    console.warn('[phone lookup] variant match failed:', error?.message);
-  }
-  const source = phoneRegexSource(phone);
-  if (!source) return [];
-  try {
-    return listOf(
-      await base44.asServiceRole.entities.Contact.filter({ phone: { $regex: source } }, { limit: 25 })
-    );
-  } catch (error: any) {
-    console.warn('[phone lookup] pattern match failed:', error?.message);
-    return [];
-  }
+  const key = digits(phone).slice(-10);
+  if (key.length !== 10) return [];
+  const rows = await findContactsByIdentity(base44, { phone });
+  return rows.filter((c: any) => digits(c.phone_normalized || c.phone).slice(-10) === key);
 }
 
 async function uniqueContactByQuery(base44: any, query: any) {
-  const rows = listOf(await base44.asServiceRole.entities.Contact.filter(query, { limit: 5 }).catch(() => []));
+  const rows = listOf(await base44.asServiceRole.entities.Contact.filter(query).catch(() => []));
   return rows.length === 1 ? rows[0] : null;
 }
 
@@ -409,8 +450,13 @@ export async function applyCommand(base44: any, execution: any, edits: any, memb
     const phone = normalizePhone(extracted.phone);
     const email = String(extracted.email || '').toLowerCase().trim();
     let duplicate = null;
-    if (phone) duplicate = (await findContactsByPhone(base44, phone))[0] || null;
-    if (!duplicate && email) duplicate = await uniqueContactByQuery(base44, { email });
+    if (phone || email) {
+      const matches = await findContactsByIdentity(base44, { phone, email });
+      duplicate =
+        matches.find((c: any) => digits(c.phone_normalized || c.phone).slice(-10) === digits(phone).slice(-10) && phone) ||
+        matches.find((c: any) => String(c.email_normalized || c.email || '').toLowerCase() === email && email) ||
+        null;
+    }
     if (duplicate) {
       result.notes.push(`${contactName(duplicate)} already exists with that phone or email — opened the existing record instead of creating a duplicate.`);
       contact = duplicate;
@@ -427,6 +473,7 @@ export async function applyCommand(base44: any, execution: any, edits: any, memb
         lead_status: extracted.lead_status || 'NEW',
         owner_id: repId,
         sales_member_id: repId,
+        ...identityFields(phone, email),
       });
       result.contact_id = contact.id;
       result.notes.push(`Created ${contactName(contact)}.`);
@@ -453,6 +500,7 @@ export async function applyCommand(base44: any, execution: any, edits: any, memb
     for (const key of ['phone', 'email', 'company', 'billing_city', 'billing_state', 'lead_status']) {
       if (fields[key]) writable[key] = fields[key];
     }
+    Object.assign(writable, identityFields(writable.phone, writable.email));
     if (Object.keys(writable).length) {
       await base44.asServiceRole.entities.Contact.update(contact.id, writable);
       result.notes.push(`Updated ${Object.keys(writable).join(', ')}.`);

@@ -27,6 +27,14 @@
       "type": "string",
       "description": "Phone number"
     },
+    "phone_normalized": {
+      "type": "string",
+      "description": "Duplicate-matching key: the phone number as +1XXXXXXXXXX. Exact-match lookups use this so formatting never hides an existing contact."
+    },
+    "email_normalized": {
+      "type": "string",
+      "description": "Duplicate-matching key: the email address lowercased and trimmed."
+    },
     "company": {
       "type": "string",
       "description": "Company name"
@@ -229,7 +237,7 @@
     "new_customer_bonus_consumed": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the $40 new-customer MLS bonus has been consumed."
+      "description": "Whether the $40 new-customer MLS sales bonus has been consumed."
     },
     "new_customer_bonus_consumed_at": {
       "type": "string",

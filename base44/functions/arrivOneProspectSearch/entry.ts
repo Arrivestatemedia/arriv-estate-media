@@ -17,7 +17,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { authorizeArrivOne, requireAdmin } from '../../shared/arrivOneAuth.ts';
 import { loadVoiceSettings, saveVoiceSettings, periodKey } from '../../shared/arrivOneSettings.ts';
-import { normalizePhone, digits, nameTokens, findContactsByPhone } from '../../shared/arrivOneCommand.ts';
+import {
+  normalizePhone,
+  digits,
+  nameTokens,
+  findContactsByIdentity,
+  identityFields,
+} from '../../shared/arrivOneCommand.ts';
 
 const listOf = (v: any) => (Array.isArray(v) ? v : v?.items || []);
 const BROWSER_UA =
@@ -185,6 +191,49 @@ Deno.serve(async (req) => {
     const actor = auth.actor;
     const settings = await loadVoiceSettings(base44);
 
+    // Admin diagnostic: records which Contact filters this deployment actually
+    // accepts, so duplicate detection is verified rather than assumed.
+    if (action === 'diagnose') {
+      const admin = await requireAdmin(base44);
+      if (!admin.ok) return Response.json({ error: admin.error }, { status: admin.status });
+      const sample = listOf(await base44.asServiceRole.entities.Contact.filter({}, { limit: 1 }).catch(() => []))[0] || {};
+      const phone = String(sample.phone || '');
+      const d = digits(phone).slice(-10);
+      const probes: any = {};
+      const run = async (label: string, fn: () => Promise<any>) => {
+        try {
+          const rows = listOf(await fn());
+          probes[label] = { ok: true, count: rows.length };
+        } catch (error: any) {
+          probes[label] = {
+            ok: false,
+            status: error?.status || error?.response?.status || '',
+            error: String(error?.message || error).slice(0, 200),
+          };
+        }
+      };
+      await run('blank', () => base44.asServiceRole.entities.Contact.filter({}, { limit: 1 }));
+      await run('blank_noopts', () => base44.asServiceRole.entities.Contact.filter({}));
+      await run('lastname_noopts', () =>
+        base44.asServiceRole.entities.Contact.filter({ lastname: sample.lastname || '' })
+      );
+      await run('phone_exact_noopts', () => base44.asServiceRole.entities.Contact.filter({ phone }));
+      await run('phone_exact', () => base44.asServiceRole.entities.Contact.filter({ phone }, { limit: 5 }));
+      await run('phone_in', () =>
+        base44.asServiceRole.entities.Contact.filter({ phone: { $in: [`+1${d}`, d] } }, { limit: 5 })
+      );
+      await run('phone_regex', () =>
+        base44.asServiceRole.entities.Contact.filter({ phone: { $regex: d } }, { limit: 5 })
+      );
+      await run('lastname', () =>
+        base44.asServiceRole.entities.Contact.filter({ lastname: sample.lastname || '' }, { limit: 5 })
+      );
+      await run('email_exact', () =>
+        base44.asServiceRole.entities.Contact.filter({ email: sample.email || 'none@example.com' }, { limit: 5 })
+      );
+      return Response.json({ sample: { phone, email: sample.email || '', lastname: sample.lastname || '' }, probes });
+    }
+
     if (action === 'search' || action === 'email') {
       if (settings.live_search_enabled === false) {
         return Response.json({ error: 'Live prospect search is turned off by an administrator.' }, { status: 403 });
@@ -300,29 +349,31 @@ Absolute rules:
       const tokens = nameTokens(person.full_name);
       const company = String(overrides.brokerage || person.brokerage || '').trim();
 
-      // Duplicate prevention: phone, then email, then an exact name+brokerage pair.
+      // Duplicate prevention: normalized phone, then exact email, then an exact
+      // full-name match. A surname alone is never enough — two different people
+      // can share one, and an empty field never matches anything.
       let duplicate: any = null;
-      if (phone) {
-        duplicate = (await findContactsByPhone(base44, phone))[0] || null;
-      }
-      if (!duplicate && email) {
-        const rows = listOf(await base44.asServiceRole.entities.Contact.filter({ email }, { limit: 5 }).catch(() => []));
-        duplicate = rows[0] || null;
+      if (phone || email) {
+        const matches = await findContactsByIdentity(base44, { phone, email });
+        duplicate =
+          matches.find(
+            (c: any) => phone && digits(c.phone_normalized || c.phone).slice(-10) === digits(phone).slice(-10)
+          ) ||
+          matches.find(
+            (c: any) => email && String(c.email_normalized || c.email || '').toLowerCase() === email
+          ) ||
+          null;
       }
       if (!duplicate && tokens.length) {
-        // Narrow server-side by surname instead of scanning a page of contacts.
         const rows = listOf(
-          await base44.asServiceRole.entities.Contact.filter(
-            { lastname: tokens[tokens.length - 1] },
-            { limit: 25 }
-          ).catch(() => [])
+          await base44.asServiceRole.entities.Contact.filter({ lastname: tokens[tokens.length - 1] }).catch(() => [])
         );
         duplicate =
           rows.find((c: any) => {
             const label = `${c.firstname || ''} ${c.lastname || ''}`.toLowerCase();
-            const nameMatch = tokens.every((t) => label.includes(t));
-            const companyMatch = company && String(c.company || '').toLowerCase().includes(company.toLowerCase());
-            return nameMatch && (companyMatch || !company);
+            if (!tokens.every((t) => label.includes(t))) return false;
+            if (!company) return true;
+            return String(c.company || '').toLowerCase().includes(company.toLowerCase());
           }) || null;
       }
 
@@ -351,6 +402,7 @@ Absolute rules:
         lead_status: 'NEW',
         owner_id: actor.sales_member_id || actor.id,
         sales_member_id: actor.sales_member_id || actor.id,
+        ...identityFields(phone, email),
       });
 
       const sourceRows: any[] = [];
