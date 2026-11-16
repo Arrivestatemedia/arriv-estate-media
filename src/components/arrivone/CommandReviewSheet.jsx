@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Check, Link2, Loader2, UserCheck } from 'lucide-react';
 import { arrivOne } from '@/lib/arrivOneClient';
+import CommandEmailLookup from '@/components/arrivone/CommandEmailLookup';
 
 const FIELD_LABELS = {
   full_name: 'Name',
@@ -96,9 +97,12 @@ export default function CommandReviewSheet({ open, onClose, execution, onApplied
               </ul>
             )}
             {result.lookup_requested && (
-              <p className="rounded-lg bg-[#B8956A]/10 p-3 text-sm text-[#1A1A1A]/70">
-                Email lookup requested. Open AI Prospecting to review the verified result before saving anything to the record.
-              </p>
+              <CommandEmailLookup
+                lookup={result.lookup || {}}
+                contactId={result.contact_id || ''}
+                contactName={result.contact?.name || ''}
+                onSaved={() => onApplied?.({})}
+              />
             )}
             <Button className="w-full bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]" onClick={onClose}>
               Done

@@ -485,7 +485,11 @@ export async function applyCommand(base44: any, execution: any, edits: any, memb
     }
   }
 
-  if (!contact && (execution.candidates || []).length === 1 && ['update_prospect', 'log_call', 'create_task', 'update_status'].includes(intent)) {
+  if (
+    !contact &&
+    (execution.candidates || []).length === 1 &&
+    ['update_prospect', 'log_call', 'create_task', 'update_status', 'lookup_email', 'find_prospect'].includes(intent)
+  ) {
     contact = await base44.asServiceRole.entities.Contact.get(execution.candidates[0].id).catch(() => null);
   }
 

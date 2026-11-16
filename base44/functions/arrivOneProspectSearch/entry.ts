@@ -349,6 +349,62 @@ Absolute rules:
       const tokens = nameTokens(person.full_name);
       const company = String(overrides.brokerage || person.brokerage || '').trim();
 
+      // A verified result saved onto a person who is already in the CRM: the rep
+      // asked for this address, so it is written to their record instead of a
+      // second record being created or the lookup dead-ending.
+      const existingContactId = String(body.contact_id || '').trim();
+      if (existingContactId) {
+        const existing = await base44.asServiceRole.entities.Contact.get(existingContactId).catch(() => null);
+        if (!existing) return Response.json({ error: 'That contact no longer exists.' }, { status: 404 });
+
+        const fields: any = { ...identityFields(phone || existing.phone, email || existing.email) };
+        if (email) fields.email = email;
+        if (phone) fields.phone = phone;
+        if (!existing.company && company) fields.company = company;
+        if (!existing.billing_city && (overrides.city || person.city)) fields.billing_city = overrides.city || person.city;
+        if (!existing.billing_state && (overrides.state || person.state)) {
+          fields.billing_state = overrides.state || person.state;
+        }
+
+        const updated = await base44.asServiceRole.entities.Contact.update(existing.id, fields);
+
+        const rows: any[] = [];
+        const value = email || phone;
+        for (const source of (person.sources || []).slice(0, 3)) {
+          if (!source?.url || !value) continue;
+          rows.push({
+            contact_id: existing.id,
+            field: email ? 'email' : 'phone',
+            value,
+            source_url: source.url,
+            source_title: source.title || '',
+            provider: 'web_search',
+            verification_status: email ? person.verification?.email || 'unverified' : person.verification?.phone || 'unverified',
+            confidence: person.confidence || 0,
+            verified_at: new Date().toISOString(),
+            sales_member_id: actor.sales_member_id || actor.id,
+            created_at: new Date().toISOString(),
+          });
+        }
+        if (rows.length) {
+          await base44.asServiceRole.entities.ProspectContactSource.bulkCreate(rows).catch(() => {});
+        }
+
+        return Response.json({
+          success: true,
+          updated: true,
+          contact_id: existing.id,
+          contact: {
+            id: existing.id,
+            name:
+              [updated.firstname, updated.lastname].filter(Boolean).join(' ') ||
+              [existing.firstname, existing.lastname].filter(Boolean).join(' '),
+            email: updated.email || fields.email || '',
+            phone: updated.phone || fields.phone || '',
+          },
+        });
+      }
+
       // Duplicate prevention: normalized phone, then exact email, then an exact
       // full-name match. A surname alone is never enough — two different people
       // can share one, and an empty field never matches anything.

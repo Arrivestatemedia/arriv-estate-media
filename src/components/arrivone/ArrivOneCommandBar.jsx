@@ -82,7 +82,11 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
 
   // One panel, two capabilities: CRM writes keep their review sheet, while an
   // email or calendar request comes back as a proposal that must be confirmed.
-  const COMM_PATTERN = /\b(e-?mail|inbox|meeting|calendar|schedule|invite|availability|reply|forward)\b/i;
+  // A request to *find* an address is CRM research, not mailbox work. Without
+  // this gate the word "email" alone sent lookups to the mailbox assistant.
+  const COMM_PATTERN = /\b(e-?mails?|inbox|meeting|calendar|schedule|invite|availability|reply|forward)\b/i;
+  const LOOKUP_PATTERN = /\b(find|locate|look(?:ing)?\s*(?:up|for)?|search(?:ing)?|get|pull|what(?:'s| is)|do (?:you|we) have)\b[\s\S]{0,48}\b(e-?mail|address|contact (?:info|details)|number)\b/i;
+  const OWN_INBOX_PATTERN = /\bmy\s+(e-?mail|emails|inbox)\b/i;
 
   const interpret = async () => {
     const command = text.trim();
@@ -91,7 +95,9 @@ export default function ArrivOneCommandBar({ contextLabel = 'Arriv One', onAppli
     setComm(null);
     setCommProposal(null);
 
-    if (COMM_PATTERN.test(command)) {
+    const isLookup = LOOKUP_PATTERN.test(command) && !OWN_INBOX_PATTERN.test(command);
+
+    if (!isLookup && COMM_PATTERN.test(command)) {
       setInterpreting(true);
       try {
         const data = await empComm.comm(command);

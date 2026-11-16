@@ -15,7 +15,17 @@ function sessionPayload() {
 }
 
 async function call(functionName, payload = {}) {
-  const res = await base44.functions.invoke(functionName, { ...payload, ...sessionPayload() });
+  let res;
+  try {
+    res = await base44.functions.invoke(functionName, { ...payload, ...sessionPayload() });
+  } catch (err) {
+    // A non-2xx response carries the real explanation; axios's own message
+    // ("Request failed with status code 409") tells the rep nothing.
+    const body = err?.response?.data;
+    const error = new Error(body?.error || err?.message || 'That request could not be completed.');
+    error.payload = body;
+    throw error;
+  }
   const data = res?.data ?? res;
   if (data?.error) {
     const error = new Error(data.error);

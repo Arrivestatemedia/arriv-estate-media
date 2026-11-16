@@ -7,7 +7,16 @@ const session = () => {
 };
 
 async function call(functionName, payload) {
-  const res = await base44.functions.invoke(functionName, { ...payload, ...session() });
+  let res;
+  try {
+    res = await base44.functions.invoke(functionName, { ...payload, ...session() });
+  } catch (err) {
+    // Surface what the server actually said instead of "status code 409".
+    const body = err?.response?.data;
+    const error = new Error(body?.error || err?.message || 'That command could not be completed.');
+    error.payload = body;
+    throw error;
+  }
   const data = res?.data ?? res;
   if (data?.error) {
     const error = new Error(data.error);
@@ -43,8 +52,8 @@ export const arrivOne = {
   // Live individual prospect search
   searchPerson: (query) => call('arrivOneProspectSearch', { action: 'search', ...query }),
   lookupEmail: (query) => call('arrivOneProspectSearch', { action: 'email', ...query }),
-  addProspect: ({ person, overrides }) =>
-    call('arrivOneProspectSearch', { action: 'addProspect', person, overrides }),
+  addProspect: ({ person, overrides, contact_id }) =>
+    call('arrivOneProspectSearch', { action: 'addProspect', person, overrides, contact_id }),
 
   // Rep telephony identity
   getIdentity: () => call('salesPhoneIdentity', { action: 'getMine' }),
