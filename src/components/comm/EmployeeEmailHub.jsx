@@ -166,9 +166,6 @@ export default function EmployeeEmailHub() {
           <p className="flex items-center gap-2 text-sm font-medium" style={{ color: '#1A1A1A' }}>
             <Mail className="h-4 w-4" style={{ color: gold }} /> {account?.email_address}
           </p>
-          <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.5)' }}>
-            {account?.provider_label}
-          </p>
         </div>
         <Button size="sm" variant="ghost" onClick={() => { loadConnection(); loadMessages(); }} className="gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Sync

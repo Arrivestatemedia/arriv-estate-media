@@ -261,16 +261,28 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
         </div>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <div>
           <Label className="text-xs">To</Label>
-          <Input value={form.to} onChange={(e) => update('to', e.target.value)} placeholder="name@company.com" className="mt-1 h-9 text-sm" />
+          <Input
+            value={form.to}
+            onChange={(e) => update('to', e.target.value)}
+            placeholder="name@company.com, second@company.com"
+            className="mt-1 h-9 text-sm"
+          />
         </div>
         <div>
           <Label className="text-xs">Cc</Label>
           <Input value={form.cc} onChange={(e) => update('cc', e.target.value)} placeholder="Optional" className="mt-1 h-9 text-sm" />
         </div>
+        <div>
+          <Label className="text-xs">Bcc</Label>
+          <Input value={form.bcc} onChange={(e) => update('bcc', e.target.value)} placeholder="Optional" className="mt-1 h-9 text-sm" />
+        </div>
       </div>
+      <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.45)' }}>
+        Separate multiple addresses with a comma.
+      </p>
 
       <div>
         <Label className="text-xs">Subject</Label>
@@ -350,9 +362,6 @@ export default function EmailComposePanel({ memberId, templates = [], replyTo = 
           <input type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
         </label>
       </div>
-      <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.45)' }}>
-        Sent from your own connected mailbox. Company transactional email is separate and never used here.
-      </p>
     </div>
   );
 }

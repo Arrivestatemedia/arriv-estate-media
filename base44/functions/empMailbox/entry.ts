@@ -30,7 +30,7 @@ const newestFirst = (rows: any[], take = 25) =>
     .slice(0, take);
 
 function normaliseAddresses(value: any) {
-  const list = Array.isArray(value) ? value : String(value || '').split(',');
+  const list = Array.isArray(value) ? value : String(value || '').split(/[,;]/);
   return list.map((entry) => String(entry || '').trim().toLowerCase()).filter((entry) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(entry));
 }
 

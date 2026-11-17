@@ -15,7 +15,7 @@ import { tenantFor } from '../../shared/empComm/tenant.ts';
 const asList = (v: any) => (Array.isArray(v) ? v : v?.items || []);
 
 const addresses = (value: any) =>
-  (Array.isArray(value) ? value : String(value || '').split(','))
+  (Array.isArray(value) ? value : String(value || '').split(/[,;]/))
     .map((entry) => String(entry || '').trim().toLowerCase())
     .filter((entry) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(entry));
 
