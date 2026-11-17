@@ -58,9 +58,44 @@ export default async function (req) {
         return Response.json({ error: error?.message || 'The provider rejected this authorization.' }, { status: 400 });
       }
 
-      const profile = await adapter.profile(tokens.access_token).catch(() => ({ email: '', name: '' }));
-      if (!profile.email) {
-        return Response.json({ error: 'The provider did not return a mailbox address for this account.' }, { status: 400 });
+      let profile;
+      try {
+        profile = await adapter.profile(tokens.access_token);
+        if (!profile?.email) {
+          throw new Error(`${adapter.label} returned a profile without a mailbox address. Choose an account with an active mailbox and start a new connection.`);
+        }
+      } catch (error) {
+        // Authentication succeeded. Preserve the mailbox API failure instead of
+        // misreporting every permission, policy or API error as a missing email.
+        let guidance = '';
+        if (state.provider === 'google') {
+          const reason = String(error?.reason || '');
+          if (['SERVICE_DISABLED', 'accessNotConfigured'].includes(reason)) {
+            guidance = 'Google sign-in succeeded, but the Gmail API is disabled in the Google Cloud project used by this employee connection. Enable the Gmail API in that same project, wait a few minutes, then start a new connection.';
+          } else if (['ACCESS_TOKEN_SCOPE_INSUFFICIENT', 'insufficientPermissions'].includes(reason)) {
+            guidance = 'Google sign-in succeeded, but Gmail read/manage permission was not granted. Start a new connection and approve the requested Gmail permissions.';
+          } else if (['domainPolicy', 'admin_policy_enforced'].includes(reason)) {
+            guidance = 'Google Workspace policy is blocking Gmail access. Ask the Workspace administrator to allow this employee OAuth app and its requested Gmail permissions, then start a new connection.';
+          } else if (['FAILED_PRECONDITION', 'failedPrecondition'].includes(reason)) {
+            guidance = 'Google could not open a Gmail mailbox for this account. Confirm Gmail is enabled and initialized for the selected Workspace user, then start a new connection.';
+          }
+        }
+        const detail = error?.message || `${adapter.label} could not verify this mailbox.`;
+        const message = guidance ? `${guidance} Google reported: ${detail}` : detail;
+        console.error('[empMailOAuth] mailbox_profile', state.provider, error?.status || '', error?.reason || '', detail);
+        await audit(base44, {
+          action: 'connect',
+          actor_member_id: member.id,
+          provider: state.provider,
+          result: 'error',
+          detail: `mailbox_profile: ${message}`,
+        });
+        return Response.json({
+          error: message,
+          stage: 'mailbox_profile',
+          provider_status: error?.status || null,
+          provider_reason: error?.reason || '',
+        }, { status: 400 });
       }
 
       const existing = await accountFor(base44, member.id, state.provider);

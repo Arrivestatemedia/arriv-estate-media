@@ -38,6 +38,8 @@ async function call(url: string, token: string, init: RequestInit = {}) {
     const message = data?.error?.message || data?.error_description || `Google returned ${res.status}`;
     const error: any = new Error(message);
     error.status = res.status;
+    error.reason = data?.error?.details?.find((detail) => detail?.reason)?.reason
+      || data?.error?.errors?.[0]?.reason || data?.error?.status || '';
     throw error;
   }
   return data;
