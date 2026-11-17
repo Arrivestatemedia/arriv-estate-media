@@ -167,7 +167,7 @@ export default function EmployeeEmailHub() {
             <Mail className="h-4 w-4" style={{ color: gold }} /> {account?.email_address}
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.5)' }}>
-            {account?.provider_label} · private to this employee
+            {account?.provider_label}
           </p>
         </div>
         <Button size="sm" variant="ghost" onClick={() => { loadConnection(); loadMessages(); }} className="gap-1.5">
@@ -348,10 +348,6 @@ export default function EmployeeEmailHub() {
       )}
 
       {tab === 'calendar' && <EmailCalendarPanel memberId={memberId} />}
-
-      <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.45)' }}>
-        Company transactional email (bookings, delivery, recruiting) is handled separately and is never sent from here.
-      </p>
     </div>
   );
 }
