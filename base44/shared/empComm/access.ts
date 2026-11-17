@@ -35,9 +35,10 @@ export async function resolveActor(base44: any, req: Request, body: any) {
     return { ok: false as const, status: 403, error: 'Employee communications require an employee or administrator session.' };
   }
   // Link the administrator to their own employee record when one exists.
-  const rows: any[] = await base44.asServiceRole.entities.SalesTeamMember
-    .filter({ email: user.email }, { limit: 1 })
+  const found: any = await base44.asServiceRole.entities.SalesTeamMember
+    .filter({ email: user.email })
     .catch(() => []);
+  const rows: any[] = Array.isArray(found) ? found : found?.items || [];
   const member = rows[0] || null;
   return {
     ok: true as const,
@@ -72,10 +73,16 @@ export function assertMailboxOwner(actor: any, memberId: string) {
 export async function accountFor(base44: any, memberId: string, provider?: string) {
   const query: any = { tenant_id: TENANT, sales_member_id: memberId };
   if (provider) query.provider = provider;
-  const rows: any[] = await base44.asServiceRole.entities.EmployeeEmailAccount
-    .filter(query, { sort: '-connected_at', limit: 5 })
+  // No paging options here: a paged read returns { items } (and can come back
+  // empty), so indexing it as an array finds no mailbox even when one is
+  // connected. Read plainly and order here instead.
+  const result: any = await base44.asServiceRole.entities.EmployeeEmailAccount
+    .filter(query)
     .catch(() => []);
-  return rows[0] || null;
+  const rows: any[] = Array.isArray(result) ? result : result?.items || [];
+  return (
+    [...rows].sort((a, b) => String(b?.connected_at || '').localeCompare(String(a?.connected_at || '')))[0] || null
+  );
 }
 
 export async function audit(base44: any, entry: Record<string, unknown>) {

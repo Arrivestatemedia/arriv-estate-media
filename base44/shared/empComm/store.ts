@@ -26,6 +26,18 @@ export async function clientCredentials(provider: string) {
   throw new Error('That mailbox provider is not supported.');
 }
 
+/**
+ * First matching record for an exact-match query.
+ *
+ * Paged reads come back as { items } (and can come back empty), so indexing one
+ * as an array finds nothing. Read plainly and take the first row here instead.
+ */
+async function firstRow(entity: any, query: any) {
+  const result: any = await entity.filter(query).catch(() => []);
+  const rows: any[] = Array.isArray(result) ? result : result?.items || [];
+  return rows[0] || null;
+}
+
 export function redirectUriFor(provider: string) {
   const base = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arrivestatemedia.base44.app';
   // Google is pinned to the one URI registered on the employee OAuth client;
@@ -81,9 +93,10 @@ export async function accessTokenFor(base44: any, account: any) {
  * retried sync can never create a duplicate.
  */
 export async function upsertMessage(base44: any, account: any, member: any, message: any) {
-  const existing: any[] = await base44.asServiceRole.entities.EmployeeMessage
-    .filter({ account_id: account.id, provider_message_id: message.provider_message_id }, { limit: 1 })
-    .catch(() => []);
+  const existingRow = await firstRow(base44.asServiceRole.entities.EmployeeMessage, {
+    account_id: account.id,
+    provider_message_id: message.provider_message_id,
+  });
   const payload = {
     tenant_id: tenantFor(member),
     account_id: account.id,
@@ -107,9 +120,9 @@ export async function upsertMessage(base44: any, account: any, member: any, mess
     has_attachments: !!message.has_attachments,
     attachments: message.attachments || [],
   };
-  if (existing[0]) {
-    await base44.asServiceRole.entities.EmployeeMessage.update(existing[0].id, payload);
-    return { ...existing[0], ...payload };
+  if (existingRow) {
+    await base44.asServiceRole.entities.EmployeeMessage.update(existingRow.id, payload);
+    return { ...existingRow, ...payload };
   }
   return await base44.asServiceRole.entities.EmployeeMessage.create(payload);
 }
@@ -118,14 +131,9 @@ export async function upsertMessage(base44: any, account: any, member: any, mess
 export async function contactForAddress(base44: any, email: string) {
   const address = String(email || '').trim().toLowerCase();
   if (!address) return null;
-  const rows: any[] = await base44.asServiceRole.entities.Contact
-    .filter({ email_normalized: address }, { limit: 1 })
-    .catch(() => []);
-  if (rows[0]) return rows[0];
-  const fallback: any[] = await base44.asServiceRole.entities.Contact
-    .filter({ email: address }, { limit: 1 })
-    .catch(() => []);
-  return fallback[0] || null;
+  const exact = await firstRow(base44.asServiceRole.entities.Contact, { email_normalized: address });
+  if (exact) return exact;
+  return await firstRow(base44.asServiceRole.entities.Contact, { email: address });
 }
 
 /**
@@ -134,10 +142,11 @@ export async function contactForAddress(base44: any, email: string) {
  */
 export async function logCrmActivity(base44: any, { member, account, message, contact, kind }: any) {
   const key = `${account.provider}:${message.provider_message_id || message.thread_id || ''}`;
-  const existing: any[] = await base44.asServiceRole.entities.ActivityLog
-    .filter({ sales_member_id: member.id, notes: { $regex: key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') } }, { limit: 1 })
-    .catch(() => []);
-  if (existing[0]) return existing[0];
+  const existingRow = await firstRow(base44.asServiceRole.entities.ActivityLog, {
+    sales_member_id: member.id,
+    notes: { $regex: key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') },
+  });
+  if (existingRow) return existingRow;
 
   const address = kind === 'inbound' ? message.from_email : (message.to_emails || [])[0] || '';
   return await base44.asServiceRole.entities.ActivityLog.create({
