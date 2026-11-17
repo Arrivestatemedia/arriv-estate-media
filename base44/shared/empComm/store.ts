@@ -32,9 +32,10 @@ export async function clientCredentials(provider: string) {
  * Paged reads come back as { items } (and can come back empty), so indexing one
  * as an array finds nothing. Read plainly and take the first row here instead.
  */
+const asRows = (result: any): any[] => (Array.isArray(result) ? result : result?.items || []);
+
 async function firstRow(entity: any, query: any) {
-  const result: any = await entity.filter(query).catch(() => []);
-  const rows: any[] = Array.isArray(result) ? result : result?.items || [];
+  const rows = asRows(await entity.filter(query).catch(() => []));
   return rows[0] || null;
 }
 
@@ -93,11 +94,51 @@ export async function accessTokenFor(base44: any, account: any) {
  * retried sync can never create a duplicate.
  */
 export async function upsertMessage(base44: any, account: any, member: any, message: any) {
-  const existingRow = await firstRow(base44.asServiceRole.entities.EmployeeMessage, {
-    account_id: account.id,
-    provider_message_id: message.provider_message_id,
-  });
-  const payload = {
+  const [row] = await storeMessages(base44, account, member, [message]);
+  return row;
+}
+
+/**
+ * Stores a whole page of provider messages in a few calls instead of two per
+ * message, so opening a mailbox is not held up by dozens of round trips.
+ */
+export async function storeMessages(base44: any, account: any, member: any, messages: any[]) {
+  const ids = (messages || []).map((message) => message?.provider_message_id).filter(Boolean);
+  if (!ids.length) return [];
+
+  const existingRows = asRows(
+    await base44.asServiceRole.entities.EmployeeMessage
+      .filter({ account_id: account.id, provider_message_id: { $in: ids } })
+      .catch(() => [])
+  );
+  const byProviderId = new Map(existingRows.map((row: any) => [row.provider_message_id, row]));
+
+  const updates: any[] = [];
+  const creates: any[] = [];
+  const merged: any[] = [];
+  for (const message of messages) {
+    const payload = messagePayload(account, member, message);
+    const existing = byProviderId.get(message.provider_message_id);
+    if (existing) {
+      updates.push({ id: existing.id, ...payload });
+      merged.push({ ...existing, ...payload });
+    } else {
+      creates.push(payload);
+    }
+  }
+
+  if (updates.length) await base44.asServiceRole.entities.EmployeeMessage.bulkUpdate(updates);
+  if (creates.length) {
+    const created = await base44.asServiceRole.entities.EmployeeMessage.bulkCreate(creates);
+    merged.push(...asRows(created));
+  }
+  // Return in the order the provider listed them.
+  const byId = new Map(merged.map((row: any) => [row.provider_message_id, row]));
+  return messages.map((message) => byId.get(message.provider_message_id)).filter(Boolean);
+}
+
+function messagePayload(account: any, member: any, message: any) {
+  return {
     tenant_id: tenantFor(member),
     account_id: account.id,
     sales_member_id: account.sales_member_id,
@@ -120,11 +161,6 @@ export async function upsertMessage(base44: any, account: any, member: any, mess
     has_attachments: !!message.has_attachments,
     attachments: message.attachments || [],
   };
-  if (existingRow) {
-    await base44.asServiceRole.entities.EmployeeMessage.update(existingRow.id, payload);
-    return { ...existingRow, ...payload };
-  }
-  return await base44.asServiceRole.entities.EmployeeMessage.create(payload);
 }
 
 /** Finds the CRM contact an address belongs to, so activity is attributed. */

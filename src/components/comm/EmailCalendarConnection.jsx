@@ -117,7 +117,9 @@ export default function EmailCalendarConnection({ member, onUpdated }) {
                 )}
               </p>
               <p className="mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.55)' }}>
-                {account.provider_label} ·{' '}
+                {account.provider_label} · private to this employee
+              </p>
+              <p className="mt-0.5 text-[11px]" style={{ color: 'rgba(26,26,26,0.5)' }}>
                 {account.last_sync_at ? `Last sync ${new Date(account.last_sync_at).toLocaleString()}` : 'Never synced'}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">

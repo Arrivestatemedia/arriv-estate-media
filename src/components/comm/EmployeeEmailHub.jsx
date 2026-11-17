@@ -136,7 +136,7 @@ export default function EmployeeEmailHub({ memberId }) {
             <Mail className="h-4 w-4" style={{ color: gold }} /> {account?.email_address}
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.5)' }}>
-            {account?.provider_label} · private to this employee
+            {account?.provider_label || 'Google Workspace'} · private to this employee
           </p>
         </div>
         <Button size="sm" variant="ghost" onClick={() => { loadConnection(); loadMessages(); }} className="gap-1.5">

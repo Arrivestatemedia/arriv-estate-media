@@ -9,7 +9,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { resolveActor, resolveTargetMember, accountFor, assertMailboxOwner, audit } from '../../shared/empComm/access.ts';
 import { adapterFor, requireCapability } from '../../shared/empComm/registry.ts';
-import { accessTokenFor, upsertMessage, contactForAddress, logCrmActivity } from '../../shared/empComm/store.ts';
+import { accessTokenFor, upsertMessage, storeMessages, contactForAddress, logCrmActivity } from '../../shared/empComm/store.ts';
 import { tenantFor } from '../../shared/empComm/tenant.ts';
 
 const asList = (v: any) => (Array.isArray(v) ? v : v?.items || []);
@@ -116,12 +116,8 @@ export default async function (req) {
       });
 
       // Store the summary so the CRM and AI command layer have a local record,
-      // and so a retried sync is idempotent.
-      const stored = [];
-      for (const message of messages) {
-        const row = await upsertMessage(base44, account, target.member, message);
-        stored.push(row);
-      }
+      // and so a retried sync is idempotent. One batch, not one call per message.
+      const stored = await storeMessages(base44, account, target.member, messages);
 
       return Response.json({
         provider: account.provider,
@@ -208,7 +204,7 @@ export default async function (req) {
         result = await adapter.forwardMessage(token, body.messageId, { to, html, attachments });
       } else {
         const original = body.messageId
-          ? asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: body.messageId }, { limit: 1 }))[0]
+          ? asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: body.messageId }))[0]
           : null;
         result = await adapter.sendMessage(token, {
           from: account.email_address,
@@ -323,7 +319,7 @@ export default async function (req) {
         occurred_at: new Date().toISOString(),
       };
       const existing = draftId
-        ? asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: draftId }, { limit: 1 }))[0]
+        ? asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: draftId }))[0]
         : null;
       const saved = existing
         ? await base44.asServiceRole.entities.EmployeeMessage.update(existing.id, payload)
@@ -338,7 +334,7 @@ export default async function (req) {
         trash: action === 'trash',
         markRead: action === 'markRead',
       });
-      const row = asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: body.messageId }, { limit: 1 }))[0];
+      const row = asList(await base44.asServiceRole.entities.EmployeeMessage.filter({ account_id: account.id, provider_message_id: body.messageId }))[0];
       if (row) {
         await base44.asServiceRole.entities.EmployeeMessage.update(row.id, {
           folder: action === 'trash' ? 'trash' : action === 'archive' ? 'archive' : row.folder,

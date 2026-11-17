@@ -197,9 +197,11 @@ export const googleAdapter = {
     );
     const ids = (list.messages || []).map((m: any) => m.id);
     const messages = [];
-    for (let i = 0; i < ids.length; i += 8) {
+    // Fetch the whole page of headers at once: Gmail allows these concurrent
+    // metadata reads, and serial rounds are what made the inbox feel slow.
+    for (let i = 0; i < ids.length; i += 25) {
       const batch = await Promise.allSettled(
-        ids.slice(i, i + 8).map((id: string) => call(`${GMAIL}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Message-ID`, token))
+        ids.slice(i, i + 25).map((id: string) => call(`${GMAIL}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Message-ID`, token))
       );
       for (const item of batch) {
         if (item.status !== 'fulfilled') continue;

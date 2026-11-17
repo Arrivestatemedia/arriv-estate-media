@@ -51,42 +51,67 @@ export default async function (req) {
     const token = await accessTokenFor(base44, account);
     const tenant = tenantFor(target.member);
 
+    const eventPayload = (event: any, existing?: any) => ({
+      tenant_id: tenant,
+      account_id: account.id,
+      sales_member_id: target.memberId,
+      provider: account.provider,
+      provider_event_id: event.provider_event_id,
+      calendar_id: 'primary',
+      title: event.title || '(no title)',
+      description: event.description || '',
+      location: event.location || '',
+      start_at: event.start_at || '',
+      end_at: event.end_at || '',
+      timezone: event.timezone || 'America/New_York',
+      attendees: event.attendees || [],
+      status: event.status || 'confirmed',
+      html_link: event.html_link || '',
+      organizer_email: event.organizer_email || account.email_address,
+      contact_id: event.contact_id || existing?.contact_id || '',
+    });
+
+    // A page of events is stored in a few calls, never two per event.
+    const storeEvents = async (events: any[]) => {
+      const ids = (events || []).map((event) => event.provider_event_id).filter(Boolean);
+      if (!ids.length) return [];
+      const existingRows = asList(
+        await base44.asServiceRole.entities.EmployeeCalendarEvent
+          .filter({ account_id: account.id, provider_event_id: { $in: ids } })
+          .catch(() => [])
+      );
+      const byProviderId = new Map(existingRows.map((row: any) => [row.provider_event_id, row]));
+      const updates: any[] = [];
+      const creates: any[] = [];
+      const merged: any[] = [];
+      for (const event of events) {
+        const existing = byProviderId.get(event.provider_event_id);
+        const payload = eventPayload(event, existing);
+        if (existing) {
+          updates.push({ id: existing.id, ...payload });
+          merged.push({ ...existing, ...payload });
+        } else {
+          creates.push(payload);
+        }
+      }
+      if (updates.length) await base44.asServiceRole.entities.EmployeeCalendarEvent.bulkUpdate(updates);
+      if (creates.length) {
+        merged.push(...asList(await base44.asServiceRole.entities.EmployeeCalendarEvent.bulkCreate(creates)));
+      }
+      const byId = new Map(merged.map((row: any) => [row.provider_event_id, row]));
+      return events.map((event) => byId.get(event.provider_event_id)).filter(Boolean);
+    };
+
     const store = async (event: any) => {
-      const existing = asList(
-        await base44.asServiceRole.entities.EmployeeCalendarEvent.filter(
-          { account_id: account.id, provider_event_id: event.provider_event_id },
-          { limit: 1 }
-        )
-      )[0];
-      const payload = {
-        tenant_id: tenant,
-        account_id: account.id,
-        sales_member_id: target.memberId,
-        provider: account.provider,
-        provider_event_id: event.provider_event_id,
-        calendar_id: 'primary',
-        title: event.title || '(no title)',
-        description: event.description || '',
-        location: event.location || '',
-        start_at: event.start_at || '',
-        end_at: event.end_at || '',
-        timezone: event.timezone || 'America/New_York',
-        attendees: event.attendees || [],
-        status: event.status || 'confirmed',
-        html_link: event.html_link || '',
-        organizer_email: event.organizer_email || account.email_address,
-        contact_id: event.contact_id || existing?.contact_id || '',
-      };
-      if (existing) return await base44.asServiceRole.entities.EmployeeCalendarEvent.update(existing.id, payload);
-      return await base44.asServiceRole.entities.EmployeeCalendarEvent.create(payload);
+      const [row] = await storeEvents([event]);
+      return row;
     };
 
     if (action === 'list') {
       const from = body.timeMin || new Date().toISOString();
       const to = body.timeMax || new Date(Date.now() + 30 * 86400000).toISOString();
       const events = await adapter.listEvents(token, { timeMin: from, timeMax: to, limit: Number(body.limit || 25) });
-      const stored = [];
-      for (const event of events) stored.push(await store(event));
+      const stored = await storeEvents(events);
       return Response.json({ provider: account.provider, events: stored });
     }
 
@@ -160,10 +185,10 @@ export default async function (req) {
         attendees: body.attendees ? emails(body.attendees).map((email) => ({ email })) : undefined,
       });
       const existing = asList(
-        await base44.asServiceRole.entities.EmployeeCalendarEvent.filter(
-          { account_id: account.id, provider_event_id: body.eventId },
-          { limit: 1 }
-        )
+        await base44.asServiceRole.entities.EmployeeCalendarEvent.filter({
+          account_id: account.id,
+          provider_event_id: body.eventId,
+        })
       )[0];
       if (existing) {
         await base44.asServiceRole.entities.EmployeeCalendarEvent.update(existing.id, {
@@ -188,10 +213,10 @@ export default async function (req) {
       if (!body.eventId) return Response.json({ error: 'eventId is required' }, { status: 400 });
       await adapter.deleteEvent(token, body.eventId);
       const existing = asList(
-        await base44.asServiceRole.entities.EmployeeCalendarEvent.filter(
-          { account_id: account.id, provider_event_id: body.eventId },
-          { limit: 1 }
-        )
+        await base44.asServiceRole.entities.EmployeeCalendarEvent.filter({
+          account_id: account.id,
+          provider_event_id: body.eventId,
+        })
       )[0];
       if (existing) {
         await base44.asServiceRole.entities.EmployeeCalendarEvent.update(existing.id, { status: 'cancelled' });
