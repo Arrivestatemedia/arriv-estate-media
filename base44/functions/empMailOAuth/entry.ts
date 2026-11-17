@@ -11,6 +11,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { resolveActor, resolveTargetMember, accountFor, audit } from '../../shared/empComm/access.ts';
 import { adapterFor, providerCatalog, isSupportedProvider } from '../../shared/empComm/registry.ts';
 import { clientCredentials, redirectUriFor } from '../../shared/empComm/store.ts';
+import { googleEmployeeCredentialStatus } from '../../shared/empComm/googleCredentials.ts';
 import { signState, verifyState } from '../../shared/empComm/state.ts';
 import { tenantFor } from '../../shared/empComm/tenant.ts';
 
@@ -109,6 +110,53 @@ export default async function (req) {
     if (!actorResult.ok) return Response.json({ error: actorResult.error }, { status: actorResult.status });
     const actor = actorResult.actor;
 
+    // Configuration readiness for the dedicated employee Google client.
+    // Never reports "connected" from credentials alone — only a real OAuth
+    // round trip writes a connected mailbox account.
+    if (action === 'verify_google') {
+      if (!actor.isAdmin) return Response.json({ error: 'Only an administrator can verify the connection.' }, { status: 403 });
+      const readiness = googleEmployeeCredentialStatus();
+      let credential_pair = 'not_checked';
+      let detail = '';
+      if (readiness.configured) {
+        try {
+          const credentials = await clientCredentials('google');
+          // An intentionally invalid code: Google answers invalid_grant only
+          // when the client id and secret really belong together.
+          const res = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              code: 'arriv_one_pair_check',
+              client_id: credentials.clientId,
+              client_secret: credentials.clientSecret,
+              redirect_uri: readiness.redirect_uri,
+              grant_type: 'authorization_code',
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          credential_pair =
+            data.error === 'invalid_grant' ? 'valid' : data.error === 'invalid_client' ? 'invalid' : 'unknown';
+          detail = data.error_description || data.error || '';
+        } catch (error: any) {
+          credential_pair = 'unknown';
+          detail = error?.message || '';
+        }
+      }
+      const connectedAccounts = await base44.asServiceRole.entities.EmployeeEmailAccount
+        .filter({ provider: 'google', status: 'connected' })
+        .catch(() => []);
+      return Response.json({
+        provider: 'google',
+        configured: readiness.configured,
+        client_id_suffix: readiness.client_id_suffix,
+        redirect_uri: readiness.redirect_uri,
+        credential_pair,
+        detail,
+        mailboxes_connected: (connectedAccounts || []).length,
+      });
+    }
+
     if (action === 'status') {
       const target = await resolveTargetMember(base44, actor, body.memberId);
       if (!target.ok) return Response.json({ error: target.error }, { status: target.status });
@@ -144,6 +192,7 @@ export default async function (req) {
         assigned_company_email: target.member.company_email || '',
         accounts,
         connected: accounts.some((a: any) => a.status === 'connected'),
+        google_oauth: googleEmployeeCredentialStatus(),
         providers: providerCatalog(),
       });
     }

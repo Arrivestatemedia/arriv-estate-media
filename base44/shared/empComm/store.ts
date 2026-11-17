@@ -9,13 +9,13 @@
 import { adapterFor } from './registry.ts';
 import { audit } from './access.ts';
 import { tenantFor } from './tenant.ts';
+import { googleEmployeeCredentials, EMP_COMM_GOOGLE_REDIRECT_URI } from './googleCredentials.ts';
 
 export async function clientCredentials(provider: string) {
   if (provider === 'google') {
-    const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID');
-    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-    if (!clientId || !clientSecret) throw new Error('Google Workspace sign-in is not configured for this app.');
-    return { clientId, clientSecret };
+    // The employee layer owns its own Google client, so no other Google
+    // integration is affected by this connection or its rotation.
+    return googleEmployeeCredentials();
   }
   if (provider === 'microsoft') {
     const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
@@ -28,9 +28,10 @@ export async function clientCredentials(provider: string) {
 
 export function redirectUriFor(provider: string) {
   const base = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arrivestatemedia.base44.app';
-  // Reuses the redirect URIs already registered with each provider.
+  // Google is pinned to the one URI registered on the employee OAuth client;
+  // Microsoft keeps the redirect it already has registered.
   return provider === 'google'
-    ? `${base}/SalesRepGmailAuthCallback`
+    ? EMP_COMM_GOOGLE_REDIRECT_URI
     : `${base}/SalesRepMicrosoftAuthCallback`;
 }
 
