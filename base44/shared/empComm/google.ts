@@ -187,12 +187,13 @@ export const googleAdapter = {
     return { email: info.emailAddress || '', name: info.emailAddress || '' };
   },
 
-  async listMessages(token, { folder = 'inbox', query = '', limit = 25 } = {}) {
+  async listMessagesPage(token, { folder = 'inbox', query = '', limit = 25, pageToken = '' } = {}) {
     const filter =
       folder === 'sent' ? 'in:sent' : folder === 'drafts' ? 'in:drafts' : folder === 'trash' ? 'in:trash' : 'in:inbox';
     const q = `${filter}${query ? ` ${query}` : ''}`;
+    const page = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
     const list = await call(
-      `${GMAIL}/messages?q=${encodeURIComponent(q)}&maxResults=${Math.min(Number(limit) || 25, 50)}`,
+      `${GMAIL}/messages?q=${encodeURIComponent(q)}&maxResults=${Math.min(Number(limit) || 25, 50)}${page}`,
       token
     );
     const ids = (list.messages || []).map((m: any) => m.id);
@@ -222,7 +223,12 @@ export const googleAdapter = {
         });
       }
     }
-    return messages;
+    return { messages, next_page_token: list.nextPageToken || '' };
+  },
+
+  async listMessages(token, options = {}) {
+    const page = await this.listMessagesPage(token, options);
+    return page.messages;
   },
 
   async getMessage(token, messageId) {

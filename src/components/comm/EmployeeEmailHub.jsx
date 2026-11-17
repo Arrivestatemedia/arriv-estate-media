@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CalendarDays, Clock, Inbox, LayoutTemplate, Loader2, Mail, PenLine, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Clock, Inbox, LayoutTemplate, Loader2, Mail, PenLine, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { empComm } from '@/lib/empCommClient';
 import EmailCalendarConnection from './EmailCalendarConnection';
 import EmailComposePanel from './EmailComposePanel';
@@ -36,6 +36,9 @@ export default function EmployeeEmailHub() {
   const [templates, setTemplates] = useState([]);
   const [canManageCompany, setCanManageCompany] = useState(false);
   const [messages, setMessages] = useState([]);
+  // Every page's cursor, first page first — one entry per page visited so far.
+  const [pageTrail, setPageTrail] = useState(['']);
+  const [nextPageToken, setNextPageToken] = useState('');
   const [folder, setFolder] = useState('inbox');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,18 +76,21 @@ export default function EmployeeEmailHub() {
   }, [memberId]);
 
   const loadMessages = useCallback(
-    async (nextFolder = folder) => {
+    async (nextFolder = folder, pageToken = '', trail = ['']) => {
       if (!memberId) return;
       setLoading(true);
       setError('');
       try {
         const data = query.trim()
-          ? await empComm.search({ memberId, query: query.trim(), folder: nextFolder })
-          : await empComm.inbox({ memberId, folder: nextFolder, limit: 25 });
+          ? await empComm.search({ memberId, query: query.trim(), folder: nextFolder, limit: 25, pageToken })
+          : await empComm.inbox({ memberId, folder: nextFolder, limit: 25, pageToken });
         setMessages(data.messages || []);
+        setNextPageToken(data.next_page_token || '');
+        setPageTrail(trail);
       } catch (err) {
         setError(err.message || 'Your inbox could not be loaded.');
         setMessages([]);
+        setNextPageToken('');
       } finally {
         setLoading(false);
       }
@@ -269,6 +275,31 @@ export default function EmployeeEmailHub() {
                 <p className="py-8 text-center text-sm" style={{ color: 'rgba(26,26,26,0.45)' }}>
                   Nothing in {folder} yet.
                 </p>
+              )}
+              {(pageTrail.length > 1 || nextPageToken) && (
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={pageTrail.length <= 1}
+                    className="gap-1"
+                    onClick={() => loadMessages(folder, pageTrail[pageTrail.length - 2], pageTrail.slice(0, -1))}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                  </Button>
+                  <span className="text-[11px]" style={{ color: 'rgba(26,26,26,0.45)' }}>
+                    Page {pageTrail.length}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={!nextPageToken}
+                    className="gap-1"
+                    onClick={() => loadMessages(folder, nextPageToken, [...pageTrail, nextPageToken])}
+                  >
+                    Next page <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               )}
             </div>
           )}

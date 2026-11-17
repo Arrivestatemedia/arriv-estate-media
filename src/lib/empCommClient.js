@@ -43,10 +43,10 @@ export const empComm = {
   finishConnect: (code, state) => call('empMailOAuth', { action: 'callback', code, state }),
   disconnect: (provider, memberId) => call('empMailOAuth', { action: 'disconnect', provider, memberId }),
 
-  inbox: ({ memberId, folder = 'inbox', limit = 25 } = {}) =>
-    call('empMailbox', { action: 'inbox', memberId, folder, limit }),
-  search: ({ memberId, query, folder = 'inbox' } = {}) =>
-    call('empMailbox', { action: 'search', memberId, query, folder }),
+  inbox: ({ memberId, folder = 'inbox', limit = 25, pageToken = '' } = {}) =>
+    call('empMailbox', { action: 'inbox', memberId, folder, limit, pageToken }),
+  search: ({ memberId, query, folder = 'inbox', limit = 25, pageToken = '' } = {}) =>
+    call('empMailbox', { action: 'search', memberId, query, folder, limit, pageToken }),
   message: ({ memberId, messageId }) => call('empMailbox', { action: 'get', memberId, messageId }),
   attachment: ({ memberId, messageId, attachmentId }) =>
     call('empMailbox', { action: 'attachment', memberId, messageId, attachmentId }),

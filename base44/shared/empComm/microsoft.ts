@@ -139,7 +139,7 @@ export const microsoftAdapter = {
     return { email: me.mail || me.userPrincipalName || '', name: me.displayName || '' };
   },
 
-  async listMessages(token, { folder = 'inbox', query = '', limit = 25 } = {}) {
+  async listMessagesPage(token, { folder = 'inbox', query = '', limit = 25, pageToken = '' } = {}) {
     const folderId = FOLDER[folder] || 'inbox';
     const params = new URLSearchParams({
       $top: String(Math.min(Number(limit) || 25, 50)),
@@ -147,8 +147,13 @@ export const microsoftAdapter = {
       $select: 'id,conversationId,subject,from,toRecipients,ccRecipients,receivedDateTime,isRead,hasAttachments,bodyPreview',
     });
     if (query) params.set('$search', `"${query}"`);
+    if (pageToken) params.set('$skiptoken', pageToken);
     const data = await call(`${GRAPH}/me/mailFolders/${folderId}/messages?${params.toString()}`, token);
-    return (data?.value || []).map((m: any) => ({
+    const nextLink = data?.['@odata.nextLink'] || '';
+    const skipToken = nextLink
+      ? new URLSearchParams(nextLink.split('?')[1] || '').get('$skiptoken') || ''
+      : '';
+    const messages = (data?.value || []).map((m: any) => ({
       provider_message_id: m.id,
       thread_id: m.conversationId,
       snippet: m.bodyPreview || '',
@@ -162,6 +167,12 @@ export const microsoftAdapter = {
       folder,
       has_attachments: !!m.hasAttachments,
     }));
+    return { messages, next_page_token: skipToken };
+  },
+
+  async listMessages(token, options = {}) {
+    const page = await this.listMessagesPage(token, options);
+    return page.messages;
   },
 
   async getMessage(token, messageId) {

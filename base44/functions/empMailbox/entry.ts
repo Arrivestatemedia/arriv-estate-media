@@ -109,11 +109,13 @@ export default async function (req) {
         });
       }
 
-      const messages = await adapter.listMessages(token, {
+      const page = await adapter.listMessagesPage(token, {
         folder,
         query: action === 'search' ? String(body.query || '') : '',
         limit: Number(body.limit || 25),
+        pageToken: String(body.pageToken || ''),
       });
+      const messages = page.messages;
 
       // Store the summary so the CRM and AI command layer have a local record,
       // and so a retried sync is idempotent. One batch, not one call per message.
@@ -123,6 +125,7 @@ export default async function (req) {
         provider: account.provider,
         email_address: account.email_address,
         folder,
+        next_page_token: page.next_page_token || '',
         messages: stored.map((row) => ({
           id: row.id,
           provider_message_id: row.provider_message_id,
