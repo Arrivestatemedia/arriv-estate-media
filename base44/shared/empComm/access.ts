@@ -34,11 +34,21 @@ export async function resolveActor(base44: any, req: Request, body: any) {
   if (user.role !== 'admin') {
     return { ok: false as const, status: 403, error: 'Employee communications require an employee or administrator session.' };
   }
-  // Link the administrator to their own employee record when one exists.
+  // Link the administrator to their own employee record when one exists. The
+  // employee record may store the address with different casing, so fall back to
+  // comparing case-insensitively instead of reporting "no employee".
   const found: any = await base44.asServiceRole.entities.SalesTeamMember
     .filter({ email: user.email })
     .catch(() => []);
-  const rows: any[] = Array.isArray(found) ? found : found?.items || [];
+  let rows: any[] = Array.isArray(found) ? found : found?.items || [];
+  if (!rows.length) {
+    const target = String(user.email || '').trim().toLowerCase();
+    const all: any = await base44.asServiceRole.entities.SalesTeamMember
+      .list('-created_date', 500)
+      .catch(() => []);
+    const allRows: any[] = Array.isArray(all) ? all : all?.items || [];
+    rows = target ? allRows.filter((row: any) => String(row.email || '').trim().toLowerCase() === target) : [];
+  }
   const member = rows[0] || null;
   return {
     ok: true as const,

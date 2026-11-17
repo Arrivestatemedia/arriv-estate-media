@@ -23,8 +23,14 @@ const TABS = [
 /**
  * Employee Email Hub. Everything here runs through the employee's own connected
  * mailbox — there is no shared mailbox and no company-address fallback.
+ *
+ * The employee is resolved by the server from the signed-in session, never from
+ * an id the page happens to hold: a platform login and its employee record carry
+ * different ids, and that mismatch presented a connected mailbox as disconnected.
  */
-export default function EmployeeEmailHub({ memberId }) {
+export default function EmployeeEmailHub() {
+  const [memberId, setMemberId] = useState('');
+  const [resolving, setResolving] = useState(true);
   const [tab, setTab] = useState('inbox');
   const [connection, setConnection] = useState(null);
   const [templates, setTemplates] = useState([]);
@@ -42,13 +48,18 @@ export default function EmployeeEmailHub({ memberId }) {
   const connected = connection?.connected === true;
 
   const loadConnection = useCallback(async () => {
-    if (!memberId) return;
     try {
-      setConnection(await empComm.status(memberId));
+      // No id is sent: the server identifies the employee from the session.
+      const data = await empComm.status();
+      setConnection(data);
+      setMemberId(data?.member_id || '');
     } catch (err) {
       setError(err.message || 'The mailbox status could not be loaded.');
+      setConnection({ connected: false, accounts: [] });
+    } finally {
+      setResolving(false);
     }
-  }, [memberId]);
+  }, []);
 
   const loadTemplates = useCallback(async () => {
     if (!memberId) return;
@@ -93,8 +104,11 @@ export default function EmployeeEmailHub({ memberId }) {
 
   useEffect(() => {
     loadConnection();
-    loadTemplates();
-  }, [loadConnection, loadTemplates]);
+  }, [loadConnection]);
+
+  useEffect(() => {
+    if (memberId) loadTemplates();
+  }, [memberId, loadTemplates]);
 
   useEffect(() => {
     if (connected && tab === 'inbox') loadMessages();
@@ -104,8 +118,24 @@ export default function EmployeeEmailHub({ memberId }) {
     if (connected && tab === 'scheduled') loadScheduled();
   }, [connected, tab, loadScheduled]);
 
+  if (resolving) {
+    return (
+      <div className="flex items-center gap-2 py-6 text-sm" style={{ color: 'rgba(26,26,26,0.55)' }}>
+        <Loader2 className="h-4 w-4 animate-spin" style={{ color: gold }} /> Opening your mailbox…
+      </div>
+    );
+  }
+
   if (!memberId) {
-    return <p className="py-6 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Select an employee to open their mailbox.</p>;
+    return (
+      <div className="space-y-2">
+        {error && <p className="rounded bg-red-50 p-2 text-xs text-red-700">{error}</p>}
+        <p className="py-4 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+          No employee record is linked to this login, so there is no mailbox to open. An administrator can link your
+          employee profile.
+        </p>
+      </div>
+    );
   }
 
   if (!connected) {
@@ -121,6 +151,7 @@ export default function EmployeeEmailHub({ memberId }) {
             </p>
           </div>
         </div>
+        {error && <p className="rounded bg-red-50 p-2 text-xs text-red-700">{error}</p>}
         <EmailCalendarConnection member={{ id: memberId }} onUpdated={loadConnection} />
       </div>
     );
@@ -136,7 +167,7 @@ export default function EmployeeEmailHub({ memberId }) {
             <Mail className="h-4 w-4" style={{ color: gold }} /> {account?.email_address}
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(26,26,26,0.5)' }}>
-            {account?.provider_label || 'Google Workspace'} · private to this employee
+            {account?.provider_label} · private to this employee
           </p>
         </div>
         <Button size="sm" variant="ghost" onClick={() => { loadConnection(); loadMessages(); }} className="gap-1.5">

@@ -69,8 +69,8 @@ export const empComm = {
 
   comm: (text) => call('arrivOneComm', { text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
 
-  calendar: ({ memberId, timeMin, timeMax } = {}) =>
-    call('empCalendar', { action: 'list', memberId, timeMin, timeMax }),
+  calendar: ({ memberId, timeMin, timeMax, limit } = {}) =>
+    call('empCalendar', { action: 'list', memberId, timeMin, timeMax, limit }),
   availability: ({ memberId, timeMin, timeMax, attendees } = {}) =>
     call('empCalendar', { action: 'availability', memberId, timeMin, timeMax, attendees }),
   createEvent: ({ memberId, ...payload }) => call('empCalendar', { action: 'create', memberId, ...payload }),

@@ -845,7 +845,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
         {activeTab === "email" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
-              <EmployeeEmailHub memberId={user?.id} />
+              <EmployeeEmailHub />
             </CardContent>
           </Card>
         )}
