@@ -1,57 +1,35 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+/**
+ * syncAdminChatStatusWithCalendar — the admin's own chat availability.
+ *
+ * Uses the admin's own connected calendar, never the shared company calendar.
+ */
+
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { syncChatStatusForMember } from '../../shared/empComm/chatStatus.ts';
+
+const asList = (value: any) => (Array.isArray(value) ? value : value?.items || []);
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
-    // Get Google Calendar access token
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
 
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
     if (!adminEmail) {
       return Response.json({ error: 'ADMIN_EMAIL secret not set' }, { status: 500 });
     }
 
-    const now = new Date();
-    const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-    const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-
-    // Fetch calendar events
-    const calResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
-      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    const members = asList(
+      await base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail }).catch(() => [])
     );
-
-    const calData = await calResponse.json();
-    
-    // Try to get admin member (not critical if it fails)
-    let adminMembers = [];
-    try {
-      adminMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail });
-    } catch (e) {
-      console.log('Could not fetch admin member, skipping update');
+    const member = members[0];
+    if (!member) {
+      return Response.json({ status: null, hasActiveEvent: false, reason: 'admin_member_not_found' });
     }
 
-    const relevantEvents = (calData.items || []).filter(event => {
-      const organizerEmail = (event.organizer?.email || '').toLowerCase();
-      const attendeeEmails = (event.attendees || []).map(a => (a.email || '').toLowerCase());
-      const includesAdmin = organizerEmail === adminEmail.toLowerCase() || attendeeEmails.includes(adminEmail.toLowerCase());
-      const startTime = new Date(event.start?.dateTime || event.start?.date);
-      const endTime = new Date(event.end?.dateTime || event.end?.date);
-      const isOngoing = startTime <= now && endTime > new Date(now.getTime() + 30000);
-      return includesAdmin && isOngoing;
-    });
-
-    const hasActiveEvent = relevantEvents.length > 0;
-    const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
-
-    if (adminMembers && adminMembers.length > 0) {
-      await base44.asServiceRole.entities.SalesTeamMember.update(adminMembers[0].id, { chat_status: newStatus });
-    }
-
-    return Response.json({ status: newStatus, hasActiveEvent });
-  } catch (error) {
-    console.error('Admin calendar sync error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    const result = await syncChatStatusForMember(base44, member.id);
+    return Response.json(result);
+  } catch (error: any) {
+    console.error('Admin calendar sync error:', error?.message);
+    return Response.json({ error: error?.message || 'Calendar sync failed' }, { status: 500 });
   }
 });
