@@ -135,9 +135,14 @@ export default async function (req) {
             }),
           });
           const data = await res.json().catch(() => ({}));
+          const description = String(data.error_description || '');
           credential_pair =
-            data.error === 'invalid_grant' ? 'valid' : data.error === 'invalid_client' ? 'invalid' : 'unknown';
-          detail = data.error_description || data.error || '';
+            data.error === 'invalid_grant'
+              ? 'valid'
+              : data.error === 'invalid_client'
+                ? (/client was not found/i.test(description) ? 'client_not_found' : 'invalid')
+                : 'unknown';
+          detail = description || data.error || '';
         } catch (error: any) {
           credential_pair = 'unknown';
           detail = error?.message || '';
