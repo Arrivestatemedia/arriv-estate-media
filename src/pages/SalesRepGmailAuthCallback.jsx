@@ -25,7 +25,9 @@ export default function SalesRepGmailAuthCallback() {
           window.location.href = '/HubSpotActivityLog?tab=email';
         }, 1800);
       } catch (err) {
-        setError(err.message);
+        // Surface the server's real explanation instead of axios's generic
+        // "Request failed with status code 400".
+        setError(err?.response?.data?.error || err.message);
         setStatus('error');
       }
     };
