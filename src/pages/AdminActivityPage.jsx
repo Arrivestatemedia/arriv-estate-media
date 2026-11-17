@@ -18,7 +18,7 @@ import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
-import CalendarTab from "@/components/sales/CalendarTab";
+import EmailCalendarPanel from "@/components/comm/EmailCalendarPanel";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ProspectingTab from "@/components/sales/ProspectingTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
@@ -916,7 +916,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         )}
 
         {activeTab === "calendar" && (
-          <CalendarTab salesMemberId={user?.id} />
+          <EmailCalendarPanel memberId={user?.id} />
         )}
 
         {activeTab === "ai" && (

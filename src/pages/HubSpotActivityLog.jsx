@@ -17,7 +17,7 @@ import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
-import CalendarTab from "@/components/sales/CalendarTab";
+import EmailCalendarPanel from "@/components/comm/EmailCalendarPanel";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ProspectingTab from "@/components/sales/ProspectingTab";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
@@ -888,7 +888,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
         {activeTab === "calendar" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
-              <CalendarTab salesMemberId={user?.id} />
+              <EmailCalendarPanel memberId={user?.id} />
             </CardContent>
           </Card>
         )}
